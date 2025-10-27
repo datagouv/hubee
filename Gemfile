@@ -18,10 +18,13 @@ gem "stimulus-rails"
 gem "jbuilder"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
+gem "bcrypt", "~> 3.1.7"
+
+# Authorization with Pundit [https://github.com/varvet/pundit]
+gem "pundit", "~> 2.4"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem "tzinfo-data", platforms: %i[ windows jruby ]
+gem "tzinfo-data", platforms: %i[windows jruby]
 
 # Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
 gem "solid_cache"
@@ -36,7 +39,7 @@ gem "image_processing", "~> 1.2"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
-  gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
+  gem "debug", platforms: %i[mri windows], require: "debug/prelude"
 
   # Audits gems for known security defects (use config/bundler-audit.yml to ignore issues)
   gem "bundler-audit", require: false
@@ -44,8 +47,29 @@ group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
 
-  # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
-  gem "rubocop-rails-omakase", require: false
+  # Ruby style guide, linter, and formatter [https://github.com/standardrb/standard]
+  gem "standard", require: false
+
+  # RSpec for unit and request testing [https://rspec.info/]
+  gem "rspec-rails", "~> 7.1"
+
+  # Test data factories [https://github.com/thoughtbot/factory_bot_rails]
+  gem "factory_bot_rails", "~> 6.4"
+
+  # Fake data generation [https://github.com/faker-ruby/faker]
+  gem "faker", "~> 3.5"
+end
+
+group :test do
+  # Code coverage analysis [https://github.com/simplecov-ruby/simplecov]
+  gem "simplecov", require: false
+
+  # Cucumber for BDD E2E testing [https://cucumber.io/]
+  gem "cucumber-rails", require: false
+  gem "database_cleaner-active_record"
+
+  # Additional test helpers
+  gem "shoulda-matchers", "~> 6.4"
 end
 
 group :development do
