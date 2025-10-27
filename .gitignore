@@ -33,3 +33,15 @@
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 
+
+# =============================================================================
+# claude - Auto-generated symlinks
+# ⚠️  Auto-generated - Do not edit manually
+# =============================================================================
+.claude/
+
+# =============================================================================
+# cursor - Auto-generated symlinks
+# ⚠️  Auto-generated - Do not edit manually
+# =============================================================================
+.cursor/
