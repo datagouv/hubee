@@ -152,6 +152,44 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_reset_token ON users(reset_password_token);
 ```
 
+## Stratégie Identifiants API
+
+**Principe** : Ne jamais exposer les IDs séquentiels dans l'API (sécurité)
+
+### Identifiants Naturels (ex: SIRET)
+- Organizations : utiliser `siret` (14 chiffres, unique, immuable)
+- Routes API : `/api/v1/organizations/:siret`
+- Réponse JSON : `{id: "11122233300001", name: "...", siret: "11122233300001", ...}`
+
+### Colonnes UUID Auto-générées
+Pour les autres ressources, ajouter une colonne `uuid` :
+
+```sql
+-- Activer extension (une fois)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Exemple : data_streams
+ALTER TABLE data_streams
+  ADD COLUMN uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE;
+
+CREATE UNIQUE INDEX idx_data_streams_uuid ON data_streams(uuid);
+```
+
+**Migration Rails** :
+```ruby
+class AddUuidToDataStreams < ActiveRecord::Migration[8.0]
+  def change
+    enable_extension 'pgcrypto' unless extension_enabled?('pgcrypto')
+    add_column :data_streams, :uuid, :uuid, default: 'gen_random_uuid()', null: false
+    add_index :data_streams, :uuid, unique: true
+  end
+end
+```
+
+**Ressources avec UUID** : data_streams, subscriptions, data_packages, attachments, notifications, users
+
+**Référence** : [Rails PostgreSQL UUID Guide](https://guides.rubyonrails.org/active_record_postgresql.html#uuid)
+
 ## Relations Clés
 
 ```
