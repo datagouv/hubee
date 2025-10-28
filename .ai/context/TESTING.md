@@ -2,6 +2,8 @@
 
 **Version**: 1.2.0 | **Coverage**: 80%+
 
+> **Voir aussi** : `.ai/context/CODE_STYLE.md` pour conventions Ruby/Rails, RSpec patterns, factories
+
 ## Cycle TDD
 
 ```ruby

@@ -3,6 +3,8 @@
 **Version**: 1.2.0
 **Date**: 2025-01-27
 
+> **Voir aussi** : `.ai/context/CODE_STYLE.md` pour patterns code (Models, Controllers, Interactors)
+
 ---
 
 ## Architecture Globale

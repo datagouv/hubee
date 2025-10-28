@@ -4,6 +4,8 @@
 **Date**: 2025-01-27
 **SGBD**: PostgreSQL 16+
 
+> **Voir aussi** : `.ai/context/CODE_STYLE.md` pour patterns migrations, UUID, indexes concurrents, seeds
+
 ---
 
 ## Schéma Complet

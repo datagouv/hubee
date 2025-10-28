@@ -41,15 +41,14 @@ DELETE /api/v1/organizations/:siret        # (admin futur)
 ### Data Streams (r/w)
 
 ```http
-GET    /api/v1/data_streams              # index → [{id: uuid, name, description, owner_organization_id: siret, retention_days, created_at}, ...]
+GET    /api/v1/data_streams              # index → [{id: uuid, name, description, owner_organization_siret, retention_days, created_at}, ...]
 POST   /api/v1/data_streams         (w)  # create → {id: uuid, ...} | body: {data_stream: {name, description, retention_days}}
-GET    /api/v1/data_streams/:uuid        # show  → {id: uuid, name, description, owner_organization_id: siret, retention_days, created_at}
+GET    /api/v1/data_streams/:uuid        # show  → {id: uuid, name, description, owner_organization_siret, retention_days, created_at}
 PUT    /api/v1/data_streams/:uuid   (w)  # update → {id: uuid, ...}
 DELETE /api/v1/data_streams/:uuid   (w)  # 204 (si aucune notification existante)
 ```
 
 **Notes** :
-- `id` exposé = UUID (colonne `uuid` auto-générée par PostgreSQL). `owner_organization_id` = SIRET.
 - L'update permet de changer `owner_organization_siret` (transfert de propriété du data stream entre organisations)
 - `retention_days` accepte `null` (pas de limite de rétention)
 
@@ -143,33 +142,13 @@ DELETE /api/v1/users/:uuid                   # (admin futur)
 - Par IP : 300 req/5min
 - Par token : 1000 req/h
 
-## Jbuilder Patterns
+## Code Style & Patterns
 
-**Utiliser des partials** pour réutilisabilité :
-
-```ruby
-# ✅ Partial (_organization.json.jbuilder)
-json.extract! organization, :name, :siret, :created_at
-
-# ✅ index - Array direct avec partial
-json.array! @organizations, partial: "api/v1/organizations/organization", as: :organization
-
-# ✅ show - Objet direct avec partial
-json.partial! "api/v1/organizations/organization", organization: @organization
-
-# ✅ Ressources avec UUID (_data_stream.json.jbuilder)
-json.id data_stream.uuid  # UUID comme "id"
-json.extract! data_stream, :name, :description
-json.owner_organization_id data_stream.owner_organization.siret  # SIRET pour relations
-
-# ✅ Exception : attachments nested dans data_packages
-json.id @data_package.uuid
-json.extract! @data_package, :title, :status
-json.attachments @data_package.attachments, partial: "api/v1/attachments/attachment", as: :attachment
-
-# ❌ Pas de wrapper, pas d'IDs séquentiels exposés
-# json.id @resource.id  → NON (utiliser uuid ou identifiant naturel)
-```
+**Voir** : `.ai/context/CODE_STYLE.md` pour :
+- Patterns Jbuilder (partials, flat responses, identifiants)
+- Controllers (params.expect, find_by!, error handling)
+- Models (delegates, validations, associations)
+- Tests (RSpec patterns, factories)
 
 **Identifiants API** :
 - Organizations : SIRET exposé directement (pas d'`id`), identifiant naturel unique
