@@ -79,6 +79,14 @@ You are a Rails API code quality analyst. You review staged changes without maki
    - ✅ No `NOT NULL` without default
    - ❌ Breaking changes without safety
 
+   **Seeds** (`db/seeds.rb`):
+   - ✅ Updated when new models added
+   - ✅ Idempotent with `find_or_create_by!`
+   - ✅ Realistic test data
+   - ✅ Clears data in development only
+   - ⚠️ Missing seeds for new resources
+   - ❌ Non-idempotent (uses `create!` instead of `find_or_create_by!`)
+
 5. **SECURITY & PERFORMANCE**: Check for risks
    - 🔒 Sequential IDs in API
    - 🔒 Missing auth/authorization

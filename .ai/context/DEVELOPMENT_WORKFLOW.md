@@ -72,6 +72,7 @@ curl -H "Authorization: Bearer [TOKEN]" http://localhost:3000/api/v1/data_stream
 À la fin de chaque feature :
 - [ ] Tous tests feature : **GREEN**
 - [ ] Coverage feature : **>80%**
+- [ ] Seeds mis à jour : **db/seeds.rb avec données réalistes**
 - [ ] API endpoint : **Testé manuellement avec curl**
 - [ ] Workflow E2E : **GREEN** (Cucumber si applicable)
 - [ ] Git commit : **Feature isolée**
@@ -120,6 +121,7 @@ bin/brakeman --quiet                 # Security scan
 bin/rails db:migrate                 # Apply migrations
 bin/rails db:rollback                # Rollback last
 bin/rails db:reset                   # Drop + create + migrate + seed
+bin/rails db:seed                    # Reload seeds (idempotent)
 
 # Jobs
 bin/rails solid_queue:start          # Démarrer workers
@@ -227,6 +229,7 @@ Consulter `docs/WORKFLOW_IMPLEMENTATION_TDD.md` pour le guide complet feature pa
 - ✅ StandardRB sans erreurs
 - ✅ Brakeman sans warnings critiques
 - ✅ Coverage ≥ 80%
+- ✅ Seeds à jour et fonctionnels (`bin/rails db:seed`)
 
 ### Anti-Patterns à Éviter
 - ❌ SQL brut sans sanitization (utiliser ActiveRecord)
@@ -244,6 +247,7 @@ Consulter `docs/WORKFLOW_IMPLEMENTATION_TDD.md` pour le guide complet feature pa
 - **Gestion d'Erreurs** : rescue_from dans controllers
 - **Routes RESTful** : Suivre conventions Rails
 - **Validations** : Au niveau modèle + database constraints
+- **Seeds** : Idempotents avec `find_or_create_by!`, données réalistes
 
 ## Durée Estimée Totale
 
@@ -255,3 +259,74 @@ Consulter `docs/WORKFLOW_IMPLEMENTATION_TDD.md` pour le guide complet feature pa
 - Semaine 3 : Features 6-8 (Notifications + Events + Jobs Retention)
 - Semaine 4 : Feature 9 (Authentication + Authorization complète)
 - Semaine 5 : Tests E2E, documentation, préparation déploiement
+
+## Convention Seeds (db/seeds.rb)
+
+**Principe** : Idempotents avec `find_or_create_by!`, données réalistes, nettoyage dev uniquement.
+
+```ruby
+if Rails.env.development?
+  Organization.destroy_all
+end
+
+organizations_data = [
+  {name: "DINUM", siret: "13002526500013"},
+  {name: "ANSSI", siret: "13002802100010"}
+]
+
+organizations_data.each do |org_data|
+  Organization.find_or_create_by!(siret: org_data[:siret]) do |org|
+    org.name = org_data[:name]
+  end
+end
+```
+
+**Règles** : ✅ `find_or_create_by!` | ✅ Données réalistes | ✅ `if Rails.env.development?` | ❌ `create!` | ❌ `destroy_all` en prod
+
+---
+
+## Future Features & Améliorations
+
+### Feature 11 : Validation SIRET Luhn (Post-MVP)
+
+**Objectif** : Validation algorithmique SIRET (clé de Luhn) pour détecter erreurs de saisie
+
+**MVP actuel** : Format uniquement (`/\A\d{14}\z/`)
+
+**Implémentation** :
+```ruby
+# app/validators/siret_validator.rb
+class SiretValidator < ActiveModel::EachValidator
+  def validate_each(record, attribute, value)
+    return if value.blank? || value !~ /\A\d{14}\z/
+
+    digits = value.chars.map(&:to_i)
+    sum = digits.each_with_index.sum do |digit, index|
+      if index.even?
+        double = digit * 2
+        double > 9 ? double - 9 : double
+      else
+        digit
+      end
+    end
+
+    record.errors.add(attribute, "invalid checksum") unless (sum % 10).zero?
+  end
+end
+
+# app/models/organization.rb
+validates :siret, siret: true
+```
+
+**Bénéfices** : Détecte typos, améliore qualité données
+**Tradeoff** : Complexité +tests
+**Priorité** : 🟡 Medium | **Effort** : 4-6h | **Ref** : [Luhn Wikipedia](https://fr.wikipedia.org/wiki/Formule_de_Luhn)
+
+---
+
+### Autres Futures
+
+- **Geocoding** : Adresse/coordonnées depuis API INSEE
+- **Import Batch** : CSV/JSON en masse avec validation async
+- **Cache Redis** : Organizations fréquentes
+- **Soft Delete** : Audit trail avec `deleted_at`
