@@ -48,7 +48,10 @@ PUT    /api/v1/data_streams/:uuid   (w)  # update → {id: uuid, ...}
 DELETE /api/v1/data_streams/:uuid   (w)  # 204 (si aucune notification existante)
 ```
 
-**Note** : `id` exposé = UUID (colonne `uuid` auto-générée par PostgreSQL). `owner_organization_id` = SIRET.
+**Notes** :
+- `id` exposé = UUID (colonne `uuid` auto-générée par PostgreSQL). `owner_organization_id` = SIRET.
+- L'update permet de changer `owner_organization_siret` (transfert de propriété du data stream entre organisations)
+- `retention_days` accepte `null` (pas de limite de rétention)
 
 ### Subscriptions (r/w)
 
@@ -129,12 +132,12 @@ DELETE /api/v1/users/:uuid                   # (admin futur)
 
 | Code | Type | Response |
 |------|------|----------|
-| 401 | Unauthorized | `{error, message}` - Token invalide/expiré |
-| 403 | Forbidden | `{error, message}` - Droits insuffisants |
-| 404 | Not Found | `{error, message}` - Ressource inexistante |
-| 422 | Unprocessable Entity | `{error, errors: {field: [...]}}` - Validation failed |
-| 429 | Too Many Requests | `{error, message}` - Rate limit (headers: X-RateLimit-*) |
-| 500 | Internal Server Error | `{error, message}` - Erreur serveur |
+| 401 | Unauthorized | `{error: "message"}` - Token invalide/expiré |
+| 403 | Forbidden | `{error: "message"}` - Droits insuffisants |
+| 404 | Not Found | `{error: "Not found"}` |
+| 422 | Unprocessable Entity | `{field: ["error1", "error2"]}` - Validation errors (direct, no wrapper) |
+| 429 | Too Many Requests | `{error: "message"}` - Rate limit (headers: X-RateLimit-*) |
+| 500 | Internal Server Error | `{error: "message"}` - Erreur serveur |
 
 **Rate Limits (Rack::Attack)** :
 - Par IP : 300 req/5min
@@ -142,27 +145,27 @@ DELETE /api/v1/users/:uuid                   # (admin futur)
 
 ## Jbuilder Patterns
 
+**Utiliser des partials** pour réutilisabilité :
+
 ```ruby
-# ✅ index - Array direct (Organizations : SIRET uniquement, pas d'id)
-json.array! @organizations do |org|
-  json.extract! org, :name, :siret, :created_at
-end
+# ✅ Partial (_organization.json.jbuilder)
+json.extract! organization, :name, :siret, :created_at
 
-# ✅ show - Objet direct (Organizations : SIRET uniquement, pas d'id)
-json.extract! @organization, :name, :siret, :created_at
+# ✅ index - Array direct avec partial
+json.array! @organizations, partial: "api/v1/organizations/organization", as: :organization
 
-# ✅ Ressources avec UUID
-json.id @data_stream.uuid  # UUID comme "id"
-json.extract! @data_stream, :name, :description
-json.owner_organization_id @data_stream.organization.siret  # SIRET pour relations
+# ✅ show - Objet direct avec partial
+json.partial! "api/v1/organizations/organization", organization: @organization
+
+# ✅ Ressources avec UUID (_data_stream.json.jbuilder)
+json.id data_stream.uuid  # UUID comme "id"
+json.extract! data_stream, :name, :description
+json.owner_organization_id data_stream.owner_organization.siret  # SIRET pour relations
 
 # ✅ Exception : attachments nested dans data_packages
 json.id @data_package.uuid
 json.extract! @data_package, :title, :status
-json.attachments @data_package.attachments do |att|
-  json.id att.uuid  # UUID pour attachments
-  json.extract! att, :filename, :byte_size, :processing_status
-end
+json.attachments @data_package.attachments, partial: "api/v1/attachments/attachment", as: :attachment
 
 # ❌ Pas de wrapper, pas d'IDs séquentiels exposés
 # json.id @resource.id  → NON (utiliser uuid ou identifiant naturel)

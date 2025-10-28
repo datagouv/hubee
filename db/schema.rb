@@ -10,9 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_27_135101) do
+ActiveRecord::Schema[8.1].define(version: 2025_10_28_004632) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pgcrypto"
+
+  create_table "data_streams", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "name", null: false
+    t.bigint "owner_organization_id", null: false
+    t.integer "retention_days", default: 365
+    t.datetime "updated_at", null: false
+    t.uuid "uuid", default: -> { "gen_random_uuid()" }, null: false
+    t.index ["owner_organization_id"], name: "index_data_streams_on_owner_organization_id"
+    t.index ["uuid"], name: "index_data_streams_on_uuid", unique: true
+  end
 
   create_table "organizations", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -21,4 +34,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_27_135101) do
     t.datetime "updated_at", null: false
     t.index ["siret"], name: "index_organizations_on_siret", unique: true
   end
+
+  add_foreign_key "data_streams", "organizations", column: "owner_organization_id"
 end

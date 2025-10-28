@@ -190,7 +190,7 @@ RSpec.describe "Api::V1::Organizations", type: :request do
         expect(response.content_type).to match(%r{application/json})
 
         expect(json).to have_key("error")
-        expect(json["error"]).to eq("Not Found")
+        expect(json["error"]).to eq("Not found")
       end
     end
   end

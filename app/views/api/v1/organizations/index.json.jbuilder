@@ -1,3 +1,1 @@
-json.array! @organizations do |organization|
-  json.extract! organization, :name, :siret, :created_at
-end
+json.array! @organizations, partial: "api/v1/organizations/organization", as: :organization

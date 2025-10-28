@@ -1,1 +1,1 @@
-json.extract! @organization, :name, :siret, :created_at
+json.partial! "api/v1/organizations/organization", organization: @organization

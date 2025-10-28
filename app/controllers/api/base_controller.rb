@@ -10,7 +10,7 @@ module Api
     private
 
     def not_found
-      render json: {error: "Not Found"}, status: :not_found
+      render json: {error: "Not found"}, status: :not_found
     end
 
     def set_pagination_headers

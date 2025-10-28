@@ -348,6 +348,16 @@ users.each { |u| puts u.posts.count }
 ### Controllers
 
 ```ruby
+# ✅ Use params.expect (Rails 8.1+) instead of require + permit
+def user_params
+  params.expect(user: [:name, :email, :age])
+end
+
+# ❌ Old way (avoid)
+def user_params
+  params.require(:user).permit(:name, :email, :age)
+end
+
 # ✅ Keep controllers thin
 class UsersController < ApplicationController
   def create
@@ -356,14 +366,14 @@ class UsersController < ApplicationController
     if @user.persisted?
       render json: @user, status: :created
     else
-      render json: @user.errors, status: :unprocessable_entity
+      render json: @user.errors.messages, status: :unprocessable_entity
     end
   end
 
   private
 
   def user_params
-    params.require(:user).permit(:name, :email)
+    params.expect(user: [:name, :email])
   end
 end
 ```
