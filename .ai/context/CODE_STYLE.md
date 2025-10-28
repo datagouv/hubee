@@ -327,14 +327,128 @@ def data_stream_params
 end
 ```
 
+## 🏛️ Principes SOLID (Architecture)
+
+**Pragmatisme** : Guide la conception, pas un dogme absolu.
+
+### S - Single Responsibility
+**Une classe = une raison de changer.** Models pour données, Interactors pour logique métier, Jobs pour async.
+
+```ruby
+# ❌ DataPackage avec trop de responsabilités
+class DataPackage
+  def send_notifications; end
+  def encrypt_files; end
+end
+
+# ✅ Responsabilités séparées
+class DataPackage < ApplicationRecord; end
+class SendDataPackage; include Interactor; end
+class EncryptAttachmentJob < ApplicationJob; end
+```
+
+### O - Open/Closed
+**Ouvert à l'extension, fermé à la modification.** Extension par composition plutôt que `case type`.
+
+```ruby
+# ❌ Ajouter format = modifier classe
+class Exporter
+  def export(type)
+    case type
+    when :csv then generate_csv
+    when :pdf then generate_pdf
+    end
+  end
+end
+
+# ✅ Extension sans modification
+class CsvExporter; def export(data); end; end
+class PdfExporter; def export(data); end; end
+```
+
+### L - Liskov Substitution
+**Sous-classes remplaçables.** Si `Penguin < Bird`, alors `bird.fly` ne doit pas raise. Revoir hiérarchie si besoin.
+
+```ruby
+# ❌ Penguin viole contrat Bird
+class Bird; def fly; end; end
+class Penguin < Bird; def fly; raise "Can't fly!"; end; end
+
+# ✅ Hiérarchie correcte
+class Bird; def move; end; end
+class FlyingBird < Bird; def move; fly; end; end
+class Penguin < Bird; def move; swim; end; end
+```
+
+### D - Dependency Inversion
+**Dépendre d'abstractions.** Injection de dépendances plutôt que couplage fort. Testable avec mocks.
+
+```ruby
+# ❌ Couplé à FileLogger
+class ProcessAttachment
+  def call; FileLogger.new.log("..."); end
+end
+
+# ✅ Injection de dépendance
+class ProcessAttachment
+  def initialize(logger: Rails.logger); @logger = logger; end
+  def call; @logger.info("..."); end
+end
+```
+
+---
+
 ## 🔒 Sécurité & Performance
 
-### Sécurité
+### Sécurité Critique
 
-- 🔒 **Jamais d'IDs séquentiels exposés** → UUID ou identifiants naturels (SIRET)
-- 🔒 **Authentification/autorisation** sur tous les endpoints sensibles
-- 🔒 **Pas de SQL brut** → ActiveRecord query interface
-- 🔒 **params.expect** pour éviter mass assignment
+**1. Mass Assignment**
+```ruby
+params.expect(data_package: [:name, :title])  # Bloque attributs non-whitelistés
+```
+
+**2. SQL Injection**
+```ruby
+where(email: params[:email])  # ✅ Safe
+where("email = '#{params[:email]}'")  # ❌ Injection
+```
+
+**3. Authorization**
+```ruby
+authorize @resource  # Pundit vérifie droits AVANT accès
+```
+
+**4. Fichiers Sensibles**
+```ruby
+# Signed URLs avec expiration
+rails_blob_url(attachment, expires_in: 1.hour, disposition: "attachment")
+
+# Validation : content_type whitelist, size < 500MB
+# Virus scan : job asynchrone avant stockage final
+```
+
+**5. Encryption**
+```ruby
+encrypts :ssn  # ActiveRecord::Encryption (Rails 7+)
+encrypts :api_key, deterministic: true  # Permet where()
+```
+
+**6. Secrets**
+```ruby
+Rails.application.credentials.dig(:aws, :key)  # ✅
+ENV['AWS_KEY']  # ✅
+"AKIAIOSFODNN7"  # ❌ JAMAIS hardcoder
+```
+
+**7. Rate Limiting**
+```ruby
+Rack::Attack.throttle('api/ip', limit: 300, period: 5.minutes)
+```
+
+**8. Audit Trail**
+```ruby
+Event.log('file_downloaded', auditable: @attachment, organization: current_organization, context: {ip: request.remote_ip})
+```
 
 ### Performance
 
@@ -342,6 +456,8 @@ end
 - ⚡ **Éviter N+1** → utiliser `includes` ou `joins`
 - ⚡ **Pagination** sur collections larges (Pagy)
 - ⚡ **Concurrent indexes** en production (`algorithm: :concurrently`)
+- ⚡ **HTTP Caching** : `fresh_when(@resource)` pour ETag/Last-Modified
+- ⚡ **Fragment caching** : `json.cache! ['v1', @resource] do ... end` en Jbuilder
 
 ## 📚 Références
 
