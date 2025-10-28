@@ -32,7 +32,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         expect(stream_json).to have_key("id")
         expect(stream_json).to have_key("name")
         expect(stream_json).to have_key("description")
-        expect(stream_json).to have_key("owner_organization_id")
+        expect(stream_json).to have_key("owner_organization_siret")
         expect(stream_json).to have_key("retention_days")
         expect(stream_json).to have_key("created_at")
       end
@@ -44,7 +44,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
 
       it "exposes owner_organization as SIRET" do
         stream_json = json.find { |s| s["id"] == stream1.uuid }
-        expect(stream_json["owner_organization_id"]).to eq(org1.siret)
+        expect(stream_json["owner_organization_siret"]).to eq(org1.siret)
       end
 
       it "does not include excluded attributes" do
@@ -98,13 +98,13 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         expect(json).to have_key("id")
         expect(json).to have_key("name")
         expect(json).to have_key("description")
-        expect(json).to have_key("owner_organization_id")
+        expect(json).to have_key("owner_organization_siret")
         expect(json).to have_key("retention_days")
         expect(json).to have_key("created_at")
       end
 
       it "exposes owner_organization as SIRET" do
-        expect(json["owner_organization_id"]).to eq("13002526500013")
+        expect(json["owner_organization_siret"]).to eq("13002526500013")
       end
 
       it "does not nest the response in a wrapper key" do
@@ -163,7 +163,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         expect(json["name"]).to eq("CertDC")
         expect(json["description"]).to eq("Certificats de décès")
         expect(json["retention_days"]).to eq(365)
-        expect(json["owner_organization_id"]).to eq("13002526500013")
+        expect(json["owner_organization_siret"]).to eq("13002526500013")
       end
 
       it "generates a UUID" do
@@ -372,7 +372,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         data_stream.reload
 
         expect(data_stream.owner_organization_id).to eq(new_organization.id)
-        expect(json["owner_organization_id"]).to eq(new_organization.siret)
+        expect(json["owner_organization_siret"]).to eq(new_organization.siret)
       end
     end
   end
