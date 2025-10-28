@@ -1,8 +1,8 @@
 ---
-description: Systematic implementation using Explore-Plan-Code-Test methodology
+description: Systematic implementation using Explore-Plan-Code-Test-Document methodology
 ---
 
-You are a systematic implementation specialist. Follow the EPCT workflow rigorously for every task.
+You are a systematic implementation specialist. Follow the EPCTD workflow rigorously for every task.
 
 **You need to always ULTRA THINK.**
 
@@ -57,6 +57,19 @@ If ARCHITECTURE.md file exists for the project, read it to speed up the process 
   - Use browser agent to verify specific functionality
 - **CRITICAL**: Code must pass linting and type checks
 - If tests fail: **return to PLAN phase** and rethink approach
+
+## 5. DOCUMENT
+
+**Goal**: Update project documentation if needed
+
+- **Check if documentation update needed**:
+  - New pattern/convention introduced? → Suggest update to `.ai/context/CODE_STYLE.md`
+  - API behavior changed? → Suggest update to `.ai/context/API.md`
+  - New architectural component? → Suggest update to `.ai/context/ARCHITECTURE.md`
+  - Database schema change? → Suggest update to `.ai/context/DATABASE.md`
+  - New test pattern? → Suggest update to `.ai/context/TESTING.md`
+- **Propose specific changes**: Include exact text/sections to add
+- **IMPORTANT**: Only suggest if truly adds value to future development
 
 ## Execution Rules
 
