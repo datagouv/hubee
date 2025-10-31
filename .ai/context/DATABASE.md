@@ -50,13 +50,14 @@ CREATE TABLE data_streams (
 -- Abonnements (qui peut lire/écrire un flux)
 CREATE TABLE subscriptions (
   id BIGSERIAL PRIMARY KEY,
-  data_stream_id BIGINT NOT NULL REFERENCES data_streams(id),
-  organization_id BIGINT NOT NULL REFERENCES organizations(id),
-  read BOOLEAN DEFAULT FALSE,
-  write BOOLEAN DEFAULT FALSE,
+  data_stream_id BIGINT NOT NULL REFERENCES data_streams(id) ON DELETE CASCADE,
+  organization_id BIGINT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  permission_type VARCHAR NOT NULL DEFAULT 'read',
+  uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL,
-  UNIQUE(data_stream_id, organization_id)
+  UNIQUE(data_stream_id, organization_id),
+  CHECK (permission_type IN ('read', 'write', 'read_write'))
 );
 
 -- Paquets de données (transmission d'un ensemble de fichiers)
@@ -69,14 +70,12 @@ CREATE TABLE data_packages (
   title VARCHAR,
   sent_at TIMESTAMP,
   acknowledged_at TIMESTAMP,
-  deleted_at TIMESTAMP, -- Soft delete (audit trail)
-  deletion_reason TEXT, -- Ex: "Retention policy (365 days)"
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL
 );
 
-CREATE INDEX idx_data_packages_stream_status ON data_packages(data_stream_id, status) WHERE deleted_at IS NULL;
-CREATE INDEX idx_data_packages_sender_created ON data_packages(sender_organization_id, created_at) WHERE deleted_at IS NULL;
+CREATE INDEX idx_data_packages_stream_status ON data_packages(data_stream_id, status);
+CREATE INDEX idx_data_packages_sender_created ON data_packages(sender_organization_id, created_at);
 
 -- Notifications (liens data_package → subscriptions)
 CREATE TABLE notifications (
@@ -113,13 +112,12 @@ CREATE TABLE attachments (
   encrypted BOOLEAN DEFAULT FALSE,
   encrypted_at TIMESTAMP,
   encrypted_blob_key VARCHAR, -- S3 final (fichier chiffré uniquement, pas de bucket temp)
-  deleted_at TIMESTAMP, -- Soft delete (audit trail)
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL
 );
 
-CREATE INDEX idx_attachments_processing_status ON attachments(processing_status) WHERE deleted_at IS NULL;
-CREATE INDEX idx_attachments_package ON attachments(data_package_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_attachments_processing_status ON attachments(processing_status);
+CREATE INDEX idx_attachments_package ON attachments(data_package_id);
 
 -- Événements audit (RGS)
 CREATE TABLE events (
@@ -214,6 +212,8 @@ Notification (N) ─── (1) Organization (recipient)
 ### ON DELETE CASCADE
 Suppression automatique des dépendances :
 - `api_tokens` → `organizations` : Tokens supprimés avec organization
+- `subscriptions` → `data_streams` : Subscriptions supprimées avec data_stream
+- `subscriptions` → `organizations` : Subscriptions supprimées avec organization
 - `data_packages` → `attachments` : Fichiers supprimés avec paquet
 - `data_packages` → `notifications` : Notifications supprimées avec paquet
 
@@ -222,16 +222,30 @@ Protection contre suppression :
 - `data_streams` → `data_packages` : Ne peut supprimer stream avec paquets
 - `subscriptions` → `notifications` : Ne peut supprimer subscription avec notifications
 
-### Soft Delete
-Champs `deleted_at` pour audit trail :
-- `data_packages` : Conserve 90 jours avant hard delete
-- `attachments` : Conserve 90 jours avant hard delete
+### Soft Delete (Amélioration Future)
 
-**Job de cleanup** :
+Pour audit trail et conformité RGS, possibilité d'ajouter `deleted_at` sur :
+- `data_packages` : Conserve N jours avant hard delete
+- `attachments` : Conserve N jours avant hard delete
+
+**Implémentation future** :
 ```ruby
-# app/jobs/cleanup_soft_deleted_job.rb
-# Hard delete après 90 jours pour conformité RGS + libération stockage
-DataPackage.where('deleted_at < ?', 90.days.ago).find_each(&:destroy!)
+# Migration
+add_column :data_packages, :deleted_at, :timestamp
+add_column :data_packages, :deletion_reason, :text
+
+# Model
+default_scope { where(deleted_at: nil) }
+
+# Job cleanup
+DataPackage.unscoped.where('deleted_at < ?', 90.days.ago).find_each(&:destroy!)
+```
+
+**Indexes avec soft delete** :
+```sql
+CREATE INDEX idx_data_packages_stream_status
+  ON data_packages(data_stream_id, status)
+  WHERE deleted_at IS NULL;
 ```
 
 ## États des Machines
@@ -302,8 +316,14 @@ validates :retention_days, numericality: { greater_than: 0 }, allow_nil: true
 ```ruby
 validates :data_stream, presence: true
 validates :organization, presence: true
+validates :permission_type, presence: true
 validates :data_stream_id, uniqueness: { scope: :organization_id }
-validate :at_least_one_permission # read ou write doit être true
+
+enum :permission_type, {
+  read: 'read',
+  write: 'write',
+  read_write: 'read_write'
+}
 ```
 
 ### DataPackage
@@ -359,17 +379,12 @@ CREATE INDEX idx_notifications_org_status
 
 -- Liste attachments en erreur (monitoring)
 CREATE INDEX idx_attachments_processing_status
-  ON attachments(processing_status)
-  WHERE deleted_at IS NULL;
+  ON attachments(processing_status);
 
 -- Audit trail lookup (compliance)
 CREATE INDEX idx_events_org_created
   ON events(organization_id, created_at);
 ```
-
-### Partial Index (Soft Delete)
-
-Les index utilisent `WHERE deleted_at IS NULL` pour ignorer les enregistrements soft-deleted, améliorant les performances des requêtes courantes.
 
 ## Rétention et Archivage
 
@@ -382,14 +397,8 @@ expiration_date = data_package.created_at + data_stream.retention_days.days
 # Job quotidien 2h du matin
 EnforceRetentionPolicyJob.perform_later
 
-# Soft delete après expiration
-data_package.update!(
-  deleted_at: Time.current,
-  deletion_reason: "Retention policy (#{retention_days} days)"
-)
-
-# Hard delete après 90 jours
-CleanupSoftDeletedJob.perform_later
+# Delete après expiration
+data_package.destroy!
 ```
 
 ### Audit Trail Events

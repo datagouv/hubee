@@ -55,15 +55,31 @@ DELETE /api/v1/data_streams/:uuid   (w)  # 204 (si aucune notification existante
 ### Subscriptions (r/w)
 
 ```http
-GET    /api/v1/organizations/:siret/subscriptions  # index → [{id: uuid, data_stream_id: uuid, organization_id: siret, read, write, created_at}, ...]
-GET    /api/v1/data_streams/:uuid/subscriptions    # index (filters: ?write=true&read=false)
-GET    /api/v1/subscriptions/:uuid                 # show  → {id: uuid, data_stream_id: uuid, organization_id: siret, read, write, created_at}
-POST   /api/v1/data_streams/:uuid/subscriptions    # create → {id: uuid, ...}
-PUT    /api/v1/subscriptions/:uuid                 # update → {id: uuid, ...}
+GET    /api/v1/organizations/:siret/subscriptions  # index (admin-only) → [{id: uuid, data_stream_id: uuid, organization_id: siret, permission_type, created_at}, ...]
+GET    /api/v1/data_streams/:uuid/subscriptions    # index → filtre: ?permission_type=read,read_write
+POST   /api/v1/data_streams/:uuid/subscriptions    # create → {id: uuid, ...} | body: {subscription: {organization_id: siret, permission_type}}
+GET    /api/v1/subscriptions/:uuid                 # show → {id: uuid, data_stream_id: uuid, organization_id: siret, permission_type, created_at}
+PUT    /api/v1/subscriptions/:uuid                 # update → {id: uuid, ...} | body: {subscription: {permission_type}}
 DELETE /api/v1/subscriptions/:uuid                 # 204
 ```
 
-**Note** : `id` exposé = UUID. Relations : `data_stream_id` = UUID, `organization_id` = SIRET.
+**Enum `permission_type`** : `"read"` | `"write"` | `"read_write"`
+
+**Filtre par permission_type** (valeurs séparées par virgules) :
+```http
+GET /api/v1/data_streams/:uuid/subscriptions?permission_type=read,read_write  # Toutes avec read OU read_write
+GET /api/v1/data_streams/:uuid/subscriptions?permission_type=write,read_write # Toutes avec write OU read_write
+GET /api/v1/data_streams/:uuid/subscriptions?permission_type=read_write       # Seulement read_write
+GET /api/v1/data_streams/:uuid/subscriptions?permission_type=read             # Seulement read
+GET /api/v1/data_streams/:uuid/subscriptions?permission_type=write            # Seulement write
+GET /api/v1/data_streams/:uuid/subscriptions                                  # Toutes (pas de filtre)
+```
+
+**Notes** :
+- `id` exposé = UUID. Relations : `data_stream_id` = UUID, `organization_id` = SIRET
+- Endpoint `/organizations/:siret/subscriptions` = admin-only (Feature 9: Authentication)
+- CASCADE DELETE : Subscriptions supprimées automatiquement si data_stream ou organization supprimés
+- Filtre `permission_type` : liste de valeurs séparées par virgules, opérateur logique OR
 
 ### Data Packages (r/w) - Exception : attachments nested
 
