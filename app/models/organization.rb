@@ -2,6 +2,7 @@ class Organization < ApplicationRecord
   SIRET_FORMAT = /\A\d{14}\z/
 
   has_many :data_streams, foreign_key: :owner_organization_id, dependent: :restrict_with_error
+  has_many :subscriptions, dependent: :destroy
 
   validates :name, presence: true
   validates :siret, presence: true, uniqueness: {case_sensitive: false},
