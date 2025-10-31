@@ -1,0 +1,10 @@
+# Configuration de bundler-audit
+# Documentation : https://github.com/rubysec/bundler-audit
+
+# Ignorer certains advisories (à utiliser avec précaution)
+# Décommenter et ajouter les CVE à ignorer si nécessaire :
+# ignore:
+#   - CVE-YYYY-XXXXX  # Raison de l'exception (ex: not applicable to our use case)
+
+# Structure vide valide pour bundler-audit
+{}
