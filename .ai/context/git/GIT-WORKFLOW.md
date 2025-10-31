@@ -1,63 +1,34 @@
-# Git Workflow
+# Git Workflow - Hubee V2
 
-> Git conventions and workflow for {{PROJECT_NAME}}
-
-## 🎯 Instructions for Auto-Fill
-
-This template should be filled by analyzing:
-- CONTRIBUTING.md (primary source for workflow)
-- .github/ folder (PR templates, issue templates, workflows)
-- Git history (commit message patterns, branch naming)
-- Recent commits and PRs
-- Branch protection rules (if accessible via API)
+> Git conventions and workflow for Hubee V2
 
 ## 🌿 Branching Strategy
 
-<!-- Extract from CONTRIBUTING.md or analyze git branches:
-- Main branch name (main/master)
-- Development branch if exists
-- Feature branch pattern
-- Release branch pattern
--->
-
-**Primary Branch**: [main / master from git config]
+**Primary Branch**: `main`
 
 **Branch Types**:
-- **Feature**: [Pattern from branch names, e.g., `feature/*`, `feat/*`]
-- **Bugfix**: [Pattern from branch names, e.g., `fix/*`, `bugfix/*`]
-- **Hotfix**: [Pattern from branch names, e.g., `hotfix/*`]
-- **Release**: [Pattern from branch names, e.g., `release/*`]
+- **Feature**: `feature/*` or `feat/*`
+- **Bugfix**: `fix/*` or `bugfix/*`
+- **Hotfix**: `hotfix/*`
+- **Docs**: `docs/*`
+- **Refactor**: `refactor/*`
 
 ### Branch Naming Convention
 
-<!-- Analyze existing branch names for patterns -->
-
 ```bash
-# Detected patterns from existing branches
-[pattern-1]/[description]  # e.g., feat/add-user-auth
-[pattern-2]/[description]  # e.g., fix/login-bug
-[pattern-3]/[description]  # e.g., docs/update-readme
+feat/description        # New feature
+fix/description        # Bug fix
+docs/description       # Documentation updates
+refactor/description   # Code refactoring
 ```
-
-**Examples from Project**:
-- [Example branch 1 from git history]
-- [Example branch 2 from git history]
-- [Example branch 3 from git history]
 
 ## 📝 Commit Message Convention
 
-<!-- Analyze recent commit messages for patterns:
-- Conventional Commits (feat:, fix:, docs:, etc.)
-- Custom format
-- Emoji usage
-- Ticket/issue references
--->
+**Format**: Conventional Commits
 
-**Format**: [Conventional Commits / Custom / Unstructured]
-
-**Pattern Detected**:
+**Pattern**:
 ```
-[type]([scope]): [description]
+type(scope): description
 
 [optional body]
 
@@ -66,364 +37,311 @@ This template should be filled by analyzing:
 
 ### Commit Types
 
-<!-- Extract from commitlint config or analyze commit history for types -->
-
 | Type | Usage | Example from Project |
 |------|-------|----------------------|
-| [type1] | [Purpose] | [Actual commit from history] |
-| [type2] | [Purpose] | [Actual commit from history] |
-| [type3] | [Purpose] | [Actual commit from history] |
+| `feat` | New feature | `feat: force JSON format for API controllers` |
+| `fix` | Bug fix | `fix: login-bug` |
+| `docs` | Documentation | `docs: add SOLID principles and security to CODE_STYLE` |
+| `refactor` | Code refactoring | `refactor: simplify Jbuilder partial syntax` |
+| `test` | Test changes | `test: add request specs for data_streams` |
+| `chore` | Maintenance | `chore: update dependencies` |
+| `style` | Code style changes | `style: fix StandardRB violations` |
+| `perf` | Performance improvements | `perf: optimize query` |
 
 ### Commit Message Examples
 
-<!-- Extract good commit messages from recent history -->
-
 **Good Examples from Project**:
 ```
-[Example 1 from git log]
+docs: add SOLID principles and security to CODE_STYLE
 
-[Example 2 from git log]
+feat: add delegate to DataStream model
 
-[Example 3 from git log]
+refactor: improve code review and commit commands
+
+docs: create compact CODE_STYLE.md
 ```
 
-### Commit Linting
+### Commit Philosophy
 
-<!-- Detect commitlint or commit message validation:
-- commitlint.config.js
-- husky commit-msg hook
-- CI commit message checks
--->
+**Small, Atomic Commits**:
+- One logical change per commit
+- Each commit should be deployable
+- Clear, descriptive commit messages
+- No "WIP" or "fix" commit messages in main branch
 
-**Linting**: [Yes/No]
-**Tool**: [commitlint / custom / none detected]
-**Configuration**: [From commitlint.config.js if exists]
+## 🔐 GPG Commit Signing
+
+**Status**: Required for this project
+
+### GPG Configuration
+
+All commits must be signed with GPG. If you encounter GPG timeout errors:
+
+```bash
+gpg: échec de la signature : Délai d'attente dépassé
+```
+
+**Workaround**: Use manual commit commands instead of automated tools to allow PIN entry in terminal.
+
+### Manual Commit Commands
+
+When automated commits fail due to GPG timeout:
+
+```bash
+# Stage your changes
+git add <files>
+
+# Commit with GPG signature (will prompt for PIN)
+git commit -m "type: description"
+
+# Push to remote
+git push origin <branch>
+```
+
+### GPG Troubleshooting
+
+**Common Issues**:
+1. **Timeout**: GPG PIN prompt times out in background processes
+   - **Solution**: Run git commands manually in terminal
+
+2. **No PIN prompt**: GPG agent not configured
+   - **Solution**: Check `gpg-agent` configuration
+
+3. **Wrong key**: Git using incorrect GPG key
+   - **Solution**: Check `git config --global user.signingkey`
+
+## ⚠️ AI Agent Git Rules
+
+**CRITICAL**: AI agents must NEVER commit directly without user validation
+
+### AI Commit Workflow
+
+1. ✅ **Analyze changes**: Review what needs to be committed
+2. ✅ **Propose commits**: Show user what will be committed (title, body, files)
+3. ✅ **Wait for validation**: User must explicitly approve
+4. ✅ **Execute ONLY after approval**: Commit with user confirmation
+5. ❌ **NEVER**: Auto-commit without asking
+
+### When GPG Signing is Required
+
+**AI agents should**:
+- Propose commit messages and file groupings
+- Provide manual commands for user to execute
+- NOT attempt to execute `git commit` directly (will fail with GPG timeout)
+
+**Example AI Response**:
+```
+I propose these commits:
+
+1. docs: update testing guidelines
+   Files: .ai/context/TESTING.md, README.md
+
+2. refactor: improve request specs
+   Files: spec/requests/api/v1/*.rb
+
+Please run these commands:
+
+git add .ai/context/TESTING.md README.md
+git commit -m "docs: update testing guidelines"
+
+git add spec/requests/api/v1/*.rb
+git commit -m "refactor: improve request specs"
+```
+
+### Exceptions
+
+**There are NO exceptions to the validation rule**. Even for:
+- Documentation updates
+- Test fixes
+- Minor changes
+
+Always ask user before committing.
 
 ## 🔀 Pull Request Workflow
 
 ### PR Creation
 
-<!-- Extract from:
-- CONTRIBUTING.md
-- Pull request template
-- Recent PRs
--->
-
 **Required Information**:
-<!-- From PR template if exists -->
-- [Requirement 1 from template]
-- [Requirement 2 from template]
-- [Requirement 3 from template]
-
-### PR Template
-
-<!-- Extract from .github/pull_request_template.md -->
-
-```markdown
-[Actual PR template content if exists]
-```
+- Clear description of changes
+- Link to related issues
+- Test coverage confirmation
+- Breaking changes (if any)
 
 ### PR Naming
 
-<!-- Analyze recent PR titles for pattern -->
+**Pattern**: Same as commit convention
 
-**Pattern**: [Pattern detected from recent PRs]
-
-**Examples**:
-- [Recent PR title 1]
-- [Recent PR title 2]
+```
+feat: add user authentication
+fix: resolve login timeout
+docs: update API documentation
+```
 
 ## ✅ Code Review Process
 
 ### Review Requirements
 
-<!-- Extract from:
-- CONTRIBUTING.md
-- Branch protection rules
-- CI checks
--->
-
-**Minimum Approvals**: [Number from branch protection or docs]
+**Minimum Approvals**: 1 (recommended)
 
 **Required Checks**:
-<!-- From CI configuration and branch protection -->
-- [Check 1 from CI]
-- [Check 2 from CI]
-- [Check 3 from CI]
+- Security checks passing (`rake security` - bundler-audit + brakeman)
+- All tests passing (`bundle exec rspec`)
+- StandardRB linting (`bundle exec standardrb`)
+- Coverage > 80%
 
 ### Review Guidelines
 
-<!-- Extract from CONTRIBUTING.md or review documentation -->
-
 **Reviewers Should Check**:
-- [Guideline 1 from docs]
-- [Guideline 2 from docs]
-- [Guideline 3 from docs]
-
-### Review Checklist
-
-<!-- From CONTRIBUTING.md or PR template -->
-
-- [ ] [Checklist item 1]
-- [ ] [Checklist item 2]
-- [ ] [Checklist item 3]
+- Code follows project conventions (`.ai/context/lang-ruby/CODE-STYLE.md`)
+- Tests are comprehensive (`.ai/context/TESTING.md`)
+- Security best practices followed
+- API responses follow flat pattern (no nesting except attachments)
+- Database migrations are reversible
 
 ## 🚀 Merge Strategy
 
-<!-- Detect from:
-- GitHub repository settings (if accessible)
-- Git history merge patterns
-- CONTRIBUTING.md
--->
-
-**Merge Method**: [Merge commit / Squash / Rebase from recent merges]
+**Merge Method**: Squash and merge (recommended for clean history)
 
 **Merge Requirements**:
-- [Requirement 1 from docs or protection rules]
-- [Requirement 2 from docs or protection rules]
+- All CI checks passing
+- At least one approval
+- No merge conflicts
+- Branch up to date with main
 
 ### After Merge
 
-<!-- From CONTRIBUTING.md or detected patterns -->
-
 **Actions**:
-- [Action 1, e.g., "Delete branch"]
-- [Action 2, e.g., "Update changelog"]
-
-## 🏷️ Tagging and Releases
-
-### Version Tagging
-
-<!-- Analyze tags in repository:
-- Tag naming pattern (v1.0.0, 1.0.0, etc.)
-- Semantic versioning
-- Tag frequency
--->
-
-**Tag Pattern**: [v*.*.* / *.*.* from git tags]
-
-**Recent Tags**:
-- [Tag 1 with date]
-- [Tag 2 with date]
-- [Tag 3 with date]
-
-### Release Process
-
-<!-- Extract from:
-- RELEASING.md
-- CONTRIBUTING.md
-- GitHub Actions release workflow
-- Release notes in GitHub
--->
-
-**Release Workflow**:
-1. [Step 1 from release process documentation]
-2. [Step 2 from release process documentation]
-3. [Step 3 from release process documentation]
-
-**Automated**: [Yes/No from GitHub Actions analysis]
-
-### Changelog
-
-<!-- Detect changelog management:
-- CHANGELOG.md existence
-- Automated changelog generation
-- Keep a Changelog format
--->
-
-**Changelog File**: [CHANGELOG.md / HISTORY.md / None]
-
-**Format**: [Keep a Changelog / Custom / None]
-
-**Generation**: [Manual / Automated via [tool] / None]
+- Delete feature branch
+- Verify deployment (if applicable)
+- Close related issues
 
 ## 🔧 Git Hooks
 
 ### Pre-commit Hooks
 
-<!-- Detect from:
-- husky configuration
-- .git/hooks/
-- pre-commit framework
--->
+**Potential Hooks** (not currently configured):
+- StandardRB linting
+- RSpec test run
+- Brakeman security scan
 
-**Tool**: [husky / pre-commit / None detected]
+### Manual Pre-commit Checks
 
-**Hooks Configured**:
-<!-- From husky config or .pre-commit-config.yaml -->
-- [Hook 1]: [Purpose]
-- [Hook 2]: [Purpose]
-- [Hook 3]: [Purpose]
+Before committing, run:
 
-### Pre-push Hooks
+```bash
+# Security checks (bundler-audit + brakeman)
+rake security
+# or
+rake security:all
 
-<!-- From husky or git hooks configuration -->
+# Lint code
+bundle exec standardrb
 
-**Hooks**:
-- [Hook 1 from config]
-- [Hook 2 from config]
+# Run tests
+bundle exec rspec
+```
+
+**Security Checks Details**:
+- `rake security:bundler_audit` - Check for vulnerable gem dependencies
+- `rake security:brakeman` - Static analysis for Rails vulnerabilities
+- `rake security` or `rake security:all` - Run both checks
+
+See `.ai/context/SECURITY_CHECKS.md` and `lib/tasks/security.rake` for more details.
 
 ## 📋 Issue Management
 
-### Issue Templates
-
-<!-- From .github/ISSUE_TEMPLATE/ -->
-
-**Available Templates**:
-- [Template 1 name and purpose]
-- [Template 2 name and purpose]
-- [Template 3 name and purpose]
-
-### Issue Labels
-
-<!-- Analyze labels used in repository issues:
-- bug, feature, documentation
-- priority labels
-- status labels
--->
-
-**Common Labels**:
-- `[label1]`: [Usage from issue analysis]
-- `[label2]`: [Usage from issue analysis]
-- `[label3]`: [Usage from issue analysis]
-
 ### Issue Linking
 
-<!-- From PR analysis:
-- Fixes #123 pattern
-- Closes #123 pattern
-- Issue number in commit messages
--->
+**Linking Pattern**: Use keywords in commit messages or PR descriptions
 
-**Linking Pattern**: [Pattern detected from PRs/commits]
+```
+Fixes #123
+Closes #456
+Resolves #789
+```
 
-**Example**: [Actual example from recent PRs]
+**Example**:
+```
+feat: add data stream export
 
-## 🔄 Continuous Integration
-
-### CI Triggers
-
-<!-- From .github/workflows/ or CI config:
-- On push
-- On PR
-- On tag
-- Scheduled
--->
-
-**Triggers**:
-- [Trigger 1 from CI config]
-- [Trigger 2 from CI config]
-
-### CI Jobs
-
-<!-- List main CI jobs from workflow files -->
-
-**Jobs**:
-1. **[Job 1]**: [Purpose from workflow]
-2. **[Job 2]**: [Purpose from workflow]
-3. **[Job 3]**: [Purpose from workflow]
-
-### Status Checks
-
-<!-- Required status checks from branch protection or CI config -->
-
-**Required for Merge**:
-- [Check 1]
-- [Check 2]
-- [Check 3]
-
-## 🛡️ Branch Protection
-
-<!-- Extract from branch protection rules if accessible:
-- Require PR reviews
-- Require status checks
-- Require linear history
-- etc.
--->
-
-**Protected Branches**: [Branch names with protection]
-
-**Rules**:
-- [Rule 1 from protection settings or docs]
-- [Rule 2 from protection settings or docs]
-- [Rule 3 from protection settings or docs]
-
-## 🔐 Security
-
-### Secrets Management
-
-<!-- From CONTRIBUTING.md or security docs:
-- How secrets are handled
-- .env files
-- CI secrets
--->
-
-**Guidelines**:
-- [Guideline 1 from docs]
-- [Guideline 2 from docs]
-
-### Sensitive Data
-
-<!-- From .gitignore and docs -->
-
-**Never Commit**:
-- [File type 1 from .gitignore]
-- [File type 2 from .gitignore]
-- [File type 3 from .gitignore]
+Closes #123
+```
 
 ## 🚦 Common Git Commands
-
-<!-- Extract from CONTRIBUTING.md or create from detected workflow -->
 
 ### Creating a Feature Branch
 
 ```bash
-# Pattern from branch naming convention
-[Commands for creating and working with feature branch]
+# Create and switch to feature branch
+git checkout -b feat/your-feature-name
+
+# Make changes, then stage
+git add <files>
+
+# Commit (will prompt for GPG PIN)
+git commit -m "feat: description of changes"
+
+# Push to remote
+git push -u origin feat/your-feature-name
 ```
 
 ### Making Changes
 
 ```bash
-# Pattern from commit convention
-[Commands for staging and committing]
+# Stage specific files
+git add <file1> <file2>
+
+# Commit with conventional format
+git commit -m "type: description"
+
+# Push changes
+git push
 ```
 
 ### Updating Your Branch
 
 ```bash
-# From workflow documentation or common practices
-[Commands for staying up to date with main]
+# Fetch latest changes from main
+git fetch origin main
+
+# Rebase your branch on main
+git rebase origin/main
+
+# Force push if needed (after rebase)
+git push --force-with-lease
 ```
 
 ### Creating a Pull Request
 
 ```bash
-# From workflow documentation
-[Commands for pushing and creating PR]
+# Push your branch
+git push -u origin feat/your-feature
+
+# Use GitHub CLI to create PR
+gh pr create --title "feat: your feature" --body "Description"
+
+# Or create manually on GitHub web interface
 ```
 
 ## 📚 Resources
 
-<!-- Links from CONTRIBUTING.md or README -->
-
-- [Link to contributing guide if exists]
-- [Link to code of conduct if exists]
-- [Link to style guide if exists]
+- [Conventional Commits](https://www.conventionalcommits.org/)
+- [GPG Signing Guide](https://docs.github.com/en/authentication/managing-commit-signature-verification)
+- Project-specific: `.ai/AGENTS.md`, `.ai/context/DEVELOPMENT_WORKFLOW.md`
 
 ## 🆘 Getting Help
 
-<!-- From CONTRIBUTING.md or README:
-- Where to ask questions
-- Communication channels
--->
+**For Git Issues**:
+- Check this document first
+- Review `.ai/context/DEVELOPMENT_WORKFLOW.md`
+- Consult project README.md
 
-**Channels**:
-- [Channel 1 from docs]
-- [Channel 2 from docs]
+**For GPG Issues**:
+- Verify GPG key configuration: `git config --global user.signingkey`
+- Test GPG signing: `echo "test" | gpg --clearsign`
+- Check GPG agent: `gpg-agent --daemon`
 
 ---
 
-**Last updated**: [Current date]
-**Workflow Version**: [From CONTRIBUTING.md version if exists]
-**Related**: See [CONTRIBUTING.md](../../CONTRIBUTING.md) for full guidelines
+**Last updated**: 2025-10-31
+**Related**: See `.ai/AGENTS.md` and `.ai/context/DEVELOPMENT_WORKFLOW.md` for development workflow

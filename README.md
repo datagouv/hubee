@@ -98,18 +98,17 @@ bundle exec standardrb
 bundle exec standardrb --fix
 ```
 
-### Sécurité (Brakeman)
+### Sécurité
 
 ```bash
-# Scanner les vulnérabilités de sécurité
-bin/brakeman --quiet
-```
+# Tous les checks de sécurité (Brakeman + bundler-audit)
+bundle exec rake security:all
 
-### Audit des dépendances
+# Scanner les vulnérabilités de sécurité (Brakeman)
+bundle exec rake security:brakeman
 
-```bash
-# Vérifier les vulnérabilités dans les gems
-bundle audit check --update
+# Audit des dépendances (bundler-audit)
+bundle exec rake security:bundler_audit
 ```
 
 ## 🏗️ Architecture
@@ -120,6 +119,7 @@ bundle audit check --update
 - **Stockage fichiers**: Active Storage + S3 compatible
 - **Tests**: RSpec + Cucumber
 - **Linting**: StandardRB
+- **Sécurité**: strong_migrations, bundler-audit, Brakeman
 - **Autorisation**: Pundit
 - **Authentification**: bcrypt (has_secure_password)
 
@@ -130,8 +130,10 @@ Pour plus d'informations, consulter :
 - `.ai/context/OVERVIEW.md` - Vue d'ensemble du projet
 - `.ai/context/ARCHITECTURE.md` - Architecture système détaillée
 - `.ai/context/DATABASE.md` - Schéma base de données complet
+- `.ai/context/CODE_STYLE.md` - Conventions Ruby/Rails
 - `.ai/context/TESTING.md` - Stratégie et exemples de tests
 - `.ai/context/API.md` - Documentation API REST complète
+- `.ai/context/SECURITY_CHECKS.md` - Outils de sécurité (strong_migrations, bundler-audit, brakeman)
 - `.ai/context/DEVELOPMENT_WORKFLOW.md` - Workflow TDD feature par feature
 
 ## 🛠️ Commandes Utiles

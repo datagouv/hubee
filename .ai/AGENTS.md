@@ -12,12 +12,15 @@ This project uses a unified `.ai/` folder to configure all AI tools (Claude Code
 ├── config.jsonc           # Configuration (committed, supports comments)
 ├── cli                    # Plugin manager CLI
 ├── context/               # Project knowledge and guidelines
-│   ├── ARCHITECTURE.template.md  # System architecture (run .ai/cli migrate)
-│   ├── OVERVIEW.template.md      # Project overview (run .ai/cli migrate)
-│   ├── TESTING.template.md       # Testing strategy (run .ai/cli migrate)
-│   ├── DATABASE.template.md      # Database schema (run .ai/cli migrate)
-│   ├── GIT-WORKFLOW.md           # Git workflow (from git plugin)
-│   └── <lang>/                   # Language-specific (from lang-* plugins)
+│   ├── API.md                    # API REST documentation
+│   ├── ARCHITECTURE.md           # System architecture
+│   ├── CODE_STYLE.md             # Ruby/Rails conventions
+│   ├── DATABASE.md               # Database schema
+│   ├── DEVELOPMENT_WORKFLOW.md   # TDD workflow feature by feature
+│   ├── OVERVIEW.md               # Project overview
+│   ├── SECURITY_CHECKS.md        # Security tools configuration
+│   ├── TESTING.md                # Testing strategy
+│   └── git/                      # Git workflow (from git plugin)
 ├── commands/              # Custom slash commands (from plugins)
 ├── agents/                # Specialized agents (from plugins)
 ├── avatars/               # AI behavior profiles
@@ -83,12 +86,10 @@ src/
 **Développement** :
 - `.ai/context/DEVELOPMENT_WORKFLOW.md` - TDD feature par feature, solutions critiques
 - `.ai/context/TESTING.md` - Stratégie test complète avec exemples
-- `.ai/context/lang-ruby/CODE-STYLE.md` - Conventions Ruby/Rails
+- `.ai/context/CODE_STYLE.md` - Conventions Ruby/Rails
 
-**Documents Source** :
-- `docs/TECHNICAL_DESIGN.md` - Document technique complet (source de vérité)
-- `docs/WORKFLOW_IMPLEMENTATION_TDD.md` - Guide TDD détaillé
-- `docs/SOLUTIONS_CRITIQUES.md` - Problématiques et solutions
+**Sécurité** :
+- `.ai/context/SECURITY_CHECKS.md` - Configuration des outils de sécurité (strong_migrations, bundler-audit, brakeman)
 
 ## 💡 Development Guidelines
 
@@ -125,7 +126,24 @@ Suivre le cycle RED → GREEN → REFACTOR pour chaque feature.
 ### Documentation
 - Mettre à jour `.ai/context/` lors d'ajout de features majeures
 - Documenter décisions architecturales importantes
-- Garder `docs/TECHNICAL_DESIGN.md` à jour (source de vérité)
+- Toute la documentation est centralisée dans `.ai/context/` (plus de dossier `docs/`)
+
+### ⚠️ Git & Commits - RÈGLES CRITIQUES
+
+**IMPORTANT** : Ne JAMAIS committer directement sans validation utilisateur
+
+1. **Workflow Obligatoire** :
+   - ✅ Proposer les modifications
+   - ✅ Attendre validation explicite de l'utilisateur
+   - ✅ Committer UNIQUEMENT après accord
+   - ❌ Ne JAMAIS faire `git commit` de manière autonome
+
+2. **Exceptions** : Aucune
+   - Même pour des corrections mineures
+   - Même pour de la documentation
+   - Même si demandé implicitement
+
+3. **En cas de doute** : TOUJOURS demander confirmation
 
 ## 🔧 Commands Available
 

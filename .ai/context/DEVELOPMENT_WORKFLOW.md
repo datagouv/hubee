@@ -231,6 +231,23 @@ Consulter `docs/WORKFLOW_IMPLEMENTATION_TDD.md` pour le guide complet feature pa
 - ✅ Coverage ≥ 80%
 - ✅ Seeds à jour et fonctionnels (`bin/rails db:seed`)
 
+### ⚠️ Git & Commits - RÈGLES CRITIQUES
+
+**IMPORTANT** : Ne JAMAIS committer directement sans validation utilisateur
+
+1. **Workflow Obligatoire** :
+   - ✅ Proposer les modifications (diff, résumé)
+   - ✅ Attendre validation explicite de l'utilisateur
+   - ✅ Committer UNIQUEMENT après accord
+   - ❌ Ne JAMAIS faire `git commit` de manière autonome
+
+2. **Exceptions** : Aucune
+   - Même pour des corrections mineures
+   - Même pour de la documentation
+   - Même si demandé implicitement
+
+3. **En cas de doute** : TOUJOURS demander confirmation avant commit
+
 ### Anti-Patterns à Éviter
 - ❌ SQL brut sans sanitization (utiliser ActiveRecord)
 - ❌ N+1 queries (utiliser includes/preload/eager_load)
