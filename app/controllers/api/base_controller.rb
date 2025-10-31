@@ -7,7 +7,13 @@ module Api
     # Set pagination headers in response using Pagy headers extra
     after_action :set_pagination_headers, only: :index
 
+    before_action :set_default_format
+
     private
+
+    def set_default_format
+      request.format = :json
+    end
 
     def not_found
       render json: {error: "Not found"}, status: :not_found
