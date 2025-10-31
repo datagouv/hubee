@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_28_002505) do
+ActiveRecord::Schema[8.1].define(version: 2025_10_31_184943) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -35,5 +35,21 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_28_002505) do
     t.index ["siret"], name: "index_organizations_on_siret", unique: true
   end
 
+  create_table "subscriptions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "data_stream_id", null: false
+    t.bigint "organization_id", null: false
+    t.string "permission_type", default: "read", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "uuid", default: -> { "gen_random_uuid()" }, null: false
+    t.index ["data_stream_id", "organization_id"], name: "index_subscriptions_on_stream_and_org", unique: true
+    t.index ["data_stream_id"], name: "index_subscriptions_on_data_stream_id"
+    t.index ["organization_id"], name: "index_subscriptions_on_organization_id"
+    t.index ["uuid"], name: "index_subscriptions_on_uuid", unique: true
+    t.check_constraint "permission_type::text = ANY (ARRAY['read'::character varying, 'write'::character varying, 'read_write'::character varying]::text[])", name: "permission_type_check"
+  end
+
   add_foreign_key "data_streams", "organizations", column: "owner_organization_id"
+  add_foreign_key "subscriptions", "data_streams", on_delete: :cascade
+  add_foreign_key "subscriptions", "organizations", on_delete: :cascade
 end
