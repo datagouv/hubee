@@ -6,6 +6,7 @@ puts "🌱 Seeding database..."
 # Nettoyer les données existantes (développement uniquement)
 if Rails.env.development?
   puts "  🧹 Cleaning existing data..."
+  Subscription.destroy_all
   DataStream.destroy_all
   Organization.destroy_all
 end
@@ -164,4 +165,66 @@ data_streams_data.each do |stream_data|
 end
 
 puts "  ✅ Created #{DataStream.count} data streams"
+
+# Subscriptions de test (permissions read/write)
+cert_dc = DataStream.find_by!(name: "CertDC")
+justif_domicile = DataStream.find_by!(name: "JustificatifDomicile")
+attestations_ss = DataStream.find_by!(name: "AttestationSecuriteSociale")
+attestations_inscription = DataStream.find_by!(name: "AttestationsInscription")
+attestations_qf = DataStream.find_by!(name: "AttestationsQuotientFamilial")
+actes_etat_civil = DataStream.find_by!(name: "ActesEtatCivil")
+
+subscriptions_data = [
+  # CertDC (DINUM) - Accessible en lecture par plusieurs organismes
+  {data_stream: cert_dc, organization: cnam, permission_type: :read},
+  {data_stream: cert_dc, organization: caf_paris, permission_type: :read},
+  {data_stream: cert_dc, organization: pole_emploi, permission_type: :read},
+  {data_stream: cert_dc, organization: mairie_lyon, permission_type: :read_write},
+  {data_stream: cert_dc, organization: prefecture_paris, permission_type: :read},
+
+  # JustificatifDomicile (DINUM) - Partagé largement
+  {data_stream: justif_domicile, organization: caf_paris, permission_type: :read},
+  {data_stream: justif_domicile, organization: prefecture_paris, permission_type: :read},
+  {data_stream: justif_domicile, organization: mairie_lyon, permission_type: :read_write},
+
+  # AttestationSecuriteSociale (CNAM) - Accès lecture pour organismes sociaux
+  {data_stream: attestations_ss, organization: caf_paris, permission_type: :read},
+  {data_stream: attestations_ss, organization: pole_emploi, permission_type: :read},
+  {data_stream: attestations_ss, organization: mairie_lyon, permission_type: :read},
+
+  # AttestationsInscription (Pôle Emploi) - Accès pour organismes de prestations
+  {data_stream: attestations_inscription, organization: caf_paris, permission_type: :read},
+  {data_stream: attestations_inscription, organization: cnam, permission_type: :read},
+
+  # AttestationsQuotientFamilial (CAF Paris) - Accès communes
+  {data_stream: attestations_qf, organization: mairie_lyon, permission_type: :read},
+  {data_stream: attestations_qf, organization: dinum, permission_type: :read},
+
+  # ActesEtatCivil (Mairie Lyon) - Accès administrations centrales
+  {data_stream: actes_etat_civil, organization: dinum, permission_type: :read},
+  {data_stream: actes_etat_civil, organization: prefecture_paris, permission_type: :read},
+  {data_stream: actes_etat_civil, organization: cnam, permission_type: :read},
+
+  # Exemples permissions write seule (producteurs délégués)
+  {data_stream: cert_dc, organization: Organization.find_by!(siret: "20006254900011"), permission_type: :write}
+]
+
+puts "  🔐 Creating #{subscriptions_data.size} subscriptions..."
+
+subscriptions_data.each do |sub_data|
+  Subscription.find_or_create_by!(
+    data_stream: sub_data[:data_stream],
+    organization: sub_data[:organization]
+  ) do |sub|
+    sub.permission_type = sub_data[:permission_type]
+  end
+end
+
+puts "  ✅ Created #{Subscription.count} subscriptions"
+puts ""
+puts "📊 Summary:"
+puts "  - Organizations: #{Organization.count}"
+puts "  - Data Streams: #{DataStream.count}"
+puts "  - Subscriptions: #{Subscription.count}"
+puts ""
 puts "🎉 Seeding completed!"
