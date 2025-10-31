@@ -9,7 +9,7 @@ Plateforme d'échange sécurisé de fichiers gouvernementaux (SecNumCloud, RGS n
 ## 📋 Prérequis
 
 - Ruby 3.4.7
-- PostgreSQL 16+
+- PostgreSQL 18+
 - Bundler 2.7+
 
 ## 🚀 Installation
@@ -115,7 +115,7 @@ bundle audit check --update
 ## 🏗️ Architecture
 
 - **Framework**: Rails 8.1.0
-- **Base de données**: PostgreSQL 16+
+- **Base de données**: PostgreSQL 18+
 - **Jobs asynchrones**: Solid Queue (PostgreSQL-based)
 - **Stockage fichiers**: Active Storage + S3 compatible
 - **Tests**: RSpec + Cucumber

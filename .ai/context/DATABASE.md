@@ -2,7 +2,7 @@
 
 **Version**: 1.2.0
 **Date**: 2025-01-27
-**SGBD**: PostgreSQL 16+
+**SGBD**: PostgreSQL 18+
 
 > **Voir aussi** : `.ai/context/CODE_STYLE.md` pour patterns migrations, UUID, indexes concurrents, seeds
 

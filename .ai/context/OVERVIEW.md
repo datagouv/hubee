@@ -49,7 +49,7 @@ Hubee V2 permet à une organisation (administration centrale) de transmettre des
 ### Core
 - **Framework**: Rails 8.1.0
 - **Ruby**: 3.4.7
-- **Database**: PostgreSQL 16+
+- **Database**: PostgreSQL 18.0
 - **Jobs**: Solid Queue (PostgreSQL-based, pas de Redis)
 - **Storage**: Active Storage + S3 compatible (Outscale/Scaleway)
 
@@ -61,12 +61,15 @@ Hubee V2 permet à une organisation (administration centrale) de transmettre des
   - **API**: API Tokens (SHA256) pour organisations
   - **Web**: has_secure_password pour utilisateurs
 
-### Testing
+### Testing & Quality
 - **Framework**: RSpec + Cucumber
 - **Specs**: Request specs pour API, Features pour workflows E2E
 - **Coverage**: Cible 80%+
 - **Linting**: StandardRB
-- **Security**: Brakeman
+- **Security**:
+  - Brakeman (static analysis)
+  - bundler-audit (gem vulnerabilities)
+  - strong_migrations (safe database migrations)
 
 ## Concepts Métier Clés
 
@@ -151,14 +154,21 @@ DataPackage (1) ─── (N) Attachments
 
 ## Documentation Complémentaire
 
-Pour plus de détails, consulter :
+Toute la documentation est centralisée dans `.ai/context/` :
+
+### Architecture & Design
 - `.ai/context/ARCHITECTURE.md` - Architecture système détaillée
 - `.ai/context/DATABASE.md` - Schéma base de données complet
-- `.ai/context/TESTING.md` - Stratégie et exemples de tests
 - `.ai/context/API.md` - Documentation API REST complète
-- `docs/TECHNICAL_DESIGN.md` - Document technique complet (source de vérité)
-- `docs/WORKFLOW_IMPLEMENTATION_TDD.md` - Guide TDD feature par feature
-- `docs/SOLUTIONS_CRITIQUES.md` - Solutions aux problèmes identifiés
+
+### Développement
+- `.ai/context/DEVELOPMENT_WORKFLOW.md` - Workflow TDD feature par feature
+- `.ai/context/CODE_STYLE.md` - Conventions Ruby/Rails et bonnes pratiques
+- `.ai/context/TESTING.md` - Stratégie et exemples de tests
+
+### Sécurité & Operations
+- `.ai/context/SECURITY_CHECKS.md` - Outils de sécurité (bundler-audit, brakeman, strong_migrations)
+- `.ai/context/git/GIT-WORKFLOW.md` - Workflow Git et conventions de commits
 
 ## Standards de Qualité
 

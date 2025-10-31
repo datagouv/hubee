@@ -68,7 +68,7 @@ src/
 
 **Project**: Hubee V2
 **Description**: Plateforme d'échange sécurisé de fichiers gouvernementaux (SecNumCloud, RGS niveau élevé)
-**Tech Stack**: Rails 8.1 + Ruby 3.4.7 + PostgreSQL 16+ + Solid Queue + Active Storage (S3)
+**Tech Stack**: Rails 8.1 + Ruby 3.4.7 + PostgreSQL 18+ + Solid Queue + Active Storage (S3)
 
 ### Documentation Essentielle
 

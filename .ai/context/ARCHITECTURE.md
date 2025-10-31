@@ -60,7 +60,7 @@
 - **Testing**: RSpec (request specs) + Cucumber (features)
 
 ### 3. Base de Données
-- **SGBD**: PostgreSQL 16+
+- **SGBD**: PostgreSQL 18+
 - **Usage**: Métadonnées, relations, audit, queue jobs
 - **Extensions**: pg (connecteur), solid_queue (jobs)
 - **Pas de Redis**: Solid Queue utilise PostgreSQL
