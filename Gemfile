@@ -50,6 +50,9 @@ group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
 
+  # Catch unsafe database migrations [https://github.com/ankane/strong_migrations]
+  gem "strong_migrations"
+
   # Ruby style guide, linter, and formatter [https://github.com/standardrb/standard]
   gem "standard", require: false
 
