@@ -1,38 +1,74 @@
 ---
-allowed-tools: Bash(git :*)
-description: Propose structured commits for user validation
+allowed-tools: Bash(git status), Bash(git diff*), Bash(git log*)
+description: Propose structured commits for user validation (provides copy-paste commands due to GPG)
 ---
 
 You are a git commit proposal tool. Analyze changes and propose organized commits for user validation.
 
-## Philosophy: Small Atomic Commits
+## Philosophy: Balanced Atomic Commits
 
-**IMPORTANT**: Favor small, focused commits over large ones.
+**RULE**: Propose commits that are small enough to be clear, but large enough to be meaningful.
 
-### Why Small Commits?
+### Why Balanced Commits?
 - ✅ Easier to review and understand
 - ✅ Easier to revert if needed
 - ✅ Better git history and bisect
 - ✅ Clearer intent and purpose
+- ✅ Not too granular to be noisy
 
-### What is "Small"?
-- **One logical change** per commit
-- **Single responsibility** (one feature, one fix, one refactor)
-- **Independent** from other changes when possible
+### What is "Balanced"?
+- **One logical unit** per commit (not too small, not too large)
+- **Related files together** when they form a cohesive change
+- **Separate concerns** (feat vs test vs docs vs refactor)
+- **Group by layer** when it makes sense (migrations together, tests together, docs together)
+
+### Default Splitting Strategy
+
+**Group intelligently**:
+1. **Database layer** → Group migrations together (they build the schema)
+2. **Application layer** → Group model + controller + views (they form the API)
+3. **Test layer** → Group all tests together (model spec + request spec + factory)
+4. **Configuration** → Group routes + seeds (they wire things up)
+5. **Documentation** → Group all docs together OR split if very different topics
+6. **Refactoring** → Separate commit if touching existing code
 
 ### Examples:
 ```
-✅ Good (small commits):
-- Commit 1: feat: add Organization model with validations
-- Commit 2: feat: add Organizations controller with index/show
-- Commit 3: feat: add Organization Jbuilder views
-- Commit 4: test: add Organization request specs
+✅ EXCELLENT (balanced atomicity):
+- Commit 1: feat: add subscriptions database schema
+  (migrations for table + UUID)
+- Commit 2: feat: add Subscription model and controller
+  (model + controller + views)
+- Commit 3: refactor: add subscriptions associations
+  (modifications to Organization + DataStream)
+- Commit 4: feat: add subscription routes and seeds
+  (routes.rb + seeds.rb + schema.rb)
+- Commit 5: test: add subscription specs
+  (model spec + request spec + factory)
+- Commit 6: docs: update project documentation
+  (API.md + TESTING.md + DATABASE.md + code-review.md)
 
-❌ Bad (too large):
-- Commit 1: feat: add complete Organizations API with tests
+✅ GOOD (slightly more granular):
+- Commit 1: feat: add subscriptions migrations
+- Commit 2: feat: add Subscription model
+- Commit 3: feat: add SubscriptionsController and views
+- Commit 4: feat: add subscription routes
+- Commit 5: refactor: add subscriptions associations
+- Commit 6: test: add subscription specs
+- Commit 7: chore: seed subscription data
+- Commit 8: docs: update API documentation
+- Commit 9: docs: update conventions
+
+⚠️ TOO GRANULAR (avoid):
+- 15+ commits for a single feature
+- One commit per file when files are tightly related
+- Splitting migrations that form one schema change
+
+❌ TOO LARGE (avoid):
+- Commit 1: feat: add Subscriptions API with tests and docs
 ```
 
-**When analyzing changes, always prefer splitting into multiple small commits rather than one large commit.**
+**Default strategy: Aim for 5-9 commits for a complete feature. Split by logical units, not by individual files.**
 
 ## Workflow
 
@@ -101,44 +137,61 @@ docs: update API documentation
 
 ## Grouping Logic
 
-**PRIORITY: Small atomic commits over large ones.**
+**PRIORITY: Balanced commits - clear intent, reasonable size.**
 
 ### Grouping Rules
-1. **Split by layer**: Separate model, controller, views, tests when possible
-2. **Split by feature**: Separate independent features
-3. **Split by type**: Separate feat/fix/docs/refactor/test
-4. **Only combine** when changes are tightly coupled and meaningless separately
+
+**Group together (form logical units)**:
+1. ✅ Related migrations that build one schema (create table + add UUID)
+2. ✅ Model + Controller + Views for same resource (they form the API layer)
+3. ✅ All tests for one feature (model spec + request spec + factory)
+4. ✅ Configuration files that work together (routes + seeds + schema update)
+5. ✅ Documentation on same topic (API.md + DATABASE.md if about same feature)
+
+**Always separate**:
+1. ✅ Database schema from application code
+2. ✅ New feature from refactoring existing code
+3. ✅ Tests from implementation (easier to review)
+4. ✅ Documentation from code changes
+5. ✅ Different features or unrelated changes
 
 ### Decision Tree
-- Different features/fixes? → **Separate commits**
-- Same feature but different layers (model vs controller)? → **Consider separate commits**
-- Documentation changes? → **Separate commit**
-- Tests for new code? → **Can be same commit OR separate** (your choice)
-- Refactoring + new feature? → **Separate commits**
+- Database changes (migrations)? → **Group migrations together, separate from app code**
+- New model/controller/views? → **Group as "add X API layer"**
+- Modifying existing models (associations)? → **Separate "refactor" commit**
+- Routes + seeds + schema.rb? → **Group as "configure X"**
+- All tests (specs + factory)? → **Group as "test X feature"**
+- Multiple docs? → **Group if same topic, otherwise split**
 
 ### Examples
 ```
-✅ EXCELLENT (small, focused):
-- Commit 1: feat: add DataStream model with validations
-- Commit 2: feat: add DataStreams controller (index, show)
-- Commit 3: feat: add DataStreams Jbuilder views
-- Commit 4: test: add DataStream request specs
-- Commit 5: docs: update API.md with DataStreams endpoints
+✅ EXCELLENT (5-6 commits, balanced):
+- Commit 1: feat: add subscriptions database schema (2 migrations)
+- Commit 2: feat: add Subscription API layer (model + controller + views)
+- Commit 3: refactor: add subscriptions associations (Organization + DataStream)
+- Commit 4: feat: configure subscription routes and seeds (routes + seeds + schema)
+- Commit 5: test: add subscription specs (model + request + factory)
+- Commit 6: docs: update conventions (API.md + TESTING.md + DATABASE.md)
 
-✅ GOOD (reasonable grouping):
-- Commit 1: feat: add DataStreams API (model + controller + views)
-- Commit 2: test: add DataStream specs
-- Commit 3: docs: update API documentation
+✅ GOOD (8-9 commits, more granular):
+- Commit 1: feat: add subscriptions migrations
+- Commit 2: feat: add Subscription model
+- Commit 3: feat: add SubscriptionsController and views
+- Commit 4: refactor: add subscriptions associations
+- Commit 5: feat: add subscription routes
+- Commit 6: test: add Subscription model spec
+- Commit 7: test: add subscriptions request spec and factory
+- Commit 8: chore: seed subscription data
+- Commit 9: docs: update project documentation
 
-⚠️  ACCEPTABLE (but prefer smaller):
-- Commit 1: feat: add DataStreams API with tests
-- Commit 2: docs: update API documentation
+⚠️ TOO GRANULAR (15+ commits):
+- One commit per file, even when tightly related
 
-❌ BAD (too large):
-- Commit 1: feat: add DataStreams + Organizations APIs with tests and docs
+❌ TOO LARGE (2-3 commits):
+- Everything in one "add feature" commit
 ```
 
-**Default strategy: When in doubt, split into smaller commits.**
+**Default strategy: Aim for 5-9 commits. Group by logical units (layers, concerns, types), not individual files.**
 
 ## Proposal Format
 
@@ -184,35 +237,66 @@ docs: update CODE_STYLE with delegates
 ```
 
 ---
-**Which commits do you want to create?**
-- [ ] All commits (1-2)
-- [ ] Select specific commits (specify numbers)
-- [ ] Modify proposals (explain changes needed)
-- [ ] Cancel
-```
 
-## Execution
+**Ready to commit?**
 
-- **NEVER commit automatically** - always ask user first
-- Use `git add` to stage specific files per commit
-- Create commits with **`git commit -S`** to sign with GPG
-- **IMPORTANT**: Use HEREDOC format for commit messages to preserve formatting
-- If user wants modifications, adjust proposals
-- **Do NOT push** - user will push manually when ready
-
-### Commit Command Format
-
-Always use this format to create signed commits:
+Copy and paste the commands below in your terminal (GPG will prompt for your PIN):
 
 ```bash
-git commit -S -m "$(cat <<'EOF'
-type: brief summary
+[Shell script with all git add and git commit commands]
+```
+```
+
+## Execution Mode
+
+**CRITICAL**: Due to GPG signing requirements, Claude Code **CANNOT execute commits directly**.
+
+### Workflow
+
+1. **Analyze & Propose**: Show all commit proposals with file lists
+2. **Generate Commands**: Provide ready-to-copy shell commands for user
+3. **User Executes**: User copies and runs commands in terminal (GPG will prompt for PIN)
+
+### Rules
+
+- ❌ **NEVER execute `git commit`** - Will fail with GPG timeout
+- ✅ **ALWAYS provide copy-paste commands** for user to run
+- ✅ Generate complete shell script with all git commands
+- ✅ Include file staging (`git add`) and commit commands
+- ❌ **Do NOT push** - user will push manually when ready
+
+### Output Format
+
+Provide a complete shell script that user can copy-paste:
+
+**CRITICAL RULES FOR GIT ADD**:
+- ✅ **ONE `git add` per file** - Never combine multiple files on one line
+- ✅ Use explicit file paths (no wildcards unless necessary)
+- ✅ Add directories with trailing slash for clarity
+- ❌ Never use: `git add file1.rb file2.rb` (files get lost in copy-paste)
+
+```bash
+# Commit 1: feat: add feature
+git add file1.rb
+git add file2.rb
+git add app/views/resource/
+git commit -m "feat: add feature
 
 - First change
 - Second change
-- Third change
-EOF
-)"
+- Third change"
+
+# Commit 2: test: add tests
+git add spec/file_spec.rb
+git add spec/factories/file.rb
+git commit -m "test: add tests
+
+- Added model specs
+- Added request specs"
+
+# Verify commits
+git log --oneline -n 2
+git status  # Should show "nothing to commit, working tree clean"
 ```
 
 **DO NOT add any "Generated with Claude Code" or "Co-Authored-By" lines.**
