@@ -1,94 +1,218 @@
 # Hubee V2 - Tests (TDD)
 
-**Version**: 1.2.0 | **Coverage**: 80%+
+**Version**: 1.3.0 | **Coverage**: 80%+
 
 > **Voir aussi** : `.ai/context/CODE_STYLE.md` pour conventions Ruby/Rails, RSpec patterns, factories
 
-## Cycle TDD
+## Principes de Simplification
 
-```ruby
-# RED: Test échoue
-it 'validates SIRET format' { expect(build(:organization, siret: '123')).not_to be_valid }
+### ❌ Éviter la Sur-Testification
+- **Models** : Ne pas tester en doublon ce que `is_expected.to validate_*` teste déjà (sauf validations custom complexes)
+- **Request** : Tester la réponse JSON complète avec `match`, pas chaque attribut individuellement
+- **Erreurs** : Un seul cas d'erreur si le comportement est identique
+- **Pagination** : Vérifier le respect de la config Pagy, pas les nombres bruts
+- **Commentaires** : Pas de commentaires dans les tests (le code doit être auto-explicatif)
 
-# GREEN: Implémentation minimale
-validates :siret, format: { with: /\A\d{14}\z/ }
+### ✅ Ce qu'il Faut Tester
 
-# REFACTOR: Amélioration
-SIRET_FORMAT = /\A\d{14}\z/
-validates :siret, format: { with: SIRET_FORMAT, message: 'must be 14 digits' }
-```
+**Par endpoint et par cas (succès/erreur)** :
+1. **Statut HTTP**
+2. **Réponse JSON complète** : utiliser `match` avec tous les attributs attendus
+3. **Évolutions DB** : vérifier les changements (création, update, suppression)
+4. **Erreurs** : vérifier la structure complète JSON des erreurs avec `match`
+5. **Pagination** : headers conformes à config Pagy
 
 ## Architecture
 
 ```
 spec/
-├── models/          # Validations, associations, scopes, méthodes métier
-├── interactors/     # Logique métier (success/failure paths, rollback, side effects)
-├── policies/        # Pundit (read/write permissions, ownership)
-├── requests/api/v1/ # API HTTP (auth, authorization, status codes, JSON format, errors)
-└── support/         # Factories, shared examples, helpers
+├── models/          # Validations (shoulda-matchers), associations, méthodes métier
+├── interactors/     # Logique métier (success/failure, rollback)
+├── policies/        # Pundit (permissions)
+├── requests/api/v1/ # API HTTP (statut, JSON complet, DB changes, pagination)
+└── support/         # Factories, helpers
 
-features/            # Cucumber BDD (workflows multi-endpoints complexes)
-├── api/*.feature
-├── step_definitions/
-└── support/
+features/            # Cucumber (workflows E2E complexes)
 ```
 
-## Request Specs - Pattern Complet
+## Model Specs - Pattern Simplifié
 
 ```ruby
-RSpec.describe 'Api::V1::Organizations', type: :request do
-  let(:headers) { {'Accept' => 'application/json', 'Content-Type' => 'application/json'} }
-  let(:json) { JSON.parse(response.body) }  # DRY : parsing centralisé
+RSpec.describe Organization, type: :model do
+  describe 'validations' do
+    subject { build(:organization) }
 
-  describe 'GET /api/v1/organizations' do
-    subject(:make_request) { get api_v1_organizations_path, headers: headers }  # Subject nommé (recommandé)
+    it { is_expected.to validate_presence_of(:name) }
+    it { is_expected.to validate_presence_of(:siret) }
+    it { is_expected.to validate_uniqueness_of(:siret).case_insensitive }
 
-    context 'when organizations exist' do
-      let!(:org1) { create(:organization) }  # let! = eager loading
-      let!(:org2) { create(:organization) }
+    describe 'siret format' do
+      it 'accepts valid 14-digit SIRET' do
+        expect(build(:organization, siret: '12345678901234')).to be_valid
+      end
 
-      before { make_request }  # Requête exécutée UNE FOIS pour tous les tests
-
-      it 'returns 200 OK' { expect(response).to have_http_status(:ok) }
-      it 'returns JSON array (Rails scaffold)' { expect(json).to be_an(Array) }
-      it 'returns all organizations' { expect(json.size).to eq(2) }
-      it 'includes required attributes' { expect(json.first).to have_key('id') }
-      it 'excludes updated_at' { expect(json.first).not_to have_key('updated_at') }
-    end
-
-    context 'when no organizations exist' do
-      before { make_request }
-      it 'returns empty array' { expect(json).to eq([]) }
+      it 'rejects SIRET with less than 14 digits' do
+        organization = build(:organization, siret: '123')
+        expect(organization).not_to be_valid
+        expect(organization.errors[:siret]).to include('must be 14 digits')
+      end
     end
   end
 
-  describe 'GET /api/v1/organizations/:id' do
-    subject(:make_request) { get api_v1_organization_path(organization_id), headers: headers }
-
-    context 'when organization exists' do
-      let(:organization) { create(:organization, name: 'DILA') }  # let = lazy loading
-      let(:organization_id) { organization.id }
-
-      before { make_request }
-
-      it 'returns 200 OK' { expect(response).to have_http_status(:ok) }
-      it 'returns organization' { expect(json['id']).to eq(organization.id) }
-      it 'does not nest (Rails scaffold)' { expect(json).not_to have_key('organization') }
-    end
-
-    context 'when organization does not exist' do
-      let(:organization_id) { 999999 }
-      before { make_request }
-
-      it 'returns 404 Not Found' { expect(response).to have_http_status(:not_found) }
-      it 'returns JSON error' { expect(json).to have_key('error') }
-    end
+  describe 'associations' do
+    it { is_expected.to have_many(:data_streams) }
   end
 end
 ```
 
-## Bonnes Pratiques
+## Request Specs - Pattern Simplifié
+
+```ruby
+RSpec.describe 'Api::V1::Organizations', type: :request do
+  let(:headers) { {'Accept' => 'application/json'} }
+  let(:json) { JSON.parse(response.body) }
+
+  describe 'GET /api/v1/organizations' do
+    subject(:make_request) { get api_v1_organizations_path, headers: headers }
+
+    context 'success' do
+      let!(:org1) { create(:organization, name: 'Org A', siret: '11111111111111') }
+      let!(:org2) { create(:organization, name: 'Org B', siret: '22222222222222') }
+
+      before { make_request }
+
+      it 'returns 200 OK' do
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns all organizations' do
+        expect(json).to match_array([
+          hash_including('name' => 'Org A', 'siret' => '11111111111111', 'created_at' => anything, 'updated_at' => anything),
+          hash_including('name' => 'Org B', 'siret' => '22222222222222', 'created_at' => anything, 'updated_at' => anything)
+        ])
+      end
+
+      it 'includes pagination headers' do
+        expect(response.headers['X-Page']).to eq('1')
+        expect(response.headers['X-Per-Page']).to eq(Pagy::DEFAULT[:limit].to_s)
+      end
+    end
+
+    context 'with many records' do
+      let!(:organizations) { create_list(:organization, 60) }
+
+      before { make_request }
+
+      it 'respects default page size from Pagy config' do
+        expect(json.size).to eq(Pagy::DEFAULT[:limit])
+      end
+    end
+  end
+
+  describe 'GET /api/v1/organizations/:siret' do
+    subject(:make_request) { get api_v1_organization_path(siret), headers: headers }
+
+    context 'success' do
+      let(:organization) { create(:organization, name: 'DILA', siret: '12345678901234') }
+      let(:siret) { organization.siret }
+
+      before { make_request }
+
+      it 'returns 200 OK' do
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns organization data' do
+        expect(json).to match(
+          'name' => 'DILA',
+          'siret' => '12345678901234',
+          'created_at' => anything,
+          'updated_at' => anything
+        )
+      end
+    end
+
+    context 'not found' do
+      let(:siret) { '99999999999999' }
+
+      before { make_request }
+
+      it 'returns 404 Not Found' do
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it 'returns error response' do
+        expect(json).to match(
+          'error' => 'Not found'
+        )
+      end
+    end
+  end
+
+  describe 'POST /api/v1/data_streams' do
+    subject(:make_request) { post api_v1_data_streams_path, headers: headers, params: params.to_json }
+
+    let(:organization) { create(:organization, siret: '13002526500013') }
+
+    context 'success' do
+      let(:params) { {data_stream: {name: 'CertDC', owner_organization_siret: organization.siret}} }
+
+      it 'creates a new data_stream' do
+        expect { make_request }.to change(DataStream, :count).by(1)
+      end
+
+      it 'returns 201 Created' do
+        make_request
+        expect(response).to have_http_status(:created)
+      end
+
+      it 'creates data_stream and returns complete data' do
+        make_request
+        created = DataStream.last
+        expect(created).to have_attributes(name: 'CertDC')
+
+        expect(json).to match(
+          'id' => created.uuid,
+          'name' => 'CertDC',
+          'owner_organization_siret' => '13002526500013',
+          'created_at' => anything,
+          'updated_at' => anything
+        )
+      end
+    end
+
+    context 'validation error' do
+      let(:params) { {data_stream: {owner_organization_siret: organization.siret}} }
+
+      before { make_request }
+
+      it 'does not create data_stream' do
+        expect { make_request }.not_to change(DataStream, :count)
+      end
+
+      it 'returns 422 Unprocessable Content' do
+        expect(response).to have_http_status(:unprocessable_content)
+      end
+
+      it 'returns validation errors' do
+        expect(json).to match(
+          'name' => array_including("can't be blank")
+        )
+      end
+    end
+  end
+
+  describe 'DELETE /api/v1/organizations/:siret' do
+    let!(:organization) { create(:organization) }
+    subject(:make_request) { delete api_v1_organization_path(organization.siret), headers: headers }
+
+    it { expect { make_request }.to change(Organization, :count).by(-1) }
+    it { make_request; expect(response).to have_http_status(:no_content) }
+  end
+end
+```
+
+## Bonnes Pratiques RSpec
 
 1. **`subject(:make_request)`** : Définir requête une fois (explicite recommandé)
 2. **`let(:json)`** : Parser response.body centralisé (DRY)
@@ -98,6 +222,106 @@ end
 6. **Tests focalisés** : 1 test = 1 assertion (status, body, attributs, errors séparés)
 7. **Rails Scaffold** : Vérifier array direct (index), objet direct (show), pas de wrapper
 8. **Errors** : Tester status + content-type + structure `{error, message}`
+
+## Règles de Simplification
+
+### Models
+```ruby
+# ✅ BON
+it { is_expected.to validate_presence_of(:name) }
+it 'validates format' do
+  expect(build(:org, siret: 'invalid')).not_to be_valid
+end
+
+# ❌ MAUVAIS (doublon)
+it 'is invalid without name' do
+  org = build(:org, name: nil)
+  expect(org).not_to be_valid
+  expect(org.errors[:name]).to include("can't be blank")
+end
+```
+
+### Request - JSON Complet (Succès et Erreurs)
+```ruby
+# ✅ BON : Snapshot complet avec match
+it 'returns organization' do
+  expect(json).to match(
+    'name' => 'DILA',
+    'siret' => '12345678901234',
+    'created_at' => anything
+  )
+end
+
+# ✅ BON : Erreurs complètes
+it 'returns validation errors' do
+  expect(json).to match(
+    'name' => array_including("can't be blank")
+  )
+end
+
+# ❌ MAUVAIS : Attributs individuels
+it { expect(json['name']).to eq('DILA') }
+it { expect(json).to have_key('created_at') }
+
+# ❌ MAUVAIS : Erreur partielle
+it { expect(json).to have_key('error') }
+```
+
+### Request - Un Seul Cas d'Erreur
+```ruby
+# ✅ BON
+context 'validation error' do
+  let(:params) { {organization: {name: ''}} }
+
+  before { make_request }
+
+  it 'returns 422 Unprocessable Content' do
+    expect(response).to have_http_status(:unprocessable_content)
+  end
+
+  it 'returns validation errors' do
+    expect(json).to match('name' => array_including("can't be blank"))
+  end
+end
+
+# ❌ MAUVAIS : Multiples contexts pour même comportement
+context 'missing name' { ... }
+context 'missing siret' { ... }
+context 'invalid siret format' { ... }
+```
+
+### Pagination - Config Pagy
+```ruby
+# ✅ BON
+it 'respects Pagy default limit' do
+  expect(json.size).to eq(Pagy::DEFAULT[:limit])
+  expect(response.headers['X-Per-Page']).to eq(Pagy::DEFAULT[:limit].to_s)
+end
+
+# ❌ MAUVAIS (nombres hardcodés)
+it 'returns 50 items' do
+  expect(json.size).to eq(50)
+  expect(response.headers['X-Per-Page']).to eq('50')
+end
+```
+
+## Cycle TDD Simplifié
+
+```ruby
+# RED
+it { expect { post_request }.to change(Organization, :count).by(1) }
+
+# GREEN
+def create
+  @organization = Organization.create(params)
+end
+
+# REFACTOR
+def create
+  @organization = Organization.new(organization_params)
+  @organization.save ? render(:show, status: :created) : render_errors
+end
+```
 
 ## Cucumber (BDD) - Workflows Complexes
 
