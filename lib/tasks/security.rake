@@ -16,11 +16,10 @@ namespace :security do
 
     # Run audit
     sh "bundle exec bundler-audit check" do |ok, res|
+      puts ""
       if ok
-        puts ""
         puts "✅ No vulnerable dependencies found!"
       else
-        puts ""
         puts "❌ Vulnerable dependencies detected!"
         exit res.exitstatus
       end
@@ -33,11 +32,10 @@ namespace :security do
     puts ""
 
     sh "bundle exec brakeman --quiet --no-pager" do |ok, res|
+      puts ""
       if ok
-        puts ""
         puts "✅ No security issues found!"
       else
-        puts ""
         puts "❌ Security issues detected!"
         exit res.exitstatus
       end
