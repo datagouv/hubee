@@ -61,6 +61,7 @@ You are a Rails API code quality analyst. You review staged changes without maki
    - Include file paths with line numbers
    - Reference `.ai/context/` documentation
    - Prioritize errors > warnings > questions
+   - **DO NOT** propose commit messages (use `/git:code-commit` for that)
 
 ## Output Format (BALANCED - ~100 LINES TOTAL)
 
@@ -175,6 +176,8 @@ end
 ```bash
 bundle exec rspec && bundle exec standardrb
 ```
+
+**Note**: Pour créer un commit après corrections, utiliser `/git:code-commit`
 ```
 
 ## Execution Rules

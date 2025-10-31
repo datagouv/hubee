@@ -404,12 +404,15 @@ bundle exec standardrb && bin/brakeman --quiet # Qualité code
 ## À Tester / Ne Pas Tester
 
 **✅ À tester** :
-- Models : validations, associations, scopes, méthodes métier
+- Models : validations custom, associations, scopes, méthodes métier
 - Interactors : success/failure paths, rollback, side effects
 - API : auth, authorization, status codes, JSON structure, errors
 - Policies : read/write, ownership
 
-**❌ Ne pas tester** : Rails internals, gems externes (sauf intégration), code trivial
+**❌ Ne pas tester** :
+- Rails internals, gems externes (sauf intégration), code trivial
+- Validations `belongs_to` (Rails valide automatiquement depuis Rails 5+)
+- Delegates simples (testés indirectement par request specs qui utilisent les attributs délégués)
 
 ## Factories & Shared Examples
 
