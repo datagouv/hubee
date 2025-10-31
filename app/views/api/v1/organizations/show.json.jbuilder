@@ -1,1 +1,1 @@
-json.partial! "api/v1/organizations/organization", organization: @organization
+json.partial! @organization, as: :organization

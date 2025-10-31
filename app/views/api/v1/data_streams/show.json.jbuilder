@@ -1,1 +1,1 @@
-json.partial! "api/v1/data_streams/data_stream", data_stream: @data_stream
+json.partial! @data_stream, as: :data_stream
