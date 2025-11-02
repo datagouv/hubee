@@ -19,10 +19,7 @@ class DataStream < ApplicationRecord
   # 1. Associations
   belongs_to :owner_organization, class_name: "Organization"
 
-  # 2. Delegations (pour API claire)
-  delegate :siret, to: :owner_organization, prefix: true
-
-  # 3. Validations
+  # 2. Validations
   validates :name, presence: true
   validates :retention_days, numericality: {greater_than: 0}, allow_nil: true
 
@@ -33,18 +30,63 @@ end
 **Règles** :
 - ✅ Validations complètes (presence, format, uniqueness, numericality)
 - ✅ Associations explicites avec `class_name` si nécessaire
-- ✅ `delegate` pour simplifier l'accès aux attributs d'associations
+- ✅ UUID primary keys partout (pas de delegates uuid nécessaires)
 - ✅ Inverse associations : `has_many :data_streams, dependent: :restrict_with_error`
 - ❌ Pas de logique métier → Interactors pour logique complexe
-- ❌ Pas d'exposition d'IDs séquentiels
+- ❌ Pas d'exposition d'IDs séquentiels (UUIDs uniquement)
+
+### Scopes pour Filtres API
+
+```ruby
+class Subscription < ApplicationRecord
+  # ✅ Scopes conditionnels pour filtres API
+  scope :by_data_stream, ->(id) { id.present? ? where(data_stream_id: id) : all }
+  scope :by_organization, ->(id) { id.present? ? where(organization_id: id) : all }
+
+  # ✅ Scope avec validation enum
+  scope :with_permission_types, ->(types) {
+    return all unless types.is_a?(String)
+
+    valid_types = types.split(",").map(&:strip).select { |t| permission_types.key?(t) }
+    valid_types.any? ? where(permission_type: valid_types) : none
+  }
+end
+```
+
+**Règles** :
+- ✅ Scopes conditionnels retournent `all` si paramètre absent/nil
+- ✅ Validation des enums côté model (valeurs partiellement invalides → filtre valides uniquement)
+- ✅ Toutes valeurs invalides → retourne `none` (résultat vide)
+- ✅ Support String CSV uniquement (`"read,write"`)
+- ✅ Strip whitespace automatique pour CSV
+- ✅ Tests unitaires dans model specs (pas seulement request specs)
+
+**Usage dans controller** :
+```ruby
+def index
+  @pagy, @subscriptions = pagy(
+    Subscription
+      .by_data_stream(params[:data_stream_id])
+      .by_organization(params[:organization_id])
+      .with_permission_types(params[:permission_type])
+      .includes(:data_stream, :organization)
+  )
+end
+```
+
+**Avantages** :
+- ✅ Controller ultra-simple (1 ligne)
+- ✅ Scopes réutilisables (console, jobs, etc.)
+- ✅ Logique métier dans le model
+- ✅ Testable unitairement
 
 ### Controllers (`app/controllers/api/v1/*_controller.rb`)
 
 ```ruby
 class DataStreamsController < Api::BaseController
-  # ✅ Utiliser find_by!(uuid:) ou find_by!(siret:)
+  # ✅ Utiliser find(params[:uuid]) pour UUID primary keys
   def show
-    @data_stream = DataStream.find_by!(uuid: params[:uuid])
+    @data_stream = DataStream.find(params[:uuid])
   end
 
   # ✅ params.expect (Rails 8.1+)
@@ -66,20 +108,20 @@ end
 
 **Règles** :
 - ✅ Hérite de `Api::BaseController`
-- ✅ `find_by!(uuid:)` ou `find_by!(siret:)`, jamais `find(params[:id])`
+- ✅ `find(params[:uuid])` pour UUID primary keys (direct, pas de find_by!)
 - ✅ `params.expect` au lieu de `require + permit`
 - ✅ Erreurs : `@model.errors.messages` (hash flat, pas `.to_json`)
 - ❌ Pas de logique métier → déléguer aux Interactors/Services
-- ❌ Pas de `find(params[:id])` avec IDs séquentiels
+- ❌ Pas d'IDs séquentiels exposés (UUIDs uniquement)
 
 ### Views Jbuilder (`app/views/api/v1/*/*.json.jbuilder`)
 
 ```ruby
 # ✅ Partials pour réutilisabilité
 # _data_stream.json.jbuilder
-json.id data_stream.uuid  # UUID comme "id"
-json.extract! data_stream, :name, :description, :retention_days, :created_at
-json.owner_organization_siret data_stream.owner_organization_siret  # delegate
+json.id data_stream.id  # UUID primary key comme "id"
+json.extract! data_stream, :name, :description, :retention_days, :created_at, :updated_at
+json.owner_organization_id data_stream.owner_organization_id  # FK UUID
 
 # index.json.jbuilder
 json.array! @data_streams, partial: "api/v1/data_streams/data_stream", as: :data_stream
@@ -91,26 +133,22 @@ json.partial! "api/v1/data_streams/data_stream", data_stream: @data_stream
 **Règles** :
 - ✅ **Flat responses** : array direct pour index, objet direct pour show
 - ✅ **Partials** : `_resource.json.jbuilder` pour DRY
-- ✅ **Organizations** : `name, siret, created_at` (PAS d'`id`)
-- ✅ **Autres ressources** : `id` (UUID), attributs, `created_at`
-- ✅ **Relations** : utiliser `_siret` ou `_id` suffix, jamais nester l'objet complet
+- ✅ **Toutes les ressources** : `id` (UUID), attributs métier (ex: `siret` pour Organizations), `created_at`, `updated_at`
+- ✅ **Relations** : utiliser `_id` suffix (toujours UUIDs), jamais nester l'objet complet
 - ❌ **Exception unique** : `attachments` nested dans `data_packages` uniquement
-- ❌ Pas d'exposition de `updated_at`, `id` séquentiel
+- ❌ Pas d'exposition d'IDs séquentiels
 
 ### Routes (`config/routes.rb`)
 
 ```ruby
-# ✅ param: :siret pour organizations
-resources :organizations, param: :siret, only: [:index, :show]
-
-# ✅ param: :uuid pour autres ressources
-resources :data_streams, param: :uuid
+# ✅ param: :id (convention REST standard)
+resources :organizations, param: :id, only: [:index, :show]
+resources :data_streams, param: :id
 ```
 
 **Règles** :
-- ✅ `param: :siret` pour organizations (identifiant naturel)
-- ✅ `param: :uuid` pour autres ressources
-- ❌ Pas de `:id` par défaut
+- ✅ `param: :id` pour toutes les ressources (convention REST, UUID primary keys)
+- ✅ Routes comme `/api/v1/organizations/:id` où `:id` est un UUID
 
 ## 🧪 Tests (RSpec)
 
@@ -146,12 +184,12 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
   let(:headers) { {"Accept" => "application/json", "Content-Type" => "application/json"} }
   let(:json) { JSON.parse(response.body) }
 
-  describe "GET /api/v1/data_streams/:uuid" do
-    subject(:make_request) { get api_v1_data_stream_path(uuid), headers: headers }
+  describe "GET /api/v1/data_streams/:id" do
+    subject(:make_request) { get api_v1_data_stream_path(id), headers: headers }
 
     context "when data_stream exists" do
       let(:data_stream) { create(:data_stream) }
-      let(:uuid) { data_stream.uuid }
+      let(:id) { data_stream.id }
 
       before { make_request }
 
@@ -161,12 +199,12 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
 
       it "returns flat JSON response" do
         expect(json).to have_key("id")
-        expect(json["id"]).to eq(data_stream.uuid)
+        expect(json["id"]).to eq(data_stream.id)
       end
     end
 
     context "when data_stream does not exist" do
-      let(:uuid) { SecureRandom.uuid }
+      let(:id) { SecureRandom.uuid }
 
       before { make_request }
 
@@ -226,28 +264,29 @@ class CreateDataStreams < ActiveRecord::Migration[8.1]
   def change
     enable_extension "pgcrypto" unless extension_enabled?("pgcrypto")
 
-    create_table :data_streams do |t|
+    create_table :data_streams, id: :uuid do |t|
       t.string :name, null: false
-      t.references :owner_organization, null: false,
+      t.references :owner_organization, type: :uuid, null: false,
                    foreign_key: {to_table: :organizations},
                    index: false  # ✅ Index manuel avec :concurrently
-      t.uuid :uuid, default: -> { "gen_random_uuid()" }, null: false
+      t.integer :retention_days, default: 365
       t.timestamps
     end
 
     # ✅ Indexes concurrents (production-safe)
     add_index :data_streams, :owner_organization_id, algorithm: :concurrently
-    add_index :data_streams, :uuid, unique: true, algorithm: :concurrently
   end
 end
 ```
 
 **Règles** :
+- ✅ `id: :uuid` dans `create_table` pour UUID primary key (gen_random_uuid automatique)
+- ✅ `t.references` avec `type: :uuid` pour foreign keys UUID
 - ✅ `disable_ddl_transaction!` + `algorithm: :concurrently` pour indexes
-- ✅ UUID : `default: -> { "gen_random_uuid()" }`
+- ✅ `index: false` dans references, puis `add_index` manuel avec `:concurrently`
+- ✅ `foreign_key: {to_table: :...}` ou `foreign_key: {on_delete: :cascade}` inline
 - ✅ Enable `pgcrypto` extension
-- ✅ Foreign keys explicites
-- ✅ Index sur colonnes queryées (owner_organization_id, uuid)
+- ✅ `implicit_order_column = :created_at` dans ApplicationRecord pour UUID ordering
 - ❌ Pas de `NOT NULL` sans default ou logique de backfill
 
 ### Seeds (`db/seeds.rb`)

@@ -62,6 +62,19 @@ RSpec.describe Organization, type: :model do
   describe 'associations' do
     it { is_expected.to have_many(:data_streams) }
   end
+
+  describe '.by_status' do
+    let!(:draft) { create(:data_package, status: 'draft') }
+    let!(:ready) { create(:data_package, status: 'ready') }
+
+    it 'filters by status' do
+      expect(DataPackage.by_status('draft')).to contain_exactly(draft)
+    end
+
+    it 'returns all when status is nil' do
+      expect(DataPackage.by_status(nil)).to contain_exactly(draft, ready)
+    end
+  end
 end
 ```
 
@@ -217,15 +230,18 @@ end
 1. **`subject(:make_request)`** : Définir requête une fois (explicite recommandé)
 2. **`let(:json)`** : Parser response.body centralisé (DRY)
 3. **`let` vs `let!`** : lazy (si utilisé) vs eager (systématique)
+   - **Model specs** : `let!` pour créer données de test (scopes, queries)
+   - **Request specs** : `let!` uniquement si données doivent exister avant requête
 4. **`context`** : Grouper par scénarios ("when organizations exist", "when not found")
 5. **`before { make_request }`** : Exécuter requête UNE FOIS par context
 6. **Tests focalisés** : 1 test = 1 assertion (status, body, attributs, errors séparés)
 7. **Rails Scaffold** : Vérifier array direct (index), objet direct (show), pas de wrapper
 8. **Errors** : Tester status + content-type + structure `{error, message}`
+9. **Scopes** : Tester logique métier dans model specs, pas dans request specs
 
 ## Règles de Simplification
 
-### Models
+### Models - Validations
 ```ruby
 # ✅ BON
 it { is_expected.to validate_presence_of(:name) }
@@ -238,6 +254,38 @@ it 'is invalid without name' do
   org = build(:org, name: nil)
   expect(org).not_to be_valid
   expect(org.errors[:name]).to include("can't be blank")
+end
+```
+
+### Models - Scopes
+```ruby
+# ✅ BON : Utiliser let! pour créer données, inline expectations
+describe '.by_organization' do
+  let(:org1) { create(:organization) }
+  let(:org2) { create(:organization) }
+  let!(:sub1) { create(:subscription, organization: org1) }
+  let!(:sub2) { create(:subscription, organization: org2) }
+
+  it 'filters by organization_id' do
+    expect(Subscription.by_organization(org1.id)).to contain_exactly(sub1)
+  end
+
+  it 'returns all when id is nil' do
+    expect(Subscription.by_organization(nil)).to contain_exactly(sub1, sub2)
+  end
+end
+
+# ❌ MAUVAIS : Variables locales, duplication
+describe '.by_organization' do
+  it 'filters by organization_id' do
+    org1 = create(:organization)
+    org2 = create(:organization)
+    sub1 = create(:subscription, organization: org1)
+    sub2 = create(:subscription, organization: org2)
+
+    result = Subscription.by_organization(org1.id)
+    expect(result).to contain_exactly(sub1)
+  end
 end
 ```
 

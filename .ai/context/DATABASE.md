@@ -13,7 +13,7 @@
 ```sql
 -- Organizations (SIRET) - Producteurs et Consommateurs
 CREATE TABLE organizations (
-  id BIGSERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR NOT NULL,
   siret VARCHAR(14) NOT NULL UNIQUE,
   created_at TIMESTAMP NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE organizations (
 -- API Tokens pour authentification M2M
 CREATE TABLE api_tokens (
   id BIGSERIAL PRIMARY KEY,
-  organization_id BIGINT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   name VARCHAR NOT NULL,
   token_digest VARCHAR NOT NULL,
   last_used_at TIMESTAMP,
@@ -38,10 +38,10 @@ CREATE INDEX idx_api_tokens_org ON api_tokens(organization_id);
 
 -- Flux de données (ex: CertDC)
 CREATE TABLE data_streams (
-  id BIGSERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR NOT NULL,
   description TEXT,
-  owner_organization_id BIGINT REFERENCES organizations(id),
+  owner_organization_id UUID REFERENCES organizations(id),
   retention_days INTEGER DEFAULT 365,
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL
@@ -49,11 +49,10 @@ CREATE TABLE data_streams (
 
 -- Abonnements (qui peut lire/écrire un flux)
 CREATE TABLE subscriptions (
-  id BIGSERIAL PRIMARY KEY,
-  data_stream_id BIGINT NOT NULL REFERENCES data_streams(id) ON DELETE CASCADE,
-  organization_id BIGINT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  data_stream_id UUID NOT NULL REFERENCES data_streams(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   permission_type VARCHAR NOT NULL DEFAULT 'read',
-  uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL,
   UNIQUE(data_stream_id, organization_id),
@@ -63,8 +62,8 @@ CREATE TABLE subscriptions (
 -- Paquets de données (transmission d'un ensemble de fichiers)
 CREATE TABLE data_packages (
   id BIGSERIAL PRIMARY KEY,
-  data_stream_id BIGINT NOT NULL REFERENCES data_streams(id) ON DELETE RESTRICT,
-  sender_organization_id BIGINT NOT NULL REFERENCES organizations(id),
+  data_stream_id UUID NOT NULL REFERENCES data_streams(id) ON DELETE RESTRICT,
+  sender_organization_id UUID NOT NULL REFERENCES organizations(id),
   status VARCHAR NOT NULL DEFAULT 'draft',
   -- Status: draft → ready → sent → acknowledged
   title VARCHAR,
@@ -81,8 +80,8 @@ CREATE INDEX idx_data_packages_sender_created ON data_packages(sender_organizati
 CREATE TABLE notifications (
   id BIGSERIAL PRIMARY KEY,
   data_package_id BIGINT NOT NULL REFERENCES data_packages(id) ON DELETE CASCADE,
-  subscription_id BIGINT NOT NULL REFERENCES subscriptions(id) ON DELETE RESTRICT,
-  organization_id BIGINT NOT NULL REFERENCES organizations(id),
+  subscription_id UUID NOT NULL REFERENCES subscriptions(id) ON DELETE RESTRICT,
+  organization_id UUID NOT NULL REFERENCES organizations(id),
   status VARCHAR NOT NULL DEFAULT 'pending',
   -- Status: pending → sent → acknowledged
   sent_at TIMESTAMP,
