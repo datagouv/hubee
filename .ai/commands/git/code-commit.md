@@ -193,6 +193,71 @@ docs: update API documentation
 
 **Default strategy: Aim for 5-9 commits. Group by logical units (layers, concerns, types), not individual files.**
 
+## Advanced: Patch Mode for Split File Changes
+
+When a single file contains **unrelated changes** that belong to different commits, use `git add -p` (patch mode).
+
+### When to Use Patch Mode
+
+**Use patch mode when**:
+- ✅ A file has changes for multiple features mixed together
+- ✅ Bugfix + refactor in the same file (separate commits)
+- ✅ Different concerns in one file (e.g., validation + new method)
+- ✅ Need to extract urgent fix from larger refactor
+
+**Skip patch mode when**:
+- ❌ All changes in the file are related (most cases)
+- ❌ Changes are already well-separated by file
+
+### How to Use
+
+```bash
+# Interactive staging by hunks
+git add -p app/models/subscription.rb
+
+# Git will ask for each change:
+# Stage this hunk [y,n,q,a,d,s,e,?]?
+# y = yes (stage this hunk)
+# n = no (skip this hunk)
+# s = split (divide into smaller hunks)
+# e = edit (manually edit the hunk)
+# q = quit
+# ? = help
+
+# After staging some hunks, commit
+git commit -m "feat: add scopes"
+
+# Then add remaining hunks
+git add -p app/models/subscription.rb
+git commit -m "refactor: simplify validations"
+```
+
+### Example Scenario
+
+**File**: `app/models/subscription.rb`
+- Lines 1-15: Added new scopes (Feature A)
+- Lines 20-25: Fixed validation bug (Bugfix)
+- Lines 30-40: Refactored associations (Refactor)
+
+**Solution**:
+```bash
+# Stage only scope changes (lines 1-15)
+git add -p app/models/subscription.rb  # Select 'y' for scopes, 'n' for rest
+git commit -m "feat: add subscription filter scopes"
+
+# Stage only bugfix (lines 20-25)
+git add -p app/models/subscription.rb  # Select 'y' for bugfix, 'n' for rest
+git commit -m "fix: correct permission_type validation"
+
+# Stage remaining refactor (lines 30-40)
+git add app/models/subscription.rb  # Add all remaining changes
+git commit -m "refactor: simplify subscription associations"
+```
+
+### Note
+
+**Most of the time, patch mode is NOT needed**. The default balanced commit strategy works well because changes are naturally separated by files and layers. Only use patch mode when truly necessary for cleaner history.
+
 ## Proposal Format
 
 Present proposals to user like this:
