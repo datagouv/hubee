@@ -36,17 +36,11 @@ module Api
       private
 
       def set_data_stream
-        @data_stream = DataStream.find_by!(uuid: params[:uuid])
+        @data_stream = DataStream.find(params[:id])
       end
 
       def data_stream_params
-        params.expect(data_stream: [:name, :description, :retention_days, :owner_organization_siret]).tap do |whitelisted|
-          if whitelisted[:owner_organization_siret].present?
-            organization = Organization.find_by(siret: whitelisted[:owner_organization_siret])
-            whitelisted[:owner_organization_id] = organization&.id
-            whitelisted.delete(:owner_organization_siret)
-          end
-        end
+        params.expect(data_stream: [:name, :description, :retention_days, :owner_organization_id])
       end
     end
   end

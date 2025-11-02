@@ -13,7 +13,7 @@ module Api
       private
 
       def set_organization
-        @organization = Organization.find_by!(siret: params[:siret])
+        @organization = Organization.find(params[:id])
       end
     end
   end
