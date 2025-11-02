@@ -3,15 +3,15 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
-      resources :organizations, only: %i[index show], param: :siret do
+      resources :organizations, only: %i[index show] do
         resources :subscriptions, only: [:index]
       end
 
-      resources :data_streams, param: :uuid do
+      resources :data_streams do
         resources :subscriptions, only: [:index, :create]
       end
 
-      resources :subscriptions, only: [:show, :update, :destroy], param: :uuid
+      resources :subscriptions, only: [:show, :update, :destroy], param: :id
     end
   end
 end
