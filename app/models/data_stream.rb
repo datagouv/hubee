@@ -4,6 +4,4 @@ class DataStream < ApplicationRecord
 
   validates :name, presence: true
   validates :retention_days, numericality: {greater_than: 0}, allow_nil: true
-
-  delegate :siret, to: :owner_organization, prefix: true
 end

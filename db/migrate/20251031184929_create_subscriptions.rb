@@ -4,9 +4,13 @@ class CreateSubscriptions < ActiveRecord::Migration[8.1]
   disable_ddl_transaction!
 
   def change
-    create_table :subscriptions do |t|
-      t.references :data_stream, null: false, foreign_key: {on_delete: :cascade}, index: false
-      t.references :organization, null: false, foreign_key: {on_delete: :cascade}, index: false
+    create_table :subscriptions, id: :uuid do |t|
+      t.references :data_stream, type: :uuid, null: false,
+        foreign_key: {on_delete: :cascade},
+        index: false
+      t.references :organization, type: :uuid, null: false,
+        foreign_key: {on_delete: :cascade},
+        index: false
       t.string :permission_type, null: false, default: "read"
       t.timestamps
     end
