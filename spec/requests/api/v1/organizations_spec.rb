@@ -41,12 +41,12 @@ RSpec.describe "Api::V1::Organizations", type: :request do
     end
   end
 
-  describe "GET /api/v1/organizations/:siret" do
-    subject(:make_request) { get api_v1_organization_path(siret), headers: headers }
+  describe "GET /api/v1/organizations/:id" do
+    subject(:make_request) { get api_v1_organization_path(id), headers: headers }
 
     context "success" do
       let(:organization) { create(:organization, name: "DILA", siret: "12345678901234") }
-      let(:siret) { organization.siret }
+      let(:id) { organization.id }
 
       before { make_request }
 
@@ -56,6 +56,7 @@ RSpec.describe "Api::V1::Organizations", type: :request do
 
       it "returns organization data" do
         expect(json).to match(
+          "id" => organization.id,
           "name" => "DILA",
           "siret" => "12345678901234",
           "created_at" => anything,
@@ -65,7 +66,7 @@ RSpec.describe "Api::V1::Organizations", type: :request do
     end
 
     context "not found" do
-      let(:siret) { "99999999999999" }
+      let(:id) { SecureRandom.uuid }
 
       before { make_request }
 

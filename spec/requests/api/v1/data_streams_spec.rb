@@ -21,8 +21,8 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
 
       it "returns all data_streams" do
         expect(json).to match_array([
-          hash_including("id" => stream1.uuid, "owner_organization_siret" => org1.siret, "name" => anything, "created_at" => anything, "updated_at" => anything),
-          hash_including("id" => stream2.uuid, "owner_organization_siret" => org2.siret, "name" => anything, "created_at" => anything, "updated_at" => anything)
+          hash_including("id" => stream1.id, "owner_organization_id" => org1.id, "name" => anything, "created_at" => anything, "updated_at" => anything),
+          hash_including("id" => stream2.id, "owner_organization_id" => org2.id, "name" => anything, "created_at" => anything, "updated_at" => anything)
         ])
       end
 
@@ -44,13 +44,13 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
     end
   end
 
-  describe "GET /api/v1/data_streams/:uuid" do
-    subject(:make_request) { get api_v1_data_stream_path(uuid), headers: headers }
+  describe "GET /api/v1/data_streams/:id" do
+    subject(:make_request) { get api_v1_data_stream_path(id), headers: headers }
 
     context "success" do
       let(:organization) { create(:organization, name: "DINUM", siret: "13002526500013") }
       let(:data_stream) { create(:data_stream, name: "CertDC", description: "Certificats", owner_organization: organization, retention_days: 365) }
-      let(:uuid) { data_stream.uuid }
+      let(:id) { data_stream.id }
 
       before { make_request }
 
@@ -60,10 +60,10 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
 
       it "returns data_stream data" do
         expect(json).to match(
-          "id" => data_stream.uuid,
+          "id" => data_stream.id,
           "name" => "CertDC",
           "description" => "Certificats",
-          "owner_organization_siret" => "13002526500013",
+          "owner_organization_id" => organization.id,
           "retention_days" => 365,
           "created_at" => anything,
           "updated_at" => anything
@@ -72,7 +72,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
     end
 
     context "not found" do
-      let(:uuid) { SecureRandom.uuid }
+      let(:id) { SecureRandom.uuid }
 
       before { make_request }
 
@@ -99,7 +99,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
           data_stream: {
             name: "CertDC",
             description: "Certificats de décès",
-            owner_organization_siret: organization.siret,
+            owner_organization_id: organization.id,
             retention_days: 365
           }
         }
@@ -121,10 +121,10 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         expect(created).to have_attributes(name: "CertDC", retention_days: 365)
 
         expect(json).to match(
-          "id" => created.uuid,
+          "id" => created.id,
           "name" => "CertDC",
           "description" => "Certificats de décès",
-          "owner_organization_siret" => "13002526500013",
+          "owner_organization_id" => organization.id,
           "retention_days" => 365,
           "created_at" => anything,
           "updated_at" => anything
@@ -133,7 +133,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
     end
 
     context "validation error" do
-      let(:params) { {data_stream: {description: "Test", owner_organization_siret: organization.siret}} }
+      let(:params) { {data_stream: {description: "Test", owner_organization_id: organization.id}} }
 
       before { make_request }
 
@@ -153,10 +153,10 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
     end
   end
 
-  describe "PUT /api/v1/data_streams/:uuid" do
+  describe "PUT /api/v1/data_streams/:id" do
     let(:organization) { create(:organization) }
     let(:data_stream) { create(:data_stream, name: "Old Name", description: "Old Desc", owner_organization: organization, retention_days: 365) }
-    subject(:make_request) { put api_v1_data_stream_path(data_stream.uuid), headers: headers, params: params.to_json }
+    subject(:make_request) { put api_v1_data_stream_path(data_stream.id), headers: headers, params: params.to_json }
 
     context "success" do
       let(:params) { {data_stream: {name: "Updated Name", retention_days: 180}} }
@@ -172,10 +172,10 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         expect(data_stream.reload).to have_attributes(name: "Updated Name", retention_days: 180)
 
         expect(json).to match(
-          "id" => data_stream.uuid,
+          "id" => data_stream.id,
           "name" => "Updated Name",
           "description" => "Old Desc",
-          "owner_organization_siret" => organization.siret,
+          "owner_organization_id" => organization.id,
           "retention_days" => 180,
           "created_at" => anything,
           "updated_at" => anything
@@ -205,10 +205,10 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
     end
   end
 
-  describe "DELETE /api/v1/data_streams/:uuid" do
+  describe "DELETE /api/v1/data_streams/:id" do
     let(:organization) { create(:organization) }
     let!(:data_stream) { create(:data_stream, owner_organization: organization) }
-    subject(:make_request) { delete api_v1_data_stream_path(data_stream.uuid), headers: headers }
+    subject(:make_request) { delete api_v1_data_stream_path(data_stream.id), headers: headers }
 
     it "deletes the data_stream" do
       expect { make_request }.to change(DataStream, :count).by(-1)
