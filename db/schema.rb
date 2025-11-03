@@ -10,10 +10,25 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_31_184929) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_02_100410) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
+
+  create_table "data_packages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "acknowledged_at", precision: nil
+    t.datetime "created_at", null: false
+    t.uuid "data_stream_id", null: false
+    t.uuid "sender_organization_id", null: false
+    t.datetime "sent_at", precision: nil
+    t.string "state", default: "draft", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["data_stream_id", "state"], name: "index_data_packages_on_data_stream_id_and_state"
+    t.index ["data_stream_id"], name: "index_data_packages_on_data_stream_id"
+    t.index ["sender_organization_id"], name: "index_data_packages_on_sender_organization_id"
+    t.check_constraint "state::text = ANY (ARRAY['draft'::character varying, 'transmitted'::character varying, 'acknowledged'::character varying]::text[])", name: "state_check"
+  end
 
   create_table "data_streams", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -45,6 +60,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_31_184929) do
     t.check_constraint "permission_type::text = ANY (ARRAY['read'::character varying, 'write'::character varying, 'read_write'::character varying]::text[])", name: "permission_type_check"
   end
 
+  add_foreign_key "data_packages", "data_streams", on_delete: :restrict
+  add_foreign_key "data_packages", "organizations", column: "sender_organization_id"
   add_foreign_key "data_streams", "organizations", column: "owner_organization_id"
   add_foreign_key "subscriptions", "data_streams", on_delete: :cascade
   add_foreign_key "subscriptions", "organizations", on_delete: :cascade
