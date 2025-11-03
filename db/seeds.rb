@@ -6,6 +6,7 @@ puts "🌱 Seeding database..."
 # Nettoyer les données existantes (développement uniquement)
 if Rails.env.development?
   puts "  🧹 Cleaning existing data..."
+  DataPackage.destroy_all
   Subscription.destroy_all
   DataStream.destroy_all
   Organization.destroy_all
@@ -221,10 +222,119 @@ subscriptions_data.each do |sub_data|
 end
 
 puts "  ✅ Created #{Subscription.count} subscriptions"
+
+# DataPackages de test (paquets envoyés/en cours)
+data_packages_data = [
+  # CertDC - Packages draft
+  {
+    data_stream: cert_dc,
+    sender_organization: mairie_lyon,
+    title: "CertDC-20250101-093000-A1B2",
+    state: :draft
+  },
+  {
+    data_stream: cert_dc,
+    sender_organization: prefecture_paris,
+    title: "CertDC-20250115-141500-C3D4",
+    state: :draft
+  },
+  # CertDC - Packages sent
+  {
+    data_stream: cert_dc,
+    sender_organization: mairie_lyon,
+    title: "CertDC-20250201-100000-E5F6",
+    state: :transmitted,
+    sent_at: 1.day.ago
+  },
+  {
+    data_stream: cert_dc,
+    sender_organization: prefecture_paris,
+    title: "CertDC-20250131-153000-G7H8",
+    state: :transmitted,
+    sent_at: 2.days.ago
+  },
+  {
+    data_stream: cert_dc,
+    sender_organization: mairie_lyon,
+    title: "CertDC-20250128-083000-I9J0",
+    state: :transmitted,
+    sent_at: 5.days.ago
+  },
+  # CertDC - Packages acknowledged
+  {
+    data_stream: cert_dc,
+    sender_organization: prefecture_paris,
+    title: "CertDC-20250115-120000-K1L2",
+    state: :acknowledged,
+    sent_at: 18.days.ago,
+    acknowledged_at: 17.days.ago
+  },
+  {
+    data_stream: cert_dc,
+    sender_organization: mairie_lyon,
+    title: "CertDC-20250110-094500-M3N4",
+    state: :acknowledged,
+    sent_at: 23.days.ago,
+    acknowledged_at: 22.days.ago
+  },
+  # AttestationSecuriteSociale - Packages variés
+  {
+    data_stream: attestations_ss,
+    sender_organization: cnam,
+    title: "AttestationSecuriteSociale-20250201-140000-P5Q6",
+    state: :draft
+  },
+  {
+    data_stream: attestations_ss,
+    sender_organization: cnam,
+    title: "AttestationSecuriteSociale-20250131-110000-R7S8",
+    state: :transmitted,
+    sent_at: 2.days.ago
+  },
+  {
+    data_stream: attestations_ss,
+    sender_organization: cnam,
+    title: "AttestationSecuriteSociale-20250125-083000-T9U0",
+    state: :acknowledged,
+    sent_at: 8.days.ago,
+    acknowledged_at: 7.days.ago
+  },
+  # ActesEtatCivil - Packages
+  {
+    data_stream: actes_etat_civil,
+    sender_organization: mairie_lyon,
+    title: "ActesEtatCivil-20250201-154500-V1W2",
+    state: :draft
+  },
+  {
+    data_stream: actes_etat_civil,
+    sender_organization: mairie_lyon,
+    title: "ActesEtatCivil-20250130-101500-X3Y4",
+    state: :transmitted,
+    sent_at: 3.days.ago
+  }
+]
+
+puts "  📦 Creating #{data_packages_data.size} data packages..."
+
+data_packages_data.each do |pkg_data|
+  DataPackage.find_or_create_by!(
+    title: pkg_data[:title]
+  ) do |pkg|
+    pkg.data_stream = pkg_data[:data_stream]
+    pkg.sender_organization = pkg_data[:sender_organization]
+    pkg.state = pkg_data[:state]
+    pkg.sent_at = pkg_data[:sent_at] if pkg_data[:sent_at]
+    pkg.acknowledged_at = pkg_data[:acknowledged_at] if pkg_data[:acknowledged_at]
+  end
+end
+
+puts "  ✅ Created #{DataPackage.count} data packages"
 puts ""
 puts "📊 Summary:"
 puts "  - Organizations: #{Organization.count}"
 puts "  - Data Streams: #{DataStream.count}"
 puts "  - Subscriptions: #{Subscription.count}"
+puts "  - Data Packages: #{DataPackage.count}"
 puts ""
 puts "🎉 Seeding completed!"
