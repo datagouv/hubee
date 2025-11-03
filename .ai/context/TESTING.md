@@ -300,10 +300,25 @@ it 'returns organization' do
   )
 end
 
-# ✅ BON : Erreurs complètes
+# ✅ BON : Erreurs de validation ActiveRecord (attribut → array)
 it 'returns validation errors' do
   expect(json).to match(
-    'name' => array_including("can't be blank")
+    'name' => array_including("can't be blank"),
+    'retention_days' => array_including("must be greater than 0")
+  )
+end
+
+# ✅ BON : Erreurs métier sur attribut spécifique (ex: state)
+it 'returns error message' do
+  expect(json).to match(
+    'state' => array_including("Cannot send: must be draft with completed attachments")
+  )
+end
+
+# ✅ BON : Erreurs globales (base)
+it 'returns error message' do
+  expect(json).to match(
+    'base' => array_including("Cannot destroy data_package in state: transmitted")
   )
 end
 
@@ -311,8 +326,10 @@ end
 it { expect(json['name']).to eq('DILA') }
 it { expect(json).to have_key('created_at') }
 
-# ❌ MAUVAIS : Erreur partielle
+# ❌ MAUVAIS : Format custom ou vérification partielle
 it { expect(json).to have_key('error') }
+it { expect(json['error']).to include('message') }
+it { expect(json['errors']).to be_present }
 ```
 
 ### Request - Un Seul Cas d'Erreur
@@ -408,6 +425,133 @@ Given('une organisation {string} et un flux {string}') do |org, stream|
   @data_stream = create(:data_stream, name: stream, owner: @organization)
 end
 ```
+
+## Tests : AASM Callback `error`
+
+> **Pattern documenté** : Voir `.ai/context/CODE_STYLE.md` section "State Machines (AASM)"
+
+Tests pour transitions AASM avec callback `error` (capture exception, ajoute erreur, retourne `false`) :
+
+```ruby
+# Model specs - Tester que le callback error fonctionne
+describe 'AASM error callbacks' do
+  describe '#send_package! with error callback' do
+    context 'when guard fails' do
+      let(:package) { create(:data_package, :draft) }
+
+      before { allow(package).to receive(:has_completed_attachments?).and_return(false) }
+
+      it 'returns false' do
+        expect(package.send_package!).to be false
+      end
+
+      it 'does not transition' do
+        package.send_package!
+        expect(package).to have_state(:draft)
+      end
+
+      it 'adds error to state via error callback' do
+        package.send_package!
+        expect(package.errors[:state]).to include("must be draft")
+      end
+    end
+
+    context 'when in wrong state' do
+      let(:package) { create(:data_package, :transmitted) }
+
+      it 'returns false' do
+        expect(package.send_package!).to be false
+      end
+
+      it 'does not transition' do
+        package.send_package!
+        expect(package).to have_state(:transmitted)
+      end
+
+      it 'adds error to state via error callback' do
+        package.send_package!
+        expect(package.errors[:state]).to include("must be draft")
+      end
+    end
+  end
+end
+
+# Request specs - Vérifier format d'erreur standard
+it 'returns error message' do
+  expect(json).to match(
+    'state' => array_including("must be draft")
+  )
+end
+```
+
+**Points clés** :
+- ✅ Callback `error` capture `AASM::InvalidTransition` et retourne `false`
+- ✅ Pas besoin de tester l'exception (elle est capturée)
+- ✅ Tester retour `false`, état inchangé, et erreur ajoutée
+- ✅ Format d'erreur : attribut → array (standard Rails)
+
+## Tests : AASM Transitions
+
+> **Pattern documenté** : Voir `.ai/context/CODE_STYLE.md` section "State Machines (AASM)"
+
+Tests pour vérifier les transitions AASM elles-mêmes (états, événements, guards) :
+
+```ruby
+# Model specs - Utiliser les matchers AASM RSpec
+describe 'AASM state machine' do
+  describe 'initial state' do
+    it 'starts in draft state' do
+      package = DataPackage.new
+      expect(package).to have_state(:draft)
+    end
+  end
+
+  describe 'send_package event' do
+    context 'with completed attachments' do
+      let(:package) { create(:data_package, :draft) }
+      before { allow(package).to receive(:has_completed_attachments?).and_return(true) }
+
+      it 'transitions from draft to transmitted' do
+        expect(package).to transition_from(:draft).to(:transmitted).on_event(:send_package)
+      end
+
+      it 'allows the event on draft packages' do
+        expect(package).to allow_event(:send_package)
+      end
+
+      it 'allows transition to transmitted from draft' do
+        expect(package).to allow_transition_to(:transmitted)
+      end
+    end
+
+    context 'without completed attachments' do
+      let(:package) { build(:data_package, :draft) }
+      it 'does not allow the event' do
+        expect(package).to_not allow_event(:send_package)
+      end
+    end
+
+    context 'from transmitted state' do
+      let(:package) { build(:data_package, :transmitted) }
+      it 'does not allow the event' do
+        expect(package).to_not allow_event(:send_package)
+      end
+    end
+  end
+end
+```
+
+**Matchers AASM RSpec disponibles** :
+- `have_state(:state_name)` - Vérifie l'état courant
+- `transition_from(:from).to(:to).on_event(:event)` - Vérifie transition complète
+- `allow_event(:event_name)` - Vérifie si événement est autorisé (guards + état)
+- `allow_transition_to(:state)` - Vérifie si transition vers état est possible
+
+**Points clés** :
+- ✅ Tester état initial avec `have_state`
+- ✅ Tester transitions valides avec `transition_from().to().on_event()`
+- ✅ Tester guards avec `allow_event` (contextes avec/sans guard satisfait)
+- ✅ Tester événements bloqués depuis mauvais état avec `to_not allow_event`
 
 ## Interactors
 

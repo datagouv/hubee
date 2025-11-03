@@ -9,6 +9,7 @@
 - **TDD obligatoire** - Tests avant implémentation
 - **Early returns** - Réduire la complexité cognitive
 - **Flat API responses** - Pattern sans nesting (sauf attachments)
+- **Arrays de symboles** : Toujours utiliser `%i[]` (ex: `only: %i[index show]`, jamais `%w[]`)
 
 ## 🏗️ Architecture & Organisation
 
@@ -79,6 +80,120 @@ end
 - ✅ Scopes réutilisables (console, jobs, etc.)
 - ✅ Logique métier dans le model
 - ✅ Testable unitairement
+
+### State Machines (AASM)
+
+Utiliser AASM pour gérer les transitions d'états complexes et garantir l'intégrité des workflows.
+
+```ruby
+class DataPackage < ApplicationRecord
+  include AASM
+
+  # State machine avec guards et callbacks
+  aasm column: :state do  # ✅ Colonne 'state' (pas 'status')
+    state :draft, initial: true
+    state :transmitted  # ✅ État technique (pas 'sent')
+    state :acknowledged
+
+    # Événement avec guard, callback after, et error callback
+    event :send_package do
+      transitions from: :draft, to: :transmitted, guard: :has_completed_attachments?
+      after { update_column(:sent_at, Time.current) }  # ✅ Callback en dehors du bloc transitions
+      error { errors.add(:state, "must be draft") }    # ✅ Capture exception, ajoute erreur, retourne false
+    end
+
+    event :acknowledge do
+      transitions from: :transmitted, to: :acknowledged
+      after { update_column(:acknowledged_at, Time.current) }
+      error { errors.add(:state, "must be transmitted") }
+    end
+  end
+
+  # Scopes avec AASM (Array intersection pour validation)
+  scope :by_state, ->(states) {
+    return all unless states.is_a?(String)
+    requested = states.split(",").map(&:strip)
+    valid = DataPackage.aasm.states.map(&:name).map(&:to_s)
+    valid_states = requested & valid  # Array intersection
+    valid_states.any? ? where(state: valid_states) : none
+  }
+  scope :by_status, ->(statuses) { by_state(statuses) }  # Alias pour API
+
+  private
+
+  def has_completed_attachments?
+    # Guard logique
+  end
+end
+```
+
+**Règles** :
+- ✅ Colonne `state` (pas `status`) pour précision technique
+- ✅ États techniques (`:transmitted` pas `:sent`) pour éviter conflits Ruby
+- ✅ Timestamps d'action (ex: `sent_at`) distincts des états
+- ✅ Guards pour valider transitions (`may_*?` vérifie automatiquement)
+- ✅ Callbacks `after` **en dehors** du bloc `transitions` (syntaxe directe)
+- ✅ Callback `error` capture exception, ajoute erreur, et retourne `false`
+- ✅ États exposés comme méthodes prédicats (`draft?`, `transmitted?`)
+- ✅ Scopes : Array intersection `&` pour validation élégante
+- ❌ Jamais de transitions manuelles (`update!(state:)` interdit)
+
+**Pattern Callback `error` AASM** :
+
+Le callback `error` capture les exceptions `AASM::InvalidTransition`, ajoute les erreurs au modèle, et fait retourner `false` au lieu de lever l'exception :
+
+```ruby
+# Model - Callback error
+event :send_package do
+  transitions from: :draft, to: :transmitted, guard: :has_completed_attachments?
+  after { update_column(:sent_at, Time.current) }
+  error { errors.add(:state, "must be draft") }  # ✅ Capture exception + retourne false
+end
+
+# Controller - Appel direct avec !
+def create
+  if @data_package.send_package!  # Retourne true/false (pas d'exception grâce à error callback)
+    render "api/v1/data_packages/show", status: :ok
+  else
+    render json: @data_package.errors, status: :unprocessable_content
+  end
+end
+```
+
+**Avantages** :
+- ✅ Logique d'erreur centralisée dans le modèle (callback AASM)
+- ✅ Controller ultra-simple (if/else direct)
+- ✅ Format d'erreur Rails standard (attribut → array)
+- ✅ Pas besoin de `rescue` ou méthode wrapper
+- ✅ `send_package!` retourne `false` au lieu de raise grâce au callback
+- ✅ Erreur sur l'attribut concerné (`:state`) pas sur `:base`
+
+**Routes Nested Resource pour Transitions** :
+```ruby
+# routes.rb
+resources :data_packages, only: %i[index show destroy], param: :id do
+  resource :transmission, only: %i[create]  # Singulier pour action unique
+end
+
+# app/controllers/api/v1/transmissions_controller.rb
+class Api::V1::TransmissionsController < Api::BaseController
+  before_action :set_data_package
+
+  def create
+    if @data_package.send_package!  # Retourne true/false grâce au callback error
+      render "api/v1/data_packages/show", status: :ok
+    else
+      render json: @data_package.errors, status: :unprocessable_content
+    end
+  end
+
+  private
+
+  def set_data_package
+    @data_package = DataPackage.find(params[:data_package_id])
+  end
+end
+```
 
 ### Controllers (`app/controllers/api/v1/*_controller.rb`)
 

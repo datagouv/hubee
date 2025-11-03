@@ -265,6 +265,7 @@ Consulter `docs/WORKFLOW_IMPLEMENTATION_TDD.md` pour le guide complet feature pa
 - **Routes RESTful** : Suivre conventions Rails
 - **Validations** : Au niveau modèle + database constraints
 - **Seeds** : Idempotents avec `find_or_create_by!`, données réalistes
+- **State Machine** : États AASM (ex: `transmitted`) + timestamps d'action (ex: `sent_at`). Colonnes individuelles pour ≤4 états, JSONB si >4
 
 ## Durée Estimée Totale
 
@@ -347,3 +348,4 @@ validates :siret, siret: true
 - **Import Batch** : CSV/JSON en masse avec validation async
 - **Cache Redis** : Organizations fréquentes
 - **Soft Delete** : Audit trail avec `deleted_at`
+- **State Transitions JSONB** : Si >4 états dans state machine, migrer vers `jsonb :state_transitions` pour flexibilité (évite colonnes `*_at` multiples). Helpers `def transmitted_at; state_transitions["transmitted"]&.to_datetime; end`
