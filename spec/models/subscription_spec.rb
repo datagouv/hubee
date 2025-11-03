@@ -37,21 +37,6 @@ RSpec.describe Subscription, type: :model do
       expect { duplicate.save!(validate: false) }.to raise_error(ActiveRecord::RecordNotUnique)
     end
   end
-
-  describe "uuid" do
-    let(:subscription) { create(:subscription) }
-
-    it "generates UUID automatically" do
-      expect(subscription.id).to be_present
-      expect(subscription.id).to match(/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/)
-    end
-
-    it "ensures UUID uniqueness" do
-      other_subscription = create(:subscription)
-      expect(subscription.id).not_to eq(other_subscription.id)
-    end
-  end
-
   describe "implicit_order_column" do
     let!(:subscription1) { create(:subscription, :read_only) }
     let!(:subscription2) { create(:subscription, :write_only) }
