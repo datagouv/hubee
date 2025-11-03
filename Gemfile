@@ -26,6 +26,9 @@ gem "pundit", "~> 2.4"
 # Pagination for API [https://github.com/ddnexus/pagy]
 gem "pagy", "~> 9.4"
 
+# State machine for model workflows [https://github.com/aasm/aasm]
+gem "aasm", "~> 5.5"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[windows jruby]
 
