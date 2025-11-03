@@ -1,8 +1,9 @@
 # Hubee V2 - Schéma Base de Données
 
-**Version**: 1.2.0
-**Date**: 2025-01-27
+**Version**: 1.3.0
+**Date**: 2025-11-03
 **SGBD**: PostgreSQL 18+
+**UUID**: Version 7 (time-sortable)
 
 > **Voir aussi** : `.ai/context/CODE_STYLE.md` pour patterns migrations, UUID, indexes concurrents, seeds
 
@@ -13,7 +14,7 @@
 ```sql
 -- Organizations (SIRET) - Producteurs et Consommateurs
 CREATE TABLE organizations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuidv7(),
   name VARCHAR NOT NULL,
   siret VARCHAR(14) NOT NULL UNIQUE,
   created_at TIMESTAMP NOT NULL,
@@ -38,7 +39,7 @@ CREATE INDEX idx_api_tokens_org ON api_tokens(organization_id);
 
 -- Flux de données (ex: CertDC)
 CREATE TABLE data_streams (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuidv7(),
   name VARCHAR NOT NULL,
   description TEXT,
   owner_organization_id UUID REFERENCES organizations(id),
@@ -49,7 +50,7 @@ CREATE TABLE data_streams (
 
 -- Abonnements (qui peut lire/écrire un flux)
 CREATE TABLE subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuidv7(),
   data_stream_id UUID NOT NULL REFERENCES data_streams(id) ON DELETE CASCADE,
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   permission_type VARCHAR NOT NULL DEFAULT 'read',
@@ -61,11 +62,11 @@ CREATE TABLE subscriptions (
 
 -- Paquets de données (transmission d'un ensemble de fichiers)
 CREATE TABLE data_packages (
-  id BIGSERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT uuidv7(),
   data_stream_id UUID NOT NULL REFERENCES data_streams(id) ON DELETE RESTRICT,
   sender_organization_id UUID NOT NULL REFERENCES organizations(id),
-  status VARCHAR NOT NULL DEFAULT 'draft',
-  -- Status: draft → ready → sent → acknowledged
+  state VARCHAR NOT NULL DEFAULT 'draft',
+  -- State: draft → transmitted → acknowledged (AASM state machine)
   title VARCHAR,
   sent_at TIMESTAMP,
   acknowledged_at TIMESTAMP,
@@ -73,13 +74,13 @@ CREATE TABLE data_packages (
   updated_at TIMESTAMP NOT NULL
 );
 
-CREATE INDEX idx_data_packages_stream_status ON data_packages(data_stream_id, status);
-CREATE INDEX idx_data_packages_sender_created ON data_packages(sender_organization_id, created_at);
+CREATE INDEX idx_data_packages_stream_state ON data_packages(data_stream_id, state);
+CREATE INDEX idx_data_packages_sender ON data_packages(sender_organization_id);
 
 -- Notifications (liens data_package → subscriptions)
 CREATE TABLE notifications (
   id BIGSERIAL PRIMARY KEY,
-  data_package_id BIGINT NOT NULL REFERENCES data_packages(id) ON DELETE CASCADE,
+  data_package_id UUID NOT NULL REFERENCES data_packages(id) ON DELETE CASCADE,
   subscription_id UUID NOT NULL REFERENCES subscriptions(id) ON DELETE RESTRICT,
   organization_id UUID NOT NULL REFERENCES organizations(id),
   status VARCHAR NOT NULL DEFAULT 'pending',
@@ -160,34 +161,39 @@ CREATE INDEX idx_users_reset_token ON users(reset_password_token);
 - Routes API : `/api/v1/organizations/:siret`
 - Réponse JSON : `{id: "11122233300001", name: "...", siret: "11122233300001", ...}`
 
-### Colonnes UUID Auto-générées
-Pour les autres ressources, ajouter une colonne `uuid` :
+### UUID v7 : Identifiants Time-Sortable
 
-```sql
--- Activer extension (une fois)
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+**Version utilisée** : UUID v7 (RFC 9562)
+**Générateur** : PostgreSQL 18 native `uuidv7()` function
 
--- Exemple : data_streams
-ALTER TABLE data_streams
-  ADD COLUMN uuid UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE;
+**Avantages UUID v7** :
+- ✅ Time-sortable : pas besoin de `implicit_order_column`
+- ✅ Performance : +49% inserts, -25% stockage vs UUID v4
+- ✅ Index B-tree optimal : réduction de la fragmentation
+- ✅ Ordre chronologique naturel par ID
 
-CREATE UNIQUE INDEX idx_data_streams_uuid ON data_streams(uuid);
-```
-
-**Migration Rails** :
+**Nouvelles Tables** :
 ```ruby
-class AddUuidToDataStreams < ActiveRecord::Migration[8.0]
+class CreateNewResource < ActiveRecord::Migration[8.1]
   def change
-    enable_extension 'pgcrypto' unless extension_enabled?('pgcrypto')
-    add_column :data_streams, :uuid, :uuid, default: 'gen_random_uuid()', null: false
-    add_index :data_streams, :uuid, unique: true
+    create_table :resources, id: :uuid do |t|
+      # PostgreSQL génère automatiquement UUID v7 via DEFAULT uuidv7()
+      t.string :name, null: false
+      t.timestamps
+    end
   end
 end
 ```
 
-**Ressources avec UUID** : data_streams, subscriptions, data_packages, attachments, notifications, users
+**Tables Existantes** :
+Toutes les tables avec UUID utilisent déjà UUID v7 :
+- `organizations`, `data_streams`, `subscriptions`, `data_packages`
 
-**Référence** : [Rails PostgreSQL UUID Guide](https://guides.rubyonrails.org/active_record_postgresql.html#uuid)
+**Note** : L'extension `pgcrypto` n'est pas nécessaire. PostgreSQL 18 fournit `uuidv7()` nativement.
+
+**Références** :
+- [UUID v7 Specification (RFC 9562)](https://datatracker.ietf.org/doc/html/rfc9562)
+- [PostgreSQL 18 UUID Functions](https://www.postgresql.org/docs/18/functions-uuid.html)
 
 ## Relations Clés
 

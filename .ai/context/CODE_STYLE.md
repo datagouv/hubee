@@ -395,13 +395,12 @@ end
 ```
 
 **Règles** :
-- ✅ `id: :uuid` dans `create_table` pour UUID primary key (gen_random_uuid automatique)
+- ✅ `id: :uuid` dans `create_table` pour UUID v7 primary key (uuidv7() automatique en PostgreSQL 18)
 - ✅ `t.references` avec `type: :uuid` pour foreign keys UUID
 - ✅ `disable_ddl_transaction!` + `algorithm: :concurrently` pour indexes
 - ✅ `index: false` dans references, puis `add_index` manuel avec `:concurrently`
 - ✅ `foreign_key: {to_table: :...}` ou `foreign_key: {on_delete: :cascade}` inline
-- ✅ Enable `pgcrypto` extension
-- ✅ `implicit_order_column = :created_at` dans ApplicationRecord pour UUID ordering
+- ✅ UUID v7 est time-sortable : pas besoin d'`implicit_order_column`
 - ❌ Pas de `NOT NULL` sans default ou logique de backfill
 
 ### Seeds (`db/seeds.rb`)

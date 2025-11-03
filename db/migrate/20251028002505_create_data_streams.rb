@@ -2,7 +2,7 @@ class CreateDataStreams < ActiveRecord::Migration[8.1]
   disable_ddl_transaction!
 
   def change
-    create_table :data_streams, id: :uuid do |t|
+    create_table :data_streams, id: :uuid, default: -> { "uuidv7()" } do |t|
       t.string :name, null: false
       t.text :description
       t.references :owner_organization, type: :uuid, null: false,
