@@ -5,7 +5,8 @@ module Api
     rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
     # Set pagination headers in response using Pagy headers extra
-    after_action :set_pagination_headers, only: :index
+    # Using 'if:' instead of 'only:' to avoid Rails 7.1+ strict callback validation
+    after_action :set_pagination_headers, if: -> { action_name == "index" }
 
     before_action :set_default_format
 
