@@ -4,14 +4,19 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       resources :organizations, only: %i[index show] do
-        resources :subscriptions, only: [:index]
+        resources :subscriptions, only: %i[index]
       end
 
       resources :data_streams do
-        resources :subscriptions, only: [:index, :create]
+        resources :subscriptions, only: %i[index create]
+        resources :data_packages, only: %i[index create]
       end
 
-      resources :subscriptions, only: [:show, :update, :destroy], param: :id
+      resources :subscriptions, only: %i[show update destroy], param: :id
+
+      resources :data_packages, only: %i[index show destroy], param: :id do
+        resource :transmission, only: %i[create]
+      end
     end
   end
 end
