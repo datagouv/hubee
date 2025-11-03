@@ -34,19 +34,19 @@ RSpec.describe DataStream, type: :model do
   end
 
   describe "uuid generation" do
-    it "automatically generates a UUID on creation" do
+    it "automatically generates a UUID v7 on creation" do
       data_stream = create(:data_stream)
       expect(data_stream.id).to be_present
-      expect(data_stream.id).to match(/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/)
+      expect(data_stream.id).to match(/\A[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i)
     end
   end
 
-  describe "implicit_order_column" do
+  describe "UUID v7 ordering" do
     let!(:stream1) { create(:data_stream, name: "First") }
     let!(:stream2) { create(:data_stream, name: "Second") }
     let!(:stream3) { create(:data_stream, name: "Third") }
 
-    it "orders .first and .last by created_at instead of UUID" do
+    it "orders .first and .last chronologically by time-sortable UUID v7" do
       expect(DataStream.first).to eq(stream1)
       expect(DataStream.last).to eq(stream3)
     end

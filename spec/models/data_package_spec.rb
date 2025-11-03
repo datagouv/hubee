@@ -24,10 +24,10 @@ RSpec.describe DataPackage, type: :model do
       expect { sender_organization.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
     end
 
-    it "enforces state check constraint" do
+    it "enforces state enum constraint" do
       expect {
         data_package.update_column(:state, "invalid_state")
-      }.to raise_error(ActiveRecord::StatementInvalid, /state_check/)
+      }.to raise_error(ActiveRecord::StatementInvalid, /invalid input value for enum data_package_state/)
     end
   end
 
@@ -233,12 +233,12 @@ RSpec.describe DataPackage, type: :model do
     end
   end
 
-  describe "implicit_order_column" do
+  describe "UUID v7 ordering" do
     let!(:pkg1) { create(:data_package, :draft) }
     let!(:pkg2) { create(:data_package, :transmitted) }
     let!(:pkg3) { create(:data_package, :acknowledged) }
 
-    it "orders .first and .last by created_at instead of UUID" do
+    it "orders .first and .last chronologically by time-sortable UUID v7" do
       expect(DataPackage.first).to eq(pkg1)
       expect(DataPackage.last).to eq(pkg3)
     end

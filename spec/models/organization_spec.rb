@@ -51,12 +51,12 @@ RSpec.describe Organization, type: :model do
     end
   end
 
-  describe "implicit_order_column" do
+  describe "UUID v7 ordering" do
     let!(:organization1) { create(:organization, name: "First", siret: "11111111111111") }
     let!(:organization2) { create(:organization, name: "Second", siret: "22222222222222") }
     let!(:organization3) { create(:organization, name: "Third", siret: "33333333333333") }
 
-    it "orders .first and .last by created_at instead of UUID" do
+    it "orders .first and .last chronologically by time-sortable UUID v7" do
       expect(Organization.first).to eq(organization1)
       expect(Organization.last).to eq(organization3)
     end
