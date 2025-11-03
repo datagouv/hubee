@@ -55,10 +55,51 @@ rails db:migrate
 
 ## 🚀 Utilisation Rapide
 
-### Tout Exécuter
+### CI Locale Rails 8.1 (Recommandé)
 
 ```bash
-# Lance bundler-audit + brakeman
+# Lance TOUS les checks (style, security, tests)
+bin/ci
+```
+
+Le script `bin/ci` exécute automatiquement dans l'ordre :
+1. **Setup** : `bin/setup --skip-server`
+2. **Style** : StandardRB
+3. **Security** : bundler-audit + brakeman + importmap
+4. **Database** : Préparation DB test
+5. **Tests** : RSpec (models + requests) + Cucumber (E2E)
+6. **Coverage** : Vérification >= 80%
+7. **Signoff** : Marque le commit comme approuvé via `gh signoff` (si tous les checks passent)
+
+**Durée** : ~10 secondes en local
+
+#### 🎯 Workflow avec GitHub Signoff
+
+Si tous les checks passent, `bin/ci` marque automatiquement votre dernier commit comme "approved" :
+
+```bash
+# 1. Faire vos modifications
+git add .
+git commit -m "feat: add new feature"
+
+# 2. Lancer la CI locale
+bin/ci  # ✅ Si ça passe, commit marqué "approved" automatiquement
+
+# 3. Pusher
+git push  # GitHub affiche déjà le status ✅ vert
+```
+
+**Prérequis** :
+- GitHub CLI installé : `brew install gh`
+- Extension installée : `gh extension install basecamp/gh-signoff`
+- Authentifié : `gh auth login`
+
+**Note** : GitHub Actions lance QUAND MÊME la CI complète (sécurité + environnement isolé).
+
+### Tout Exécuter (Ancienne méthode)
+
+```bash
+# Lance bundler-audit + brakeman uniquement
 rake security:all
 # ou simplement
 rake security
@@ -68,23 +109,20 @@ rake security
 
 **Avant un commit important** :
 ```bash
-rake security
+bin/ci  # Exécute TOUS les checks (recommandé)
+# OU
+rake security  # Uniquement security checks
 ```
 
 **Avant un déploiement** :
 ```bash
-rake security
+bin/ci
 rails db:migrate:status  # Vérifier les migrations en attente
 ```
 
-**Dans la CI** (à ajouter à `.github/workflows/` ou équivalent) :
-```yaml
-- name: Security checks
-  run: |
-    bundle exec bundler-audit update
-    bundle exec bundler-audit check
-    bundle exec brakeman --quiet --exit-on-warn
-```
+**Dans la CI GitHub Actions** :
+Le workflow `.github/workflows/ci.yml` appelle automatiquement `bin/ci`.
+Cela garantit que les checks locaux == checks CI (single source of truth).
 
 ## 📋 Checklist Sécurité
 

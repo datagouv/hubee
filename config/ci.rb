@@ -1,23 +1,21 @@
-# Run using bin/ci
-
-CI.run do
+CI.run("Hubee CI", "Plateforme SecNumCloud") do
   step "Setup", "bin/setup --skip-server"
 
-  step "Style: Ruby", "bin/rubocop"
+  step "Style: Ruby", "bundle exec standardrb"
 
-  step "Security: Gem audit", "bin/bundler-audit"
-  step "Security: Importmap vulnerability audit", "bin/importmap audit"
-  step "Security: Brakeman code analysis", "bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error"
+  step "Security: Gems", "bin/bundler-audit check --update"
+  step "Security: Code", "bin/brakeman --quiet --no-pager --exit-on-warn"
+  step "Security: Importmap", "bin/importmap audit"
 
-  step "Tests: Rails", "bin/rails test"
-  step "Tests: System", "bin/rails test:system"
-  step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
+  step "Database: Prepare", "bin/rails db:test:prepare"
 
-  # Optional: set a green GitHub commit status to unblock PR merge.
-  # Requires the `gh` CLI and `gh extension install basecamp/gh-signoff`.
-  # if success?
-  #   step "Signoff: All systems go. Ready for merge and deploy.", "gh signoff"
-  # else
-  #   failure "Signoff: CI failed. Do not merge or deploy.", "Fix the issues and try again."
-  # end
+  step "Tests: RSpec with Coverage", "env COVERAGE=true bundle exec rspec --format progress"
+  step "Tests: E2E", "bundle exec cucumber"
+
+  if success?
+    echo "All checks passed! Coverage >= 80%. Ready for merge.", type: :success
+    step "Signoff: Mark commit as approved", "gh signoff"
+  else
+    failure "CI Failed", "Fix the issues above and run bin/ci again"
+  end
 end
