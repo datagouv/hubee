@@ -3,6 +3,7 @@
 [![Ruby](https://img.shields.io/badge/Ruby-3.4.7-red.svg)](https://www.ruby-lang.org/)
 [![Rails](https://img.shields.io/badge/Rails-8.1.0-red.svg)](https://rubyonrails.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-blue.svg)](https://www.postgresql.org/)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 Plateforme d'échange sécurisé de fichiers gouvernementaux (SecNumCloud, RGS niveau élevé).
 
@@ -187,4 +188,17 @@ Le projet suit une approche **TDD feature par feature**. Consulter `.ai/context/
 
 ## 📝 Licence
 
-© 2025 DINUM - Tous droits réservés
+Ce projet est distribué sous licence **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+### Principales caractéristiques :
+
+- ✅ **Liberté de modification** : Vous pouvez modifier et adapter le code
+- ✅ **Liberté de distribution** : Vous pouvez redistribuer le code modifié ou non
+- ⚠️ **Copyleft réseau** : Toute modification déployée sur un réseau (SaaS) doit être partagée
+- 📄 **Code source** : Le code source complet doit être accessible aux utilisateurs
+
+### Copyright
+
+Copyright (C) 2025 DINUM (Direction Interministérielle du Numérique)
+
+Pour plus d'informations, consultez le fichier [LICENSE](LICENSE) ou visitez https://www.gnu.org/licenses/agpl-3.0.html
