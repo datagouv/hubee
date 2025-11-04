@@ -78,7 +78,7 @@ group :test do
   gem "database_cleaner-active_record"
 
   # Additional test helpers
-  gem "shoulda-matchers", "~> 6.4"
+  gem "shoulda-matchers", "~> 7.0"
 end
 
 group :development do
