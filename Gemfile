@@ -60,7 +60,7 @@ group :development, :test do
   gem "standard", require: false
 
   # RSpec for unit and request testing [https://rspec.info/]
-  gem "rspec-rails", "~> 7.1"
+  gem "rspec-rails", "~> 8.0"
 
   # Test data factories [https://github.com/thoughtbot/factory_bot_rails]
   gem "factory_bot_rails", "~> 6.4"
