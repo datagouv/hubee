@@ -22,7 +22,7 @@ class DataPackage < ApplicationRecord
     end
   end
 
-  scope :by_state, ->(states) {
+  scope :by_state, ->(states) { # Je mettrai le split dans le controller, et juste une list d'*args ici 
     return all unless states.is_a?(String)
 
     requested = states.split(",").map(&:strip)
