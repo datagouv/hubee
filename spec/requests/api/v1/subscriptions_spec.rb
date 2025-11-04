@@ -35,6 +35,24 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
           hash_including("id" => sub2.id, "organization_id" => organization.id)
         ])
       end
+
+      it "includes pagination headers" do
+        expect(response.headers["X-Page"]).to eq("1")
+        expect(response.headers["X-Per-Page"]).to eq(Pagy.options[:limit].to_s)
+      end
+    end
+
+    context "with many records" do
+      let!(:organization) { create(:organization) }
+      let!(:streams) { create_list(:data_stream, 60) }
+      let!(:subscriptions) { streams.map { |stream| create(:subscription, organization: organization, data_stream: stream) } }
+      let(:id) { organization.id }
+
+      before { make_request }
+
+      it "respects default page size from Pagy config" do
+        expect(json.size).to eq(Pagy.options[:limit])
+      end
     end
 
     context "with organization and permission_type filters combined" do

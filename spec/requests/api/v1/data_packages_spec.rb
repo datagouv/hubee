@@ -42,6 +42,23 @@ RSpec.describe "Api::V1::DataPackages", type: :request do
           "updated_at" => anything
         )
       end
+
+      it "includes pagination headers" do
+        expect(response.headers["X-Page"]).to eq("1")
+        expect(response.headers["X-Per-Page"]).to eq(Pagy.options[:limit].to_s)
+      end
+    end
+
+    context "with many records" do
+      let(:stream) { create(:data_stream) }
+      let(:org) { create(:organization) }
+      let!(:data_packages) { create_list(:data_package, 60, data_stream: stream, sender_organization: org) }
+
+      before { make_request }
+
+      it "respects default page size from Pagy config" do
+        expect(json.size).to eq(Pagy.options[:limit])
+      end
     end
 
     context "with state filter" do
