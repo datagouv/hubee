@@ -1,6 +1,6 @@
 module Api
   class BaseController < ActionController::API
-    include Pagy::Backend
+    include Pagy::Method
 
     rescue_from ActiveRecord::RecordNotFound, with: :not_found
 
@@ -21,7 +21,7 @@ module Api
     end
 
     def set_pagination_headers
-      pagy_headers_merge(@pagy) if @pagy
+      response.headers.merge!(@pagy.headers_hash) if @pagy
     end
   end
 end

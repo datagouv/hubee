@@ -107,7 +107,7 @@ RSpec.describe 'Api::V1::Organizations', type: :request do
 
       it 'includes pagination headers' do
         expect(response.headers['X-Page']).to eq('1')
-        expect(response.headers['X-Per-Page']).to eq(Pagy::DEFAULT[:limit].to_s)
+        expect(response.headers['X-Per-Page']).to eq(Pagy.options[:limit].to_s)
       end
     end
 
@@ -117,7 +117,7 @@ RSpec.describe 'Api::V1::Organizations', type: :request do
       before { make_request }
 
       it 'respects default page size from Pagy config' do
-        expect(json.size).to eq(Pagy::DEFAULT[:limit])
+        expect(json.size).to eq(Pagy.options[:limit])
       end
     end
   end
@@ -359,8 +359,8 @@ context 'invalid siret format' { ... }
 ```ruby
 # ✅ BON
 it 'respects Pagy default limit' do
-  expect(json.size).to eq(Pagy::DEFAULT[:limit])
-  expect(response.headers['X-Per-Page']).to eq(Pagy::DEFAULT[:limit].to_s)
+  expect(json.size).to eq(Pagy.options[:limit])
+  expect(response.headers['X-Per-Page']).to eq(Pagy.options[:limit].to_s)
 end
 
 # ❌ MAUVAIS (nombres hardcodés)
