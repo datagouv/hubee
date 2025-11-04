@@ -41,6 +41,8 @@ class DataPackage < ApplicationRecord
 
   def can_be_destroyed?
     draft? || acknowledged?
+    # Just draft? for now, I think.
+    # When the automatic deletion will be implemented, we will need to destroy data_package not acknowledged
   end
 
   private
