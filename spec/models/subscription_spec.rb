@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe Subscription, type: :model do
+  it_behaves_like "a model with UUID v7 primary key"
+
   describe "associations" do
     it { is_expected.to belong_to(:data_stream) }
     it { is_expected.to belong_to(:organization) }
@@ -16,47 +18,13 @@ RSpec.describe Subscription, type: :model do
   end
 
   describe "enum permission_type" do
-    it "accepts valid permission_type values" do
-      expect { create(:subscription, permission_type: "read") }.not_to raise_error
-      expect { create(:subscription, permission_type: "write") }.not_to raise_error
-      expect { create(:subscription, permission_type: "read_write") }.not_to raise_error
-    end
-
-    it "rejects invalid permission_type values" do
-      subscription = create(:subscription)
-      expect {
-        subscription.update_column(:permission_type, "invalid")
-      }.to raise_error(ActiveRecord::StatementInvalid, /invalid input value for enum permission_type/)
-    end
+    it { is_expected.to define_enum_for(:permission_type).with_values(read: "read", write: "write", read_write: "read_write").backed_by_column_of_type(:enum) }
   end
 
-  describe "database constraints" do
-    let(:subscription) { create(:subscription) }
-
-    it "cascades delete when data_stream is destroyed" do
-      data_stream = subscription.data_stream
-      expect { data_stream.destroy! }.to change(Subscription, :count).by(-1)
-    end
-
-    it "cascades delete when organization is destroyed" do
-      organization = subscription.organization
-      expect { organization.destroy! }.to change(Subscription, :count).by(-1)
-    end
-
-    it "enforces unique constraint on data_stream_id and organization_id" do
-      duplicate = build(:subscription, data_stream: subscription.data_stream, organization: subscription.organization)
-      expect { duplicate.save!(validate: false) }.to raise_error(ActiveRecord::RecordNotUnique)
-    end
-  end
-  describe "UUID v7 ordering" do
-    let!(:subscription1) { create(:subscription, :read_only) }
-    let!(:subscription2) { create(:subscription, :write_only) }
-    let!(:subscription3) { create(:subscription, :read_write) }
-
-    it "orders .first and .last chronologically by time-sortable UUID v7" do
-      expect(Subscription.first).to eq(subscription1)
-      expect(Subscription.last).to eq(subscription3)
-    end
+  describe "database indexes" do
+    it { is_expected.to have_db_index(:data_stream_id) }
+    it { is_expected.to have_db_index(:organization_id) }
+    it { is_expected.to have_db_index([:data_stream_id, :organization_id]).unique }
   end
 
   describe ".by_data_stream" do

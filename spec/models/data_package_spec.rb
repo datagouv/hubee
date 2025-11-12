@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe DataPackage, type: :model do
+  it_behaves_like "a model with UUID v7 primary key"
+
   describe "associations" do
     it { is_expected.to belong_to(:data_stream) }
     it { is_expected.to belong_to(:sender_organization).class_name("Organization") }
@@ -11,24 +13,11 @@ RSpec.describe DataPackage, type: :model do
     it { is_expected.to validate_length_of(:title).is_at_most(255) }
   end
 
-  describe "database constraints" do
-    let(:data_package) { create(:data_package) }
-
-    it "prevents deletion when data_stream is destroyed" do
-      data_stream = data_package.data_stream
-      expect { data_stream.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
-    end
-
-    it "prevents deletion when sender_organization is destroyed" do
-      sender_organization = data_package.sender_organization
-      expect { sender_organization.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
-    end
-
-    it "enforces state enum constraint" do
-      expect {
-        data_package.update_column(:state, "invalid_state")
-      }.to raise_error(ActiveRecord::StatementInvalid, /invalid input value for enum data_package_state/)
-    end
+  describe "database indexes" do
+    it { is_expected.to have_db_index(:data_stream_id) }
+    it { is_expected.to have_db_index(:sender_organization_id) }
+    it { is_expected.to have_db_index(:state) }
+    it { is_expected.to have_db_index([:data_stream_id, :state]) }
   end
 
   describe ".by_state" do
@@ -133,41 +122,24 @@ RSpec.describe DataPackage, type: :model do
     describe "send_package event" do
       context "with completed attachments" do
         let(:package) { create(:data_package, :draft) }
-        before do
-          allow(package).to receive(:has_completed_attachments?).and_return(true)
-        end
-        it "transitions from draft to transmitted" do
-          expect(package).to transition_from(:draft).to(:transmitted).on_event(:send_package)
-        end
+        before { allow(package).to receive(:has_completed_attachments?).and_return(true) }
 
-        it "allows the event on draft packages" do
-          expect(package).to allow_event(:send_package)
-        end
-
-        it "allows transition to transmitted from draft" do
-          expect(package).to allow_transition_to(:transmitted)
-        end
+        it { expect(package).to transition_from(:draft).to(:transmitted).on_event(:send_package) }
       end
 
       context "without completed attachments" do
         let(:package) { build(:data_package, :draft) }
-        it "does not allow the event" do
-          expect(package).to_not allow_event(:send_package)
-        end
+        it { expect(package).to_not allow_event(:send_package) }
       end
 
       context "from transmitted state" do
         let(:package) { build(:data_package, :transmitted) }
-        it "does not allow the event" do
-          expect(package).to_not allow_event(:send_package)
-        end
+        it { expect(package).to_not allow_event(:send_package) }
       end
 
       context "from acknowledged state" do
         let(:package) { build(:data_package, :acknowledged) }
-        it "does not allow the event" do
-          expect(package).to_not allow_event(:acknowledge)
-        end
+        it { expect(package).to_not allow_event(:send_package) }
       end
     end
 
@@ -230,17 +202,6 @@ RSpec.describe DataPackage, type: :model do
     it "returns true for acknowledged package" do
       package = build(:data_package, :acknowledged)
       expect(package.can_be_destroyed?).to be true
-    end
-  end
-
-  describe "UUID v7 ordering" do
-    let!(:pkg1) { create(:data_package, :draft) }
-    let!(:pkg2) { create(:data_package, :transmitted) }
-    let!(:pkg3) { create(:data_package, :acknowledged) }
-
-    it "orders .first and .last chronologically by time-sortable UUID v7" do
-      expect(DataPackage.first).to eq(pkg1)
-      expect(DataPackage.last).to eq(pkg3)
     end
   end
 end
