@@ -1,6 +1,6 @@
 ---
 allowed-tools: Bash(git status), Bash(git diff*), Bash(git log*)
-description: Propose structured commits for user validation (provides copy-paste commands due to GPG)
+description: Propose structured commits for user validation
 ---
 
 You are a git commit proposal tool. Analyze changes and propose organized commits for user validation.
@@ -75,8 +75,8 @@ You are a git commit proposal tool. Analyze changes and propose organized commit
 1. **Analyze**: `git status` and `git diff --stat` to see what changed
 2. **Group**: Organize changes by topic/feature - **PREFER MULTIPLE SMALL COMMITS**
 3. **Propose**: Generate commit proposals with structured messages
-4. **Ask User**: Present proposals and ask which commits to create
-5. **Execute**: Only create validated commits
+4. **Ask User**: Present proposals and **WAIT FOR EXPLICIT VALIDATION**
+5. **Execute**: Create commits **ONLY AFTER** user approval
 
 ## Message Format
 
@@ -303,65 +303,58 @@ docs: update CODE_STYLE with delegates
 
 ---
 
-**Ready to commit?**
-
-Copy and paste the commands below in your terminal (GPG will prompt for your PIN):
-
-```bash
-[Shell script with all git add and git commit commands]
-```
+**Should I proceed with these commits?**
 ```
 
 ## Execution Mode
 
-**CRITICAL**: Due to GPG signing requirements, Claude Code **CANNOT execute commits directly**.
+**CRITICAL**: All commits are signed with SSH (seamless signing without PIN prompts).
 
 ### Workflow
 
 1. **Analyze & Propose**: Show all commit proposals with file lists
-2. **Generate Commands**: Provide ready-to-copy shell commands for user
-3. **User Executes**: User copies and runs commands in terminal (GPG will prompt for PIN)
+2. **Ask for Validation**: **ALWAYS** wait for explicit user approval
+3. **Execute After Approval**: Create commits using Bash tool **ONLY AFTER** validation
 
 ### Rules
 
-- ❌ **NEVER execute `git commit`** - Will fail with GPG timeout
-- ✅ **ALWAYS provide copy-paste commands** for user to run
-- ✅ Generate complete shell script with all git commands
-- ✅ Include file staging (`git add`) and commit commands
+- ✅ **Commits are now automated** - SSH signing works without PIN prompt
+- ❌ **NEVER execute `git commit` without user validation** - ALWAYS ask first
+- ✅ After approval, execute commits directly using the Bash tool
+- ✅ Chain git commands with `&&` for reliability
 - ❌ **Do NOT push** - user will push manually when ready
 
-### Output Format
+### Validation Pattern
 
-Provide a complete shell script that user can copy-paste:
+**Before executing any commit**:
+1. Show complete commit proposals (title, body, file list)
+2. Ask: "Should I proceed with these commits?"
+3. Wait for explicit "yes" / "ok" / "go ahead"
+4. Execute commits using Bash tool
+
+### Execution Format
+
+After receiving validation, execute commits using the Bash tool:
 
 **CRITICAL RULES FOR GIT ADD**:
-- ✅ **ONE `git add` per file** - Never combine multiple files on one line
+- ✅ **ONE `git add` per file or directory**
 - ✅ Use explicit file paths (no wildcards unless necessary)
-- ✅ Add directories with trailing slash for clarity
-- ❌ Never use: `git add file1.rb file2.rb` (files get lost in copy-paste)
+- ✅ Chain commands with `&&` for safety
+- ✅ Use heredoc for multi-line commit messages
 
+**Example**:
 ```bash
-# Commit 1: feat: add feature
-git add file1.rb
-git add file2.rb
-git add app/views/resource/
-git commit -m "feat: add feature
+git add file1.rb && \
+git add file2.rb && \
+git add app/views/resource/ && \
+git commit -m "$(cat <<'EOF'
+feat: add feature
 
 - First change
 - Second change
-- Third change"
-
-# Commit 2: test: add tests
-git add spec/file_spec.rb
-git add spec/factories/file.rb
-git commit -m "test: add tests
-
-- Added model specs
-- Added request specs"
-
-# Verify commits
-git log --oneline -n 2
-git status  # Should show "nothing to commit, working tree clean"
+- Third change
+EOF
+)"
 ```
 
 **DO NOT add any "Generated with Claude Code" or "Co-Authored-By" lines.**

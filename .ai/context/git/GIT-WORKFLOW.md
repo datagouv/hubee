@@ -69,46 +69,46 @@ docs: create compact CODE_STYLE.md
 - Clear, descriptive commit messages
 - No "WIP" or "fix" commit messages in main branch
 
-## 🔐 GPG Commit Signing
+## 🔐 SSH Commit Signing
 
 **Status**: Required for this project
 
-### GPG Configuration
+### SSH Configuration
 
-All commits must be signed with GPG. If you encounter GPG timeout errors:
+All commits must be signed with SSH. This replaces the previous GPG signing setup.
 
-```bash
-gpg: échec de la signature : Délai d'attente dépassé
-```
+**Benefits**:
+- ✅ No PIN prompt required
+- ✅ Works seamlessly with automation
+- ✅ Compatible with AI-assisted commits
 
-**Workaround**: Use manual commit commands instead of automated tools to allow PIN entry in terminal.
+### Commit Commands
 
-### Manual Commit Commands
-
-When automated commits fail due to GPG timeout:
+Commits are signed automatically with SSH:
 
 ```bash
 # Stage your changes
 git add <files>
 
-# Commit with GPG signature (will prompt for PIN)
+# Commit (automatically signed with SSH)
 git commit -m "type: description"
 
 # Push to remote
 git push origin <branch>
 ```
 
-### GPG Troubleshooting
+### SSH Troubleshooting
 
 **Common Issues**:
-1. **Timeout**: GPG PIN prompt times out in background processes
-   - **Solution**: Run git commands manually in terminal
+1. **Signature failed**: SSH key not configured
+   - **Solution**: Check `git config --global gpg.format ssh`
+   - **Solution**: Verify `git config --global user.signingkey` points to your SSH public key
 
-2. **No PIN prompt**: GPG agent not configured
-   - **Solution**: Check `gpg-agent` configuration
+2. **Key not found**: Git can't find SSH key
+   - **Solution**: Ensure SSH key is in `~/.ssh/` and added to ssh-agent
 
-3. **Wrong key**: Git using incorrect GPG key
-   - **Solution**: Check `git config --global user.signingkey`
+3. **GitHub verification**: Commits show as "Unverified"
+   - **Solution**: Add your SSH signing key to GitHub (Settings → SSH and GPG keys → New SSH key → Signing Key)
 
 ## ⚠️ AI Agent Git Rules
 
@@ -122,31 +122,45 @@ git push origin <branch>
 4. ✅ **Execute ONLY after approval**: Commit with user confirmation
 5. ❌ **NEVER**: Auto-commit without asking
 
-### When GPG Signing is Required
+### Execution with SSH Signing
 
-**AI agents should**:
-- Propose commit messages and file groupings
-- Provide manual commands for user to execute
-- NOT attempt to execute `git commit` directly (will fail with GPG timeout)
+**AI agents can now execute commits directly** (SSH signing works without PIN prompt):
+- ✅ Propose commit messages and file groupings
+- ✅ Wait for explicit user validation ("yes", "ok", "go ahead")
+- ✅ Execute commits using Bash tool **ONLY AFTER** approval
+- ❌ NEVER execute without validation
 
 **Example AI Response**:
 ```
 I propose these commits:
 
-1. docs: update testing guidelines
-   Files: .ai/context/TESTING.md, README.md
+## Commit 1: docs: update testing guidelines
+**Files**:
+- .ai/context/TESTING.md
+- README.md
 
-2. refactor: improve request specs
-   Files: spec/requests/api/v1/*.rb
+**Message**:
+docs: update testing guidelines
 
-Please run these commands:
+- Updated RSpec conventions
+- Added coverage requirements
 
-git add .ai/context/TESTING.md README.md
-git commit -m "docs: update testing guidelines"
+## Commit 2: refactor: improve request specs
+**Files**:
+- spec/requests/api/v1/*.rb
 
-git add spec/requests/api/v1/*.rb
-git commit -m "refactor: improve request specs"
+**Message**:
+refactor: improve request specs
+
+- Simplified test structure
+- Added shared examples
+
+---
+
+**Should I proceed with these commits?**
 ```
+
+After receiving "yes" or "ok", the agent executes the commits using the Bash tool.
 
 ### Exceptions
 
@@ -278,7 +292,7 @@ git checkout -b feat/your-feature-name
 # Make changes, then stage
 git add <files>
 
-# Commit (will prompt for GPG PIN)
+# Commit (automatically signed with SSH)
 git commit -m "feat: description of changes"
 
 # Push to remote
@@ -326,7 +340,7 @@ gh pr create --title "feat: your feature" --body "Description"
 ## 📚 Resources
 
 - [Conventional Commits](https://www.conventionalcommits.org/)
-- [GPG Signing Guide](https://docs.github.com/en/authentication/managing-commit-signature-verification)
+- [SSH Commit Signing Guide](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#ssh-commit-signature-verification)
 - Project-specific: `.ai/AGENTS.md`, `.ai/context/DEVELOPMENT_WORKFLOW.md`
 
 ## 🆘 Getting Help
@@ -336,12 +350,23 @@ gh pr create --title "feat: your feature" --body "Description"
 - Review `.ai/context/DEVELOPMENT_WORKFLOW.md`
 - Consult project README.md
 
-**For GPG Issues**:
-- Verify GPG key configuration: `git config --global user.signingkey`
-- Test GPG signing: `echo "test" | gpg --clearsign`
-- Check GPG agent: `gpg-agent --daemon`
+**For SSH Signing Issues**:
+- Verify SSH signing is enabled: `git config --global gpg.format ssh`
+- Check signing key: `git config --global user.signingkey`
+- Test SSH key: `ssh-add -l` (should list your key)
+- Verify GitHub has your signing key: GitHub Settings → SSH and GPG keys
+
+## 🔍 CI Validation
+
+After pushing code to remote (in a PR), run the full CI suite locally:
+
+```bash
+bin/ci
+```
+
+This runs all tests, linters, and security checks locally before the remote CI runs. Execute only after code is pushed, not for local commits.
 
 ---
 
-**Last updated**: 2025-10-31
+**Last updated**: 2025-11-12
 **Related**: See `.ai/AGENTS.md` and `.ai/context/DEVELOPMENT_WORKFLOW.md` for development workflow
