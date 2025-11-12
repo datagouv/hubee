@@ -269,14 +269,21 @@ RSpec.describe "Api::V1::DataPackages", type: :request do
     context "when data package is acknowledged" do
       let(:data_package) { create(:data_package, :acknowledged) }
 
-      it "destroys the data package" do
+      it "does not destroy the data package" do
         data_package
-        expect { make_request }.to change(DataPackage, :count).by(-1)
+        expect { make_request }.not_to change(DataPackage, :count)
       end
 
-      it "returns 204 No Content" do
+      it "returns 422 Unprocessable Content" do
         make_request
-        expect(response).to have_http_status(:no_content)
+        expect(response).to have_http_status(:unprocessable_content)
+      end
+
+      it "returns error message" do
+        make_request
+        expect(json).to match(
+          "base" => array_including("Cannot destroy data_package in state: acknowledged")
+        )
       end
     end
 
