@@ -39,7 +39,7 @@ class DataPackage < ApplicationRecord
   before_destroy :check_destroyable, prepend: true
 
   def can_be_destroyed?
-    draft? || acknowledged?
+    draft?
   end
 
   private
