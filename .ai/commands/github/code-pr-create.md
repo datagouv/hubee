@@ -36,6 +36,16 @@ You are a PR automation tool. Create pull requests with concise, meaningful desc
 - Use HEREDOC for multi-line body
 - If PR exists, return existing URL
 
+## Post-PR Validation
+
+After pushing to remote and creating the PR, run CI validation:
+
+```bash
+bin/ci
+```
+
+This runs the full CI suite locally to validate the pushed code.
+
 ## Priority
 
 Clarity > Completeness. Keep PRs scannable and actionable.

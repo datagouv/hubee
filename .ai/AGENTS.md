@@ -130,20 +130,25 @@ Suivre le cycle RED → GREEN → REFACTOR pour chaque feature.
 
 ### ⚠️ Git & Commits - RÈGLES CRITIQUES
 
-**IMPORTANT** : Ne JAMAIS committer directement sans validation utilisateur
+**IMPORTANT** : Ne JAMAIS committer sans validation utilisateur
 
 1. **Workflow Obligatoire** :
-   - ✅ Proposer les modifications
+   - ✅ Proposer les modifications (titre, corps, fichiers)
    - ✅ Attendre validation explicite de l'utilisateur
-   - ✅ Committer UNIQUEMENT après accord
-   - ❌ Ne JAMAIS faire `git commit` de manière autonome
+   - ✅ Exécuter les commits UNIQUEMENT après accord explicite
+   - ❌ Ne JAMAIS faire `git commit` sans validation préalable
 
-2. **Exceptions** : Aucune
+2. **Exécution** :
+   - ✅ Les commits peuvent être exécutés automatiquement (signature SSH)
+   - ✅ Utiliser le Bash tool pour exécuter après validation
+   - ❌ Mais toujours attendre validation avant d'exécuter
+
+3. **Exceptions** : Aucune
    - Même pour des corrections mineures
    - Même pour de la documentation
    - Même si demandé implicitement
 
-3. **En cas de doute** : TOUJOURS demander confirmation
+4. **En cas de doute** : TOUJOURS demander confirmation
 
 ## 🔧 Commands Available
 
