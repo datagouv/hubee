@@ -6,7 +6,10 @@
 
 - **RESTful** + **JSON** (Jbuilder) + **Bearer Auth** + **Rails Scaffold Style**
 - **Flat Responses** : index = array direct, show = objet direct
-- **Exception unique** : `attachments` nested dans `data_packages`
+- **Nesting Policy** :
+  - ❌ **has_many** : jamais nester (évite explosion payload)
+  - ✅ **belongs_to** : peut être nesté (1 objet, évite requêtes multiples)
+  - Exception historique : `attachments` nested dans `data_packages` (has_many)
 - **Pagination** : Headers HTTP (X-Page, X-Total), body reste array direct
 - **Autorisations** : (r) = read, (w) = write
 - **IDs API** : UUIDs v4 partout (primary keys), SIRET conservé comme attribut métier des Organizations
@@ -41,14 +44,15 @@ DELETE /api/v1/organizations/:id          # (admin futur)
 ### Data Streams (r/w)
 
 ```http
-GET    /api/v1/data_streams              # index → [{id: uuid, name, description, owner_organization_id: uuid, retention_days, created_at}, ...]
+GET    /api/v1/data_streams              # index → [{id: uuid, name, description, owner_organization: {id, name, siret, ...}, retention_days, created_at}, ...]
 POST   /api/v1/data_streams         (w)  # create → {id: uuid, ...} | body: {data_stream: {name, description, owner_organization_id: uuid, retention_days}}
-GET    /api/v1/data_streams/:id        # show  → {id: uuid, name, description, owner_organization_id: uuid, retention_days, created_at}
+GET    /api/v1/data_streams/:id        # show  → {id: uuid, name, description, owner_organization: {id, name, siret, ...}, retention_days, created_at}
 PUT    /api/v1/data_streams/:id   (w)  # update → {id: uuid, ...}
 DELETE /api/v1/data_streams/:id   (w)  # 204 (si aucune notification existante)
 ```
 
 **Notes** :
+- `owner_organization` est **nested** (belongs_to) pour éviter requêtes multiples
 - L'update permet de changer `owner_organization_id` (transfert de propriété du data stream entre organisations)
 - `retention_days` accepte `null` (pas de limite de rétention)
 

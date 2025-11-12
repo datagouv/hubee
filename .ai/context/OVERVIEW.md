@@ -184,30 +184,30 @@ Toute la documentation est centralisée dans `.ai/context/` :
 - ❌ Secrets hardcodés
 - ❌ Logique métier dans les vues
 - ❌ Routes non-RESTful sans justification
-- ❌ **Nesting excessif dans l'API** : limiter au strict minimum
+- ❌ **Nesting excessif dans l'API** : limiter au strict minimum (has_many jamais nestés)
 
 ## Conventions API REST
 
-### Principe de Flat Responses (Jbuilder)
-**Règle**: Les réponses Jbuilder ne nestent PAS d'autres ressources, sauf exception pour les attachments dans data_packages.
+### Principe des Réponses API (Jbuilder)
+**Règle**:
+- ✅ **belongs_to** : nester l'objet complet (1 seul objet, évite requêtes multiples)
+- ❌ **has_many** : jamais nester (risque explosion payload)
+- Exception historique : `attachments` nested dans `data_packages` (has_many)
 
-**Pattern Standard** (une seule ressource) :
+**Pattern Standard** :
 ```ruby
-# ✅ Bon : Réponse plate avec uniquement la ressource
+# ✅ Bon : belongs_to nesté
 # GET /api/v1/data_streams/1
-json.data_stream do
-  json.extract! @data_stream, :id, :name, :description, :retention_days
-  # Pas de nested organizations, subscriptions, ou data_packages
+json.extract! @data_stream, :id, :name, :description, :retention_days
+json.owner_organization do
+  json.partial! "api/v1/organizations/organization", organization: @data_stream.owner_organization
 end
 
+# ✅ Bon : has_many = IDs seulement (pas nesté)
 # GET /api/v1/notifications/1
-json.notification do
-  json.extract! @notification, :id, :status, :sent_at, :acknowledged_at
-  # Pas de nested data_package ou organization
-  # Uniquement les IDs pour les relations
-  json.data_package_id @notification.data_package_id
-  json.organization_id @notification.organization_id
-end
+json.extract! @notification, :id, :status, :sent_at, :acknowledged_at
+json.data_package_id @notification.data_package_id
+json.organization_id @notification.organization_id
 ```
 
 **Exception Unique** (attachments dans data_packages) :
@@ -225,28 +225,23 @@ json.data_package do
 end
 ```
 
-**Nesting à Éviter** :
+**has_many à ne JAMAIS nester** :
 ```ruby
-# ❌ Mauvais : Nester d'autres ressources complètes
+# ❌ Mauvais : Nester des has_many
 json.data_stream do
   json.extract! @data_stream, :id, :name
 
-  # ❌ Ne pas nester
-  json.owner_organization do
-    json.extract! @data_stream.owner_organization, :id, :name, :siret
-  end
-
-  # ❌ Ne pas nester
+  # ❌ Ne pas nester has_many
+  # ❌ Ne pas nester has_many (subscriptions)
   json.subscriptions @data_stream.subscriptions do |sub|
-    json.extract! sub, :id, :read, :write
+    json.extract! sub, :id, :permission_type
   end
 end
 
-# ✅ Préférer : IDs uniquement + requêtes séparées si nécessaire
+# ✅ Préférer : IDs uniquement pour has_many + endpoint séparé si nécessaire
 json.data_stream do
   json.extract! @data_stream, :id, :name, :description
-  json.owner_organization_id @data_stream.owner_organization_id
-  # Client fait GET /api/v1/organizations/:id si besoin
+  # Client fait GET /api/v1/data_streams/:id/subscriptions si besoin
 end
 ```
 
