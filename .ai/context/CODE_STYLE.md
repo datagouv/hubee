@@ -8,7 +8,7 @@
 - **Clarté > Concision** - Code lisible et maintenable
 - **TDD obligatoire** - Tests avant implémentation
 - **Early returns** - Réduire la complexité cognitive
-- **Flat API responses** - Pattern sans nesting (sauf attachments)
+- **API responses** - belongs_to nesté, has_many jamais (sauf attachments)
 - **Arrays de symboles** : Toujours utiliser `%i[]` (ex: `only: %i[index show]`, jamais `%w[]`)
 
 ## 🏗️ Architecture & Organisation
@@ -234,9 +234,10 @@ end
 ```ruby
 # ✅ Partials pour réutilisabilité
 # _data_stream.json.jbuilder
-json.id data_stream.id  # UUID primary key comme "id"
-json.extract! data_stream, :name, :description, :retention_days, :created_at, :updated_at
-json.owner_organization_id data_stream.owner_organization_id  # FK UUID
+json.extract! data_stream, :id, :name, :description, :retention_days, :created_at, :updated_at
+json.owner_organization do
+  json.partial! "api/v1/organizations/organization", organization: data_stream.owner_organization
+end
 
 # index.json.jbuilder
 json.array! @data_streams, partial: "api/v1/data_streams/data_stream", as: :data_stream
@@ -249,8 +250,10 @@ json.partial! "api/v1/data_streams/data_stream", data_stream: @data_stream
 - ✅ **Flat responses** : array direct pour index, objet direct pour show
 - ✅ **Partials** : `_resource.json.jbuilder` pour DRY
 - ✅ **Toutes les ressources** : `id` (UUID), attributs métier (ex: `siret` pour Organizations), `created_at`, `updated_at`
-- ✅ **Relations** : utiliser `_id` suffix (toujours UUIDs), jamais nester l'objet complet
-- ❌ **Exception unique** : `attachments` nested dans `data_packages` uniquement
+- ✅ **Relations** :
+  - **belongs_to** : nester l'objet complet (évite requêtes multiples, 1 seul objet)
+  - **has_many** : JAMAIS nester (risque explosion payload)
+  - Exception historique : `attachments` nested dans `data_packages` (has_many)
 - ❌ Pas d'exposition d'IDs séquentiels
 
 ### Routes (`config/routes.rb`)
@@ -312,7 +315,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         expect(response).to have_http_status(:ok)
       end
 
-      it "returns flat JSON response" do
+      it "returns JSON response with nested belongs_to" do
         expect(json).to have_key("id")
         expect(json["id"]).to eq(data_stream.id)
       end
