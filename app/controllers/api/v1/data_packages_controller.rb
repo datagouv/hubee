@@ -17,6 +17,9 @@ class Api::V1::DataPackagesController < Api::BaseController
   def create
     @data_package = DataPackage.new(data_package_params)
 
+    # sender_organization_id devrait être déterminé par les credentials de l'utilisateur
+    # sauf si c'est un admin, dans ce cas il a le droit d'envoyer cette donnée.
+
     if @data_package.save
       render :show, status: :created
     else

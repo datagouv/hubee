@@ -49,6 +49,10 @@ RSpec.describe Organization, type: :model do
         duplicate.save(validate: false)
       }.to raise_error(ActiveRecord::RecordNotUnique)
     end
+    # it { expect(Organization).to enforce_db_uniqueness_of(:siret).with_value("12345678901234") }
+    # Maybe ?
+
+    # And validate_uniqueness_of for the model counterpart
   end
 
   describe "UUID v7 ordering" do

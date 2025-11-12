@@ -22,7 +22,7 @@ class DataPackage < ApplicationRecord
     end
   end
 
-  scope :by_state, ->(states) {
+  scope :by_state, ->(states) { # Je mettrai le split dans le controller, et juste une list d'*args ici 
     return all unless states.is_a?(String)
 
     requested = states.split(",").map(&:strip)
@@ -41,6 +41,8 @@ class DataPackage < ApplicationRecord
 
   def can_be_destroyed?
     draft? || acknowledged?
+    # Just draft? for now, I think.
+    # When the automatic deletion will be implemented, we will need to destroy data_package not acknowledged
   end
 
   private
