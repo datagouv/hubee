@@ -19,10 +19,22 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         expect(response).to have_http_status(:ok)
       end
 
-      it "returns all data_streams" do
+      it "returns all data_streams with nested owner_organization" do
         expect(json).to match_array([
-          hash_including("id" => stream1.id, "owner_organization_id" => org1.id, "name" => anything, "created_at" => anything, "updated_at" => anything),
-          hash_including("id" => stream2.id, "owner_organization_id" => org2.id, "name" => anything, "created_at" => anything, "updated_at" => anything)
+          hash_including(
+            "id" => stream1.id,
+            "name" => anything,
+            "owner_organization" => hash_including("id" => org1.id, "name" => org1.name, "siret" => org1.siret),
+            "created_at" => anything,
+            "updated_at" => anything
+          ),
+          hash_including(
+            "id" => stream2.id,
+            "name" => anything,
+            "owner_organization" => hash_including("id" => org2.id, "name" => org2.name, "siret" => org2.siret),
+            "created_at" => anything,
+            "updated_at" => anything
+          )
         ])
       end
 
@@ -58,12 +70,18 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         expect(response).to have_http_status(:ok)
       end
 
-      it "returns data_stream data" do
+      it "returns data_stream data with nested owner_organization" do
         expect(json).to match(
           "id" => data_stream.id,
           "name" => "CertDC",
           "description" => "Certificats",
-          "owner_organization_id" => organization.id,
+          "owner_organization" => {
+            "id" => organization.id,
+            "name" => "DINUM",
+            "siret" => "13002526500013",
+            "created_at" => anything,
+            "updated_at" => anything
+          },
           "retention_days" => 365,
           "created_at" => anything,
           "updated_at" => anything
@@ -114,7 +132,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         expect(response).to have_http_status(:created)
       end
 
-      it "creates data_stream and returns complete data" do
+      it "creates data_stream and returns complete data with nested owner_organization" do
         make_request
 
         created = DataStream.last
@@ -124,7 +142,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
           "id" => created.id,
           "name" => "CertDC",
           "description" => "Certificats de décès",
-          "owner_organization_id" => organization.id,
+          "owner_organization" => hash_including("id" => organization.id, "siret" => organization.siret),
           "retention_days" => 365,
           "created_at" => anything,
           "updated_at" => anything
@@ -166,7 +184,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         expect(response).to have_http_status(:ok)
       end
 
-      it "updates data_stream and returns complete data" do
+      it "updates data_stream and returns complete data with nested owner_organization" do
         make_request
 
         expect(data_stream.reload).to have_attributes(name: "Updated Name", retention_days: 180)
@@ -175,7 +193,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
           "id" => data_stream.id,
           "name" => "Updated Name",
           "description" => "Old Desc",
-          "owner_organization_id" => organization.id,
+          "owner_organization" => hash_including("id" => organization.id),
           "retention_days" => 180,
           "created_at" => anything,
           "updated_at" => anything
