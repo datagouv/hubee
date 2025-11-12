@@ -254,7 +254,7 @@ Consulter `docs/WORKFLOW_IMPLEMENTATION_TDD.md` pour le guide complet feature pa
 - ❌ Secrets hardcodés (utiliser Rails credentials)
 - ❌ Logique métier dans les vues (utiliser Interactors/helpers)
 - ❌ Routes non-RESTful sans justification
-- ❌ Nesting excessif dans l'API (flat responses sauf attachments)
+- ❌ Nesting excessif dans l'API (belongs_to OK, has_many jamais sauf attachments)
 
 ### Conventions Code
 - **Nommage** : Explicite et significatif

@@ -195,7 +195,7 @@ docs: update API documentation
 - Code follows project conventions (`.ai/context/lang-ruby/CODE-STYLE.md`)
 - Tests are comprehensive (`.ai/context/TESTING.md`)
 - Security best practices followed
-- API responses follow flat pattern (no nesting except attachments)
+- API responses: belongs_to nesté, has_many jamais (sauf attachments)
 - Database migrations are reversible
 
 ## 🚀 Merge Strategy
