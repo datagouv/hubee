@@ -25,11 +25,11 @@ RSpec.describe DataPackage, type: :model do
     let!(:pkg_transmitted) { create(:data_package, :transmitted) }
     let!(:pkg_ack) { create(:data_package, :acknowledged) }
 
-    it "filters by single status" do
+    it "filters by single state as string" do
       expect(DataPackage.by_state("draft")).to contain_exactly(pkg_draft)
     end
 
-    it "filters by multiple statuses as CSV" do
+    it "filters by multiple states as CSV" do
       expect(DataPackage.by_state("draft,transmitted")).to contain_exactly(pkg_draft, pkg_transmitted)
     end
 
@@ -37,20 +37,24 @@ RSpec.describe DataPackage, type: :model do
       expect(DataPackage.by_state(" draft , acknowledged ")).to contain_exactly(pkg_draft, pkg_ack)
     end
 
-    it "ignores invalid statuses and keeps valid ones" do
+    it "filters by array of states" do
+      expect(DataPackage.by_state(["draft", "acknowledged"])).to contain_exactly(pkg_draft, pkg_ack)
+    end
+
+    it "ignores invalid states and keeps valid ones" do
       expect(DataPackage.by_state("invalid,transmitted")).to contain_exactly(pkg_transmitted)
     end
 
-    it "returns none when all statuses are invalid" do
+    it "returns none when all states are invalid" do
       expect(DataPackage.by_state("invalid,unknown")).to be_empty
     end
 
-    it "returns all when statuses is nil" do
+    it "returns all when states is nil" do
       expect(DataPackage.by_state(nil)).to contain_exactly(pkg_draft, pkg_transmitted, pkg_ack)
     end
 
-    it "returns all when statuses is not a string" do
-      expect(DataPackage.by_state(["draft", "transmitted"])).to contain_exactly(pkg_draft, pkg_transmitted, pkg_ack)
+    it "returns all when states is empty string" do
+      expect(DataPackage.by_state("")).to contain_exactly(pkg_draft, pkg_transmitted, pkg_ack)
     end
   end
 

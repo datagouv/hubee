@@ -23,12 +23,11 @@ class DataPackage < ApplicationRecord
   end
 
   scope :by_state, ->(states) {
-    return all unless states.is_a?(String)
+    return all if states.blank?
 
-    requested = states.split(",").map(&:strip)
+    requested = states.is_a?(String) ? states.split(",").map(&:strip) : states
     valid = DataPackage.aasm.states.map(&:name).map(&:to_s)
-    valid_states = requested & valid  # Array intersection keeps only valid states
-    valid_states.any? ? where(state: valid_states) : none
+    where(state: requested & valid) # Array intersection keeps only valid states
   }
   scope :by_data_stream, ->(id) { id.present? ? where(data_stream_id: id) : all }
   scope :by_sender_organization, ->(id) { id.present? ? where(sender_organization_id: id) : all }
