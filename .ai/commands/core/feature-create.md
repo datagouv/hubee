@@ -42,6 +42,7 @@ If ARCHITECTURE.md file exists for the project, read it to speed up the process 
   - NO comments unless absolutely necessary
   - Run autoformatting scripts when done
   - Fix reasonable linter warnings
+  - **NEVER commit without user validation** - Always present changes first
 
 ## 4. TEST
 
