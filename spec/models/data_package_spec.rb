@@ -198,14 +198,14 @@ RSpec.describe DataPackage, type: :model do
       expect(package.can_be_destroyed?).to be true
     end
 
-    it "returns false for sent package" do
+    it "returns false for transmitted package" do
       package = build(:data_package, :transmitted)
       expect(package.can_be_destroyed?).to be false
     end
 
-    it "returns true for acknowledged package" do
+    it "returns false for acknowledged package" do
       package = build(:data_package, :acknowledged)
-      expect(package.can_be_destroyed?).to be true
+      expect(package.can_be_destroyed?).to be false
     end
   end
 end
