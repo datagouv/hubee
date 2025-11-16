@@ -43,8 +43,6 @@ RSpec.describe "Api::V1::DataPackages", type: :request do
           "updated_at" => anything
         )
       end
-
-      it_behaves_like "a paginated endpoint"
     end
 
     it_behaves_like "a paginated endpoint respecting page size"

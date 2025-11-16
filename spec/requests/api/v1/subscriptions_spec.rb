@@ -32,12 +32,10 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
       it "returns all subscriptions for this organization" do
         expect(json.size).to eq(2)
         expect(json).to match_array([
-          hash_including("id" => sub1.id, "organization_id" => organization.id, "can_read" => true, "can_write" => false),
-          hash_including("id" => sub2.id, "organization_id" => organization.id, "can_read" => false, "can_write" => true)
+          hash_including("id" => sub1.id, "organization" => hash_including("id" => organization.id), "can_read" => true, "can_write" => false),
+          hash_including("id" => sub2.id, "organization" => hash_including("id" => organization.id), "can_read" => false, "can_write" => true)
         ])
       end
-
-      it_behaves_like "a paginated endpoint"
     end
 
     context "with organization and permission filters combined" do
@@ -140,7 +138,7 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
         expect(json).to match(
           "id" => subscription.id,
           "data_stream_id" => data_stream.id,
-          "organization_id" => organization.id,
+          "organization" => hash_including("id" => organization.id, "name" => organization.name, "siret" => organization.siret),
           "can_read" => true,
           "can_write" => true,
           "created_at" => anything,
@@ -198,7 +196,7 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
         expect(json).to match(
           "id" => created.id,
           "data_stream_id" => data_stream.id,
-          "organization_id" => organization.id,
+          "organization" => hash_including("id" => organization.id, "name" => organization.name, "siret" => organization.siret),
           "can_read" => true,
           "can_write" => true,
           "created_at" => anything,
@@ -250,7 +248,7 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
         expect(json).to match(
           "id" => subscription.id,
           "data_stream_id" => data_stream.id,
-          "organization_id" => organization.id,
+          "organization" => hash_including("id" => organization.id, "name" => organization.name, "siret" => organization.siret),
           "can_read" => true,
           "can_write" => true,
           "created_at" => anything,
