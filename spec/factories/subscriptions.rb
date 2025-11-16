@@ -4,18 +4,22 @@ FactoryBot.define do
   factory :subscription do
     association :data_stream
     association :organization
-    permission_type { :read }
+    can_read { true }
+    can_write { false }
 
     trait :read_only do
-      permission_type { :read }
+      can_read { true }
+      can_write { false }
     end
 
     trait :write_only do
-      permission_type { :write }
+      can_read { false }
+      can_write { true }
     end
 
     trait :read_write do
-      permission_type { :read_write }
+      can_read { true }
+      can_write { true }
     end
   end
 end

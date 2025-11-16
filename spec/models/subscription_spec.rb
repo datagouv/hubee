@@ -13,12 +13,35 @@ RSpec.describe Subscription, type: :model do
   describe "validations" do
     subject { build(:subscription) }
 
-    it { is_expected.to validate_presence_of(:permission_type) }
     it { is_expected.to validate_uniqueness_of(:data_stream_id).scoped_to(:organization_id).ignoring_case_sensitivity }
+
+    describe "at_least_one_permission" do
+      it "is valid with can_read only" do
+        subscription = build(:subscription, can_read: true, can_write: false)
+        expect(subscription).to be_valid
+      end
+
+      it "is valid with can_write only" do
+        subscription = build(:subscription, can_read: false, can_write: true)
+        expect(subscription).to be_valid
+      end
+
+      it "is valid with both permissions" do
+        subscription = build(:subscription, can_read: true, can_write: true)
+        expect(subscription).to be_valid
+      end
+
+      it "is invalid with no permissions" do
+        subscription = build(:subscription, can_read: false, can_write: false)
+        expect(subscription).not_to be_valid
+        expect(subscription.errors[:base]).to include("must have at least one permission (can_read or can_write)")
+      end
+    end
   end
 
-  describe "enum permission_type" do
-    it { is_expected.to define_enum_for(:permission_type).with_values(read: "read", write: "write", read_write: "read_write").backed_by_column_of_type(:enum) }
+  describe "database columns" do
+    it { is_expected.to have_db_column(:can_read).of_type(:boolean).with_options(default: true, null: false) }
+    it { is_expected.to have_db_column(:can_write).of_type(:boolean).with_options(default: false, null: false) }
   end
 
   describe "database indexes" do
@@ -57,37 +80,31 @@ RSpec.describe Subscription, type: :model do
     end
   end
 
-  describe ".with_permission_types" do
+  describe ".with_read_permission" do
     let!(:sub_read) { create(:subscription, :read_only) }
     let!(:sub_write) { create(:subscription, :write_only) }
     let!(:sub_read_write) { create(:subscription, :read_write) }
 
-    it "filters by single permission type" do
-      expect(Subscription.with_permission_types("read")).to contain_exactly(sub_read)
+    it "returns subscriptions with can_read true" do
+      expect(Subscription.with_read_permission).to contain_exactly(sub_read, sub_read_write)
     end
+  end
 
-    it "filters by multiple permission types as CSV" do
-      expect(Subscription.with_permission_types("read,read_write")).to contain_exactly(sub_read, sub_read_write)
-    end
+  describe ".with_write_permission" do
+    let!(:sub_read) { create(:subscription, :read_only) }
+    let!(:sub_write) { create(:subscription, :write_only) }
+    let!(:sub_read_write) { create(:subscription, :read_write) }
 
-    it "strips whitespace from CSV" do
-      expect(Subscription.with_permission_types(" read , write ")).to contain_exactly(sub_read, sub_write)
+    it "returns subscriptions with can_write true" do
+      expect(Subscription.with_write_permission).to contain_exactly(sub_write, sub_read_write)
     end
+  end
 
-    it "ignores invalid permission types and keeps valid ones" do
-      expect(Subscription.with_permission_types("invalid,read")).to contain_exactly(sub_read)
-    end
+  describe ".by_can_read" do
+    it_behaves_like "a boolean filter scope", :by_can_read, :can_read
+  end
 
-    it "returns none when all types are invalid" do
-      expect(Subscription.with_permission_types("invalid,unknown")).to be_empty
-    end
-
-    it "returns all when types is nil" do
-      expect(Subscription.with_permission_types(nil)).to contain_exactly(sub_read, sub_write, sub_read_write)
-    end
-
-    it "returns all when types is not a string" do
-      expect(Subscription.with_permission_types(["write", "read_write"])).to contain_exactly(sub_read, sub_write, sub_read_write)
-    end
+  describe ".by_can_write" do
+    it_behaves_like "a boolean filter scope", :by_can_write, :can_write
   end
 end
