@@ -53,11 +53,12 @@ CREATE TABLE subscriptions (
   id UUID PRIMARY KEY DEFAULT uuidv7(),
   data_stream_id UUID NOT NULL REFERENCES data_streams(id) ON DELETE CASCADE,
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  permission_type VARCHAR NOT NULL DEFAULT 'read',
+  can_read BOOLEAN NOT NULL DEFAULT TRUE,
+  can_write BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL,
   UNIQUE(data_stream_id, organization_id),
-  CHECK (permission_type IN ('read', 'write', 'read_write'))
+  CHECK (can_read = TRUE OR can_write = TRUE)
 );
 
 -- Paquets de données (transmission d'un ensemble de fichiers)
@@ -321,14 +322,11 @@ validates :retention_days, numericality: { greater_than: 0 }, allow_nil: true
 ```ruby
 validates :data_stream, presence: true
 validates :organization, presence: true
-validates :permission_type, presence: true
 validates :data_stream_id, uniqueness: { scope: :organization_id }
+validate :at_least_one_permission
 
-enum :permission_type, {
-  read: 'read',
-  write: 'write',
-  read_write: 'read_write'
-}
+# Boolean permissions (can_read, can_write)
+# At least one must be true
 ```
 
 ### DataPackage
