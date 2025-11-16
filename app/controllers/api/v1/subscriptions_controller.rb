@@ -8,7 +8,8 @@ class Api::V1::SubscriptionsController < Api::BaseController
       Subscription
         .by_data_stream(params[:data_stream_id])
         .by_organization(params[:organization_id])
-        .with_permission_types(params[:permission_type])
+        .by_can_read(params[:can_read])
+        .by_can_write(params[:can_write])
         .includes(:data_stream, :organization)
     )
   end
@@ -46,7 +47,7 @@ class Api::V1::SubscriptionsController < Api::BaseController
   end
 
   def subscription_params
-    permitted = params.expect(subscription: [:data_stream_id, :organization_id, :permission_type])
+    permitted = params.expect(subscription: [:data_stream_id, :organization_id, :can_read, :can_write])
     permitted.reverse_merge!(data_stream_id: params[:data_stream_id]) if params[:data_stream_id].present?
     permitted
   end

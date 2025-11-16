@@ -177,48 +177,50 @@ actes_etat_civil = DataStream.find_by!(name: "ActesEtatCivil")
 
 subscriptions_data = [
   # CertDC (DINUM) - Accessible en lecture par plusieurs organismes
-  {data_stream: cert_dc, organization: cnam, permission_type: :read},
-  {data_stream: cert_dc, organization: caf_paris, permission_type: :read},
-  {data_stream: cert_dc, organization: pole_emploi, permission_type: :read},
-  {data_stream: cert_dc, organization: mairie_lyon, permission_type: :read_write},
-  {data_stream: cert_dc, organization: prefecture_paris, permission_type: :read},
+  {data_stream: cert_dc, organization: cnam, can_read: true, can_write: false},
+  {data_stream: cert_dc, organization: caf_paris, can_read: true, can_write: false},
+  {data_stream: cert_dc, organization: pole_emploi, can_read: true, can_write: false},
+  {data_stream: cert_dc, organization: mairie_lyon, can_read: true, can_write: true},
+  {data_stream: cert_dc, organization: prefecture_paris, can_read: true, can_write: false},
 
   # JustificatifDomicile (DINUM) - Partagé largement
-  {data_stream: justif_domicile, organization: caf_paris, permission_type: :read},
-  {data_stream: justif_domicile, organization: prefecture_paris, permission_type: :read},
-  {data_stream: justif_domicile, organization: mairie_lyon, permission_type: :read_write},
+  {data_stream: justif_domicile, organization: caf_paris, can_read: true, can_write: false},
+  {data_stream: justif_domicile, organization: prefecture_paris, can_read: true, can_write: false},
+  {data_stream: justif_domicile, organization: mairie_lyon, can_read: true, can_write: true},
 
   # AttestationSecuriteSociale (CNAM) - Accès lecture pour organismes sociaux
-  {data_stream: attestations_ss, organization: caf_paris, permission_type: :read},
-  {data_stream: attestations_ss, organization: pole_emploi, permission_type: :read},
-  {data_stream: attestations_ss, organization: mairie_lyon, permission_type: :read},
+  {data_stream: attestations_ss, organization: caf_paris, can_read: true, can_write: false},
+  {data_stream: attestations_ss, organization: pole_emploi, can_read: true, can_write: false},
+  {data_stream: attestations_ss, organization: mairie_lyon, can_read: true, can_write: false},
 
   # AttestationsInscription (Pôle Emploi) - Accès pour organismes de prestations
-  {data_stream: attestations_inscription, organization: caf_paris, permission_type: :read},
-  {data_stream: attestations_inscription, organization: cnam, permission_type: :read},
+  {data_stream: attestations_inscription, organization: caf_paris, can_read: true, can_write: false},
+  {data_stream: attestations_inscription, organization: cnam, can_read: true, can_write: false},
 
   # AttestationsQuotientFamilial (CAF Paris) - Accès communes
-  {data_stream: attestations_qf, organization: mairie_lyon, permission_type: :read},
-  {data_stream: attestations_qf, organization: dinum, permission_type: :read},
+  {data_stream: attestations_qf, organization: mairie_lyon, can_read: true, can_write: false},
+  {data_stream: attestations_qf, organization: dinum, can_read: true, can_write: false},
 
   # ActesEtatCivil (Mairie Lyon) - Accès administrations centrales
-  {data_stream: actes_etat_civil, organization: dinum, permission_type: :read},
-  {data_stream: actes_etat_civil, organization: prefecture_paris, permission_type: :read},
-  {data_stream: actes_etat_civil, organization: cnam, permission_type: :read},
+  {data_stream: actes_etat_civil, organization: dinum, can_read: true, can_write: false},
+  {data_stream: actes_etat_civil, organization: prefecture_paris, can_read: true, can_write: false},
+  {data_stream: actes_etat_civil, organization: cnam, can_read: true, can_write: false},
 
   # Exemples permissions write seule (producteurs délégués)
-  {data_stream: cert_dc, organization: Organization.find_by!(siret: "20006254900011"), permission_type: :write}
+  {data_stream: cert_dc, organization: Organization.find_by!(siret: "20006254900011"), can_read: false, can_write: true}
 ]
 
 puts "  🔐 Creating #{subscriptions_data.size} subscriptions..."
 
 subscriptions_data.each do |sub_data|
-  Subscription.find_or_create_by!(
+  subscription = Subscription.find_or_initialize_by(
     data_stream: sub_data[:data_stream],
     organization: sub_data[:organization]
-  ) do |sub|
-    sub.permission_type = sub_data[:permission_type]
-  end
+  )
+  subscription.update!(
+    can_read: sub_data[:can_read],
+    can_write: sub_data[:can_write]
+  )
 end
 
 puts "  ✅ Created #{Subscription.count} subscriptions"
