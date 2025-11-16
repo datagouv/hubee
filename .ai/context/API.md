@@ -107,6 +107,42 @@ POST   /api/v1/data_packages/:id/send          (w) # {id: uuid, ...} (transition
 **Filters** : `?status=draft|ready|sent|acknowledged&data_stream_id=<uuid>`
 **⚠️ Exception unique** : `attachments` array nested dans le show (avec UUIDs)
 
+**Delivery Criteria** (ciblage des notifications) :
+```json
+// Critères supportés
+{
+  "siret": "13002526500013",           // SIRET unique ou array
+  "organization_id": "uuid",            // UUID organization ou array
+  "subscription_id": "uuid"             // UUID subscription ou array
+}
+
+// Opérateurs logiques
+{
+  "_or": [                              // Union des résultats
+    {"siret": "13002526500013"},
+    {"organization_id": "uuid"}
+  ]
+}
+
+{
+  "_and": [                             // Intersection des résultats
+    {"siret": "13002526500013"},
+    {"organization_id": "uuid"}
+  ]
+}
+
+// Critères multiples (AND implicite)
+{
+  "siret": "13002526500013",
+  "organization_id": "uuid"             // Doit satisfaire les deux
+}
+```
+
+**Limites** :
+- **Max profondeur** : 2 niveaux de nesting (ex: `_or` → `_and` → leaf)
+- **Max critères** : 20 critères total (comptés dans les feuilles)
+- **Validation** : Structure validée à la création du data_package
+
 ### Attachments (w pour POST/DELETE, r/w pour GET)
 
 ```http

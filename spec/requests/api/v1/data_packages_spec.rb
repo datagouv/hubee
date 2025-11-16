@@ -252,13 +252,14 @@ RSpec.describe "Api::V1::DataPackages", type: :request do
     end
 
     context "with complex delivery_criteria" do
+      let(:target_org) { create(:organization) }
       let(:params) do
         {
           data_package: {
             sender_organization_id: organization.id,
             delivery_criteria: {
               "_or" => [
-                {"department" => "56", "organization_type" => "commune"},
+                {"organization_id" => target_org.id},
                 {"siret" => ["13002526500013"]}
               ]
             }
@@ -270,7 +271,7 @@ RSpec.describe "Api::V1::DataPackages", type: :request do
         make_request
         expected = {
           "_or" => [
-            {"department" => "56", "organization_type" => "commune"},
+            {"organization_id" => target_org.id},
             {"siret" => ["13002526500013"]}
           ]
         }
