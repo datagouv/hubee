@@ -10,6 +10,7 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
     subject(:make_request) { get api_v1_organization_subscriptions_path(id), headers: headers, params: params }
 
     let(:params) { {} }
+    let(:pagination_factory_params) { {organization: organization} }
 
     context "success without filters" do
       let!(:organization) { create(:organization, siret: "13002526500013") }
@@ -31,31 +32,15 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
       it "returns all subscriptions for this organization" do
         expect(json.size).to eq(2)
         expect(json).to match_array([
-          hash_including("id" => sub1.id, "organization_id" => organization.id),
-          hash_including("id" => sub2.id, "organization_id" => organization.id)
+          hash_including("id" => sub1.id, "organization_id" => organization.id, "can_read" => true, "can_write" => false),
+          hash_including("id" => sub2.id, "organization_id" => organization.id, "can_read" => false, "can_write" => true)
         ])
       end
 
-      it "includes pagination headers" do
-        expect(response.headers["X-Page"]).to eq("1")
-        expect(response.headers["X-Per-Page"]).to eq(Pagy.options[:limit].to_s)
-      end
+      it_behaves_like "a paginated endpoint"
     end
 
-    context "with many records" do
-      let!(:organization) { create(:organization) }
-      let!(:streams) { create_list(:data_stream, 60) }
-      let!(:subscriptions) { streams.map { |stream| create(:subscription, organization: organization, data_stream: stream) } }
-      let(:id) { organization.id }
-
-      before { make_request }
-
-      it "respects default page size from Pagy config" do
-        expect(json.size).to eq(Pagy.options[:limit])
-      end
-    end
-
-    context "with organization and permission_type filters combined" do
+    context "with organization and permission filters combined" do
       let!(:organization) { create(:organization, siret: "13002526500013") }
       let!(:stream1) { create(:data_stream) }
       let!(:stream2) { create(:data_stream) }
@@ -64,17 +49,22 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
       let!(:sub_write) { create(:subscription, :write_only, data_stream: stream2, organization: organization) }
       let!(:sub_read_write) { create(:subscription, :read_write, data_stream: stream3, organization: organization) }
       let(:id) { organization.id }
-      let(:params) { {permission_type: "write,read_write"} }
+      let(:params) { {can_write: "true"} }
 
       before { make_request }
 
       it "returns only subscriptions matching both filters" do
         expect(json.size).to eq(2)
         expect(json).to match_array([
-          hash_including("id" => sub_write.id, "permission_type" => "write"),
-          hash_including("id" => sub_read_write.id, "permission_type" => "read_write")
+          hash_including("id" => sub_write.id, "can_read" => false, "can_write" => true),
+          hash_including("id" => sub_read_write.id, "can_read" => true, "can_write" => true)
         ])
       end
+    end
+
+    it_behaves_like "a paginated endpoint respecting page size" do
+      let!(:organization) { create(:organization) }
+      let(:id) { organization.id }
     end
   end
 
@@ -102,13 +92,13 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
       it "returns all subscriptions for this data stream" do
         expect(json.size).to eq(2)
         expect(json).to match_array([
-          hash_including("id" => sub1.id, "data_stream_id" => data_stream.id, "permission_type" => "read"),
-          hash_including("id" => sub2.id, "data_stream_id" => data_stream.id, "permission_type" => "write")
+          hash_including("id" => sub1.id, "data_stream_id" => data_stream.id, "can_read" => true, "can_write" => false),
+          hash_including("id" => sub2.id, "data_stream_id" => data_stream.id, "can_read" => false, "can_write" => true)
         ])
       end
     end
 
-    context "with data_stream and permission_type filters combined" do
+    context "with data_stream and permission filters combined" do
       let(:data_stream) { create(:data_stream) }
       let(:org1) { create(:organization) }
       let(:org2) { create(:organization) }
@@ -117,15 +107,15 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
       let!(:sub_write) { create(:subscription, :write_only, data_stream: data_stream, organization: org2) }
       let!(:sub_read_write) { create(:subscription, :read_write, data_stream: data_stream, organization: org3) }
       let(:id) { data_stream.id }
-      let(:params) { {permission_type: "read,read_write"} }
+      let(:params) { {can_read: "true"} }
 
       before { make_request }
 
       it "returns only subscriptions matching both filters" do
         expect(json.size).to eq(2)
         expect(json).to match_array([
-          hash_including("id" => sub_read.id, "permission_type" => "read"),
-          hash_including("id" => sub_read_write.id, "permission_type" => "read_write")
+          hash_including("id" => sub_read.id, "can_read" => true, "can_write" => false),
+          hash_including("id" => sub_read_write.id, "can_read" => true, "can_write" => true)
         ])
       end
     end
@@ -151,7 +141,8 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
           "id" => subscription.id,
           "data_stream_id" => data_stream.id,
           "organization_id" => organization.id,
-          "permission_type" => "read_write",
+          "can_read" => true,
+          "can_write" => true,
           "created_at" => anything,
           "updated_at" => anything
         )
@@ -184,7 +175,8 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
         {
           subscription: {
             organization_id: organization.id,
-            permission_type: "read_write"
+            can_read: true,
+            can_write: true
           }
         }
       end
@@ -201,13 +193,14 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
       it "creates subscription and returns complete data" do
         make_request
         created = Subscription.last
-        expect(created).to have_attributes(permission_type: "read_write")
+        expect(created).to have_attributes(can_read: true, can_write: true)
 
         expect(json).to match(
           "id" => created.id,
           "data_stream_id" => data_stream.id,
           "organization_id" => organization.id,
-          "permission_type" => "read_write",
+          "can_read" => true,
+          "can_write" => true,
           "created_at" => anything,
           "updated_at" => anything
         )
@@ -215,7 +208,7 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
     end
 
     context "validation error" do
-      let(:params) { {subscription: {permission_type: "read_write"}} }
+      let(:params) { {subscription: {can_read: true, can_write: false}} }
 
       it "does not create subscription" do
         expect { make_request }.not_to change(Subscription, :count)
@@ -242,7 +235,7 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
     subject(:make_request) { put api_v1_subscription_path(subscription.id), headers: headers, params: params.to_json }
 
     context "success" do
-      let(:params) { {subscription: {permission_type: "read_write"}} }
+      let(:params) { {subscription: {can_read: true, can_write: true}} }
 
       it "returns 200 OK" do
         make_request
@@ -252,13 +245,14 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
       it "updates subscription and returns complete data" do
         make_request
 
-        expect(subscription.reload).to have_attributes(permission_type: "read_write")
+        expect(subscription.reload).to have_attributes(can_read: true, can_write: true)
 
         expect(json).to match(
           "id" => subscription.id,
           "data_stream_id" => data_stream.id,
           "organization_id" => organization.id,
-          "permission_type" => "read_write",
+          "can_read" => true,
+          "can_write" => true,
           "created_at" => anything,
           "updated_at" => anything
         )
@@ -266,7 +260,7 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
     end
 
     context "validation error" do
-      let(:params) { {subscription: {permission_type: ""}} }
+      let(:params) { {subscription: {can_read: false, can_write: false}} }
 
       before { make_request }
 
@@ -275,13 +269,13 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
       end
 
       it "does not update subscription" do
-        expect(subscription.reload.permission_type).to eq("read")
+        expect(subscription.reload).to have_attributes(can_read: true, can_write: false)
       end
 
       it "returns validation errors" do
         expect(json).to match(
-            "permission_type" => array_including("can't be blank")
-          )
+          "base" => array_including("must have at least one permission (can_read or can_write)")
+        )
       end
     end
   end
