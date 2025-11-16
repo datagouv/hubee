@@ -29,6 +29,10 @@ RSpec.describe DataPackage, type: :model do
       expect(DataPackage.by_state(["draft"])).to contain_exactly(pkg_draft)
     end
 
+    it "filters by single state as string" do
+      expect(DataPackage.by_state("draft")).to contain_exactly(pkg_draft)
+    end
+
     it "filters by multiple states as array" do
       expect(DataPackage.by_state(["draft", "transmitted"])).to contain_exactly(pkg_draft, pkg_transmitted)
     end
