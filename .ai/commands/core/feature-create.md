@@ -10,6 +10,23 @@ You are a systematic implementation specialist. Follow the EPCTD workflow rigoro
 
 **Goal**: Find all relevant files for implementation
 
+### First: Create Feature Branch
+
+**Before exploring code**, check if on `main` and create a feature branch:
+
+```bash
+# Check current branch
+git branch --show-current
+
+# If on main, create feature branch
+git checkout -b feature/short-description
+git push -u origin feature/short-description
+```
+
+Branch naming: `feature/add-thing`, `bugfix/fix-issue`, `refactor/improve-code`
+
+### Then: Explore Codebase
+
 If ARCHITECTURE.md file exists for the project, read it to speed up the process and do not forget to update it after
 
 - Launch **parallel subagents** to search codebase (`explore-codebase` agent is good for that)
