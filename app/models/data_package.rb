@@ -1,6 +1,11 @@
 class DataPackage < ApplicationRecord
   include AASM
 
+  # Delivery criteria schema constants
+  DELIVERY_CRITERIA_SUPPORTED = %w[siret organization_id subscription_id].freeze
+  DELIVERY_CRITERIA_MAX_DEPTH = 2
+  DELIVERY_CRITERIA_MAX_COUNT = 20
+
   belongs_to :data_stream
   belongs_to :sender_organization, class_name: "Organization"
 
@@ -36,6 +41,7 @@ class DataPackage < ApplicationRecord
 
   validates :state, presence: true
   validates :title, length: {maximum: 255}
+  validates :delivery_criteria, delivery_criteria: true
 
   before_validation :generate_title, on: :create, if: -> { title.blank? }
   before_destroy :check_destroyable, prepend: true
