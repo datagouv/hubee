@@ -59,12 +59,13 @@ DELETE /api/v1/data_streams/:id   (w)  # 204 (si aucune notification existante)
 ### Subscriptions (r/w)
 
 ```http
-GET    /api/v1/organizations/:id/subscriptions  # index (admin-only) → [{id: uuid, data_stream_id: uuid, organization_id: uuid, can_read: bool, can_write: bool, created_at}, ...]
-GET    /api/v1/data_streams/:id/subscriptions    # index → [{id: uuid, ..., can_read: bool, can_write: bool}, ...]
+GET    /api/v1/organizations/:id/subscriptions  # index (admin-only) → [{id: uuid, data_stream_id: uuid, organization: {id, name, siret}, can_read: bool, can_write: bool, created_at}, ...]
+GET    /api/v1/data_streams/:id/subscriptions    # index → [{id: uuid, ..., organization: {...}, can_read: bool, can_write: bool}, ...]
 POST   /api/v1/data_streams/:id/subscriptions    # create → {id: uuid, ...} | body: {subscription: {organization_id: uuid, can_read: bool, can_write: bool}}
-GET    /api/v1/subscriptions/:id                 # show → {id: uuid, data_stream_id: uuid, organization_id: uuid, can_read: bool, can_write: bool, created_at}
+GET    /api/v1/subscriptions/:id                 # show → {id: uuid, data_stream_id: uuid, organization: {id, name, siret}, can_read: bool, can_write: bool, created_at}
 PUT    /api/v1/subscriptions/:id                 # update → {id: uuid, ...} | body: {subscription: {can_read: bool, can_write: bool}}
 DELETE /api/v1/subscriptions/:id                 # 204
+GET    /api/v1/data_packages/:id/subscriptions   # index → {subscriptions: [...], source: "resolver"|"notifications", delivery_criteria: {...}} + pagination headers
 ```
 
 **Boolean Permissions** : `can_read` et `can_write` (au moins un doit être `true`)
@@ -85,8 +86,16 @@ GET /api/v1/organizations/:id/subscriptions?can_read=false          # Toutes ave
 GET /api/v1/organizations/:id/subscriptions?can_write=false         # Toutes avec can_write=false (lecture seule)
 ```
 
+**Data Package Subscriptions** (Prévisualisation/Historique) :
+```http
+GET /api/v1/data_packages/:id/subscriptions
+```
+- **Draft package** : utilise `DeliveryCriteria::Resolver` pour prévisualiser les subscriptions ciblées
+- **Transmitted/Acknowledged package** : retourne les subscriptions via les notifications existantes
+- Response inclut `source` ("resolver" ou "notifications") pour indiquer la source
+
 **Notes** :
-- `id` exposé = UUID. Relations : `data_stream_id` = UUID, `organization_id` = UUID
+- `organization` est **nested** (belongs_to) pour éviter requêtes multiples
 - Endpoint `/organizations/:id/subscriptions` = admin-only (Feature 9: Authentication)
 - CASCADE DELETE : Subscriptions supprimées automatiquement si data_stream ou organization supprimés
 - Validation : au moins une permission doit être accordée (`can_read` ou `can_write` = true)
