@@ -24,21 +24,10 @@ RSpec.describe "Api::V1::Organizations", type: :request do
         ])
       end
 
-      it "includes pagination headers" do
-        expect(response.headers["X-Page"]).to eq("1")
-        expect(response.headers["X-Per-Page"]).to eq(Pagy.options[:limit].to_s)
-      end
+      it_behaves_like "a paginated endpoint"
     end
 
-    context "with many records" do
-      let!(:organizations) { create_list(:organization, 60) }
-
-      before { make_request }
-
-      it "respects default page size from Pagy config" do
-        expect(json.size).to eq(Pagy.options[:limit])
-      end
-    end
+    it_behaves_like "a paginated endpoint respecting page size"
   end
 
   describe "GET /api/v1/organizations/:id" do

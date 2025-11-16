@@ -38,22 +38,10 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
         ])
       end
 
-      it "includes pagination headers" do
-        expect(response.headers["X-Page"]).to eq("1")
-        expect(response.headers["X-Per-Page"]).to eq(Pagy.options[:limit].to_s)
-      end
+      it_behaves_like "a paginated endpoint"
     end
 
-    context "with many records" do
-      let!(:organization) { create(:organization) }
-      let!(:data_streams) { create_list(:data_stream, 60, owner_organization: organization) }
-
-      before { make_request }
-
-      it "respects default page size from Pagy config" do
-        expect(json.size).to eq(Pagy.options[:limit])
-      end
-    end
+    it_behaves_like "a paginated endpoint respecting page size"
   end
 
   describe "GET /api/v1/data_streams/:id" do
