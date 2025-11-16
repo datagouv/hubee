@@ -11,6 +11,13 @@ RSpec.describe DataPackage, type: :model do
   describe "validations" do
     it { is_expected.to validate_presence_of(:state) }
     it { is_expected.to validate_length_of(:title).is_at_most(255) }
+
+    it "validates delivery_criteria format" do
+      # Full validation tested in spec/validators/delivery_criteria_validator_spec.rb
+      data_package = build(:data_package, delivery_criteria: "invalid")
+      expect(data_package).not_to be_valid
+      expect(data_package.errors[:delivery_criteria]).to be_present
+    end
   end
 
   describe "database indexes" do

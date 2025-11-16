@@ -14,6 +14,25 @@ RSpec.describe Notification, type: :model do
     subject { build(:notification) }
 
     it { is_expected.to validate_uniqueness_of(:subscription_id).scoped_to(:data_package_id).ignoring_case_sensitivity }
+
+    describe "subscription_belongs_to_same_data_stream" do
+      let(:data_stream) { create(:data_stream) }
+      let(:other_stream) { create(:data_stream) }
+      let(:subscription) { create(:subscription, data_stream: data_stream) }
+      let(:data_package) { create(:data_package, data_stream: data_stream) }
+
+      it "is valid when subscription and data_package share the same data_stream" do
+        notification = build(:notification, subscription: subscription, data_package: data_package)
+        expect(notification).to be_valid
+      end
+
+      it "is invalid when subscription and data_package have different data_streams" do
+        other_package = create(:data_package, data_stream: other_stream)
+        notification = build(:notification, subscription: subscription, data_package: other_package)
+        expect(notification).not_to be_valid
+        expect(notification.errors[:subscription]).to include("must belong to the same data_stream as data_package")
+      end
+    end
   end
 
   describe "database columns" do
