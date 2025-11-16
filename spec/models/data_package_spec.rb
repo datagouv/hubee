@@ -211,4 +211,18 @@ RSpec.describe DataPackage, type: :model do
       expect(package.can_be_destroyed?).to be true
     end
   end
+
+  describe "#subscriptions_source" do
+    it "returns 'resolver' for draft package" do
+      expect(build(:data_package, :draft).subscriptions_source).to eq("resolver")
+    end
+
+    it "returns 'notifications' for transmitted package" do
+      expect(build(:data_package, :transmitted).subscriptions_source).to eq("notifications")
+    end
+
+    it "returns 'notifications' for acknowledged package" do
+      expect(build(:data_package, :acknowledged).subscriptions_source).to eq("notifications")
+    end
+  end
 end
