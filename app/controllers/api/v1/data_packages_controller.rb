@@ -4,7 +4,7 @@ class Api::V1::DataPackagesController < Api::BaseController
   def index
     @pagy, @data_packages = pagy(
       DataPackage
-        .by_state(params[:state])
+        .by_state(params[:state]&.split(",")&.map(&:strip))
         .by_data_stream(params[:data_stream_id])
         .by_sender_organization(params[:sender_organization_id])
         .includes(:data_stream, :sender_organization)
