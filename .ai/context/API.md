@@ -59,31 +59,38 @@ DELETE /api/v1/data_streams/:id   (w)  # 204 (si aucune notification existante)
 ### Subscriptions (r/w)
 
 ```http
-GET    /api/v1/organizations/:id/subscriptions  # index (admin-only) → [{id: uuid, data_stream_id: uuid, organization_id: uuid, permission_type, created_at}, ...]
-GET    /api/v1/data_streams/:id/subscriptions    # index → filtre: ?permission_type=read,read_write
-POST   /api/v1/data_streams/:id/subscriptions    # create → {id: uuid, ...} | body: {subscription: {organization_id: uuid, permission_type}}
-GET    /api/v1/subscriptions/:id                 # show → {id: uuid, data_stream_id: uuid, organization_id: uuid, permission_type, created_at}
-PUT    /api/v1/subscriptions/:id                 # update → {id: uuid, ...} | body: {subscription: {permission_type}}
+GET    /api/v1/organizations/:id/subscriptions  # index (admin-only) → [{id: uuid, data_stream_id: uuid, organization_id: uuid, can_read: bool, can_write: bool, created_at}, ...]
+GET    /api/v1/data_streams/:id/subscriptions    # index → [{id: uuid, ..., can_read: bool, can_write: bool}, ...]
+POST   /api/v1/data_streams/:id/subscriptions    # create → {id: uuid, ...} | body: {subscription: {organization_id: uuid, can_read: bool, can_write: bool}}
+GET    /api/v1/subscriptions/:id                 # show → {id: uuid, data_stream_id: uuid, organization_id: uuid, can_read: bool, can_write: bool, created_at}
+PUT    /api/v1/subscriptions/:id                 # update → {id: uuid, ...} | body: {subscription: {can_read: bool, can_write: bool}}
 DELETE /api/v1/subscriptions/:id                 # 204
 ```
 
-**Enum `permission_type`** : `"read"` | `"write"` | `"read_write"`
+**Boolean Permissions** : `can_read` et `can_write` (au moins un doit être `true`)
 
-**Filtre par permission_type** (valeurs séparées par virgules) :
+**Exemples de permissions** :
+```json
+{"can_read": true, "can_write": false}   // Lecture seule
+{"can_read": false, "can_write": true}   // Écriture seule
+{"can_read": true, "can_write": true}    // Lecture et écriture
+```
+
+**Filtres par permissions** :
 ```http
-GET /api/v1/data_streams/:id/subscriptions?permission_type=read,read_write  # Toutes avec read OU read_write
-GET /api/v1/data_streams/:id/subscriptions?permission_type=write,read_write # Toutes avec write OU read_write
-GET /api/v1/data_streams/:id/subscriptions?permission_type=read_write       # Seulement read_write
-GET /api/v1/data_streams/:id/subscriptions?permission_type=read             # Seulement read
-GET /api/v1/data_streams/:id/subscriptions?permission_type=write            # Seulement write
-GET /api/v1/data_streams/:id/subscriptions                                  # Toutes (pas de filtre)
+GET /api/v1/organizations/:id/subscriptions?can_read=true           # Toutes avec can_read=true
+GET /api/v1/organizations/:id/subscriptions?can_write=true          # Toutes avec can_write=true
+GET /api/v1/organizations/:id/subscriptions?can_read=true&can_write=true  # Seulement lecture ET écriture
+GET /api/v1/organizations/:id/subscriptions?can_read=false          # Toutes avec can_read=false (écriture seule)
+GET /api/v1/organizations/:id/subscriptions?can_write=false         # Toutes avec can_write=false (lecture seule)
 ```
 
 **Notes** :
 - `id` exposé = UUID. Relations : `data_stream_id` = UUID, `organization_id` = UUID
 - Endpoint `/organizations/:id/subscriptions` = admin-only (Feature 9: Authentication)
 - CASCADE DELETE : Subscriptions supprimées automatiquement si data_stream ou organization supprimés
-- Filtre `permission_type` : liste de valeurs séparées par virgules, opérateur logique OR
+- Validation : au moins une permission doit être accordée (`can_read` ou `can_write` = true)
+- Filtres acceptent `true`/`false` comme strings (ex: `?can_read=true`)
 
 ### Data Packages (r/w) - Exception : attachments nested
 
