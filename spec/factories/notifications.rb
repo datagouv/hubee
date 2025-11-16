@@ -2,8 +2,12 @@
 
 FactoryBot.define do
   factory :notification do
-    association :data_package
-    association :subscription
+    transient do
+      shared_data_stream { nil }
+    end
+
+    data_package { association :data_package, data_stream: shared_data_stream || create(:data_stream) }
+    subscription { association :subscription, data_stream: data_package.data_stream }
     acknowledged_at { nil }
 
     trait :acknowledged do
