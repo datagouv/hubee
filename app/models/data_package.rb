@@ -25,9 +25,8 @@ class DataPackage < ApplicationRecord
   scope :by_state, ->(states) {
     return all if states.blank?
 
-    requested = states.is_a?(String) ? states.split(",").map(&:strip) : states
     valid = DataPackage.aasm.states.map(&:name).map(&:to_s)
-    where(state: requested & valid) # Array intersection keeps only valid states
+    where(state: Array(states) & valid)  # Array intersection keeps only valid states
   }
   scope :by_data_stream, ->(id) { id.present? ? where(data_stream_id: id) : all }
   scope :by_sender_organization, ->(id) { id.present? ? where(sender_organization_id: id) : all }
