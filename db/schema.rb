@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_16_180937) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_16_183502) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -22,6 +22,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_16_180937) do
     t.datetime "acknowledged_at", precision: nil
     t.datetime "created_at", null: false
     t.uuid "data_stream_id", null: false
+    t.jsonb "delivery_criteria"
     t.uuid "sender_organization_id", null: false
     t.datetime "sent_at", precision: nil
     t.enum "state", default: "draft", null: false, enum_type: "data_package_state"
