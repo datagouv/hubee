@@ -10,14 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_02_100410) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_16_105107) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   # Custom types defined in this database.
   # Note that some types may not work with other database engines. Be careful if changing database.
   create_enum "data_package_state", ["draft", "transmitted", "acknowledged"]
-  create_enum "permission_type", ["read", "write", "read_write"]
 
   create_table "data_packages", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
     t.datetime "acknowledged_at", precision: nil
@@ -53,10 +52,11 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_02_100410) do
   end
 
   create_table "subscriptions", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.boolean "can_read", default: true, null: false
+    t.boolean "can_write", default: false, null: false
     t.datetime "created_at", null: false
     t.uuid "data_stream_id", null: false
     t.uuid "organization_id", null: false
-    t.enum "permission_type", default: "read", null: false, enum_type: "permission_type"
     t.datetime "updated_at", null: false
     t.index ["data_stream_id", "organization_id"], name: "index_subscriptions_on_stream_and_org", unique: true
     t.index ["data_stream_id"], name: "index_subscriptions_on_data_stream_id"
