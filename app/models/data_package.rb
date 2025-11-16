@@ -4,6 +4,9 @@ class DataPackage < ApplicationRecord
   belongs_to :data_stream
   belongs_to :sender_organization, class_name: "Organization"
 
+  has_many :notifications, dependent: :destroy
+  accepts_nested_attributes_for :notifications
+
   aasm column: :state do
     state :draft, initial: true
     state :transmitted
