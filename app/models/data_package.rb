@@ -10,6 +10,8 @@ class DataPackage < ApplicationRecord
   belongs_to :sender_organization, class_name: "Organization"
 
   has_many :notifications, dependent: :destroy
+  has_many :subscriptions, through: :notifications
+
   accepts_nested_attributes_for :notifications
 
   aasm column: :state do
@@ -50,6 +52,10 @@ class DataPackage < ApplicationRecord
 
   def can_be_destroyed?
     draft? || acknowledged?
+  end
+
+  def subscriptions_source
+    draft? ? "resolver" : "notifications"
   end
 
   private

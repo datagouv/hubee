@@ -16,6 +16,7 @@ Rails.application.routes.draw do
 
       resources :data_packages, only: %i[index show destroy], param: :id do
         resource :transmission, only: %i[create]
+        resources :subscriptions, only: %i[index], controller: "data_packages/subscriptions"
       end
     end
   end
