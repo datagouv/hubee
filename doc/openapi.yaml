@@ -1,0 +1,3702 @@
+---
+openapi: 3.0.3
+info:
+  title: Hubee V2 API
+  version: 1.0.0
+servers: []
+paths:
+  "/api/v1/data_packages":
+    get:
+      summary: index
+      tags:
+      - Api::V1::DataPackage
+      responses:
+        '200':
+          description: returns packages matching all filters
+          headers:
+            X-Page:
+              schema:
+                type: integer
+            X-Per-Page:
+              schema:
+                type: integer
+            X-Total:
+              schema:
+                type: integer
+            X-Total-Pages:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    state:
+                      type: string
+                    data_stream_id:
+                      type: string
+                    sender_organization_id:
+                      type: string
+                    title:
+                      type: string
+                    delivery_criteria:
+                      nullable: true
+                    sent_at:
+                      nullable: true
+                    acknowledged_at:
+                      nullable: true
+                    created_at:
+                      type: string
+                    updated_at:
+                      type: string
+                  required:
+                  - id
+                  - state
+                  - data_stream_id
+                  - sender_organization_id
+                  - title
+                  - delivery_criteria
+                  - sent_at
+                  - acknowledged_at
+                  - created_at
+                  - updated_at
+              example:
+              - id: '019a90a9-a499-744b-8a09-ba46cf224d21'
+                state: draft
+                data_stream_id: '019a90a9-a498-720d-ac33-ecdd992a1d35'
+                sender_organization_id: '019a90a9-a498-7bfb-965d-cd12b0452a42'
+                title: Perferendis Quis Omnis-20251117-081348-4RMU
+                delivery_criteria:
+                sent_at:
+                acknowledged_at:
+                created_at: '2025-11-17T08:13:48.185+01:00'
+                updated_at: '2025-11-17T08:13:48.185+01:00'
+      parameters:
+      - name: data_stream_id
+        in: query
+        required: false
+        schema:
+          type: string
+        example: '019a90a9-a498-720d-ac33-ecdd992a1d35'
+      - name: state
+        in: query
+        required: false
+        schema:
+          type: string
+        example: draft
+  "/api/v1/data_packages/{data_package_id}/subscriptions":
+    get:
+      summary: index
+      tags:
+      - Api::V1::DataPackages::Subscription
+      parameters:
+      - name: data_package_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a34c-791b-b86d-ca5311b49f2c'
+      responses:
+        '200':
+          description: returns pagination headers
+          headers:
+            X-Page:
+              schema:
+                type: integer
+            X-Per-Page:
+              schema:
+                type: integer
+            X-Total:
+              schema:
+                type: integer
+            X-Total-Pages:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscriptions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        can_read:
+                          type: boolean
+                        can_write:
+                          type: boolean
+                        data_stream_id:
+                          type: string
+                        created_at:
+                          type: string
+                        updated_at:
+                          type: string
+                        organization:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            siret:
+                              type: string
+                            created_at:
+                              type: string
+                            updated_at:
+                              type: string
+                          required:
+                          - id
+                          - name
+                          - siret
+                          - created_at
+                          - updated_at
+                      required:
+                      - id
+                      - can_read
+                      - can_write
+                      - data_stream_id
+                      - created_at
+                      - updated_at
+                      - organization
+                  source:
+                    type: string
+                  delivery_criteria:
+                    type: object
+                    properties:
+                      siret:
+                        type: array
+                        items:
+                          type: string
+                    nullable: true
+                required:
+                - subscriptions
+                - source
+                - delivery_criteria
+              example:
+                subscriptions:
+                - id: '019a90a9-a304-7042-8afc-35d14c8f7e1a'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.779+01:00'
+                  updated_at: '2025-11-17T08:13:47.779+01:00'
+                  organization:
+                    id: '019a90a9-a302-75af-9980-251443cf64c5'
+                    name: Kertzmann LLC
+                    siret: '13002526500100'
+                    created_at: '2025-11-17T08:13:47.778+01:00'
+                    updated_at: '2025-11-17T08:13:47.778+01:00'
+                - id: '019a90a9-a305-749b-b6ab-7df7e48bccb6'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.781+01:00'
+                  updated_at: '2025-11-17T08:13:47.781+01:00'
+                  organization:
+                    id: '019a90a9-a304-7a5a-802a-bd88fd1d1142'
+                    name: Nikolaus, Farrell and Hettinger
+                    siret: '13002526500101'
+                    created_at: '2025-11-17T08:13:47.780+01:00'
+                    updated_at: '2025-11-17T08:13:47.780+01:00'
+                - id: '019a90a9-a306-7732-a2a4-577d530d33a5'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.782+01:00'
+                  updated_at: '2025-11-17T08:13:47.782+01:00'
+                  organization:
+                    id: '019a90a9-a305-7dd7-a2c3-1eebe5e4fc8b'
+                    name: Murphy-Hermann
+                    siret: '13002526500102'
+                    created_at: '2025-11-17T08:13:47.781+01:00'
+                    updated_at: '2025-11-17T08:13:47.781+01:00'
+                - id: '019a90a9-a307-79a0-9cdd-841e6bfea8cd'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.783+01:00'
+                  updated_at: '2025-11-17T08:13:47.783+01:00'
+                  organization:
+                    id: '019a90a9-a307-706a-9146-b8e9cb344efb'
+                    name: Simonis, O'Connell and Nolan
+                    siret: '13002526500103'
+                    created_at: '2025-11-17T08:13:47.782+01:00'
+                    updated_at: '2025-11-17T08:13:47.782+01:00'
+                - id: '019a90a9-a308-7cf4-b2e1-ff92a8b4ea2b'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.784+01:00'
+                  updated_at: '2025-11-17T08:13:47.784+01:00'
+                  organization:
+                    id: '019a90a9-a308-73a1-8d52-2e21a0bdef2a'
+                    name: Medhurst, Sanford and Rutherford
+                    siret: '13002526500104'
+                    created_at: '2025-11-17T08:13:47.784+01:00'
+                    updated_at: '2025-11-17T08:13:47.784+01:00'
+                - id: '019a90a9-a309-7f7d-98ed-6ea8fff0b4d2'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.785+01:00'
+                  updated_at: '2025-11-17T08:13:47.785+01:00'
+                  organization:
+                    id: '019a90a9-a309-7641-be51-aaa14050d751'
+                    name: Boehm, Boyle and Shields
+                    siret: '13002526500105'
+                    created_at: '2025-11-17T08:13:47.785+01:00'
+                    updated_at: '2025-11-17T08:13:47.785+01:00'
+                - id: '019a90a9-a30b-72d0-bdd8-95a4968b35f0'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.787+01:00'
+                  updated_at: '2025-11-17T08:13:47.787+01:00'
+                  organization:
+                    id: '019a90a9-a30a-78a5-b83d-5c359312b533'
+                    name: Wintheiser and Sons
+                    siret: '13002526500106'
+                    created_at: '2025-11-17T08:13:47.786+01:00'
+                    updated_at: '2025-11-17T08:13:47.786+01:00'
+                - id: '019a90a9-a30c-7568-946f-659666411e69'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.788+01:00'
+                  updated_at: '2025-11-17T08:13:47.788+01:00'
+                  organization:
+                    id: '019a90a9-a30b-7bf2-a9d5-32add423bb7d'
+                    name: DuBuque-D'Amore
+                    siret: '13002526500107'
+                    created_at: '2025-11-17T08:13:47.787+01:00'
+                    updated_at: '2025-11-17T08:13:47.787+01:00'
+                - id: '019a90a9-a30d-786f-a434-571abf03cd76'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.789+01:00'
+                  updated_at: '2025-11-17T08:13:47.789+01:00'
+                  organization:
+                    id: '019a90a9-a30c-7f2b-8398-cbfa2d67c7ff'
+                    name: Cummerata, Runolfsdottir and VonRueden
+                    siret: '13002526500108'
+                    created_at: '2025-11-17T08:13:47.788+01:00'
+                    updated_at: '2025-11-17T08:13:47.788+01:00'
+                - id: '019a90a9-a30e-7c57-b659-453b4c4a9f45'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.790+01:00'
+                  updated_at: '2025-11-17T08:13:47.790+01:00'
+                  organization:
+                    id: '019a90a9-a30e-72e9-a445-c149b7388fc4'
+                    name: Stoltenberg Inc
+                    siret: '13002526500109'
+                    created_at: '2025-11-17T08:13:47.790+01:00'
+                    updated_at: '2025-11-17T08:13:47.790+01:00'
+                - id: '019a90a9-a30f-7eef-a3d0-15a454ff9c02'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.791+01:00'
+                  updated_at: '2025-11-17T08:13:47.791+01:00'
+                  organization:
+                    id: '019a90a9-a30f-75ae-9d93-68164b4f3b46'
+                    name: Crooks-Lockman
+                    siret: '13002526500110'
+                    created_at: '2025-11-17T08:13:47.791+01:00'
+                    updated_at: '2025-11-17T08:13:47.791+01:00'
+                - id: '019a90a9-a311-7163-8ece-eb0d56d9d97e'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.792+01:00'
+                  updated_at: '2025-11-17T08:13:47.792+01:00'
+                  organization:
+                    id: '019a90a9-a310-782b-a120-0e7377cb353c'
+                    name: Green-O'Conner
+                    siret: '13002526500111'
+                    created_at: '2025-11-17T08:13:47.792+01:00'
+                    updated_at: '2025-11-17T08:13:47.792+01:00'
+                - id: '019a90a9-a312-74b4-a8c6-0e5c8440fba6'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.794+01:00'
+                  updated_at: '2025-11-17T08:13:47.794+01:00'
+                  organization:
+                    id: '019a90a9-a311-7b71-be5c-c3db3f0023d3'
+                    name: Bode-Reynolds
+                    siret: '13002526500112'
+                    created_at: '2025-11-17T08:13:47.793+01:00'
+                    updated_at: '2025-11-17T08:13:47.793+01:00'
+                - id: '019a90a9-a313-774b-b04a-19daa384aab3'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.795+01:00'
+                  updated_at: '2025-11-17T08:13:47.795+01:00'
+                  organization:
+                    id: '019a90a9-a312-7de9-8d68-641fef2725d5'
+                    name: Tillman-White
+                    siret: '13002526500113'
+                    created_at: '2025-11-17T08:13:47.794+01:00'
+                    updated_at: '2025-11-17T08:13:47.794+01:00'
+                - id: '019a90a9-a314-7a6c-a0ee-ad860002da23'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.796+01:00'
+                  updated_at: '2025-11-17T08:13:47.796+01:00'
+                  organization:
+                    id: '019a90a9-a314-7052-a73d-6d126c4ebcf2'
+                    name: Greenfelder Group
+                    siret: '13002526500114'
+                    created_at: '2025-11-17T08:13:47.795+01:00'
+                    updated_at: '2025-11-17T08:13:47.795+01:00'
+                - id: '019a90a9-a315-7d74-8172-d150b3bdb340'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.797+01:00'
+                  updated_at: '2025-11-17T08:13:47.797+01:00'
+                  organization:
+                    id: '019a90a9-a315-7430-b643-5153933e3405'
+                    name: Mitchell, Wehner and Langosh
+                    siret: '13002526500115'
+                    created_at: '2025-11-17T08:13:47.797+01:00'
+                    updated_at: '2025-11-17T08:13:47.797+01:00'
+                - id: '019a90a9-a316-7ff0-b918-d8929ed0a713'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.798+01:00'
+                  updated_at: '2025-11-17T08:13:47.798+01:00'
+                  organization:
+                    id: '019a90a9-a316-76af-a40b-66aaecf1a1e4'
+                    name: Hirthe-Lemke
+                    siret: '13002526500116'
+                    created_at: '2025-11-17T08:13:47.798+01:00'
+                    updated_at: '2025-11-17T08:13:47.798+01:00'
+                - id: '019a90a9-a318-7345-989e-376245f5cb88'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.800+01:00'
+                  updated_at: '2025-11-17T08:13:47.800+01:00'
+                  organization:
+                    id: '019a90a9-a317-7a0d-a896-5fe181005bdd'
+                    name: Ankunding-Friesen
+                    siret: '13002526500117'
+                    created_at: '2025-11-17T08:13:47.799+01:00'
+                    updated_at: '2025-11-17T08:13:47.799+01:00'
+                - id: '019a90a9-a319-75b9-82c7-308a17c9bf93'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.801+01:00'
+                  updated_at: '2025-11-17T08:13:47.801+01:00'
+                  organization:
+                    id: '019a90a9-a318-7c6c-bd80-13f85cf2f253'
+                    name: Torp Group
+                    siret: '13002526500118'
+                    created_at: '2025-11-17T08:13:47.800+01:00'
+                    updated_at: '2025-11-17T08:13:47.800+01:00'
+                - id: '019a90a9-a31a-7952-bbe7-4cbb908af831'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.802+01:00'
+                  updated_at: '2025-11-17T08:13:47.802+01:00'
+                  organization:
+                    id: '019a90a9-a319-7f08-89f2-67ae1516d3a5'
+                    name: Kiehn, Gutmann and Rice
+                    siret: '13002526500119'
+                    created_at: '2025-11-17T08:13:47.801+01:00'
+                    updated_at: '2025-11-17T08:13:47.801+01:00'
+                - id: '019a90a9-a31b-7bd0-ba51-d180cd319289'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.803+01:00'
+                  updated_at: '2025-11-17T08:13:47.803+01:00'
+                  organization:
+                    id: '019a90a9-a31b-7284-9d1f-230ba1ab6693'
+                    name: Pfeffer-Murray
+                    siret: '13002526500120'
+                    created_at: '2025-11-17T08:13:47.803+01:00'
+                    updated_at: '2025-11-17T08:13:47.803+01:00'
+                - id: '019a90a9-a31c-7f99-91da-7b5d823b453a'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.804+01:00'
+                  updated_at: '2025-11-17T08:13:47.804+01:00'
+                  organization:
+                    id: '019a90a9-a31c-752a-825d-18044e0923f0'
+                    name: Hansen Group
+                    siret: '13002526500121'
+                    created_at: '2025-11-17T08:13:47.804+01:00'
+                    updated_at: '2025-11-17T08:13:47.804+01:00'
+                - id: '019a90a9-a31e-7471-934e-c031b026c757'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.806+01:00'
+                  updated_at: '2025-11-17T08:13:47.806+01:00'
+                  organization:
+                    id: '019a90a9-a31d-7a86-b3f7-44fa5f622f54'
+                    name: Lehner and Sons
+                    siret: '13002526500122'
+                    created_at: '2025-11-17T08:13:47.805+01:00'
+                    updated_at: '2025-11-17T08:13:47.805+01:00'
+                - id: '019a90a9-a31f-7746-8294-ea2341c7b61f'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.807+01:00'
+                  updated_at: '2025-11-17T08:13:47.807+01:00'
+                  organization:
+                    id: '019a90a9-a31e-7dec-820a-d9155b51ae23'
+                    name: Herman, Wintheiser and Bosco
+                    siret: '13002526500123'
+                    created_at: '2025-11-17T08:13:47.806+01:00'
+                    updated_at: '2025-11-17T08:13:47.806+01:00'
+                - id: '019a90a9-a320-7ac2-8951-f40c7dac13f6'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.808+01:00'
+                  updated_at: '2025-11-17T08:13:47.808+01:00'
+                  organization:
+                    id: '019a90a9-a320-70a2-9d00-e96e80d27a08'
+                    name: Hirthe and Sons
+                    siret: '13002526500124'
+                    created_at: '2025-11-17T08:13:47.807+01:00'
+                    updated_at: '2025-11-17T08:13:47.807+01:00'
+                - id: '019a90a9-a321-7d97-91bd-d990c08d3349'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.809+01:00'
+                  updated_at: '2025-11-17T08:13:47.809+01:00'
+                  organization:
+                    id: '019a90a9-a321-743a-89de-2338f4f8c8d5'
+                    name: Satterfield, Herzog and Corkery
+                    siret: '13002526500125'
+                    created_at: '2025-11-17T08:13:47.809+01:00'
+                    updated_at: '2025-11-17T08:13:47.809+01:00'
+                - id: '019a90a9-a323-708b-a4fd-2d0b79ef2254'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.810+01:00'
+                  updated_at: '2025-11-17T08:13:47.810+01:00'
+                  organization:
+                    id: '019a90a9-a322-772a-b183-764301c18fad'
+                    name: Grimes, Boyer and Hermiston
+                    siret: '13002526500126'
+                    created_at: '2025-11-17T08:13:47.810+01:00'
+                    updated_at: '2025-11-17T08:13:47.810+01:00'
+                - id: '019a90a9-a324-7368-a2e0-3940a9061dec'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.812+01:00'
+                  updated_at: '2025-11-17T08:13:47.812+01:00'
+                  organization:
+                    id: '019a90a9-a323-7a28-bc91-46763040ddd7'
+                    name: Swaniawski-Strosin
+                    siret: '13002526500127'
+                    created_at: '2025-11-17T08:13:47.811+01:00'
+                    updated_at: '2025-11-17T08:13:47.811+01:00'
+                - id: '019a90a9-a325-75d4-b98f-4f8742584bd4'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.813+01:00'
+                  updated_at: '2025-11-17T08:13:47.813+01:00'
+                  organization:
+                    id: '019a90a9-a324-7cc1-a67e-20b7d59a2c42'
+                    name: Mertz-Cremin
+                    siret: '13002526500128'
+                    created_at: '2025-11-17T08:13:47.812+01:00'
+                    updated_at: '2025-11-17T08:13:47.812+01:00'
+                - id: '019a90a9-a326-78fd-b6ae-19a8129acbfa'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.814+01:00'
+                  updated_at: '2025-11-17T08:13:47.814+01:00'
+                  organization:
+                    id: '019a90a9-a325-7f6c-8e3b-c762a7cda094'
+                    name: Johnson-Baumbach
+                    siret: '13002526500129'
+                    created_at: '2025-11-17T08:13:47.813+01:00'
+                    updated_at: '2025-11-17T08:13:47.813+01:00'
+                - id: '019a90a9-a327-7c00-a3b4-9b85fa9712a7'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.815+01:00'
+                  updated_at: '2025-11-17T08:13:47.815+01:00'
+                  organization:
+                    id: '019a90a9-a327-727c-a1f1-5e17eed88ac5'
+                    name: Gibson, Rempel and Heaney
+                    siret: '13002526500130'
+                    created_at: '2025-11-17T08:13:47.815+01:00'
+                    updated_at: '2025-11-17T08:13:47.815+01:00'
+                - id: '019a90a9-a328-7e97-a2c8-522f38f51ced'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.816+01:00'
+                  updated_at: '2025-11-17T08:13:47.816+01:00'
+                  organization:
+                    id: '019a90a9-a328-7543-87da-1bb9318ab060'
+                    name: Green LLC
+                    siret: '13002526500131'
+                    created_at: '2025-11-17T08:13:47.816+01:00'
+                    updated_at: '2025-11-17T08:13:47.816+01:00'
+                - id: '019a90a9-a32a-7159-bc6d-0fd2c0cc6ca0'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.817+01:00'
+                  updated_at: '2025-11-17T08:13:47.817+01:00'
+                  organization:
+                    id: '019a90a9-a329-780c-a6fc-5a7e229578d7'
+                    name: Bernier LLC
+                    siret: '13002526500132'
+                    created_at: '2025-11-17T08:13:47.817+01:00'
+                    updated_at: '2025-11-17T08:13:47.817+01:00'
+                - id: '019a90a9-a32b-751b-951e-33836d9b3abe'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.819+01:00'
+                  updated_at: '2025-11-17T08:13:47.819+01:00'
+                  organization:
+                    id: '019a90a9-a32a-7aad-b76f-ff51c0025363'
+                    name: Flatley and Sons
+                    siret: '13002526500133'
+                    created_at: '2025-11-17T08:13:47.818+01:00'
+                    updated_at: '2025-11-17T08:13:47.818+01:00'
+                - id: '019a90a9-a32c-77e3-bc21-92e82162392e'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.820+01:00'
+                  updated_at: '2025-11-17T08:13:47.820+01:00'
+                  organization:
+                    id: '019a90a9-a32b-7e72-a692-168a253d64b3'
+                    name: Tillman Inc
+                    siret: '13002526500134'
+                    created_at: '2025-11-17T08:13:47.819+01:00'
+                    updated_at: '2025-11-17T08:13:47.819+01:00'
+                - id: '019a90a9-a32d-7af2-995e-7fc748dc8fe2'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.821+01:00'
+                  updated_at: '2025-11-17T08:13:47.821+01:00'
+                  organization:
+                    id: '019a90a9-a32d-716b-b0ec-b4446b912dfe'
+                    name: Zemlak-Herman
+                    siret: '13002526500135'
+                    created_at: '2025-11-17T08:13:47.820+01:00'
+                    updated_at: '2025-11-17T08:13:47.820+01:00'
+                - id: '019a90a9-a32e-7db3-8d04-10bd7be24203'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.822+01:00'
+                  updated_at: '2025-11-17T08:13:47.822+01:00'
+                  organization:
+                    id: '019a90a9-a32e-7449-8b19-6459b881baff'
+                    name: Hand LLC
+                    siret: '13002526500136'
+                    created_at: '2025-11-17T08:13:47.822+01:00'
+                    updated_at: '2025-11-17T08:13:47.822+01:00'
+                - id: '019a90a9-a330-704b-81c3-10a5f3049fed'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.823+01:00'
+                  updated_at: '2025-11-17T08:13:47.823+01:00'
+                  organization:
+                    id: '019a90a9-a32f-7705-bad5-c7b27417bca2'
+                    name: Bernhard, Pfannerstill and Bayer
+                    siret: '13002526500137'
+                    created_at: '2025-11-17T08:13:47.823+01:00'
+                    updated_at: '2025-11-17T08:13:47.823+01:00'
+                - id: '019a90a9-a331-7350-8465-018adbfc0d7a'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.825+01:00'
+                  updated_at: '2025-11-17T08:13:47.825+01:00'
+                  organization:
+                    id: '019a90a9-a330-79f5-9ef1-a3f224cda8de'
+                    name: Klocko, Koelpin and Kertzmann
+                    siret: '13002526500138'
+                    created_at: '2025-11-17T08:13:47.824+01:00'
+                    updated_at: '2025-11-17T08:13:47.824+01:00'
+                - id: '019a90a9-a332-767b-9722-a667ee948186'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.826+01:00'
+                  updated_at: '2025-11-17T08:13:47.826+01:00'
+                  organization:
+                    id: '019a90a9-a331-7d08-83e5-a7da83097bfe'
+                    name: Parker, Rohan and Rolfson
+                    siret: '13002526500139'
+                    created_at: '2025-11-17T08:13:47.825+01:00'
+                    updated_at: '2025-11-17T08:13:47.825+01:00'
+                - id: '019a90a9-a333-797e-b051-f0bbab51e6ee'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.827+01:00'
+                  updated_at: '2025-11-17T08:13:47.827+01:00'
+                  organization:
+                    id: '019a90a9-a333-7004-bd41-edb90daa844a'
+                    name: Runte, Wiza and Haag
+                    siret: '13002526500140'
+                    created_at: '2025-11-17T08:13:47.826+01:00'
+                    updated_at: '2025-11-17T08:13:47.826+01:00'
+                - id: '019a90a9-a334-7da9-a451-b9e891b0d0a7'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.828+01:00'
+                  updated_at: '2025-11-17T08:13:47.828+01:00'
+                  organization:
+                    id: '019a90a9-a334-7338-bbcb-adf58e1ec535'
+                    name: Roob Inc
+                    siret: '13002526500141'
+                    created_at: '2025-11-17T08:13:47.828+01:00'
+                    updated_at: '2025-11-17T08:13:47.828+01:00'
+                - id: '019a90a9-a336-7198-ad52-231213e59b2b'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.829+01:00'
+                  updated_at: '2025-11-17T08:13:47.829+01:00'
+                  organization:
+                    id: '019a90a9-a335-77c4-8db2-c562a50fdc20'
+                    name: Veum, Koss and Gutmann
+                    siret: '13002526500142'
+                    created_at: '2025-11-17T08:13:47.829+01:00'
+                    updated_at: '2025-11-17T08:13:47.829+01:00'
+                - id: '019a90a9-a337-7563-b816-2b10347c68aa'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.831+01:00'
+                  updated_at: '2025-11-17T08:13:47.831+01:00'
+                  organization:
+                    id: '019a90a9-a336-7ba5-8d77-54350ec7c43d'
+                    name: Davis, Altenwerth and Smith
+                    siret: '13002526500143'
+                    created_at: '2025-11-17T08:13:47.830+01:00'
+                    updated_at: '2025-11-17T08:13:47.830+01:00'
+                - id: '019a90a9-a338-78cc-b2d1-eea2153b5aba'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.832+01:00'
+                  updated_at: '2025-11-17T08:13:47.832+01:00'
+                  organization:
+                    id: '019a90a9-a337-7f27-826b-e4eb577a0d01'
+                    name: Weimann-Dicki
+                    siret: '13002526500144'
+                    created_at: '2025-11-17T08:13:47.831+01:00'
+                    updated_at: '2025-11-17T08:13:47.831+01:00'
+                - id: '019a90a9-a339-7c0c-8304-6cd466b4a9f0'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.833+01:00'
+                  updated_at: '2025-11-17T08:13:47.833+01:00'
+                  organization:
+                    id: '019a90a9-a339-728c-a93f-c4fa46f03580'
+                    name: Beier, Abshire and Hessel
+                    siret: '13002526500145'
+                    created_at: '2025-11-17T08:13:47.833+01:00'
+                    updated_at: '2025-11-17T08:13:47.833+01:00'
+                - id: '019a90a9-a33a-7f20-b47e-99fc00b84766'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.834+01:00'
+                  updated_at: '2025-11-17T08:13:47.834+01:00'
+                  organization:
+                    id: '019a90a9-a33a-758f-b7e0-ad6699e6e14d'
+                    name: Stanton, Koelpin and Wilderman
+                    siret: '13002526500146'
+                    created_at: '2025-11-17T08:13:47.834+01:00'
+                    updated_at: '2025-11-17T08:13:47.834+01:00'
+                - id: '019a90a9-a33c-7210-92de-f1e4027e4362'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.836+01:00'
+                  updated_at: '2025-11-17T08:13:47.836+01:00'
+                  organization:
+                    id: '019a90a9-a33b-78c9-963d-852363467e8f'
+                    name: Bahringer-Schneider
+                    siret: '13002526500147'
+                    created_at: '2025-11-17T08:13:47.835+01:00'
+                    updated_at: '2025-11-17T08:13:47.835+01:00'
+                - id: '019a90a9-a33d-7589-82f7-7f95390fbfe2'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.837+01:00'
+                  updated_at: '2025-11-17T08:13:47.837+01:00'
+                  organization:
+                    id: '019a90a9-a33c-7b90-bb79-b9e4d666adea'
+                    name: Denesik, Schumm and Botsford
+                    siret: '13002526500148'
+                    created_at: '2025-11-17T08:13:47.836+01:00'
+                    updated_at: '2025-11-17T08:13:47.836+01:00'
+                - id: '019a90a9-a33e-78ac-a20f-7d4a9b48ce85'
+                  can_read: true
+                  can_write: false
+                  data_stream_id: '019a90a9-a303-7688-9cd5-c01c0f18b0f8'
+                  created_at: '2025-11-17T08:13:47.838+01:00'
+                  updated_at: '2025-11-17T08:13:47.838+01:00'
+                  organization:
+                    id: '019a90a9-a33d-7f38-b50e-b202008e98cf'
+                    name: Klocko and Sons
+                    siret: '13002526500149'
+                    created_at: '2025-11-17T08:13:47.837+01:00'
+                    updated_at: '2025-11-17T08:13:47.837+01:00'
+                source: resolver
+                delivery_criteria:
+                  siret:
+                  - '13002526500100'
+                  - '13002526500101'
+                  - '13002526500102'
+                  - '13002526500103'
+                  - '13002526500104'
+                  - '13002526500105'
+                  - '13002526500106'
+                  - '13002526500107'
+                  - '13002526500108'
+                  - '13002526500109'
+                  - '13002526500110'
+                  - '13002526500111'
+                  - '13002526500112'
+                  - '13002526500113'
+                  - '13002526500114'
+                  - '13002526500115'
+                  - '13002526500116'
+                  - '13002526500117'
+                  - '13002526500118'
+                  - '13002526500119'
+                  - '13002526500120'
+                  - '13002526500121'
+                  - '13002526500122'
+                  - '13002526500123'
+                  - '13002526500124'
+                  - '13002526500125'
+                  - '13002526500126'
+                  - '13002526500127'
+                  - '13002526500128'
+                  - '13002526500129'
+                  - '13002526500130'
+                  - '13002526500131'
+                  - '13002526500132'
+                  - '13002526500133'
+                  - '13002526500134'
+                  - '13002526500135'
+                  - '13002526500136'
+                  - '13002526500137'
+                  - '13002526500138'
+                  - '13002526500139'
+                  - '13002526500140'
+                  - '13002526500141'
+                  - '13002526500142'
+                  - '13002526500143'
+                  - '13002526500144'
+                  - '13002526500145'
+                  - '13002526500146'
+                  - '13002526500147'
+                  - '13002526500148'
+                  - '13002526500149'
+                  - '13002526500150'
+                  - '13002526500151'
+                  - '13002526500152'
+                  - '13002526500153'
+                  - '13002526500154'
+                  - '13002526500155'
+                  - '13002526500156'
+                  - '13002526500157'
+                  - '13002526500158'
+                  - '13002526500159'
+        '404':
+          description: returns error message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+              example:
+                error: Not found
+  "/api/v1/data_packages/{data_package_id}/transmission":
+    post:
+      summary: create
+      tags:
+      - Api::V1::Transmission
+      parameters:
+      - name: data_package_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a82b-738d-bf46-011237203387'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+            example: {}
+      responses:
+        '200':
+          description: returns the updated data package
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  state:
+                    type: string
+                  data_stream_id:
+                    type: string
+                  sender_organization_id:
+                    type: string
+                  title:
+                    type: string
+                  delivery_criteria:
+                    type: object
+                    properties:
+                      siret:
+                        type: string
+                    required:
+                    - siret
+                  sent_at:
+                    type: string
+                  acknowledged_at:
+                    nullable: true
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+                required:
+                - id
+                - state
+                - data_stream_id
+                - sender_organization_id
+                - title
+                - delivery_criteria
+                - sent_at
+                - acknowledged_at
+                - created_at
+                - updated_at
+              example:
+                id: '019a90a9-a807-74b5-8286-8f3f7106257c'
+                state: transmitted
+                data_stream_id: '019a90a9-a804-7e63-83a0-6dddcf8e29dc'
+                sender_organization_id: '019a90a9-a806-7cac-b011-7c56ebad9013'
+                title: Sit Dolorem Quis-20251117-081349-1WW4
+                delivery_criteria:
+                  siret: '13002526500013'
+                sent_at: '2025-11-17T08:13:49.066+01:00'
+                acknowledged_at:
+                created_at: '2025-11-17T08:13:49.063+01:00'
+                updated_at: '2025-11-17T08:13:49.066+01:00'
+        '422':
+          description: does not create any notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: array
+                    items:
+                      type: string
+                  base:
+                    type: array
+                    items:
+                      type: string
+              example:
+                state:
+                - must have completed attachments
+                base:
+                - must have at least one recipient subscription
+  "/api/v1/data_packages/{id}":
+    delete:
+      summary: destroy
+      tags:
+      - Api::V1::DataPackage
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a505-7788-af74-47c1800f3ee3'
+      responses:
+        '204':
+          description: returns 204 No Content
+        '422':
+          description: returns error message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  base:
+                    type: array
+                    items:
+                      type: string
+                required:
+                - base
+              example:
+                base:
+                - 'Cannot destroy data_package in state: transmitted'
+    get:
+      summary: show
+      tags:
+      - Api::V1::DataPackage
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: a406c4df-12fd-457c-86fe-17890e57002d
+      responses:
+        '200':
+          description: returns the data package
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  state:
+                    type: string
+                  data_stream_id:
+                    type: string
+                  sender_organization_id:
+                    type: string
+                  title:
+                    type: string
+                  delivery_criteria:
+                    nullable: true
+                  sent_at:
+                    type: string
+                  acknowledged_at:
+                    nullable: true
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+                required:
+                - id
+                - state
+                - data_stream_id
+                - sender_organization_id
+                - title
+                - delivery_criteria
+                - sent_at
+                - acknowledged_at
+                - created_at
+                - updated_at
+              example:
+                id: '019a90a9-a4b4-7d6a-8c72-98f4da55415e'
+                state: transmitted
+                data_stream_id: '019a90a9-a4b3-7d0a-ae97-23a3b4720b67'
+                sender_organization_id: '019a90a9-a4b4-761e-a590-1374a5ce6394'
+                title: Et Voluptas Id-20251117-081348-BGJ3
+                delivery_criteria:
+                sent_at: '2025-11-17T08:13:48.212+01:00'
+                acknowledged_at:
+                created_at: '2025-11-17T08:13:48.212+01:00'
+                updated_at: '2025-11-17T08:13:48.212+01:00'
+        '404':
+          description: returns 404 Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+              example:
+                error: Not found
+  "/api/v1/data_streams":
+    get:
+      summary: index
+      tags:
+      - Api::V1::DataStream
+      responses:
+        '200':
+          description: returns pagination headers
+          headers:
+            X-Page:
+              schema:
+                type: integer
+            X-Per-Page:
+              schema:
+                type: integer
+            X-Total:
+              schema:
+                type: integer
+            X-Total-Pages:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    retention_days:
+                      type: integer
+                    created_at:
+                      type: string
+                    updated_at:
+                      type: string
+                    owner_organization:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        siret:
+                          type: string
+                        created_at:
+                          type: string
+                        updated_at:
+                          type: string
+                      required:
+                      - id
+                      - name
+                      - siret
+                      - created_at
+                      - updated_at
+                  required:
+                  - id
+                  - name
+                  - description
+                  - retention_days
+                  - created_at
+                  - updated_at
+                  - owner_organization
+              example:
+              - id: '019a90a9-a556-795a-90be-6691ede3b7fa'
+                name: Voluptas Consectetur Consequatur
+                description: Corporis officia nisi praesentium.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.374+01:00'
+                updated_at: '2025-11-17T08:13:48.374+01:00'
+                owner_organization:
+                  id: '019a90a9-a556-731a-b5ee-137e778d51fe'
+                  name: Gleichner-Balistreri
+                  siret: '00000000000408'
+                  created_at: '2025-11-17T08:13:48.374+01:00'
+                  updated_at: '2025-11-17T08:13:48.374+01:00'
+              - id: '019a90a9-a557-796d-bd96-6ff9a401c9d7'
+                name: Fuga Velit Reiciendis
+                description: Possimus sed sed impedit.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.375+01:00'
+                updated_at: '2025-11-17T08:13:48.375+01:00'
+                owner_organization:
+                  id: '019a90a9-a557-7381-a3a3-48433be4d409'
+                  name: Heller-Vandervort
+                  siret: '00000000000409'
+                  created_at: '2025-11-17T08:13:48.375+01:00'
+                  updated_at: '2025-11-17T08:13:48.375+01:00'
+              - id: '019a90a9-a558-7983-8dcc-9100c06df06b'
+                name: Officia Possimus Id
+                description: Neque laudantium exercitationem iusto.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.376+01:00'
+                updated_at: '2025-11-17T08:13:48.376+01:00'
+                owner_organization:
+                  id: '019a90a9-a558-73a0-9bed-0ec2e6be9934'
+                  name: Frami, McKenzie and Kling
+                  siret: '00000000000410'
+                  created_at: '2025-11-17T08:13:48.376+01:00'
+                  updated_at: '2025-11-17T08:13:48.376+01:00'
+              - id: '019a90a9-a559-7987-bc3a-72c7ed56fcc6'
+                name: Quas Nisi Ut
+                description: Et porro aspernatur quo.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.377+01:00'
+                updated_at: '2025-11-17T08:13:48.377+01:00'
+                owner_organization:
+                  id: '019a90a9-a559-73b2-bbc7-9a5cf70fbd34'
+                  name: Lehner, Wiegand and Casper
+                  siret: '00000000000411'
+                  created_at: '2025-11-17T08:13:48.377+01:00'
+                  updated_at: '2025-11-17T08:13:48.377+01:00'
+              - id: '019a90a9-a55a-7993-9db5-e109352cdaa0'
+                name: Voluptatem Id Qui
+                description: Ut nemo aspernatur illo.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.378+01:00'
+                updated_at: '2025-11-17T08:13:48.378+01:00'
+                owner_organization:
+                  id: '019a90a9-a55a-73a2-aa84-5052c002a1d8'
+                  name: Schowalter-Bechtelar
+                  siret: '00000000000412'
+                  created_at: '2025-11-17T08:13:48.378+01:00'
+                  updated_at: '2025-11-17T08:13:48.378+01:00'
+              - id: '019a90a9-a55b-7a33-838b-029b78a2588b'
+                name: Qui Et Consequatur
+                description: Et aut nostrum neque.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.379+01:00'
+                updated_at: '2025-11-17T08:13:48.379+01:00'
+                owner_organization:
+                  id: '019a90a9-a55b-7451-9654-1879442e6b95'
+                  name: Hudson Group
+                  siret: '00000000000413'
+                  created_at: '2025-11-17T08:13:48.379+01:00'
+                  updated_at: '2025-11-17T08:13:48.379+01:00'
+              - id: '019a90a9-a55c-7a5a-b15d-bff23ad09a45'
+                name: Ipsa Reprehenderit Quaerat
+                description: Consequatur nostrum at consequatur.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.380+01:00'
+                updated_at: '2025-11-17T08:13:48.380+01:00'
+                owner_organization:
+                  id: '019a90a9-a55c-747b-90ff-90027f33451d'
+                  name: Stoltenberg, Gleichner and Zieme
+                  siret: '00000000000414'
+                  created_at: '2025-11-17T08:13:48.380+01:00'
+                  updated_at: '2025-11-17T08:13:48.380+01:00'
+              - id: '019a90a9-a55d-7a85-980f-b346dfcb9508'
+                name: Deserunt Iure Suscipit
+                description: Dignissimos dolorem dolor excepturi.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.381+01:00'
+                updated_at: '2025-11-17T08:13:48.381+01:00'
+                owner_organization:
+                  id: '019a90a9-a55d-747e-82a0-adb18d5f4420'
+                  name: Connelly LLC
+                  siret: '00000000000415'
+                  created_at: '2025-11-17T08:13:48.381+01:00'
+                  updated_at: '2025-11-17T08:13:48.381+01:00'
+              - id: '019a90a9-a55e-7a86-a198-3a224b23cee6'
+                name: Et Aut Enim
+                description: Quaerat numquam asperiores vitae.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.382+01:00'
+                updated_at: '2025-11-17T08:13:48.382+01:00'
+                owner_organization:
+                  id: '019a90a9-a55e-749e-af8a-68f1e057f367'
+                  name: Gorczany LLC
+                  siret: '00000000000416'
+                  created_at: '2025-11-17T08:13:48.382+01:00'
+                  updated_at: '2025-11-17T08:13:48.382+01:00'
+              - id: '019a90a9-a55f-7a5f-ae43-970950385129'
+                name: At Consequatur Beatae
+                description: Dolores illum et laborum.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.383+01:00'
+                updated_at: '2025-11-17T08:13:48.383+01:00'
+                owner_organization:
+                  id: '019a90a9-a55f-74a6-91f2-52172d595020'
+                  name: Batz, Schultz and West
+                  siret: '00000000000417'
+                  created_at: '2025-11-17T08:13:48.383+01:00'
+                  updated_at: '2025-11-17T08:13:48.383+01:00'
+              - id: '019a90a9-a560-7a9f-95e8-f2075485010b'
+                name: A Debitis Velit
+                description: Iure maiores deserunt qui.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.384+01:00'
+                updated_at: '2025-11-17T08:13:48.384+01:00'
+                owner_organization:
+                  id: '019a90a9-a560-74ac-974a-5f9602d44b80'
+                  name: Farrell, Effertz and Dickinson
+                  siret: '00000000000418'
+                  created_at: '2025-11-17T08:13:48.384+01:00'
+                  updated_at: '2025-11-17T08:13:48.384+01:00'
+              - id: '019a90a9-a561-7ab6-8eb7-35e49836ec43'
+                name: Quis Qui Velit
+                description: Magnam illum repudiandae praesentium.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.385+01:00'
+                updated_at: '2025-11-17T08:13:48.385+01:00'
+                owner_organization:
+                  id: '019a90a9-a561-74cc-9111-15700cf5e92e'
+                  name: Pacocha, Boyer and Kertzmann
+                  siret: '00000000000419'
+                  created_at: '2025-11-17T08:13:48.385+01:00'
+                  updated_at: '2025-11-17T08:13:48.385+01:00'
+              - id: '019a90a9-a562-7ab8-bf64-3fdb18cc3e99'
+                name: Aut Temporibus Eius
+                description: Consectetur fugit doloremque quam.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.386+01:00'
+                updated_at: '2025-11-17T08:13:48.386+01:00'
+                owner_organization:
+                  id: '019a90a9-a562-74d5-854f-942f57a12373'
+                  name: O'Keefe-O'Hara
+                  siret: '00000000000420'
+                  created_at: '2025-11-17T08:13:48.386+01:00'
+                  updated_at: '2025-11-17T08:13:48.386+01:00'
+              - id: '019a90a9-a563-7b75-acd6-3f6f0a4b14ab'
+                name: Delectus Sint Incidunt
+                description: Deserunt aut consequuntur quisquam.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.387+01:00'
+                updated_at: '2025-11-17T08:13:48.387+01:00'
+                owner_organization:
+                  id: '019a90a9-a563-74e2-9011-d4a4f2e0ee67'
+                  name: Bernhard, Bergnaum and Pagac
+                  siret: '00000000000421'
+                  created_at: '2025-11-17T08:13:48.387+01:00'
+                  updated_at: '2025-11-17T08:13:48.387+01:00'
+              - id: '019a90a9-a564-7deb-b998-c34e17c64830'
+                name: Doloribus Pariatur Velit
+                description: Voluptate cum dolores qui.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.388+01:00'
+                updated_at: '2025-11-17T08:13:48.388+01:00'
+                owner_organization:
+                  id: '019a90a9-a564-774d-83b9-2dea6b752740'
+                  name: Sporer-Considine
+                  siret: '00000000000422'
+                  created_at: '2025-11-17T08:13:48.388+01:00'
+                  updated_at: '2025-11-17T08:13:48.388+01:00'
+              - id: '019a90a9-a565-7ec7-8aa2-3b1a85fca26c'
+                name: Dolores Reprehenderit Suscipit
+                description: Aut nisi in placeat.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.389+01:00'
+                updated_at: '2025-11-17T08:13:48.389+01:00'
+                owner_organization:
+                  id: '019a90a9-a565-78ac-8c34-edeb21f2e9ba'
+                  name: Kshlerin and Sons
+                  siret: '00000000000423'
+                  created_at: '2025-11-17T08:13:48.389+01:00'
+                  updated_at: '2025-11-17T08:13:48.389+01:00'
+              - id: '019a90a9-a566-7f39-9dba-e226f8828526'
+                name: Architecto Inventore Autem
+                description: Et qui nihil facere.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.390+01:00'
+                updated_at: '2025-11-17T08:13:48.390+01:00'
+                owner_organization:
+                  id: '019a90a9-a566-7958-a701-af5056dbea7c'
+                  name: Zieme-Schultz
+                  siret: '00000000000424'
+                  created_at: '2025-11-17T08:13:48.390+01:00'
+                  updated_at: '2025-11-17T08:13:48.390+01:00'
+              - id: '019a90a9-a567-7f5d-b1f9-dd09a6717396'
+                name: Porro Et Aut
+                description: Officia tempora delectus itaque.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.391+01:00'
+                updated_at: '2025-11-17T08:13:48.391+01:00'
+                owner_organization:
+                  id: '019a90a9-a567-7991-b2fe-7d6c74ae16c2'
+                  name: Sawayn Group
+                  siret: '00000000000425'
+                  created_at: '2025-11-17T08:13:48.391+01:00'
+                  updated_at: '2025-11-17T08:13:48.391+01:00'
+              - id: '019a90a9-a568-7fae-935e-1b8d274a26af'
+                name: Rerum Rem Totam
+                description: Est sint quam ut.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.392+01:00'
+                updated_at: '2025-11-17T08:13:48.392+01:00'
+                owner_organization:
+                  id: '019a90a9-a568-79b6-8196-c9e95bb8c50e'
+                  name: Kutch-Roberts
+                  siret: '00000000000426'
+                  created_at: '2025-11-17T08:13:48.392+01:00'
+                  updated_at: '2025-11-17T08:13:48.392+01:00'
+              - id: '019a90a9-a569-7fb5-9007-d1d2ed0d8b72'
+                name: Numquam Quos Voluptatem
+                description: Perferendis at vitae necessitatibus.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.393+01:00'
+                updated_at: '2025-11-17T08:13:48.393+01:00'
+                owner_organization:
+                  id: '019a90a9-a569-79c6-b7df-647f4a849bf5'
+                  name: Baumbach Inc
+                  siret: '00000000000427'
+                  created_at: '2025-11-17T08:13:48.393+01:00'
+                  updated_at: '2025-11-17T08:13:48.393+01:00'
+              - id: '019a90a9-a56b-7129-b15f-2441ab4385a0'
+                name: Aliquid Quia Error
+                description: Omnis et qui cupiditate.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.394+01:00'
+                updated_at: '2025-11-17T08:13:48.394+01:00'
+                owner_organization:
+                  id: '019a90a9-a56a-7a1c-9b76-f561015bf185'
+                  name: Quitzon, Kuvalis and Friesen
+                  siret: '00000000000428'
+                  created_at: '2025-11-17T08:13:48.394+01:00'
+                  updated_at: '2025-11-17T08:13:48.394+01:00'
+              - id: '019a90a9-a56c-717c-ab5b-05e7d7894fe2'
+                name: Ut Minus Eligendi
+                description: Hic qui et itaque.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.395+01:00'
+                updated_at: '2025-11-17T08:13:48.395+01:00'
+                owner_organization:
+                  id: '019a90a9-a56b-7b98-9b21-e2bcdc6c3531'
+                  name: Kuhn, Pfeffer and Yundt
+                  siret: '00000000000429'
+                  created_at: '2025-11-17T08:13:48.395+01:00'
+                  updated_at: '2025-11-17T08:13:48.395+01:00'
+              - id: '019a90a9-a56d-720f-854a-91c05b20ede2'
+                name: Voluptatem Accusamus Praesentium
+                description: Nihil blanditiis aspernatur praesentium.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.396+01:00'
+                updated_at: '2025-11-17T08:13:48.396+01:00'
+                owner_organization:
+                  id: '019a90a9-a56c-7c12-9927-d74aeedc99d5'
+                  name: Greenholt-Price
+                  siret: '00000000000430'
+                  created_at: '2025-11-17T08:13:48.396+01:00'
+                  updated_at: '2025-11-17T08:13:48.396+01:00'
+              - id: '019a90a9-a56e-7213-a25d-678f512d441a'
+                name: Voluptatem Provident Corporis
+                description: Qui saepe ratione sit.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.397+01:00'
+                updated_at: '2025-11-17T08:13:48.397+01:00'
+                owner_organization:
+                  id: '019a90a9-a56d-7c11-97ba-0b4759a61aec'
+                  name: Wolff-Fritsch
+                  siret: '00000000000431'
+                  created_at: '2025-11-17T08:13:48.397+01:00'
+                  updated_at: '2025-11-17T08:13:48.397+01:00'
+              - id: '019a90a9-a56f-7232-97da-739f7071998f'
+                name: Tempore Ratione Odio
+                description: Sapiente aliquam velit officiis.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.398+01:00'
+                updated_at: '2025-11-17T08:13:48.398+01:00'
+                owner_organization:
+                  id: '019a90a9-a56e-7c38-b955-85b00a8d278d'
+                  name: Hermiston Group
+                  siret: '00000000000432'
+                  created_at: '2025-11-17T08:13:48.398+01:00'
+                  updated_at: '2025-11-17T08:13:48.398+01:00'
+              - id: '019a90a9-a570-7296-99d0-8ce13f8de55f'
+                name: Omnis Et Quis
+                description: Et facere quas sit.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.399+01:00'
+                updated_at: '2025-11-17T08:13:48.399+01:00'
+                owner_organization:
+                  id: '019a90a9-a56f-7ca2-8e17-2b9ccfea811c'
+                  name: Schamberger, Beahan and Armstrong
+                  siret: '00000000000433'
+                  created_at: '2025-11-17T08:13:48.399+01:00'
+                  updated_at: '2025-11-17T08:13:48.399+01:00'
+              - id: '019a90a9-a571-72c9-8fad-b269784942a6'
+                name: Earum Labore Rerum
+                description: Sapiente dolores quod et.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.400+01:00'
+                updated_at: '2025-11-17T08:13:48.400+01:00'
+                owner_organization:
+                  id: '019a90a9-a570-7cd6-8de1-141b667d15f8'
+                  name: Murray-Wolf
+                  siret: '00000000000434'
+                  created_at: '2025-11-17T08:13:48.400+01:00'
+                  updated_at: '2025-11-17T08:13:48.400+01:00'
+              - id: '019a90a9-a572-7344-a1a2-1e45a2877c8f'
+                name: Placeat Omnis Necessitatibus
+                description: Culpa et quam quasi.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.402+01:00'
+                updated_at: '2025-11-17T08:13:48.402+01:00'
+                owner_organization:
+                  id: '019a90a9-a571-7d50-b4ff-24bd23e7f113'
+                  name: Rowe-Emmerich
+                  siret: '00000000000435'
+                  created_at: '2025-11-17T08:13:48.401+01:00'
+                  updated_at: '2025-11-17T08:13:48.401+01:00'
+              - id: '019a90a9-a573-7396-a79a-c3a8189fb17f'
+                name: Nisi Blanditiis A
+                description: Quis ipsum mollitia et.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.403+01:00'
+                updated_at: '2025-11-17T08:13:48.403+01:00'
+                owner_organization:
+                  id: '019a90a9-a572-7da0-bd8a-207e2667d513'
+                  name: Deckow-Moore
+                  siret: '00000000000436'
+                  created_at: '2025-11-17T08:13:48.402+01:00'
+                  updated_at: '2025-11-17T08:13:48.402+01:00'
+              - id: '019a90a9-a574-7431-ac2a-76aff1f77569'
+                name: Cum Libero Ipsam
+                description: Soluta quia adipisci ea.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.404+01:00'
+                updated_at: '2025-11-17T08:13:48.404+01:00'
+                owner_organization:
+                  id: '019a90a9-a573-7e02-bd20-512e0c15f105'
+                  name: Macejkovic, Lockman and Farrell
+                  siret: '00000000000437'
+                  created_at: '2025-11-17T08:13:48.403+01:00'
+                  updated_at: '2025-11-17T08:13:48.403+01:00'
+              - id: '019a90a9-a575-748e-bc94-0b30f3fe7349'
+                name: Vel Autem Eveniet
+                description: Quo omnis et tempora.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.405+01:00'
+                updated_at: '2025-11-17T08:13:48.405+01:00'
+                owner_organization:
+                  id: '019a90a9-a574-7eb3-8a10-49e94d38f674'
+                  name: Jakubowski and Sons
+                  siret: '00000000000438'
+                  created_at: '2025-11-17T08:13:48.404+01:00'
+                  updated_at: '2025-11-17T08:13:48.404+01:00'
+              - id: '019a90a9-a576-74f1-94c9-8f97bdfc9231'
+                name: Ut Ex At
+                description: Fuga nulla inventore et.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.406+01:00'
+                updated_at: '2025-11-17T08:13:48.406+01:00'
+                owner_organization:
+                  id: '019a90a9-a575-7f0d-aff7-44b16f0b7b7b'
+                  name: Botsford, Smith and Wilderman
+                  siret: '00000000000439'
+                  created_at: '2025-11-17T08:13:48.405+01:00'
+                  updated_at: '2025-11-17T08:13:48.405+01:00'
+              - id: '019a90a9-a577-751a-94b1-c6276c7f0c20'
+                name: Voluptas Et Dolores
+                description: Blanditiis velit et vitae.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.407+01:00'
+                updated_at: '2025-11-17T08:13:48.407+01:00'
+                owner_organization:
+                  id: '019a90a9-a576-7f24-9e53-75d663c69eb7'
+                  name: Schumm Inc
+                  siret: '00000000000440'
+                  created_at: '2025-11-17T08:13:48.406+01:00'
+                  updated_at: '2025-11-17T08:13:48.406+01:00'
+              - id: '019a90a9-a578-7559-85e8-51505bf50f28'
+                name: Quae Facere Reprehenderit
+                description: Quos optio veritatis quia.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.408+01:00'
+                updated_at: '2025-11-17T08:13:48.408+01:00'
+                owner_organization:
+                  id: '019a90a9-a577-7f72-b821-a1329f255b65'
+                  name: Ritchie-Hermann
+                  siret: '00000000000441'
+                  created_at: '2025-11-17T08:13:48.407+01:00'
+                  updated_at: '2025-11-17T08:13:48.407+01:00'
+              - id: '019a90a9-a579-75f6-a8a6-a4d81a6646e3'
+                name: Dicta Accusamus Qui
+                description: Cupiditate cumque assumenda dicta.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.409+01:00'
+                updated_at: '2025-11-17T08:13:48.409+01:00'
+                owner_organization:
+                  id: '019a90a9-a579-700b-a6ca-5755c43887fc'
+                  name: Schneider, Breitenberg and Wiza
+                  siret: '00000000000442'
+                  created_at: '2025-11-17T08:13:48.408+01:00'
+                  updated_at: '2025-11-17T08:13:48.408+01:00'
+              - id: '019a90a9-a57a-7625-be3b-6c936a3b7eb6'
+                name: Ut Iure Iste
+                description: Est ab minus at.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.410+01:00'
+                updated_at: '2025-11-17T08:13:48.410+01:00'
+                owner_organization:
+                  id: '019a90a9-a57a-7044-b6cc-74085be1bccc'
+                  name: Barton-Schultz
+                  siret: '00000000000443'
+                  created_at: '2025-11-17T08:13:48.409+01:00'
+                  updated_at: '2025-11-17T08:13:48.409+01:00'
+              - id: '019a90a9-a57b-7668-bd15-68f294157efd'
+                name: Tenetur In Quibusdam
+                description: Voluptate modi cum quaerat.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.411+01:00'
+                updated_at: '2025-11-17T08:13:48.411+01:00'
+                owner_organization:
+                  id: '019a90a9-a57b-706d-ba74-d50c6e9928c9'
+                  name: Keebler-Bartell
+                  siret: '00000000000444'
+                  created_at: '2025-11-17T08:13:48.410+01:00'
+                  updated_at: '2025-11-17T08:13:48.410+01:00'
+              - id: '019a90a9-a57c-76d8-965d-be30c2dbcabb'
+                name: Voluptas Et Sint
+                description: Voluptatum eveniet qui recusandae.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.412+01:00'
+                updated_at: '2025-11-17T08:13:48.412+01:00'
+                owner_organization:
+                  id: '019a90a9-a57c-70e2-ae30-1552f58fc7b5'
+                  name: Rau, Abshire and Bogan
+                  siret: '00000000000445'
+                  created_at: '2025-11-17T08:13:48.411+01:00'
+                  updated_at: '2025-11-17T08:13:48.411+01:00'
+              - id: '019a90a9-a57d-7700-92a6-efbb325a76f5'
+                name: Quia Incidunt Amet
+                description: Debitis sit est dolore.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.413+01:00'
+                updated_at: '2025-11-17T08:13:48.413+01:00'
+                owner_organization:
+                  id: '019a90a9-a57d-710e-b918-9ae71b90f58c'
+                  name: Sipes-Walter
+                  siret: '00000000000446'
+                  created_at: '2025-11-17T08:13:48.412+01:00'
+                  updated_at: '2025-11-17T08:13:48.412+01:00'
+              - id: '019a90a9-a57e-77b2-9951-123c922b29f1'
+                name: Laborum Est Rerum
+                description: Harum blanditiis et nam.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.414+01:00'
+                updated_at: '2025-11-17T08:13:48.414+01:00'
+                owner_organization:
+                  id: '019a90a9-a57e-71a5-b018-f5a4a8ad853c'
+                  name: Boyer-Stiedemann
+                  siret: '00000000000447'
+                  created_at: '2025-11-17T08:13:48.413+01:00'
+                  updated_at: '2025-11-17T08:13:48.413+01:00'
+              - id: '019a90a9-a57f-77e3-afac-71e5a7653cf8'
+                name: Consectetur Voluptas Magnam
+                description: Eligendi magni delectus facilis.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.415+01:00'
+                updated_at: '2025-11-17T08:13:48.415+01:00'
+                owner_organization:
+                  id: '019a90a9-a57f-71e4-a8a7-045d386bdcf0'
+                  name: Parisian and Sons
+                  siret: '00000000000448'
+                  created_at: '2025-11-17T08:13:48.415+01:00'
+                  updated_at: '2025-11-17T08:13:48.415+01:00'
+              - id: '019a90a9-a582-717a-8ea6-afda62c22400'
+                name: Repellendus Aut Culpa
+                description: Eligendi beatae eius ut.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.417+01:00'
+                updated_at: '2025-11-17T08:13:48.417+01:00'
+                owner_organization:
+                  id: '019a90a9-a581-7a66-af0e-b8d421a92b07'
+                  name: Armstrong Group
+                  siret: '00000000000449'
+                  created_at: '2025-11-17T08:13:48.417+01:00'
+                  updated_at: '2025-11-17T08:13:48.417+01:00'
+              - id: '019a90a9-a583-7217-a305-6e346b07d118'
+                name: Qui Sit Maxime
+                description: Consequatur similique laudantium eveniet.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.418+01:00'
+                updated_at: '2025-11-17T08:13:48.418+01:00'
+                owner_organization:
+                  id: '019a90a9-a582-7c1f-8ae0-6d115d86f09f'
+                  name: Veum, Roberts and Braun
+                  siret: '00000000000450'
+                  created_at: '2025-11-17T08:13:48.418+01:00'
+                  updated_at: '2025-11-17T08:13:48.418+01:00'
+              - id: '019a90a9-a584-751d-8bfd-41342902f6d4'
+                name: Incidunt Suscipit Libero
+                description: Laudantium animi tempora similique.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.420+01:00'
+                updated_at: '2025-11-17T08:13:48.420+01:00'
+                owner_organization:
+                  id: '019a90a9-a583-7f2a-91b8-26dbe46cb188'
+                  name: Gleason, Murazik and Kuhic
+                  siret: '00000000000451'
+                  created_at: '2025-11-17T08:13:48.419+01:00'
+                  updated_at: '2025-11-17T08:13:48.419+01:00'
+              - id: '019a90a9-a585-796c-ac37-45f2a47c63e5'
+                name: Accusamus Molestiae Similique
+                description: Quaerat quis ut molestiae.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.421+01:00'
+                updated_at: '2025-11-17T08:13:48.421+01:00'
+                owner_organization:
+                  id: '019a90a9-a585-7237-a1f6-e28367105d80'
+                  name: Spencer Group
+                  siret: '00000000000452'
+                  created_at: '2025-11-17T08:13:48.421+01:00'
+                  updated_at: '2025-11-17T08:13:48.421+01:00'
+              - id: '019a90a9-a586-7acf-85f6-f02168e98e49'
+                name: Dolor Numquam Suscipit
+                description: Et at asperiores aut.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.422+01:00'
+                updated_at: '2025-11-17T08:13:48.422+01:00'
+                owner_organization:
+                  id: '019a90a9-a586-74b8-93d7-af51bae60913'
+                  name: Corwin Group
+                  siret: '00000000000453'
+                  created_at: '2025-11-17T08:13:48.422+01:00'
+                  updated_at: '2025-11-17T08:13:48.422+01:00'
+              - id: '019a90a9-a587-7e92-b1f0-bee43e9ab8a2'
+                name: Occaecati Sed Omnis
+                description: Explicabo laboriosam nobis est.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.423+01:00'
+                updated_at: '2025-11-17T08:13:48.423+01:00'
+                owner_organization:
+                  id: '019a90a9-a587-77fb-863e-8ac15190586a'
+                  name: Lockman, Howell and Rosenbaum
+                  siret: '00000000000454'
+                  created_at: '2025-11-17T08:13:48.423+01:00'
+                  updated_at: '2025-11-17T08:13:48.423+01:00'
+              - id: '019a90a9-a589-7536-895b-b817f35183ac'
+                name: Reiciendis Sint Fugiat
+                description: Est eum expedita saepe.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.425+01:00'
+                updated_at: '2025-11-17T08:13:48.425+01:00'
+                owner_organization:
+                  id: '019a90a9-a588-7e1c-b7ec-fb369422f564'
+                  name: Pfeffer, Mertz and Abshire
+                  siret: '00000000000455'
+                  created_at: '2025-11-17T08:13:48.424+01:00'
+                  updated_at: '2025-11-17T08:13:48.424+01:00'
+              - id: '019a90a9-a58a-7bef-94d1-6fd59e9b6f19'
+                name: Iure Ab Eum
+                description: Quas vitae itaque natus.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.426+01:00'
+                updated_at: '2025-11-17T08:13:48.426+01:00'
+                owner_organization:
+                  id: '019a90a9-a58a-7442-8047-c58802004997'
+                  name: Marquardt Group
+                  siret: '00000000000456'
+                  created_at: '2025-11-17T08:13:48.426+01:00'
+                  updated_at: '2025-11-17T08:13:48.426+01:00'
+              - id: '019a90a9-a58c-732f-9f94-21249b23e21c'
+                name: Eligendi Maiores Atque
+                description: Ut id reprehenderit quia.
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.427+01:00'
+                updated_at: '2025-11-17T08:13:48.427+01:00'
+                owner_organization:
+                  id: '019a90a9-a58b-7c91-b2ef-4813638dfd6c'
+                  name: Tromp Group
+                  siret: '00000000000457'
+                  created_at: '2025-11-17T08:13:48.427+01:00'
+                  updated_at: '2025-11-17T08:13:48.427+01:00'
+    post:
+      summary: create
+      tags:
+      - Api::V1::DataStream
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data_stream:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    owner_organization_id:
+                      type: string
+                    retention_days:
+                      type: integer
+                  required:
+                  - name
+                  - description
+                  - owner_organization_id
+                  - retention_days
+              required:
+              - data_stream
+            example:
+              data_stream:
+                name: CertDC
+                description: Certificats de décès
+                owner_organization_id: '019a90a9-a5fb-7488-a1a8-c7c5a3c5d95b'
+                retention_days: 365
+      responses:
+        '201':
+          description: creates data_stream and returns complete data with nested owner_organization
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  retention_days:
+                    type: integer
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+                  owner_organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      siret:
+                        type: string
+                      created_at:
+                        type: string
+                      updated_at:
+                        type: string
+                    required:
+                    - id
+                    - name
+                    - siret
+                    - created_at
+                    - updated_at
+                required:
+                - id
+                - name
+                - description
+                - retention_days
+                - created_at
+                - updated_at
+                - owner_organization
+              example:
+                id: '019a90a9-a5fc-75d0-88f5-11235a1f37fe'
+                name: CertDC
+                description: Certificats de décès
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.540+01:00'
+                updated_at: '2025-11-17T08:13:48.540+01:00'
+                owner_organization:
+                  id: '019a90a9-a5fb-7488-a1a8-c7c5a3c5d95b'
+                  name: Effertz-Prosacco
+                  siret: '13002526500013'
+                  created_at: '2025-11-17T08:13:48.539+01:00'
+                  updated_at: '2025-11-17T08:13:48.539+01:00'
+        '422':
+          description: returns validation errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: array
+                    items:
+                      type: string
+                required:
+                - name
+              example:
+                name:
+                - can't be blank
+  "/api/v1/data_streams/{data_stream_id}/data_packages":
+    get:
+      summary: index
+      tags:
+      - Api::V1::DataPackage
+      parameters:
+      - name: data_stream_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a4ad-79b6-a798-07723c97c2c7'
+      responses:
+        '200':
+          description: returns empty array
+          headers:
+            X-Page:
+              schema:
+                type: integer
+            X-Per-Page:
+              schema:
+                type: integer
+            X-Total:
+              schema:
+                type: integer
+            X-Total-Pages:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    state:
+                      type: string
+                    data_stream_id:
+                      type: string
+                    sender_organization_id:
+                      type: string
+                    title:
+                      type: string
+                    delivery_criteria:
+                      nullable: true
+                    sent_at:
+                      nullable: true
+                    acknowledged_at:
+                      nullable: true
+                    created_at:
+                      type: string
+                    updated_at:
+                      type: string
+                  required:
+                  - id
+                  - state
+                  - data_stream_id
+                  - sender_organization_id
+                  - title
+                  - delivery_criteria
+                  - sent_at
+                  - acknowledged_at
+                  - created_at
+                  - updated_at
+              example: []
+    post:
+      summary: create
+      tags:
+      - Api::V1::DataPackage
+      parameters:
+      - name: data_stream_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a4d9-7b44-8932-e7d3b93a20ac'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data_package:
+                  type: object
+                  properties:
+                    sender_organization_id:
+                      type: string
+                    title:
+                      type: string
+                    delivery_criteria:
+                      type: object
+                      properties:
+                        siret:
+                          type: array
+                          items:
+                            type: string
+                      required:
+                      - siret
+                  required:
+                  - sender_organization_id
+              required:
+              - data_package
+            example:
+              data_package:
+                sender_organization_id: '019a90a9-a4ca-7a31-b285-3a405f4b9c40'
+                title: Package with criteria
+                delivery_criteria:
+                  siret:
+                  - '13002526500013'
+                  - '11000601200010'
+      responses:
+        '201':
+          description: persists delivery_criteria in database
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  state:
+                    type: string
+                  data_stream_id:
+                    type: string
+                  sender_organization_id:
+                    type: string
+                  title:
+                    type: string
+                  delivery_criteria:
+                    nullable: true
+                    type: object
+                    properties:
+                      siret:
+                        type: array
+                        items:
+                          type: string
+                    required:
+                    - siret
+                  sent_at:
+                    nullable: true
+                  acknowledged_at:
+                    nullable: true
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+                required:
+                - id
+                - state
+                - data_stream_id
+                - sender_organization_id
+                - title
+                - delivery_criteria
+                - sent_at
+                - acknowledged_at
+                - created_at
+                - updated_at
+              example:
+                id: '019a90a9-a4cb-7a66-9193-70ea70787dfc'
+                state: draft
+                data_stream_id: '019a90a9-a4ca-70e5-9e47-cfc965bdc908'
+                sender_organization_id: '019a90a9-a4ca-7a31-b285-3a405f4b9c40'
+                title: Package with criteria
+                delivery_criteria:
+                  siret:
+                  - '13002526500013'
+                  - '11000601200010'
+                sent_at:
+                acknowledged_at:
+                created_at: '2025-11-17T08:13:48.235+01:00'
+                updated_at: '2025-11-17T08:13:48.235+01:00'
+        '422':
+          description: returns validation errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  delivery_criteria:
+                    type: array
+                    items:
+                      type: string
+                  sender_organization:
+                    type: array
+                    items:
+                      type: string
+              example:
+                delivery_criteria:
+                - must contain only 'siret' key
+                sender_organization:
+                - must exist
+  "/api/v1/data_streams/{data_stream_id}/subscriptions":
+    get:
+      summary: index
+      tags:
+      - Api::V1::Subscription
+      parameters:
+      - name: can_read
+        in: query
+        required: false
+        schema:
+          type: string
+        example: 'true'
+      - name: data_stream_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a77d-7a19-ac2c-f5c8e3f35658'
+      responses:
+        '200':
+          description: returns only subscriptions matching both filters
+          headers:
+            X-Page:
+              schema:
+                type: integer
+            X-Per-Page:
+              schema:
+                type: integer
+            X-Total:
+              schema:
+                type: integer
+            X-Total-Pages:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    can_read:
+                      type: boolean
+                    can_write:
+                      type: boolean
+                    data_stream_id:
+                      type: string
+                    created_at:
+                      type: string
+                    updated_at:
+                      type: string
+                    organization:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        siret:
+                          type: string
+                        created_at:
+                          type: string
+                        updated_at:
+                          type: string
+                      required:
+                      - id
+                      - name
+                      - siret
+                      - created_at
+                      - updated_at
+                  required:
+                  - id
+                  - can_read
+                  - can_write
+                  - data_stream_id
+                  - created_at
+                  - updated_at
+                  - organization
+              example:
+              - id: '019a90a9-a77f-704d-a6b4-cf10c8df7c79'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a77d-7a19-ac2c-f5c8e3f35658'
+                created_at: '2025-11-17T08:13:48.926+01:00'
+                updated_at: '2025-11-17T08:13:48.926+01:00'
+                organization:
+                  id: '019a90a9-a77e-73d8-a07f-53cef37384de'
+                  name: Lakin Group
+                  siret: '00000000000737'
+                  created_at: '2025-11-17T08:13:48.926+01:00'
+                  updated_at: '2025-11-17T08:13:48.926+01:00'
+              - id: '019a90a9-a781-7e50-a69b-023fa66a29e9'
+                can_read: true
+                can_write: true
+                data_stream_id: '019a90a9-a77d-7a19-ac2c-f5c8e3f35658'
+                created_at: '2025-11-17T08:13:48.929+01:00'
+                updated_at: '2025-11-17T08:13:48.929+01:00'
+                organization:
+                  id: '019a90a9-a781-7130-b59a-1a553c8913e8'
+                  name: Breitenberg-Ratke
+                  siret: '00000000000739'
+                  created_at: '2025-11-17T08:13:48.928+01:00'
+                  updated_at: '2025-11-17T08:13:48.928+01:00'
+    post:
+      summary: create
+      tags:
+      - Api::V1::Subscription
+      parameters:
+      - name: data_stream_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a7b6-7f80-a094-63712631547e'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subscription:
+                  type: object
+                  properties:
+                    organization_id:
+                      type: string
+                    can_read:
+                      type: boolean
+                    can_write:
+                      type: boolean
+                  required:
+                  - organization_id
+                  - can_read
+                  - can_write
+              required:
+              - subscription
+            example:
+              subscription:
+                organization_id: '019a90a9-a7aa-7b52-bd8c-7b2bdf0676f0'
+                can_read: true
+                can_write: true
+      responses:
+        '201':
+          description: creates subscription and returns complete data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  can_read:
+                    type: boolean
+                  can_write:
+                    type: boolean
+                  data_stream_id:
+                    type: string
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+                  organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      siret:
+                        type: string
+                      created_at:
+                        type: string
+                      updated_at:
+                        type: string
+                    required:
+                    - id
+                    - name
+                    - siret
+                    - created_at
+                    - updated_at
+                required:
+                - id
+                - can_read
+                - can_write
+                - data_stream_id
+                - created_at
+                - updated_at
+                - organization
+              example:
+                id: '019a90a9-a7ac-7547-8282-996466381ecf'
+                can_read: true
+                can_write: true
+                data_stream_id: '019a90a9-a7a9-7dc2-a4c0-e2cde0e99395'
+                created_at: '2025-11-17T08:13:48.972+01:00'
+                updated_at: '2025-11-17T08:13:48.972+01:00'
+                organization:
+                  id: '019a90a9-a7aa-7b52-bd8c-7b2bdf0676f0'
+                  name: Schuster-Hagenes
+                  siret: '13002526500013'
+                  created_at: '2025-11-17T08:13:48.970+01:00'
+                  updated_at: '2025-11-17T08:13:48.970+01:00'
+        '422':
+          description: returns validation errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organization:
+                    type: array
+                    items:
+                      type: string
+                required:
+                - organization
+              example:
+                organization:
+                - must exist
+  "/api/v1/data_streams/{id}":
+    delete:
+      summary: destroy
+      tags:
+      - Api::V1::DataStream
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a619-732b-8fea-2fd26c4f91bc'
+      responses:
+        '204':
+          description: returns 204 No Content
+    get:
+      summary: show
+      tags:
+      - Api::V1::DataStream
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: d9976817-1be0-4172-b3ef-487d6eea38c7
+      responses:
+        '200':
+          description: returns data_stream data with nested owner_organization
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  retention_days:
+                    type: integer
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+                  owner_organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      siret:
+                        type: string
+                      created_at:
+                        type: string
+                      updated_at:
+                        type: string
+                    required:
+                    - id
+                    - name
+                    - siret
+                    - created_at
+                    - updated_at
+                required:
+                - id
+                - name
+                - description
+                - retention_days
+                - created_at
+                - updated_at
+                - owner_organization
+              example:
+                id: '019a90a9-a5ef-7df5-93d8-14e2cc6b17e2'
+                name: CertDC
+                description: Certificats
+                retention_days: 365
+                created_at: '2025-11-17T08:13:48.527+01:00'
+                updated_at: '2025-11-17T08:13:48.527+01:00'
+                owner_organization:
+                  id: '019a90a9-a5ef-7393-ada1-9c8b8326a767'
+                  name: DINUM
+                  siret: '13002526500013'
+                  created_at: '2025-11-17T08:13:48.527+01:00'
+                  updated_at: '2025-11-17T08:13:48.527+01:00'
+        '404':
+          description: returns error response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+              example:
+                error: Not found
+    put:
+      summary: update
+      tags:
+      - Api::V1::DataStream
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a613-73b2-91dd-2e8ca4b896b3'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data_stream:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    retention_days:
+                      type: integer
+                  required:
+                  - name
+                  - retention_days
+              required:
+              - data_stream
+            example:
+              data_stream:
+                name: Updated Name
+                retention_days: 180
+      responses:
+        '200':
+          description: updates data_stream and returns complete data with nested owner_organization
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  retention_days:
+                    type: integer
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+                  owner_organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      siret:
+                        type: string
+                      created_at:
+                        type: string
+                      updated_at:
+                        type: string
+                    required:
+                    - id
+                    - name
+                    - siret
+                    - created_at
+                    - updated_at
+                required:
+                - id
+                - name
+                - description
+                - retention_days
+                - created_at
+                - updated_at
+                - owner_organization
+              example:
+                id: '019a90a9-a60a-7b87-a582-bed88dc21399'
+                name: Updated Name
+                description: Old Desc
+                retention_days: 180
+                created_at: '2025-11-17T08:13:48.554+01:00'
+                updated_at: '2025-11-17T08:13:48.555+01:00'
+                owner_organization:
+                  id: '019a90a9-a60a-72e8-81bb-f0b76b486e8e'
+                  name: Yundt-McDermott
+                  siret: '00000000000469'
+                  created_at: '2025-11-17T08:13:48.554+01:00'
+                  updated_at: '2025-11-17T08:13:48.554+01:00'
+        '422':
+          description: returns validation errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: array
+                    items:
+                      type: string
+                  retention_days:
+                    type: array
+                    items:
+                      type: string
+                required:
+                - name
+                - retention_days
+              example:
+                name:
+                - can't be blank
+                retention_days:
+                - must be greater than 0
+  "/api/v1/organizations":
+    get:
+      summary: index
+      tags:
+      - Api::V1::Organization
+      responses:
+        '200':
+          description: returns pagination headers
+          headers:
+            X-Page:
+              schema:
+                type: integer
+            X-Per-Page:
+              schema:
+                type: integer
+            X-Total:
+              schema:
+                type: integer
+            X-Total-Pages:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    siret:
+                      type: string
+                    created_at:
+                      type: string
+                    updated_at:
+                      type: string
+                  required:
+                  - id
+                  - name
+                  - siret
+                  - created_at
+                  - updated_at
+              example:
+              - id: '019a90a9-a645-7da4-ab70-a0a4643e5fae'
+                name: Schaefer LLC
+                siret: '00000000000535'
+                created_at: '2025-11-17T08:13:48.613+01:00'
+                updated_at: '2025-11-17T08:13:48.613+01:00'
+              - id: '019a90a9-a646-775b-99ac-0286056a49a9'
+                name: Lynch, Ratke and Gutmann
+                siret: '00000000000536'
+                created_at: '2025-11-17T08:13:48.614+01:00'
+                updated_at: '2025-11-17T08:13:48.614+01:00'
+              - id: '019a90a9-a647-7008-9ce2-f56419a518d0'
+                name: Hessel and Sons
+                siret: '00000000000537'
+                created_at: '2025-11-17T08:13:48.614+01:00'
+                updated_at: '2025-11-17T08:13:48.614+01:00'
+              - id: '019a90a9-a647-78e6-8d06-7d5d7c0cf5ce'
+                name: McCullough-Satterfield
+                siret: '00000000000538'
+                created_at: '2025-11-17T08:13:48.615+01:00'
+                updated_at: '2025-11-17T08:13:48.615+01:00'
+              - id: '019a90a9-a648-71fb-85ba-395d08727d36'
+                name: Lowe-Kilback
+                siret: '00000000000539'
+                created_at: '2025-11-17T08:13:48.615+01:00'
+                updated_at: '2025-11-17T08:13:48.615+01:00'
+              - id: '019a90a9-a648-7ac3-9c3d-f7d98eefe411'
+                name: Reilly-Kautzer
+                siret: '00000000000540'
+                created_at: '2025-11-17T08:13:48.616+01:00'
+                updated_at: '2025-11-17T08:13:48.616+01:00'
+              - id: '019a90a9-a649-7347-8f6d-cf5ba9393877'
+                name: Nolan Group
+                siret: '00000000000541'
+                created_at: '2025-11-17T08:13:48.617+01:00'
+                updated_at: '2025-11-17T08:13:48.617+01:00'
+              - id: '019a90a9-a649-7c0a-9b7e-a89cf0a423df'
+                name: Swaniawski Inc
+                siret: '00000000000542'
+                created_at: '2025-11-17T08:13:48.617+01:00'
+                updated_at: '2025-11-17T08:13:48.617+01:00'
+              - id: '019a90a9-a64a-74f4-9ecd-936a6d31beb5'
+                name: Stehr Inc
+                siret: '00000000000543'
+                created_at: '2025-11-17T08:13:48.618+01:00'
+                updated_at: '2025-11-17T08:13:48.618+01:00'
+              - id: '019a90a9-a64a-7e0b-801f-661aa6143848'
+                name: Blick, Littel and Sanford
+                siret: '00000000000544'
+                created_at: '2025-11-17T08:13:48.618+01:00'
+                updated_at: '2025-11-17T08:13:48.618+01:00'
+              - id: '019a90a9-a64b-76c6-a9d3-d8a75672d0cf'
+                name: Rutherford-Bogisich
+                siret: '00000000000545'
+                created_at: '2025-11-17T08:13:48.619+01:00'
+                updated_at: '2025-11-17T08:13:48.619+01:00'
+              - id: '019a90a9-a64b-7fbc-9ffc-8f1376fa5ea6'
+                name: Nolan, Huels and Sawayn
+                siret: '00000000000546'
+                created_at: '2025-11-17T08:13:48.619+01:00'
+                updated_at: '2025-11-17T08:13:48.619+01:00'
+              - id: '019a90a9-a64c-787c-ae7d-5969e51e8835'
+                name: Yost, Trantow and Heidenreich
+                siret: '00000000000547'
+                created_at: '2025-11-17T08:13:48.620+01:00'
+                updated_at: '2025-11-17T08:13:48.620+01:00'
+              - id: '019a90a9-a64d-7158-b856-e4e5b58366e2'
+                name: Thiel, Halvorson and Feil
+                siret: '00000000000548'
+                created_at: '2025-11-17T08:13:48.620+01:00'
+                updated_at: '2025-11-17T08:13:48.620+01:00'
+              - id: '019a90a9-a64d-7a1e-9afe-8270f05cf365'
+                name: Gottlieb-West
+                siret: '00000000000549'
+                created_at: '2025-11-17T08:13:48.621+01:00'
+                updated_at: '2025-11-17T08:13:48.621+01:00'
+              - id: '019a90a9-a64e-72f5-91f8-b8c67e7f8f2d'
+                name: Olson LLC
+                siret: '00000000000550'
+                created_at: '2025-11-17T08:13:48.622+01:00'
+                updated_at: '2025-11-17T08:13:48.622+01:00'
+              - id: '019a90a9-a64e-7c1f-84fd-ba2cc772c1d2'
+                name: Russel LLC
+                siret: '00000000000551'
+                created_at: '2025-11-17T08:13:48.622+01:00'
+                updated_at: '2025-11-17T08:13:48.622+01:00'
+              - id: '019a90a9-a64f-74f7-9557-d70aa77dc413'
+                name: Gibson, Sipes and Collins
+                siret: '00000000000552'
+                created_at: '2025-11-17T08:13:48.623+01:00'
+                updated_at: '2025-11-17T08:13:48.623+01:00'
+              - id: '019a90a9-a64f-7e78-841b-0a0e54713e7e'
+                name: Kessler, Weimann and VonRueden
+                siret: '00000000000553'
+                created_at: '2025-11-17T08:13:48.623+01:00'
+                updated_at: '2025-11-17T08:13:48.623+01:00'
+              - id: '019a90a9-a650-7775-a5a6-ca7914d69125'
+                name: Doyle, Stanton and Casper
+                siret: '00000000000554'
+                created_at: '2025-11-17T08:13:48.624+01:00'
+                updated_at: '2025-11-17T08:13:48.624+01:00'
+              - id: '019a90a9-a651-7048-a13e-88ef860e8522'
+                name: Gleason Inc
+                siret: '00000000000555'
+                created_at: '2025-11-17T08:13:48.624+01:00'
+                updated_at: '2025-11-17T08:13:48.624+01:00'
+              - id: '019a90a9-a651-78f4-8c7e-2a01bb9d4b7c'
+                name: Gusikowski-Gorczany
+                siret: '00000000000556'
+                created_at: '2025-11-17T08:13:48.625+01:00'
+                updated_at: '2025-11-17T08:13:48.625+01:00'
+              - id: '019a90a9-a652-71de-8636-5db299e29389'
+                name: Kuhic, Bashirian and Kilback
+                siret: '00000000000557'
+                created_at: '2025-11-17T08:13:48.626+01:00'
+                updated_at: '2025-11-17T08:13:48.626+01:00'
+              - id: '019a90a9-a652-7a8f-b8a4-8cf426f626a9'
+                name: Gulgowski Inc
+                siret: '00000000000558'
+                created_at: '2025-11-17T08:13:48.626+01:00'
+                updated_at: '2025-11-17T08:13:48.626+01:00'
+              - id: '019a90a9-a653-7342-b2c2-c95258629b06'
+                name: Denesik-Roob
+                siret: '00000000000559'
+                created_at: '2025-11-17T08:13:48.627+01:00'
+                updated_at: '2025-11-17T08:13:48.627+01:00'
+              - id: '019a90a9-a653-7c0e-bd73-3544305f0e5d'
+                name: Kub-Romaguera
+                siret: '00000000000560'
+                created_at: '2025-11-17T08:13:48.627+01:00'
+                updated_at: '2025-11-17T08:13:48.627+01:00'
+              - id: '019a90a9-a654-74c5-8cd4-f83ff3130986'
+                name: Toy-Braun
+                siret: '00000000000561'
+                created_at: '2025-11-17T08:13:48.628+01:00'
+                updated_at: '2025-11-17T08:13:48.628+01:00'
+              - id: '019a90a9-a654-7db7-9abc-b21d0775e952'
+                name: Weber-Denesik
+                siret: '00000000000562'
+                created_at: '2025-11-17T08:13:48.628+01:00'
+                updated_at: '2025-11-17T08:13:48.628+01:00'
+              - id: '019a90a9-a655-768c-ba84-5e62c069e187'
+                name: Pollich-Howe
+                siret: '00000000000563'
+                created_at: '2025-11-17T08:13:48.629+01:00'
+                updated_at: '2025-11-17T08:13:48.629+01:00'
+              - id: '019a90a9-a655-7fb9-a2bf-d50bce3e6291'
+                name: Powlowski, Gorczany and Quigley
+                siret: '00000000000564'
+                created_at: '2025-11-17T08:13:48.629+01:00'
+                updated_at: '2025-11-17T08:13:48.629+01:00'
+              - id: '019a90a9-a656-7903-b170-0340a54769eb'
+                name: Runolfsdottir, Fritsch and Heathcote
+                siret: '00000000000565'
+                created_at: '2025-11-17T08:13:48.630+01:00'
+                updated_at: '2025-11-17T08:13:48.630+01:00'
+              - id: '019a90a9-a657-71d8-b63c-1729c25a8abb'
+                name: Kulas, Gulgowski and Harber
+                siret: '00000000000566'
+                created_at: '2025-11-17T08:13:48.631+01:00'
+                updated_at: '2025-11-17T08:13:48.631+01:00'
+              - id: '019a90a9-a657-7ad2-83e8-e6f39a7316ad'
+                name: Cassin, Cole and Hegmann
+                siret: '00000000000567'
+                created_at: '2025-11-17T08:13:48.631+01:00'
+                updated_at: '2025-11-17T08:13:48.631+01:00'
+              - id: '019a90a9-a658-73d1-864e-ab2e39c1249a'
+                name: Bauch, Abbott and Bechtelar
+                siret: '00000000000568'
+                created_at: '2025-11-17T08:13:48.632+01:00'
+                updated_at: '2025-11-17T08:13:48.632+01:00'
+              - id: '019a90a9-a658-7c95-ab98-44c746c1d127'
+                name: Marquardt and Sons
+                siret: '00000000000569'
+                created_at: '2025-11-17T08:13:48.632+01:00'
+                updated_at: '2025-11-17T08:13:48.632+01:00'
+              - id: '019a90a9-a659-7583-9d4d-a04e0e28361d'
+                name: D'Amore-Barton
+                siret: '00000000000570'
+                created_at: '2025-11-17T08:13:48.633+01:00'
+                updated_at: '2025-11-17T08:13:48.633+01:00'
+              - id: '019a90a9-a659-7e8b-934e-f8bc6aeeabf3'
+                name: Ernser, Keeling and Goodwin
+                siret: '00000000000571'
+                created_at: '2025-11-17T08:13:48.633+01:00'
+                updated_at: '2025-11-17T08:13:48.633+01:00'
+              - id: '019a90a9-a65a-7779-a52b-a14fc4a924f5'
+                name: Johnston-Considine
+                siret: '00000000000572'
+                created_at: '2025-11-17T08:13:48.634+01:00'
+                updated_at: '2025-11-17T08:13:48.634+01:00'
+              - id: '019a90a9-a65b-706e-8f2d-b101df6eafe9'
+                name: Grant Inc
+                siret: '00000000000573'
+                created_at: '2025-11-17T08:13:48.634+01:00'
+                updated_at: '2025-11-17T08:13:48.634+01:00'
+              - id: '019a90a9-a65b-795e-b178-a4b0ed86a60f'
+                name: Johnston-O'Keefe
+                siret: '00000000000574'
+                created_at: '2025-11-17T08:13:48.635+01:00'
+                updated_at: '2025-11-17T08:13:48.635+01:00'
+              - id: '019a90a9-a65c-7270-86ea-b6665be479fc'
+                name: Beer, Feest and Robel
+                siret: '00000000000575'
+                created_at: '2025-11-17T08:13:48.636+01:00'
+                updated_at: '2025-11-17T08:13:48.636+01:00'
+              - id: '019a90a9-a65c-7b69-8cca-e52ff36b66b6'
+                name: Kirlin-Lang
+                siret: '00000000000576'
+                created_at: '2025-11-17T08:13:48.636+01:00'
+                updated_at: '2025-11-17T08:13:48.636+01:00'
+              - id: '019a90a9-a65d-746c-bfe5-8d43b98a10ae'
+                name: Padberg-Bergnaum
+                siret: '00000000000577'
+                created_at: '2025-11-17T08:13:48.637+01:00'
+                updated_at: '2025-11-17T08:13:48.637+01:00'
+              - id: '019a90a9-a65d-7d93-8cb8-92994f9776a8'
+                name: Mills Inc
+                siret: '00000000000578'
+                created_at: '2025-11-17T08:13:48.637+01:00'
+                updated_at: '2025-11-17T08:13:48.637+01:00'
+              - id: '019a90a9-a65e-76b5-a147-61d9d851c60c'
+                name: Veum-Feest
+                siret: '00000000000579'
+                created_at: '2025-11-17T08:13:48.638+01:00'
+                updated_at: '2025-11-17T08:13:48.638+01:00'
+              - id: '019a90a9-a65f-7086-b9cc-bb8535713dfd'
+                name: Tremblay LLC
+                siret: '00000000000580'
+                created_at: '2025-11-17T08:13:48.638+01:00'
+                updated_at: '2025-11-17T08:13:48.638+01:00'
+              - id: '019a90a9-a65f-7a3e-b092-c17cb61a040e'
+                name: Hoppe and Sons
+                siret: '00000000000581'
+                created_at: '2025-11-17T08:13:48.639+01:00'
+                updated_at: '2025-11-17T08:13:48.639+01:00'
+              - id: '019a90a9-a660-73ac-8d00-6e3172736eb3'
+                name: Weissnat-Hahn
+                siret: '00000000000582'
+                created_at: '2025-11-17T08:13:48.640+01:00'
+                updated_at: '2025-11-17T08:13:48.640+01:00'
+              - id: '019a90a9-a662-7bd8-86cf-cb7fde84c0d3'
+                name: Schinner, Donnelly and Schamberger
+                siret: '00000000000583'
+                created_at: '2025-11-17T08:13:48.642+01:00'
+                updated_at: '2025-11-17T08:13:48.642+01:00'
+              - id: '019a90a9-a663-74e0-baee-5724ad9c9004'
+                name: Klocko, Hoppe and Skiles
+                siret: '00000000000584'
+                created_at: '2025-11-17T08:13:48.643+01:00'
+                updated_at: '2025-11-17T08:13:48.643+01:00'
+  "/api/v1/organizations/{id}":
+    get:
+      summary: show
+      tags:
+      - Api::V1::Organization
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: f8dd65eb-3eb4-4a9b-9c22-c833590440af
+      responses:
+        '200':
+          description: returns organization data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  siret:
+                    type: string
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+                required:
+                - id
+                - name
+                - siret
+                - created_at
+                - updated_at
+              example:
+                id: '019a90a9-a66f-700b-ad31-e244fb591eb8'
+                name: DILA
+                siret: '12345678901234'
+                created_at: '2025-11-17T08:13:48.654+01:00'
+                updated_at: '2025-11-17T08:13:48.654+01:00'
+        '404':
+          description: returns error response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+              example:
+                error: Not found
+  "/api/v1/organizations/{organization_id}/subscriptions":
+    get:
+      summary: index
+      tags:
+      - Api::V1::Subscription
+      parameters:
+      - name: can_write
+        in: query
+        required: false
+        schema:
+          type: string
+        example: 'true'
+      - name: organization_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+      responses:
+        '200':
+          description: returns pagination headers
+          headers:
+            X-Page:
+              schema:
+                type: integer
+            X-Per-Page:
+              schema:
+                type: integer
+            X-Total:
+              schema:
+                type: integer
+            X-Total-Pages:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    can_read:
+                      type: boolean
+                    can_write:
+                      type: boolean
+                    data_stream_id:
+                      type: string
+                    created_at:
+                      type: string
+                    updated_at:
+                      type: string
+                    organization:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        siret:
+                          type: string
+                        created_at:
+                          type: string
+                        updated_at:
+                          type: string
+                      required:
+                      - id
+                      - name
+                      - siret
+                      - created_at
+                      - updated_at
+                  required:
+                  - id
+                  - can_read
+                  - can_write
+                  - data_stream_id
+                  - created_at
+                  - updated_at
+                  - organization
+              example:
+              - id: '019a90a9-a6fa-74a6-8e7c-8d774b65919c'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a6f9-7b6a-ac2b-12ee12c628da'
+                created_at: '2025-11-17T08:13:48.794+01:00'
+                updated_at: '2025-11-17T08:13:48.794+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a6fb-7fb0-a19e-15d65169199f'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a6fb-75af-b8cb-e062676a4ce8'
+                created_at: '2025-11-17T08:13:48.795+01:00'
+                updated_at: '2025-11-17T08:13:48.795+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a6fd-79ed-8acf-53217d8cf5b7'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a6fd-7103-b0ea-e54faf9e3845'
+                created_at: '2025-11-17T08:13:48.797+01:00'
+                updated_at: '2025-11-17T08:13:48.797+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a6ff-7493-a6cd-9862050f8396'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a6fe-7b5b-85dc-96b4e9bd7a2d'
+                created_at: '2025-11-17T08:13:48.799+01:00'
+                updated_at: '2025-11-17T08:13:48.799+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a700-7ece-a370-6ffeb5084723'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a700-75bf-b316-6ff08f929977'
+                created_at: '2025-11-17T08:13:48.800+01:00'
+                updated_at: '2025-11-17T08:13:48.800+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a702-78c5-8eb3-edd277cab2d0'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a701-7ff2-8eee-33a22cbbdca6'
+                created_at: '2025-11-17T08:13:48.802+01:00'
+                updated_at: '2025-11-17T08:13:48.802+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a704-7331-aa5d-a3cdfa68fbf2'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a703-7a35-bc1d-bfcd0ff0b9b6'
+                created_at: '2025-11-17T08:13:48.804+01:00'
+                updated_at: '2025-11-17T08:13:48.804+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a705-7ddd-8d8b-ae4dd674a56c'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a705-7498-bf8a-82e761fe8dad'
+                created_at: '2025-11-17T08:13:48.805+01:00'
+                updated_at: '2025-11-17T08:13:48.805+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a707-77da-8399-6181ecb438db'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a706-7e95-8e95-2ff5cae81dd8'
+                created_at: '2025-11-17T08:13:48.807+01:00'
+                updated_at: '2025-11-17T08:13:48.807+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a709-7236-802d-dbce67cdf501'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a708-78c7-ade1-f5c97ade38b7'
+                created_at: '2025-11-17T08:13:48.809+01:00'
+                updated_at: '2025-11-17T08:13:48.809+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a70a-7cb1-b320-eae35c84dffa'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a70a-739c-a79a-aaee38c53e41'
+                created_at: '2025-11-17T08:13:48.810+01:00'
+                updated_at: '2025-11-17T08:13:48.810+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a70c-77a9-a724-6af1e12040e9'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a70b-7e1d-a7ad-3d7fc50672ef'
+                created_at: '2025-11-17T08:13:48.812+01:00'
+                updated_at: '2025-11-17T08:13:48.812+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a710-7063-b163-7fde87b9b56c'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a70f-7712-b24f-a73d08da0af2'
+                created_at: '2025-11-17T08:13:48.815+01:00'
+                updated_at: '2025-11-17T08:13:48.815+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a711-7e2d-8052-e944915ae09d'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a711-720f-814d-e445b5470250'
+                created_at: '2025-11-17T08:13:48.817+01:00'
+                updated_at: '2025-11-17T08:13:48.817+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a713-7a9e-9452-2371169b3a2b'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a712-7eee-b039-070e997116aa'
+                created_at: '2025-11-17T08:13:48.819+01:00'
+                updated_at: '2025-11-17T08:13:48.819+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a715-74b7-b65c-849fc2392736'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a714-7b77-b60f-e3fdd3438501'
+                created_at: '2025-11-17T08:13:48.821+01:00'
+                updated_at: '2025-11-17T08:13:48.821+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a717-717a-aab7-f816d9030197'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a716-7830-826e-f7c1b638cd81'
+                created_at: '2025-11-17T08:13:48.822+01:00'
+                updated_at: '2025-11-17T08:13:48.822+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a718-7e9e-819b-a98c050da058'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a718-7597-ac7f-80788a6d00db'
+                created_at: '2025-11-17T08:13:48.824+01:00'
+                updated_at: '2025-11-17T08:13:48.824+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a71a-7b6c-82fd-57ea3013c1df'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a71a-726d-bfd6-6f2a5d349dd6'
+                created_at: '2025-11-17T08:13:48.826+01:00'
+                updated_at: '2025-11-17T08:13:48.826+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a71c-754e-94c3-6f9b331766e8'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a71b-7c5e-863e-3c0635bc3342'
+                created_at: '2025-11-17T08:13:48.828+01:00'
+                updated_at: '2025-11-17T08:13:48.828+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a71e-7321-926f-a2861a3fd873'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a71d-7a24-822a-3de6d60ee106'
+                created_at: '2025-11-17T08:13:48.830+01:00'
+                updated_at: '2025-11-17T08:13:48.830+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a720-7058-9733-65e6f49423cd'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a71f-76cc-b2be-c13eb5718482'
+                created_at: '2025-11-17T08:13:48.831+01:00'
+                updated_at: '2025-11-17T08:13:48.831+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a721-7b58-bbd5-3ffa1ed8ae1a'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a721-720b-b781-7cb1689a3033'
+                created_at: '2025-11-17T08:13:48.833+01:00'
+                updated_at: '2025-11-17T08:13:48.833+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a723-7747-a89d-a5483dfc474c'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a722-7e1e-ad7c-c000cc817438'
+                created_at: '2025-11-17T08:13:48.835+01:00'
+                updated_at: '2025-11-17T08:13:48.835+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a725-71f9-99be-f785026cdf6e'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a724-7801-ae12-bd7544ed4536'
+                created_at: '2025-11-17T08:13:48.836+01:00'
+                updated_at: '2025-11-17T08:13:48.836+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a726-7c24-a659-2595557d9135'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a726-7305-aac7-d10a8ddd1183'
+                created_at: '2025-11-17T08:13:48.838+01:00'
+                updated_at: '2025-11-17T08:13:48.838+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a728-7723-b292-d3ae52770a75'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a727-7dcc-b6ef-66625e411b3b'
+                created_at: '2025-11-17T08:13:48.840+01:00'
+                updated_at: '2025-11-17T08:13:48.840+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a72a-784a-84c2-66a81a9b880f'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a729-7911-b5fc-a44935f4ad0e'
+                created_at: '2025-11-17T08:13:48.842+01:00'
+                updated_at: '2025-11-17T08:13:48.842+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a72c-7384-90e3-6969749b8625'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a72b-7a0f-ad47-893fffff0bba'
+                created_at: '2025-11-17T08:13:48.844+01:00'
+                updated_at: '2025-11-17T08:13:48.844+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a72d-7f6a-8bc9-3f6959c01c59'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a72d-7608-8f9e-a1d9bd4ec59e'
+                created_at: '2025-11-17T08:13:48.845+01:00'
+                updated_at: '2025-11-17T08:13:48.845+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a72f-7afa-8980-e16f70eaa86a'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a72f-7165-91d6-9b2ba67457fd'
+                created_at: '2025-11-17T08:13:48.847+01:00'
+                updated_at: '2025-11-17T08:13:48.847+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a731-774d-a6a6-b57e2bfb834e'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a730-7dd6-a872-c2e57b6e69f7'
+                created_at: '2025-11-17T08:13:48.849+01:00'
+                updated_at: '2025-11-17T08:13:48.849+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a733-740e-9237-a5835780c512'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a732-7a38-bb0f-7a42f6a4f161'
+                created_at: '2025-11-17T08:13:48.851+01:00'
+                updated_at: '2025-11-17T08:13:48.851+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a735-70f6-ab73-fa926a1f1444'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a734-770d-9ef8-2f9c2de8a440'
+                created_at: '2025-11-17T08:13:48.852+01:00'
+                updated_at: '2025-11-17T08:13:48.852+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a736-7e86-8397-9eaa15aaa6e2'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a736-74c2-a3de-cafc34ba2815'
+                created_at: '2025-11-17T08:13:48.854+01:00'
+                updated_at: '2025-11-17T08:13:48.854+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a738-7b41-aaf1-46cbe2443ec3'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a738-7138-b5d1-af099c46724f'
+                created_at: '2025-11-17T08:13:48.856+01:00'
+                updated_at: '2025-11-17T08:13:48.856+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a73a-78bd-ae86-c97b43a6e306'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a739-7f0b-93ad-37e66c8fb3a6'
+                created_at: '2025-11-17T08:13:48.858+01:00'
+                updated_at: '2025-11-17T08:13:48.858+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a73c-75b8-aa12-1a570382cc87'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a73b-7c13-ad11-6720a592071b'
+                created_at: '2025-11-17T08:13:48.860+01:00'
+                updated_at: '2025-11-17T08:13:48.860+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a73e-70d8-a046-783629b56a19'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a73d-772e-8b5f-1f2fa29d64ab'
+                created_at: '2025-11-17T08:13:48.861+01:00'
+                updated_at: '2025-11-17T08:13:48.861+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a73f-7dd1-b307-0801fbee87cf'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a73f-7402-b586-1ed54bb58eb4'
+                created_at: '2025-11-17T08:13:48.863+01:00'
+                updated_at: '2025-11-17T08:13:48.863+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a741-7a4d-b0ef-d921810cda72'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a741-700c-a3bf-f6173691f102'
+                created_at: '2025-11-17T08:13:48.865+01:00'
+                updated_at: '2025-11-17T08:13:48.865+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a743-77c9-80b5-2f632653f643'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a742-7c27-b7ab-b781b9cf336a'
+                created_at: '2025-11-17T08:13:48.867+01:00'
+                updated_at: '2025-11-17T08:13:48.867+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a745-752c-b56e-ee8a97d7613a'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a744-7c02-a562-bec330228449'
+                created_at: '2025-11-17T08:13:48.869+01:00'
+                updated_at: '2025-11-17T08:13:48.869+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a746-7ff5-9b43-87b9b90bc827'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a746-76ec-bee4-d94809144d88'
+                created_at: '2025-11-17T08:13:48.870+01:00'
+                updated_at: '2025-11-17T08:13:48.870+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a748-7a91-857b-1788d36140bd'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a748-71d4-811c-b6ef6abc210e'
+                created_at: '2025-11-17T08:13:48.872+01:00'
+                updated_at: '2025-11-17T08:13:48.872+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a74a-75c6-b1b2-b6f66f19463c'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a749-7c7f-ab5d-5c4d2d10c2f8'
+                created_at: '2025-11-17T08:13:48.874+01:00'
+                updated_at: '2025-11-17T08:13:48.874+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a74c-70eb-a0ec-63a304e6814b'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a74b-77b5-8b4b-b6838787b0e3'
+                created_at: '2025-11-17T08:13:48.875+01:00'
+                updated_at: '2025-11-17T08:13:48.875+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a74d-7ca3-935b-d0ff923101da'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a74d-7332-bfe7-ff1db95e349f'
+                created_at: '2025-11-17T08:13:48.877+01:00'
+                updated_at: '2025-11-17T08:13:48.877+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a74f-7859-8d9e-5f3b5f15abab'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a74e-7e0e-bd35-7a7bb534834a'
+                created_at: '2025-11-17T08:13:48.879+01:00'
+                updated_at: '2025-11-17T08:13:48.879+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+              - id: '019a90a9-a751-75a2-a0a1-fd028c942967'
+                can_read: true
+                can_write: false
+                data_stream_id: '019a90a9-a750-7b9b-a6c0-cded108a882e'
+                created_at: '2025-11-17T08:13:48.881+01:00'
+                updated_at: '2025-11-17T08:13:48.881+01:00'
+                organization:
+                  id: '019a90a9-a6f8-79e1-b1d0-90fba6986b3d'
+                  name: Schoen-Jerde
+                  siret: '00000000000667'
+                  created_at: '2025-11-17T08:13:48.792+01:00'
+                  updated_at: '2025-11-17T08:13:48.792+01:00'
+  "/api/v1/subscriptions/{id}":
+    delete:
+      summary: destroy
+      tags:
+      - Api::V1::Subscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a7da-717f-bb9e-c92bbc2f89d7'
+      responses:
+        '204':
+          description: returns 204 No Content
+    get:
+      summary: show
+      tags:
+      - Api::V1::Subscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: 00af4f97-814b-4fc8-bfac-172c17db2dc3
+      responses:
+        '200':
+          description: returns subscription data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  can_read:
+                    type: boolean
+                  can_write:
+                    type: boolean
+                  data_stream_id:
+                    type: string
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+                  organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      siret:
+                        type: string
+                      created_at:
+                        type: string
+                      updated_at:
+                        type: string
+                    required:
+                    - id
+                    - name
+                    - siret
+                    - created_at
+                    - updated_at
+                required:
+                - id
+                - can_read
+                - can_write
+                - data_stream_id
+                - created_at
+                - updated_at
+                - organization
+              example:
+                id: '019a90a9-a793-7146-9765-daba0f2b570a'
+                can_read: true
+                can_write: true
+                data_stream_id: '019a90a9-a790-7be4-8d65-7f40e7f8e86b'
+                created_at: '2025-11-17T08:13:48.946+01:00'
+                updated_at: '2025-11-17T08:13:48.946+01:00'
+                organization:
+                  id: '019a90a9-a791-7ab9-ae74-351086f43ff7'
+                  name: Rutherford, Hettinger and Kshlerin
+                  siret: '13002526500013'
+                  created_at: '2025-11-17T08:13:48.945+01:00'
+                  updated_at: '2025-11-17T08:13:48.945+01:00'
+        '404':
+          description: returns error response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
+              example:
+                error: Not found
+    put:
+      summary: update
+      tags:
+      - Api::V1::Subscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '019a90a9-a7d1-7232-a1a5-2e4eb989e293'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subscription:
+                  type: object
+                  properties:
+                    can_read:
+                      type: boolean
+                    can_write:
+                      type: boolean
+                  required:
+                  - can_read
+                  - can_write
+              required:
+              - subscription
+            example:
+              subscription:
+                can_read: true
+                can_write: true
+      responses:
+        '200':
+          description: updates subscription and returns complete data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  can_read:
+                    type: boolean
+                  can_write:
+                    type: boolean
+                  data_stream_id:
+                    type: string
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+                  organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      siret:
+                        type: string
+                      created_at:
+                        type: string
+                      updated_at:
+                        type: string
+                    required:
+                    - id
+                    - name
+                    - siret
+                    - created_at
+                    - updated_at
+                required:
+                - id
+                - can_read
+                - can_write
+                - data_stream_id
+                - created_at
+                - updated_at
+                - organization
+              example:
+                id: '019a90a9-a7c2-7777-825e-3187ac7b88a4'
+                can_read: true
+                can_write: true
+                data_stream_id: '019a90a9-a7c1-722f-997e-254e730ba514'
+                created_at: '2025-11-17T08:13:48.994+01:00'
+                updated_at: '2025-11-17T08:13:48.995+01:00'
+                organization:
+                  id: '019a90a9-a7c1-7c1b-b3a9-074aef45e086'
+                  name: Russel LLC
+                  siret: '00000000000751'
+                  created_at: '2025-11-17T08:13:48.993+01:00'
+                  updated_at: '2025-11-17T08:13:48.993+01:00'
+        '422':
+          description: returns validation errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  base:
+                    type: array
+                    items:
+                      type: string
+                required:
+                - base
+              example:
+                base:
+                - must have at least one permission (can_read or can_write)

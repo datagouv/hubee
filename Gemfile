@@ -82,6 +82,9 @@ group :test do
 
   # Additional test helpers
   gem "shoulda-matchers", "~> 7.0"
+
+  # OpenAPI documentation generation from request specs [https://github.com/exoego/rspec-openapi]
+  gem "rspec-openapi"
 end
 
 group :development do

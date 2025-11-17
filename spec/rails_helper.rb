@@ -92,3 +92,13 @@ Shoulda::Matchers.configure do |config|
     with.library :rails
   end
 end
+
+# RSpec OpenAPI configuration (generates OpenAPI spec from request specs)
+if ENV["OPENAPI"]
+  require "rspec/openapi"
+  RSpec::OpenAPI.path = Rails.root.join("doc/openapi.yaml").to_s
+  RSpec::OpenAPI.title = "Hubee V2 API"
+  RSpec::OpenAPI.application_version = "1.0.0"
+  RSpec::OpenAPI.request_headers = %w[Authorization]
+  RSpec::OpenAPI.response_headers = %w[X-Page X-Per-Page X-Total X-Total-Pages]
+end
