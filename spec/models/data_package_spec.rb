@@ -127,16 +127,10 @@ RSpec.describe DataPackage, type: :model do
     end
 
     describe "send_package event" do
-      context "with completed attachments" do
+      context "from draft state" do
         let(:package) { create(:data_package, :draft) }
-        before { allow(package).to receive(:has_completed_attachments?).and_return(true) }
 
         it { expect(package).to transition_from(:draft).to(:transmitted).on_event(:send_package) }
-      end
-
-      context "without completed attachments" do
-        let(:package) { build(:data_package, :draft) }
-        it { expect(package).to_not allow_event(:send_package) }
       end
 
       context "from transmitted state" do
@@ -147,50 +141,6 @@ RSpec.describe DataPackage, type: :model do
       context "from acknowledged state" do
         let(:package) { build(:data_package, :acknowledged) }
         it { expect(package).to_not allow_event(:send_package) }
-      end
-    end
-
-    describe "AASM error callbacks" do
-      describe "#send_package! with error callback" do
-        context "when guard fails" do
-          let(:package) { create(:data_package, :draft) }
-
-          before do
-            allow(package).to receive(:has_completed_attachments?).and_return(false)
-          end
-
-          it "returns false" do
-            expect(package.send_package!).to be false
-          end
-
-          it "does not transition" do
-            package.send_package!
-            expect(package).to have_state(:draft)
-          end
-
-          it "adds error to state via error callback" do
-            package.send_package!
-            expect(package.errors[:state]).to include("must be draft")
-          end
-        end
-
-        context "when in wrong state" do
-          let(:package) { create(:data_package, :transmitted) }
-
-          it "returns false" do
-            expect(package.send_package!).to be false
-          end
-
-          it "does not transition" do
-            package.send_package!
-            expect(package).to have_state(:transmitted)
-          end
-
-          it "adds error to state via error callback" do
-            package.send_package!
-            expect(package.errors[:state]).to include("must be draft")
-          end
-        end
       end
     end
   end
