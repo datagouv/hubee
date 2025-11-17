@@ -29,6 +29,9 @@ gem "pagy", "~> 43.0"
 # State machine for model workflows [https://github.com/aasm/aasm]
 gem "aasm", "~> 5.5"
 
+# Business logic interactors [https://github.com/collectiveidea/interactor]
+gem "interactor", "~> 3.1"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[windows jruby]
 
