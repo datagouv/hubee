@@ -33,138 +33,79 @@ RSpec.describe DeliveryCriteriaValidator do
     end
   end
 
-  describe "supported criteria" do
-    it "is valid with siret criterion" do
+  describe "siret validation" do
+    it "is valid with single siret string" do
       record.delivery_criteria = {"siret" => "13002526500013"}
       expect(record).to be_valid
     end
 
-    it "is valid with organization_id criterion" do
+    it "is valid with siret array" do
+      record.delivery_criteria = {"siret" => ["13002526500013", "11000601200010"]}
+      expect(record).to be_valid
+    end
+
+    it "is invalid with non-siret key" do
       record.delivery_criteria = {"organization_id" => "uuid"}
-      expect(record).to be_valid
-    end
-
-    it "is valid with subscription_id criterion" do
-      record.delivery_criteria = {"subscription_id" => "uuid"}
-      expect(record).to be_valid
-    end
-
-    it "is invalid with unsupported criterion" do
-      record.delivery_criteria = {"unknown_field" => "value"}
       expect(record).not_to be_valid
-      expect(record.errors[:delivery_criteria]).to include("unsupported criterion: unknown_field")
+      expect(record.errors[:delivery_criteria]).to include("must contain only 'siret' key")
+    end
+
+    it "is invalid with multiple keys" do
+      record.delivery_criteria = {"siret" => "13002526500013", "other" => "value"}
+      expect(record).not_to be_valid
+      expect(record.errors[:delivery_criteria]).to include("must contain only 'siret' key")
+    end
+
+    it "is invalid with empty siret array" do
+      record.delivery_criteria = {"siret" => []}
+      expect(record).not_to be_valid
+      expect(record.errors[:delivery_criteria]).to include("siret must not be empty")
+    end
+
+    it "is invalid with invalid siret format (not 14 digits)" do
+      record.delivery_criteria = {"siret" => "123"}
+      expect(record).not_to be_valid
+      expect(record.errors[:delivery_criteria]).to include("siret[0] must be a 14-digit string")
+    end
+
+    it "is invalid with non-numeric siret" do
+      record.delivery_criteria = {"siret" => "1300252650001X"}
+      expect(record).not_to be_valid
+      expect(record.errors[:delivery_criteria]).to include("siret[0] must be a 14-digit string")
+    end
+
+    it "is invalid with non-string siret" do
+      record.delivery_criteria = {"siret" => 13002526500013}
+      expect(record).not_to be_valid
+      expect(record.errors[:delivery_criteria]).to include("siret[0] must be a 14-digit string")
+    end
+
+    it "is invalid when siret array has invalid element" do
+      record.delivery_criteria = {"siret" => ["13002526500013", "invalid"]}
+      expect(record).not_to be_valid
+      expect(record.errors[:delivery_criteria]).to include("siret[1] must be a 14-digit string")
     end
   end
 
-  describe "operators" do
-    it "is valid with _or operator" do
-      record.delivery_criteria = {
-        "_or" => [
-          {"siret" => "13002526500013"},
-          {"siret" => "11000601200010"}
-        ]
-      }
+  describe "siret count limit" do
+    it "is valid with maximum sirets (100)" do
+      sirets = (1..100).map { |i| format("%014d", i) }
+      record.delivery_criteria = {"siret" => sirets}
       expect(record).to be_valid
     end
 
-    it "is valid with _and operator" do
-      record.delivery_criteria = {
-        "_and" => [
-          {"siret" => "13002526500013"},
-          {"organization_id" => "uuid"}
-        ]
-      }
-      expect(record).to be_valid
-    end
-
-    it "is invalid with unknown operator" do
-      record.delivery_criteria = {"_unknown" => []}
+    it "is invalid when exceeding maximum sirets" do
+      sirets = (1..101).map { |i| format("%014d", i) }
+      record.delivery_criteria = {"siret" => sirets}
       expect(record).not_to be_valid
-      expect(record.errors[:delivery_criteria]).to include("unknown operator: _unknown")
-    end
-
-    it "is invalid when operator value is not an array" do
-      record.delivery_criteria = {"_or" => "not_an_array"}
-      expect(record).not_to be_valid
-      expect(record.errors[:delivery_criteria]).to include("_or must contain an array")
-    end
-
-    it "is invalid when operator array is empty" do
-      record.delivery_criteria = {"_or" => []}
-      expect(record).not_to be_valid
-      expect(record.errors[:delivery_criteria]).to include("_or must not be empty")
-    end
-
-    it "is invalid when operator array contains non-hash" do
-      record.delivery_criteria = {"_or" => ["string"]}
-      expect(record).not_to be_valid
-      expect(record.errors[:delivery_criteria]).to include("_or[0] must be a hash")
-    end
-  end
-
-  describe "nesting depth limit" do
-    it "is valid at maximum nesting depth (2)" do
-      # depth 0: _or, depth 1: _and, depth 2: leaf
-      record.delivery_criteria = {
-        "_or" => [
-          {
-            "_and" => [
-              {"siret" => "13002526500013"}
-            ]
-          }
-        ]
-      }
-      expect(record).to be_valid
-    end
-
-    it "is invalid when exceeding maximum nesting depth" do
-      deeply_nested = {"siret" => "13002526500013"}
-      3.times { deeply_nested = {"_or" => [deeply_nested]} }
-
-      record.delivery_criteria = deeply_nested
-      expect(record).not_to be_valid
-      expect(record.errors[:delivery_criteria]).to include("exceeds maximum nesting depth of 2")
-    end
-  end
-
-  describe "criteria count limit" do
-    it "is valid with maximum criteria count (20)" do
-      record.delivery_criteria = {
-        "_or" => [
-          {"siret" => "1", "organization_id" => "2", "subscription_id" => "3"},
-          {"siret" => "4", "organization_id" => "5", "subscription_id" => "6"},
-          {"siret" => "7", "organization_id" => "8", "subscription_id" => "9"},
-          {"siret" => "10", "organization_id" => "11", "subscription_id" => "12"},
-          {"siret" => "13", "organization_id" => "14", "subscription_id" => "15"},
-          {"siret" => "16", "organization_id" => "17", "subscription_id" => "18"},
-          {"siret" => "19", "organization_id" => "20"}
-        ]
-      }
-      expect(record).to be_valid
-    end
-
-    it "is invalid when exceeding maximum criteria count" do
-      record.delivery_criteria = {
-        "_or" => [
-          {"siret" => "1", "organization_id" => "2", "subscription_id" => "3"},
-          {"siret" => "4", "organization_id" => "5", "subscription_id" => "6"},
-          {"siret" => "7", "organization_id" => "8", "subscription_id" => "9"},
-          {"siret" => "10", "organization_id" => "11", "subscription_id" => "12"},
-          {"siret" => "13", "organization_id" => "14", "subscription_id" => "15"},
-          {"siret" => "16", "organization_id" => "17", "subscription_id" => "18"},
-          {"siret" => "19", "organization_id" => "20", "subscription_id" => "21"}
-        ]
-      }
-      expect(record).not_to be_valid
-      expect(record.errors[:delivery_criteria]).to include("exceeds maximum of 20 criteria")
+      expect(record.errors[:delivery_criteria]).to include("siret list exceeds maximum of 100")
     end
   end
 
   describe "schema constants" do
     it "uses constants from DataPackage model" do
-      expect(DataPackage::DELIVERY_CRITERIA_SUPPORTED).to eq(%w[siret organization_id subscription_id])
-      expect(DataPackage::DELIVERY_CRITERIA_MAX_DEPTH).to eq(2)
-      expect(DataPackage::DELIVERY_CRITERIA_MAX_COUNT).to eq(20)
+      expect(DataPackage::DELIVERY_CRITERIA_SUPPORTED).to eq(%w[siret])
+      expect(DataPackage::DELIVERY_CRITERIA_MAX_SIRETS).to eq(100)
     end
   end
 end

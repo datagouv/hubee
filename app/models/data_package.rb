@@ -1,10 +1,10 @@
 class DataPackage < ApplicationRecord
   include AASM
 
-  # Delivery criteria schema constants
-  DELIVERY_CRITERIA_SUPPORTED = %w[siret organization_id subscription_id].freeze
-  DELIVERY_CRITERIA_MAX_DEPTH = 2
-  DELIVERY_CRITERIA_MAX_COUNT = 20
+  # Delivery criteria: V1 supports only SIRET list
+  # Future V2 will add: organization_id, subscription_id, _or/_and operators
+  DELIVERY_CRITERIA_SUPPORTED = %w[siret].freeze
+  DELIVERY_CRITERIA_MAX_SIRETS = 100
 
   belongs_to :data_stream
   belongs_to :sender_organization, class_name: "Organization"

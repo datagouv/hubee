@@ -183,46 +183,6 @@ RSpec.describe "Api::V1::DataPackages::Subscriptions", type: :request do
       end
     end
 
-    context "with complex criteria using _or operator" do
-      let(:org1) { create(:organization, siret: "13002526500013") }
-      let(:org2) { create(:organization, siret: "11000601200010") }
-      let!(:sub1) { create(:subscription, data_stream: data_stream, organization: org1, can_read: true) }
-      let!(:sub2) { create(:subscription, data_stream: data_stream, organization: org2, can_read: true) }
-
-      before do
-        data_package.update!(
-          delivery_criteria: {
-            "_or" => [
-              {"siret" => "13002526500013"},
-              {"organization_id" => org2.id}
-            ]
-          }
-        )
-        make_request
-      end
-
-      it "returns union of matched subscriptions" do
-        sub_ids = json["subscriptions"].pluck("id")
-        expect(sub_ids).to contain_exactly(sub1.id, sub2.id)
-      end
-    end
-
-    context "with invalid criteria (draft package)" do
-      before do
-        # Bypass validation to test runtime error handling
-        data_package.update_column(:delivery_criteria, {"unknown_field" => "value"})
-        make_request
-      end
-
-      it "returns 422 Unprocessable Content" do
-        expect(response).to have_http_status(:unprocessable_content)
-      end
-
-      it "returns error details" do
-        expect(json["error"]).to include("unsupported")
-      end
-    end
-
     context "with many records (pagination)" do
       let(:total_records) { 60 }
 
