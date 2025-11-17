@@ -249,31 +249,22 @@ RSpec.describe "Api::V1::DataPackages", type: :request do
       end
     end
 
-    context "with complex delivery_criteria" do
-      let(:target_org) { create(:organization) }
+    context "with invalid delivery_criteria format" do
       let(:params) do
         {
           data_package: {
             sender_organization_id: organization.id,
             delivery_criteria: {
-              "_or" => [
-                {"organization_id" => target_org.id},
-                {"siret" => ["13002526500013"]}
-              ]
+              "organization_id" => "uuid"
             }
           }
         }
       end
 
-      it "stores complex delivery_criteria" do
+      it "returns validation error" do
         make_request
-        expected = {
-          "_or" => [
-            {"organization_id" => target_org.id},
-            {"siret" => ["13002526500013"]}
-          ]
-        }
-        expect(json["delivery_criteria"]).to eq(expected)
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json["delivery_criteria"]).to include("must contain only 'siret' key")
       end
     end
 
