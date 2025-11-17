@@ -6,7 +6,7 @@ module DataPackages
       include Interactor
 
       def call
-        context.target_subscriptions = DeliveryCriteria::Resolver.resolve(
+        context.target_subscriptions = DeliveryCriteriaResolver.resolve(
           data_package.delivery_criteria,
           data_package.data_stream
         )

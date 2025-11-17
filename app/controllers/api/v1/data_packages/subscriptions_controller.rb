@@ -18,7 +18,7 @@ class Api::V1::DataPackages::SubscriptionsController < Api::BaseController
   def resolve_subscriptions
     if @data_package.draft?
       # Preview mode: use resolver to find potential subscriptions
-      DeliveryCriteria::Resolver.resolve(
+      DeliveryCriteriaResolver.resolve(
         @data_package.delivery_criteria,
         @data_package.data_stream
       ).includes(:organization)
