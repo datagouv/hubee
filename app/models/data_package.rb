@@ -20,9 +20,7 @@ class DataPackage < ApplicationRecord
     state :acknowledged
 
     event :send_package do
-      transitions from: :draft, to: :transmitted, guard: :has_completed_attachments?
-      after { update_column(:sent_at, Time.current) }
-      error { errors.add(:state, "must be draft") }
+      transitions from: :draft, to: :transmitted
     end
 
     event :acknowledge do
@@ -58,6 +56,10 @@ class DataPackage < ApplicationRecord
     draft? ? "resolver" : "notifications"
   end
 
+  def has_completed_attachments?
+    false  # Stub - will be implemented with Attachments feature
+  end
+
   private
 
   def check_destroyable
@@ -72,9 +74,5 @@ class DataPackage < ApplicationRecord
     unique_id = SecureRandom.alphanumeric(4).upcase
     stream_name = data_stream&.name || "Package"
     self.title = "#{stream_name}-#{timestamp}-#{unique_id}"
-  end
-
-  def has_completed_attachments?
-    false  # Stub - will be implemented with Attachments feature
   end
 end
