@@ -313,24 +313,28 @@ docs: update CODE_STYLE with delegates
 ### Workflow
 
 1. **Analyze & Propose**: Show all commit proposals with file lists
-2. **Ask for Validation**: **ALWAYS** wait for explicit user approval
-3. **Execute After Approval**: Create commits using Bash tool **ONLY AFTER** validation
+2. **Execute or Ask**:
+   - If user explicitly said "commit" or "push" → Execute directly
+   - Otherwise → Ask for validation first
+3. **Execute**: Create commits using Bash tool
 
 ### Rules
 
-- ✅ **Commits are now automated** - SSH signing works without PIN prompt
-- ❌ **NEVER execute `git commit` without user validation** - ALWAYS ask first
-- ✅ After approval, execute commits directly using the Bash tool
+- ✅ **Commits are automated** - SSH signing works without PIN prompt
+- ✅ **Execute directly** when user explicitly requests commit/push
+- ✅ **Ask first** when only proposing (no explicit commit request)
 - ✅ Chain git commands with `&&` for reliability
-- ❌ **Do NOT push** - user will push manually when ready
+- ✅ **Can push** when user explicitly requests it
 
 ### Validation Pattern
 
-**Before executing any commit**:
-1. Show complete commit proposals (title, body, file list)
-2. Ask: "Should I proceed with these commits?"
-3. Wait for explicit "yes" / "ok" / "go ahead"
-4. Execute commits using Bash tool
+**When to ask for validation**:
+- User runs `/git:code-commit` without explicit commit instruction
+- Proposals need review before execution
+
+**When to execute directly**:
+- User says "commit", "push", "tu peux commit", etc.
+- Clear intent to proceed with commits
 
 ### Execution Format
 

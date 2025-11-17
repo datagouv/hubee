@@ -69,6 +69,10 @@ CREATE TABLE data_packages (
   state VARCHAR NOT NULL DEFAULT 'draft',
   -- State: draft → transmitted → acknowledged (AASM state machine)
   title VARCHAR,
+  delivery_criteria JSONB DEFAULT '{}',
+  -- Delivery criteria schema: {"siret": [...], "organization_id": [...], "_or": [...], "_and": [...]}
+  -- Supported: siret, organization_id, subscription_id
+  -- Max depth: 2, Max criteria: 20
   sent_at TIMESTAMP,
   acknowledged_at TIMESTAMP,
   created_at TIMESTAMP NOT NULL,
@@ -335,6 +339,13 @@ validates :data_stream, presence: true
 validates :sender_organization, presence: true
 validates :status, inclusion: { in: %w[draft ready sent acknowledged] }
 validates :title, length: { maximum: 255 }
+validates :delivery_criteria, delivery_criteria: true
+# Custom validator enforces:
+# - Must be hash (or nil/empty)
+# - Only supported criteria: siret, organization_id, subscription_id
+# - Only valid operators: _or, _and
+# - Max nesting depth: 2
+# - Max criteria count: 20
 ```
 
 ### Attachment

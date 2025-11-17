@@ -45,3 +45,6 @@
 # ⚠️  Auto-generated - Do not edit manually
 # =============================================================================
 .cursor/
+
+# Ignore AI development documentation (local feature planning)
+.ai/dev-docs/
