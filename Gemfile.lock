@@ -323,6 +323,10 @@ GEM
     rspec-mocks (3.13.7)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
+    rspec-openapi (0.20.0)
+      actionpack (>= 5.2.0)
+      rails-dom-testing
+      rspec-core
     rspec-rails (8.0.2)
       actionpack (>= 7.2)
       activesupport (>= 7.2)
@@ -459,6 +463,7 @@ DEPENDENCIES
   puma (>= 5.0)
   pundit (~> 2.4)
   rails (~> 8.1.1)
+  rspec-openapi
   rspec-rails (~> 8.0)
   shoulda-matchers (~> 7.0)
   simplecov
