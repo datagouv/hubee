@@ -1,0 +1,94 @@
+name: ✅ Task
+description: Tâche de cycle ou de cooldown
+title: ""
+labels: ["task"]
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type de tâche
+      description: S'agit-il d'une tâche de cycle ou de cooldown ?
+      options:
+        - "📐 Task de cycle (issue d'un projet)"
+        - "🐛 Bug (cooldown)"
+        - "⚙️ Dette technique (cooldown)"
+        - "🔬 Exploration (cooldown)"
+    validations:
+      required: true
+
+  - type: input
+    id: parent
+    attributes:
+      label: Projet parent
+      description: "Si tâche de cycle, lien vers le projet parent (ex: #123)"
+      placeholder: "#123"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Que faut-il faire ?
+      placeholder: |
+        Pour une tâche de cycle : décrivez l'implémentation concrète
+        Pour un bug : comment le reproduire ?
+        Pour une dette : quel est le problème actuel ?
+        Pour une exploration : qu'est-ce qu'on veut découvrir ?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: cycle
+    attributes:
+      label: Cycle / Cooldown
+      description: Quand cette tâche sera-t-elle faite ?
+      options:
+        - "Cycle 1"
+        - "Cycle 2"
+        - "Cycle 3"
+        - "Cooldown"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: estimation
+    attributes:
+      label: Estimation
+      description: Temps estimé
+      options:
+        - "< 1 jour"
+        - "1-2 jours"
+        - "3-5 jours"
+        - "1 semaine"
+        - "2 semaines"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Domaine technique
+      description: Quel domaine ?
+      options:
+        - Backend
+        - Frontend
+        - API
+        - Infrastructure
+        - Sécurité
+        - Tests
+        - Documentation
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critères d'acceptation (optionnel)
+      description: Comment saura-t-on que c'est terminé ?
+      placeholder: |
+        - [ ] Le endpoint /api/xxx retourne les bonnes données
+        - [ ] Les tests unitaires passent
+        - [ ] La documentation est à jour
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes additionnelles
+      description: Dépendances, contexte, liens utiles
