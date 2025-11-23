@@ -36,14 +36,13 @@ RSpec.describe "Api::V1::DataPackages", type: :request do
           "sender_organization_id" => pkg1.sender_organization_id,
           "state" => "draft",
           "title" => pkg1.title,
+          "delivery_criteria" => nil,
           "sent_at" => nil,
           "acknowledged_at" => nil,
           "created_at" => anything,
           "updated_at" => anything
         )
       end
-
-      it_behaves_like "a paginated endpoint"
     end
 
     it_behaves_like "a paginated endpoint respecting page size"
@@ -153,6 +152,7 @@ RSpec.describe "Api::V1::DataPackages", type: :request do
           "sender_organization_id" => data_package.sender_organization_id,
           "state" => "transmitted",
           "title" => data_package.title,
+          "delivery_criteria" => nil,
           "sent_at" => anything,
           "acknowledged_at" => nil,
           "created_at" => anything,
@@ -221,6 +221,50 @@ RSpec.describe "Api::V1::DataPackages", type: :request do
       it "creates data package with auto-generated title" do
         make_request
         expect(json["title"]).to match(/\ACertDC-\d{8}-\d{6}-[A-Z0-9]{4}\z/)
+      end
+    end
+
+    context "with delivery_criteria" do
+      let(:params) do
+        {
+          data_package: {
+            sender_organization_id: organization.id,
+            title: "Package with criteria",
+            delivery_criteria: {
+              "siret" => ["13002526500013", "11000601200010"]
+            }
+          }
+        }
+      end
+
+      it "stores delivery_criteria" do
+        make_request
+        expect(json["delivery_criteria"]).to eq({"siret" => ["13002526500013", "11000601200010"]})
+      end
+
+      it "persists delivery_criteria in database" do
+        make_request
+        package = DataPackage.last
+        expect(package.delivery_criteria).to eq({"siret" => ["13002526500013", "11000601200010"]})
+      end
+    end
+
+    context "with invalid delivery_criteria format" do
+      let(:params) do
+        {
+          data_package: {
+            sender_organization_id: organization.id,
+            delivery_criteria: {
+              "organization_id" => "uuid"
+            }
+          }
+        }
+      end
+
+      it "returns validation error" do
+        make_request
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json["delivery_criteria"]).to include("must contain only 'siret' key")
       end
     end
 

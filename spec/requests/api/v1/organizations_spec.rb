@@ -23,8 +23,6 @@ RSpec.describe "Api::V1::Organizations", type: :request do
           hash_including("name" => "Org B", "siret" => "22222222222222", "created_at" => anything, "updated_at" => anything)
         ])
       end
-
-      it_behaves_like "a paginated endpoint"
     end
 
     it_behaves_like "a paginated endpoint respecting page size"

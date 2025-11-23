@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_16_105107) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_16_183502) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -22,6 +22,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_16_105107) do
     t.datetime "acknowledged_at", precision: nil
     t.datetime "created_at", null: false
     t.uuid "data_stream_id", null: false
+    t.jsonb "delivery_criteria"
     t.uuid "sender_organization_id", null: false
     t.datetime "sent_at", precision: nil
     t.enum "state", default: "draft", null: false, enum_type: "data_package_state"
@@ -41,6 +42,18 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_16_105107) do
     t.integer "retention_days", default: 365
     t.datetime "updated_at", null: false
     t.index ["owner_organization_id"], name: "index_data_streams_on_owner_organization_id"
+  end
+
+  create_table "notifications", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.datetime "acknowledged_at", precision: nil
+    t.datetime "created_at", null: false
+    t.uuid "data_package_id", null: false
+    t.uuid "subscription_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["acknowledged_at"], name: "index_notifications_on_acknowledged_at"
+    t.index ["data_package_id", "subscription_id"], name: "index_notifications_on_data_package_id_and_subscription_id", unique: true
+    t.index ["data_package_id"], name: "index_notifications_on_data_package_id"
+    t.index ["subscription_id"], name: "index_notifications_on_subscription_id"
   end
 
   create_table "organizations", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
@@ -66,6 +79,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_16_105107) do
   add_foreign_key "data_packages", "data_streams", on_delete: :restrict
   add_foreign_key "data_packages", "organizations", column: "sender_organization_id"
   add_foreign_key "data_streams", "organizations", column: "owner_organization_id"
+  add_foreign_key "notifications", "data_packages", on_delete: :cascade
+  add_foreign_key "notifications", "subscriptions", on_delete: :restrict
   add_foreign_key "subscriptions", "data_streams", on_delete: :cascade
   add_foreign_key "subscriptions", "organizations", on_delete: :cascade
 end

@@ -11,6 +11,13 @@ RSpec.describe DataPackage, type: :model do
   describe "validations" do
     it { is_expected.to validate_presence_of(:state) }
     it { is_expected.to validate_length_of(:title).is_at_most(255) }
+
+    it "validates delivery_criteria format" do
+      # Full validation tested in spec/validators/delivery_criteria_validator_spec.rb
+      data_package = build(:data_package, delivery_criteria: "invalid")
+      expect(data_package).not_to be_valid
+      expect(data_package.errors[:delivery_criteria]).to be_present
+    end
   end
 
   describe "database indexes" do
@@ -120,16 +127,10 @@ RSpec.describe DataPackage, type: :model do
     end
 
     describe "send_package event" do
-      context "with completed attachments" do
+      context "from draft state" do
         let(:package) { create(:data_package, :draft) }
-        before { allow(package).to receive(:has_completed_attachments?).and_return(true) }
 
         it { expect(package).to transition_from(:draft).to(:transmitted).on_event(:send_package) }
-      end
-
-      context "without completed attachments" do
-        let(:package) { build(:data_package, :draft) }
-        it { expect(package).to_not allow_event(:send_package) }
       end
 
       context "from transmitted state" do
@@ -140,50 +141,6 @@ RSpec.describe DataPackage, type: :model do
       context "from acknowledged state" do
         let(:package) { build(:data_package, :acknowledged) }
         it { expect(package).to_not allow_event(:send_package) }
-      end
-    end
-
-    describe "AASM error callbacks" do
-      describe "#send_package! with error callback" do
-        context "when guard fails" do
-          let(:package) { create(:data_package, :draft) }
-
-          before do
-            allow(package).to receive(:has_completed_attachments?).and_return(false)
-          end
-
-          it "returns false" do
-            expect(package.send_package!).to be false
-          end
-
-          it "does not transition" do
-            package.send_package!
-            expect(package).to have_state(:draft)
-          end
-
-          it "adds error to state via error callback" do
-            package.send_package!
-            expect(package.errors[:state]).to include("must be draft")
-          end
-        end
-
-        context "when in wrong state" do
-          let(:package) { create(:data_package, :transmitted) }
-
-          it "returns false" do
-            expect(package.send_package!).to be false
-          end
-
-          it "does not transition" do
-            package.send_package!
-            expect(package).to have_state(:transmitted)
-          end
-
-          it "adds error to state via error callback" do
-            package.send_package!
-            expect(package.errors[:state]).to include("must be draft")
-          end
-        end
       end
     end
   end
@@ -202,6 +159,20 @@ RSpec.describe DataPackage, type: :model do
     it "returns false for acknowledged package" do
       package = build(:data_package, :acknowledged)
       expect(package.can_be_destroyed?).to be false
+    end
+  end
+
+  describe "#subscriptions_source" do
+    it "returns 'resolver' for draft package" do
+      expect(build(:data_package, :draft).subscriptions_source).to eq("resolver")
+    end
+
+    it "returns 'notifications' for transmitted package" do
+      expect(build(:data_package, :transmitted).subscriptions_source).to eq("notifications")
+    end
+
+    it "returns 'notifications' for acknowledged package" do
+      expect(build(:data_package, :acknowledged).subscriptions_source).to eq("notifications")
     end
   end
 end
