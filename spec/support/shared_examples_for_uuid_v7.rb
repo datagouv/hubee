@@ -9,7 +9,7 @@ RSpec.shared_examples "a model with UUID v7 primary key" do
 
     it "generates UUIDs in chronological order" do
       first_record = create(described_class.model_name.singular)
-      sleep 0.001
+      sleep 0.001 # ensures chronological order
       second_record = create(described_class.model_name.singular)
 
       expect(second_record.id).to be > first_record.id
