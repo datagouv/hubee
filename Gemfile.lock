@@ -185,7 +185,7 @@ GEM
     jbuilder (2.14.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
-    json (2.16.0)
+    json (2.18.0)
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -233,7 +233,7 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.10-x86_64-linux-musl)
       racc (~> 1.4)
-    pagy (43.1.4)
+    pagy (43.2.2)
       json
       yaml
     parallel (1.27.0)
@@ -449,7 +449,7 @@ DEPENDENCIES
   image_processing (~> 1.2)
   importmap-rails
   jbuilder
-  pagy (~> 43.1)
+  pagy (~> 43.2)
   pg (~> 1.1)
   propshaft
   puma (>= 5.0)
