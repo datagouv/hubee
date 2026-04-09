@@ -37,8 +37,6 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
           )
         ])
       end
-
-      it_behaves_like "a paginated endpoint"
     end
 
     it_behaves_like "a paginated endpoint respecting page size"

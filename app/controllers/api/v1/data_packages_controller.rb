@@ -41,7 +41,7 @@ class Api::V1::DataPackagesController < Api::BaseController
   end
 
   def data_package_params
-    permitted = params.expect(data_package: [:data_stream_id, :sender_organization_id, :title])
+    permitted = params.expect(data_package: [:data_stream_id, :sender_organization_id, :title, delivery_criteria: {}])
     permitted.reverse_merge!(data_stream_id: params[:data_stream_id]) if params[:data_stream_id].present?
     permitted
   end

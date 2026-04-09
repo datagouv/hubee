@@ -4,6 +4,8 @@ class Subscription < ApplicationRecord
   belongs_to :data_stream
   belongs_to :organization
 
+  has_many :notifications, dependent: :restrict_with_error
+
   scope :by_data_stream, ->(id) { id.present? ? where(data_stream_id: id) : all }
   scope :by_organization, ->(id) { id.present? ? where(organization_id: id) : all }
   scope :with_read_permission, -> { where(can_read: true) }

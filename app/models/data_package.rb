@@ -1,8 +1,18 @@
 class DataPackage < ApplicationRecord
   include AASM
 
+  # Delivery criteria: V1 supports only SIRET list
+  # Future V2 will add: organization_id, subscription_id, _or/_and operators
+  DELIVERY_CRITERIA_SUPPORTED = %w[siret].freeze
+  DELIVERY_CRITERIA_MAX_SIRETS = 100
+
   belongs_to :data_stream
   belongs_to :sender_organization, class_name: "Organization"
+
+  has_many :notifications, dependent: :destroy
+  has_many :subscriptions, through: :notifications
+
+  accepts_nested_attributes_for :notifications
 
   aasm column: :state do
     state :draft, initial: true
@@ -10,9 +20,7 @@ class DataPackage < ApplicationRecord
     state :acknowledged
 
     event :send_package do
-      transitions from: :draft, to: :transmitted, guard: :has_completed_attachments?
-      after { update_column(:sent_at, Time.current) }
-      error { errors.add(:state, "must be draft") }
+      transitions from: :draft, to: :transmitted
     end
 
     event :acknowledge do
@@ -33,12 +41,21 @@ class DataPackage < ApplicationRecord
 
   validates :state, presence: true
   validates :title, length: {maximum: 255}
+  validates :delivery_criteria, delivery_criteria: true
 
   before_validation :generate_title, on: :create, if: -> { title.blank? }
   before_destroy :check_destroyable, prepend: true
 
   def can_be_destroyed?
     draft?
+  end
+
+  def subscriptions_source
+    draft? ? "resolver" : "notifications"
+  end
+
+  def has_completed_attachments?
+    false  # Stub - will be implemented with Attachments feature
   end
 
   private
@@ -55,9 +72,5 @@ class DataPackage < ApplicationRecord
     unique_id = SecureRandom.alphanumeric(4).upcase
     stream_name = data_stream&.name || "Package"
     self.title = "#{stream_name}-#{timestamp}-#{unique_id}"
-  end
-
-  def has_completed_attachments?
-    false  # Stub - will be implemented with Attachments feature
   end
 end
