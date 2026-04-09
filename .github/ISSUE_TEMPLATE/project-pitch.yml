@@ -1,0 +1,88 @@
+name: 🎯 Project Pitch
+description: Créer un pitch de projet pour le Shape-Up
+title: "[PROJECT] "
+labels: ["project", "needs-shaping"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🎯 Pitch de Projet Shape-Up
+        Un projet est une initiative qui sera façonnée, puis potentiellement sélectionnée lors du betting.
+        Une fois sélectionné, il sera décomposé en plusieurs tâches pour le cycle.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🔴 Problème
+      description: Quel problème résout-on ? Pourquoi est-ce important ?
+      placeholder: |
+        Décrivez le problème ou l'opportunité.
+        Exemple : "Les utilisateurs ne peuvent pas voir l'historique de leurs souscriptions..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: appetite
+    attributes:
+      label: ⏱️ Appétit
+      description: Combien de temps sommes-nous prêts à investir ?
+      options:
+        - "1 semaine"
+        - "2 semaines"
+        - "3 semaines"
+        - "4 semaines"
+        - "5 semaines"
+        - "6 semaines (cycle complet)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 Solution proposée
+      description: Approche envisagée (pas besoin de détails techniques à ce stade)
+      placeholder: |
+        Décrivez en quelques phrases l'approche proposée.
+        Restez au niveau conceptuel, pas d'implémentation détaillée.
+    validations:
+      required: true
+
+  - type: textarea
+    id: rabbit-holes
+    attributes:
+      label: 🐰 Rabbit Holes (pièges à éviter)
+      description: Quels sont les risques de complexité excessive ?
+      placeholder: |
+        - Ne pas essayer de migrer toute la base de données
+        - Éviter de refactoriser tout le module en même temps
+        - ...
+
+  - type: textarea
+    id: no-gos
+    attributes:
+      label: 🚫 No-Gos (hors scope)
+      description: Ce qu'on ne fera PAS dans ce projet
+      placeholder: |
+        - Pas de notifications temps réel
+        - Pas de support mobile dans cette version
+        - ...
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 🎯 Domaine technique
+      description: Quel domaine technique principal ?
+      multiple: true
+      options:
+        - Backend
+        - Frontend
+        - API
+        - Infrastructure
+        - Sécurité
+        - Base de données
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 📝 Notes additionnelles
+      description: Autres informations utiles
