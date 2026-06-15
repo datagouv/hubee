@@ -1,6 +1,6 @@
 # Hubee V2
 
-[![Ruby](https://img.shields.io/badge/Ruby-3.4.7-red.svg)](https://www.ruby-lang.org/)
+[![Ruby](https://img.shields.io/badge/Ruby-4.0.5-red.svg)](https://www.ruby-lang.org/)
 [![Rails](https://img.shields.io/badge/Rails-8.1.0-red.svg)](https://rubyonrails.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18+-blue.svg)](https://www.postgresql.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
@@ -9,7 +9,7 @@ Plateforme d'échange sécurisé de fichiers gouvernementaux (SecNumCloud, RGS n
 
 ## 📋 Prérequis
 
-- Ruby 3.4.7
+- Ruby 4.0.5
 - PostgreSQL 18+ (requis pour `uuidv7()` natif — RFC 9562)
 - Bundler 2.7+
 

@@ -5,7 +5,7 @@ Guide d'utilisation des outils de sécurité du projet.
 ## 📊 Environnement
 
 - **PostgreSQL** : 18.0
-- **Ruby** : 3.4.7
+- **Ruby** : 4.0.5
 - **Rails** : 8.1.0
 
 ## 🔐 Outils Disponibles

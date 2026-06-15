@@ -54,7 +54,7 @@ group :development, :test do
   gem "bundler-audit", require: false
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
-  gem "brakeman", "~> 8.0", require: false
+  gem "brakeman", require: false
 
   # Catch unsafe database migrations [https://github.com/ankane/strong_migrations]
   gem "strong_migrations"

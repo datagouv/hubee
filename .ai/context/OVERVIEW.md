@@ -48,7 +48,7 @@ Hubee V2 permet à une organisation (administration centrale) de transmettre des
 
 ### Core
 - **Framework**: Rails 8.1.0
-- **Ruby**: 3.4.7
+- **Ruby**: 4.0.5
 - **Database**: PostgreSQL 18.0
 - **Jobs**: Solid Queue (PostgreSQL-based, pas de Redis)
 - **Storage**: Active Storage + S3 compatible (Outscale/Scaleway)
