@@ -156,8 +156,6 @@ bundle exec rake security:bundler_audit
 - **Tests**: RSpec + Cucumber
 - **Linting**: StandardRB
 - **Sécurité**: strong_migrations, bundler-audit, Brakeman
-- **Autorisation**: Pundit
-- **Authentification**: bcrypt (has_secure_password)
 
 ## 🔒 Statut de l'API V2
 
@@ -165,7 +163,7 @@ L'ébauche d'API V2 présente dans ce repo (routes `api/v1`, 6 modèles, interac
 
 Le portail V2 (repo [`datagouv/hubee`](https://github.com/datagouv/hubee)) consomme l'API V1 via une gem cliente privée. La reprise du développement API V2 se fera ultérieurement, dans ce même repo.
 
-> Les routes sont commentées dans `config/routes.rb` et les request specs exclues du run par défaut. Ne pas décommenter sans décision explicite de l'équipe — voir "Registre des décisions" sur docs.numerique.gouv.fr.
+> Les routes sont commentées dans `config/routes.rb` et les request specs exclues du run par défaut. Ne pas décommenter sans décision explicite de l'équipe.
 
 ## 📚 Documentation
 
