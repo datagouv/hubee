@@ -18,19 +18,19 @@ gem "stimulus-rails"
 gem "jbuilder"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-gem "bcrypt", "~> 3.1.7"
+# gem "bcrypt"
 
 # Authorization with Pundit [https://github.com/varvet/pundit]
-gem "pundit", "~> 2.4"
+# gem "pundit"
 
 # Pagination for API [https://github.com/ddnexus/pagy]
-gem "pagy", "~> 43.1"
+gem "pagy"
 
 # State machine for model workflows [https://github.com/aasm/aasm]
-gem "aasm", "~> 5.5"
+gem "aasm"
 
 # Business logic interactors [https://github.com/collectiveidea/interactor]
-gem "interactor", "~> 3.1"
+gem "interactor"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[windows jruby]
@@ -63,13 +63,13 @@ group :development, :test do
   gem "standard", require: false
 
   # RSpec for unit and request testing [https://rspec.info/]
-  gem "rspec-rails", "~> 8.0"
+  gem "rspec-rails"
 
   # Test data factories [https://github.com/thoughtbot/factory_bot_rails]
-  gem "factory_bot_rails", "~> 6.4"
+  gem "factory_bot_rails"
 
   # Fake data generation [https://github.com/faker-ruby/faker]
-  gem "faker", "~> 3.5"
+  gem "faker"
 end
 
 group :test do

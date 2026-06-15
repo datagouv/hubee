@@ -81,7 +81,6 @@ GEM
       public_suffix (>= 2.0.2, < 8.0)
     ast (2.4.3)
     base64 (0.3.0)
-    bcrypt (3.1.22)
     bigdecimal (4.1.2)
     bindex (0.8.1)
     bootsnap (1.24.6)
@@ -264,8 +263,6 @@ GEM
     public_suffix (7.0.5)
     puma (8.0.2)
       nio4r (~> 2.0)
-    pundit (2.5.2)
-      activesupport (>= 3.0.0)
     raabro (1.4.0)
     racc (1.8.1)
     rack (3.2.6)
@@ -435,27 +432,25 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  aasm (~> 5.5)
-  bcrypt (~> 3.1.7)
+  aasm
   bootsnap
   brakeman
   bundler-audit
   cucumber-rails
   database_cleaner-active_record
   debug
-  factory_bot_rails (~> 6.4)
-  faker (~> 3.5)
+  factory_bot_rails
+  faker
   image_processing
   importmap-rails
-  interactor (~> 3.1)
+  interactor
   jbuilder
-  pagy (~> 43.1)
+  pagy
   pg (~> 1.1)
   propshaft
   puma (>= 5.0)
-  pundit (~> 2.4)
   rails (~> 8.1.1)
-  rspec-rails (~> 8.0)
+  rspec-rails
   shoulda-matchers
   simplecov
   solid_cable
