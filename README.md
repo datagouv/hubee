@@ -94,7 +94,7 @@ bin/ci  # ✅ Si succès → commit marqué "approved"
 git push
 ```
 
-**Prérequis** : `gh` CLI + extension `gh-signoff` (voir `.ai/context/SECURITY_CHECKS.md`)
+**Prérequis** : `gh` CLI + extension `gh-signoff`
 
 ### RSpec
 
@@ -167,16 +167,12 @@ Le portail V2 (repo [`datagouv/hubee`](https://github.com/datagouv/hubee)) conso
 
 ## 📚 Documentation
 
-Pour plus d'informations, consulter :
+Documentation de l'API V2 (gelée) :
 
-- `.ai/context/OVERVIEW.md` - Vue d'ensemble du projet
-- `.ai/context/ARCHITECTURE.md` - Architecture système détaillée
-- `.ai/context/DATABASE.md` - Schéma base de données complet
-- `.ai/context/CODE_STYLE.md` - Conventions Ruby/Rails
-- `.ai/context/TESTING.md` - Stratégie et exemples de tests
-- `.ai/context/API.md` - Documentation API REST complète
-- `.ai/context/SECURITY_CHECKS.md` - Outils de sécurité (strong_migrations, bundler-audit, brakeman)
-- `.ai/context/DEVELOPMENT_WORKFLOW.md` - Workflow TDD feature par feature
+- `docs/OVERVIEW.md` - Vue d'ensemble du projet
+- `docs/ARCHITECTURE.md` - Architecture système détaillée
+- `docs/DATABASE.md` - Schéma base de données complet
+- `docs/API.md` - Documentation API REST complète
 
 ## 🛠️ Commandes Utiles
 
@@ -197,7 +193,7 @@ bin/rails solid_queue:start     # Démarrer les workers
 
 ## 🧑‍💻 Développement
 
-Le projet suit une approche **TDD feature par feature**. Consulter `.ai/context/DEVELOPMENT_WORKFLOW.md` pour le workflow détaillé.
+Le projet suit une approche **TDD feature par feature**.
 
 ### Ordre des Features
 

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(bundle *)",
+      "Bash(bin/*)",
+      "Bash(rails *)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git add *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)"
+    ],
+    "ask": [
+      "Bash(sudo *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(docker push*)",
+      "Bash(podman push*)",
+      "Bash(gh release*)",
+      "Bash(kamal *)",
+      "Bash(rake db:drop*)",
+      "Bash(rails db:drop*)",
+      "Bash(git commit*)",
+      "Bash(git push*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(git reset --hard*)",
+      "Bash(git checkout -- .)",
+      "Bash(git clean -fd)",
+      "Bash(npm install*)",
+      "Bash(npm i *)",
+      "Bash(npx *)",
+      "Bash(npm exec*)",
+      "Bash(nc *)",
+      "Bash(ncat *)",
+      "Bash(netcat *)",
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(.env.development)",
+      "Read(.env.production)",
+      "Read(.env.test)",
+      "Read(**/env.local)",
+      "Read(config/master.key)",
+      "Read(config/credentials.yml.enc)",
+      "Read(config/credentials/**)",
+      "Edit(.env)",
+      "Edit(.env.local)",
+      "Edit(.env.development)",
+      "Edit(.env.production)",
+      "Edit(.env.test)",
+      "Edit(**/env.local)",
+      "Edit(config/master.key)",
+      "Edit(config/credentials.yml.enc)",
+      "Edit(config/credentials/**)"
+    ]
+  },
+  "enabledPlugins": {
+    "dsfr-skill@dsfr-skill": true,
+    "superpowers@claude-plugins-official": true,
+    "hubee-claude-plugin@hubee-claude-plugin": true
+  }
+}

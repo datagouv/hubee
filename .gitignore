@@ -34,20 +34,10 @@
 /config/*.key
 
 
-# =============================================================================
-# claude - Auto-generated symlinks
-# ⚠️  Auto-generated - Do not edit manually
-# =============================================================================
-.claude/
+# Ignore local Claude Code overrides (settings.local.json)
+.claude/settings.local.json
 
-# =============================================================================
-# cursor - Auto-generated symlinks
-# ⚠️  Auto-generated - Do not edit manually
-# =============================================================================
-.cursor/
-
-# Ignore AI development documentation (local feature planning)
-.ai/dev-docs/
+# Ignore local AI notes and superpowers specs (non-versionnés)
 docs/superpowers/
 
 # Ignore test coverage reports (generated artifact)
