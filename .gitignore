@@ -48,6 +48,7 @@
 
 # Ignore AI development documentation (local feature planning)
 .ai/dev-docs/
+docs/superpowers/
 
 # Ignore test coverage reports (generated artifact)
 /coverage/
