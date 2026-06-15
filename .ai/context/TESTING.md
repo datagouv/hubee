@@ -1,6 +1,6 @@
 # Hubee V2 - Tests (TDD)
 
-**Version**: 1.3.0 | **Coverage**: 80%+
+**Version**: 1.3.0 | **Coverage**: >= 90%
 
 > **Voir aussi** : `.ai/context/CODE_STYLE.md` pour conventions Ruby/Rails, RSpec patterns, factories
 

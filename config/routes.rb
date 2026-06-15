@@ -10,10 +10,6 @@ Rails.application.routes.draw do
   # Ces routes ne doivent PAS être réactivées pour corriger un bug :
   # le gel est intentionnel. La reprise du développement API V2 se fera
   # lorsque nécessaire, dans ce même repo.
-  #
-  # Contexte et décisions d'architecture (Notification vs Delivery,
-  # can_read/can_write vs read_package/create_package, AASM vs boolean) :
-  # voir "Registre des décisions" sur docs.numerique.gouv.fr
   # =============================================================================
   #
   # namespace :api do

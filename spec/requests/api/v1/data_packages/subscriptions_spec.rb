@@ -201,7 +201,7 @@ RSpec.describe "Api::V1::DataPackages::Subscriptions", type: :request do
       end
 
       it "respects default page size from Pagy config" do
-        expect(json["subscriptions"].size).to eq(Pagy.options[:limit])
+        expect(json["subscriptions"].size).to eq(Pagy::OPTIONS[:limit])
       end
 
       it_behaves_like "a paginated endpoint"

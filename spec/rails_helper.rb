@@ -8,7 +8,7 @@ if ENV.fetch("COVERAGE", "false") == "true"
     add_filter "/spec/"
     add_filter "/config/"
     add_filter "/app/controllers/api/"
-    minimum_coverage 80
+    minimum_coverage 90
   end
 end
 

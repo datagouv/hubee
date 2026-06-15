@@ -47,7 +47,7 @@ bundle exec rspec
 # Cucumber (tests E2E)
 bundle exec cucumber
 
-# Tests avec couverture de code (minimum 80%)
+# Tests avec couverture de code (minimum 90%)
 COVERAGE=true bundle exec rspec
 ```
 
@@ -74,7 +74,7 @@ Cette commande exécute automatiquement :
 - ✅ **Security** : bundler-audit + brakeman + importmap
 - ✅ **Database** : Préparation DB test
 - ✅ **Tests** : RSpec (models + requests) + Cucumber (E2E)
-- ✅ **Coverage** : Vérification >= 80%
+- ✅ **Coverage** : Vérification >= 90%
 - ✅ **Signoff** : Marque le commit comme approuvé (si tous checks passent)
 
 **Durée** : ~10 secondes
@@ -156,8 +156,6 @@ bundle exec rake security:bundler_audit
 - **Tests**: RSpec + Cucumber
 - **Linting**: StandardRB
 - **Sécurité**: strong_migrations, bundler-audit, Brakeman
-- **Autorisation**: Pundit
-- **Authentification**: bcrypt (has_secure_password)
 
 ## 🔒 Statut de l'API V2
 
@@ -165,7 +163,7 @@ L'ébauche d'API V2 présente dans ce repo (routes `api/v1`, 6 modèles, interac
 
 Le portail V2 (repo [`datagouv/hubee`](https://github.com/datagouv/hubee)) consomme l'API V1 via une gem cliente privée. La reprise du développement API V2 se fera ultérieurement, dans ce même repo.
 
-> Les routes sont commentées dans `config/routes.rb` et les request specs exclues du run par défaut. Ne pas décommenter sans décision explicite de l'équipe — voir "Registre des décisions" sur docs.numerique.gouv.fr.
+> Les routes sont commentées dans `config/routes.rb` et les request specs exclues du run par défaut. Ne pas décommenter sans décision explicite de l'équipe.
 
 ## 📚 Documentation
 
@@ -227,7 +225,15 @@ Le projet suit une approche **TDD feature par feature**. Consulter `.ai/context/
 - ✅ Tous les tests passent (RSpec + Cucumber)
 - ✅ StandardRB sans erreurs
 - ✅ Brakeman sans warnings critiques
-- ✅ Coverage ≥ 80%
+- ✅ Coverage >= 90%
+
+## 📦 Politique de versioning des gems
+
+Les gems du projet ne portent **aucune contrainte de version** dans le `Gemfile`. Le `Gemfile.lock` joue son rôle : il fixe les versions exactes installées sur tous les environnements (dev, CI, prod). C'est lui le filet de sécurité, pas les contraintes de version.
+
+Mettre à jour une gem se fait délibérément, via `bundle update <gem>`. Si la CI passe, la mise à jour est validée. Si elle casse, on le voit immédiatement et on décide d'adapter ou d'attendre.
+
+Les contraintes de type `~> x.y` créent une fausse impression de contrôle : elles n'empêchent ni les bugs ni les breaking changes à l'intérieur d'une plage, mais elles bloquent les mises à jour majeures sans raison explicite et alourdissent la maintenance. On préfère la confiance dans les tests à la prudence par configuration.
 
 ## 📝 Licence
 

@@ -113,7 +113,7 @@ Suivre le cycle RED → GREEN → REFACTOR pour chaque feature.
 ### Testing
 - RSpec pour tests unitaires et request specs
 - Cucumber pour workflows E2E
-- Coverage minimum : 80%
+- Coverage minimum : 90%
 - Utilisation intelligente de `let`, `let!`, `before`, `context`
 
 ### API Conventions

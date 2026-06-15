@@ -3,7 +3,7 @@
 RSpec.shared_examples "a paginated endpoint" do
   it "returns pagination headers" do
     expect(response.headers["X-Page"]).to be_present
-    expect(response.headers["X-Per-Page"]).to eq(Pagy.options[:limit].to_s)
+    expect(response.headers["X-Per-Page"]).to eq(Pagy::OPTIONS[:limit].to_s)
     expect(response.headers["X-Total"]).to be_present
     expect(response.headers["X-Total-Pages"]).to be_present
   end
@@ -23,7 +23,7 @@ RSpec.shared_examples "a paginated endpoint respecting page size" do
     end
 
     it "respects default page size from Pagy config" do
-      expect(json.size).to eq(Pagy.options[:limit])
+      expect(json.size).to eq(Pagy::OPTIONS[:limit])
     end
 
     it_behaves_like "a paginated endpoint"

@@ -68,7 +68,7 @@ Le script `bin/ci` exécute automatiquement dans l'ordre :
 3. **Security** : bundler-audit + brakeman + importmap
 4. **Database** : Préparation DB test
 5. **Tests** : RSpec (models + requests) + Cucumber (E2E)
-6. **Coverage** : Vérification >= 80%
+6. **Coverage** : Vérification >= 90%
 7. **Signoff** : Marque le commit comme approuvé via `gh signoff` (si tous les checks passent)
 
 **Durée** : ~10 secondes en local
