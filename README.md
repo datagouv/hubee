@@ -1,16 +1,16 @@
 # Hubee V2
 
-[![Ruby](https://img.shields.io/badge/Ruby-3.4.7-red.svg)](https://www.ruby-lang.org/)
+[![Ruby](https://img.shields.io/badge/Ruby-4.0.5-red.svg)](https://www.ruby-lang.org/)
 [![Rails](https://img.shields.io/badge/Rails-8.1.0-red.svg)](https://rubyonrails.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-blue.svg)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18+-blue.svg)](https://www.postgresql.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 Plateforme d'échange sécurisé de fichiers gouvernementaux (SecNumCloud, RGS niveau élevé).
 
 ## 📋 Prérequis
 
-- Ruby 3.4.7
-- PostgreSQL 18+
+- Ruby 4.0.5
+- PostgreSQL 18+ (requis pour `uuidv7()` natif — RFC 9562)
 - Bundler 2.7+
 
 ## 🚀 Installation
@@ -158,6 +158,14 @@ bundle exec rake security:bundler_audit
 - **Sécurité**: strong_migrations, bundler-audit, Brakeman
 - **Autorisation**: Pundit
 - **Authentification**: bcrypt (has_secure_password)
+
+## 🔒 Statut de l'API V2
+
+L'ébauche d'API V2 présente dans ce repo (routes `api/v1`, 6 modèles, interactors de transmission) est **gelée**.
+
+Le portail V2 (repo [`datagouv/hubee`](https://github.com/datagouv/hubee)) consomme l'API V1 via une gem cliente privée. La reprise du développement API V2 se fera ultérieurement, dans ce même repo.
+
+> Les routes sont commentées dans `config/routes.rb` et les request specs exclues du run par défaut. Ne pas décommenter sans décision explicite de l'équipe — voir "Registre des décisions" sur docs.numerique.gouv.fr.
 
 ## 📚 Documentation
 

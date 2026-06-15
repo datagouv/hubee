@@ -1,7 +1,7 @@
 # Hubee V2 - Guide d'Onboarding Développeur
 
 **Date de génération**: 25 novembre 2025
-**Version codebase**: Rails 8.1 + Ruby 3.4.7 + PostgreSQL 18
+**Version codebase**: Rails 8.1 + Ruby 4.0.5 + PostgreSQL 18
 **Auteur**: Documentation générée à partir du code réel
 
 ---
@@ -80,7 +80,7 @@
 | Composant | Technologie | Pourquoi ce choix |
 |-----------|-------------|-------------------|
 | **Framework** | Rails 8.1.1 | Convention over configuration, productivité |
-| **Ruby** | 3.4.7 | Performance YJIT, pattern matching |
+| **Ruby** | 4.0.5 | Performance YJIT, pattern matching |
 | **Database** | PostgreSQL 18 | UUID v7 natif, JSONB, enums |
 | **Jobs** | Solid Queue | Basé sur PostgreSQL, pas de Redis |
 | **Storage** | Active Storage + S3 | Intégré Rails, compatible SecNumCloud |
@@ -752,7 +752,7 @@ git clone <repo>
 cd hubee
 
 # Ruby (avec rbenv ou asdf)
-ruby --version  # 3.4.7
+ruby --version  # 4.0.5
 
 # Dependencies
 bundle install
