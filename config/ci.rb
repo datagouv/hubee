@@ -13,7 +13,7 @@ CI.run("Hubee CI", "Plateforme SecNumCloud") do
   step "Tests: E2E", "bundle exec cucumber"
 
   if success?
-    echo "All checks passed! Coverage >= 80%. Ready for merge.", type: :success
+    echo "All checks passed! Coverage >= 90%. Ready for merge.", type: :success
     step "Signoff: Mark commit as approved", "gh signoff"
   else
     failure "CI Failed", "Fix the issues above and run bin/ci again"

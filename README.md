@@ -47,7 +47,7 @@ bundle exec rspec
 # Cucumber (tests E2E)
 bundle exec cucumber
 
-# Tests avec couverture de code (minimum 80%)
+# Tests avec couverture de code (minimum 90%)
 COVERAGE=true bundle exec rspec
 ```
 
@@ -74,7 +74,7 @@ Cette commande exécute automatiquement :
 - ✅ **Security** : bundler-audit + brakeman + importmap
 - ✅ **Database** : Préparation DB test
 - ✅ **Tests** : RSpec (models + requests) + Cucumber (E2E)
-- ✅ **Coverage** : Vérification >= 80%
+- ✅ **Coverage** : Vérification >= 90%
 - ✅ **Signoff** : Marque le commit comme approuvé (si tous checks passent)
 
 **Durée** : ~10 secondes
@@ -225,7 +225,7 @@ Le projet suit une approche **TDD feature par feature**. Consulter `.ai/context/
 - ✅ Tous les tests passent (RSpec + Cucumber)
 - ✅ StandardRB sans erreurs
 - ✅ Brakeman sans warnings critiques
-- ✅ Coverage ≥ 80%
+- ✅ Coverage >= 90%
 
 ## 📦 Politique de versioning des gems
 

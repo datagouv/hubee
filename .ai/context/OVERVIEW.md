@@ -64,7 +64,7 @@ Hubee V2 permet à une organisation (administration centrale) de transmettre des
 ### Testing & Quality
 - **Framework**: RSpec + Cucumber
 - **Specs**: Request specs pour API, Features pour workflows E2E
-- **Coverage**: Cible 80%+
+- **Coverage**: Cible >= 90%
 - **Linting**: StandardRB
 - **Security**:
   - Brakeman (static analysis)
@@ -176,7 +176,7 @@ Toute la documentation est centralisée dans `.ai/context/` :
 - ✅ Tous les tests passent (RSpec + Cucumber)
 - ✅ StandardRB sans erreurs
 - ✅ Brakeman sans warnings critiques
-- ✅ Coverage ≥ 80%
+- ✅ Coverage >= 90%
 
 ### Anti-Patterns à Éviter
 - ❌ SQL brut sans sanitization

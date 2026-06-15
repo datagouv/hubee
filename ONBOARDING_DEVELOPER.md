@@ -791,7 +791,7 @@ curl -X POST http://localhost:3000/api/v1/data_packages/<UUID>/transmission | jq
 1. **Lire la doc contexte** : `.ai/context/DEVELOPMENT_WORKFLOW.md`
 2. **TDD obligatoire** : RED → GREEN → REFACTOR
 3. **StandardRB** : `bundle exec standardrb --fix` avant commit
-4. **Coverage** : Cible 80%+
+4. **Coverage** : Cible >= 90%
 
 ### Fichiers clés à lire en premier
 

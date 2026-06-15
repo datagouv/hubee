@@ -71,7 +71,7 @@ curl -H "Authorization: Bearer [TOKEN]" http://localhost:3000/api/v1/data_stream
 
 À la fin de chaque feature :
 - [ ] Tous tests feature : **GREEN**
-- [ ] Coverage feature : **>80%**
+- [ ] Coverage feature : **>= 90%**
 - [ ] Seeds mis à jour : **db/seeds.rb avec données réalistes**
 - [ ] API endpoint : **Testé manuellement avec curl**
 - [ ] Workflow E2E : **GREEN** (Cucumber si applicable)
@@ -199,7 +199,7 @@ Consulter `docs/WORKFLOW_IMPLEMENTATION_TDD.md` pour le guide complet feature pa
 - [ ] Feature 6 : Notifications
 - [ ] Feature 7 : Events (audit trail)
 - [ ] Feature 8 : Jobs récurrents (retention)
-- [ ] **Coverage global >80%**
+- [ ] **Coverage global >= 90%**
 
 ### Phase 9 : Sécurisation (CRITIQUE)
 - [ ] ApiToken model + generate_api_token
@@ -228,7 +228,7 @@ Consulter `docs/WORKFLOW_IMPLEMENTATION_TDD.md` pour le guide complet feature pa
 - ✅ Tous les tests passent (RSpec + Cucumber)
 - ✅ StandardRB sans erreurs
 - ✅ Brakeman sans warnings critiques
-- ✅ Coverage ≥ 80%
+- ✅ Coverage >= 90%
 - ✅ Seeds à jour et fonctionnels (`bin/rails db:seed`)
 
 ### ⚠️ Git & Commits - RÈGLES CRITIQUES
