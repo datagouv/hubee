@@ -229,6 +229,14 @@ Le projet suit une approche **TDD feature par feature**. Consulter `.ai/context/
 - ✅ Brakeman sans warnings critiques
 - ✅ Coverage ≥ 80%
 
+## 📦 Politique de versioning des gems
+
+Les gems du projet ne portent **aucune contrainte de version** dans le `Gemfile`. Le `Gemfile.lock` joue son rôle : il fixe les versions exactes installées sur tous les environnements (dev, CI, prod). C'est lui le filet de sécurité, pas les contraintes de version.
+
+Mettre à jour une gem se fait délibérément, via `bundle update <gem>`. Si la CI passe, la mise à jour est validée. Si elle casse, on le voit immédiatement et on décide d'adapter ou d'attendre.
+
+Les contraintes de type `~> x.y` créent une fausse impression de contrôle : elles n'empêchent ni les bugs ni les breaking changes à l'intérieur d'une plage, mais elles bloquent les mises à jour majeures sans raison explicite et alourdissent la maintenance. On préfère la confiance dans les tests à la prudence par configuration.
+
 ## 📝 Licence
 
 Ce projet est distribué sous licence **GNU Affero General Public License v3.0 (AGPL-3.0)**.

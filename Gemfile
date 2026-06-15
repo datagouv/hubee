@@ -44,7 +44,7 @@ gem "solid_cable"
 gem "bootsnap", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 1.2"
+gem "image_processing"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -81,7 +81,7 @@ group :test do
   gem "database_cleaner-active_record"
 
   # Additional test helpers
-  gem "shoulda-matchers", "~> 7.0"
+  gem "shoulda-matchers"
 end
 
 group :development do
