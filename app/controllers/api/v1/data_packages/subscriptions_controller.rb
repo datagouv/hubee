@@ -5,7 +5,7 @@ class API::V1::DataPackages::SubscriptionsController < API::BaseController
 
   def index
     @pagy, @subscriptions = pagy(resolve_subscriptions)
-  rescue DeliveryCriteriaValidator::Invalid => e
+  rescue DataPackage::DeliveryCriteriaValidator::Invalid => e
     render json: {error: e.message}, status: :unprocessable_content
   end
 

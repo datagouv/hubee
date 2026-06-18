@@ -2,14 +2,14 @@
 
 require "rails_helper"
 
-RSpec.describe DeliveryCriteriaValidator do
+RSpec.describe DataPackage::DeliveryCriteriaValidator do
   let(:model_class) do
     Class.new do
       include ActiveModel::Validations
 
       attr_accessor :delivery_criteria
 
-      validates :delivery_criteria, delivery_criteria: true
+      validates_with DataPackage::DeliveryCriteriaValidator, attributes: [:delivery_criteria]
     end
   end
 
