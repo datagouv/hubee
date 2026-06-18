@@ -28,3 +28,14 @@ Les fichiers suivants décrivent l'état de l'API V2 gelée — à consulter pou
 ## Conventions de développement
 
 Les conventions Ruby/Rails, TDD, sécurité, git et patterns Rails sont fournis par le plugin **hubee-claude-plugin** (chargé automatiquement via les skills Claude Code).
+
+## Confidentialité des références externes
+
+Ce dépôt est **public** — son code source et sa documentation sont accessibles à toute personne sans authentification.
+
+Ne jamais inclure dans le code, les commentaires, les messages de commit, la documentation ou toute réponse générée :
+- des URLs pointant vers des ressources protégées par authentification (GitLab interne, Confluence, Notion, outils internes, tableaux de bord privés, tickets, etc.) ;
+- des identifiants, tokens, clés d'API ou toute information d'accès, même sous forme d'exemple ;
+- toute référence nominative permettant de déduire l'existence ou le contenu d'un système interne confidentiel.
+
+Privilégier des références génériques (ex. : "voir la documentation interne", "cf. ticket de suivi") plutôt que des liens directs vers des systèmes non publics.
