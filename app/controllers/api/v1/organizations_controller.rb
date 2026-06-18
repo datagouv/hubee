@@ -1,6 +1,6 @@
-module Api
+module API
   module V1
-    class OrganizationsController < Api::BaseController
+    class OrganizationsController < API::BaseController
       before_action :set_organization, only: :show
 
       def index

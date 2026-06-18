@@ -1,6 +1,6 @@
-module Api
+module API
   module V1
-    class DataStreamsController < Api::BaseController
+    class DataStreamsController < API::BaseController
       before_action :set_data_stream, only: %i[show update destroy]
 
       def index

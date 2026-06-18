@@ -1,4 +1,4 @@
-class Api::V1::TransmissionsController < Api::BaseController
+class API::V1::TransmissionsController < API::BaseController
   before_action :set_data_package
 
   def create

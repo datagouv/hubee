@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Api::V1::DataPackages::SubscriptionsController < Api::BaseController
+class API::V1::DataPackages::SubscriptionsController < API::BaseController
   before_action :set_data_package
 
   def index
