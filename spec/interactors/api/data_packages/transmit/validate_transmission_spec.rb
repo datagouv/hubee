@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe DataPackages::Transmit::ValidateTransmission do
+RSpec.describe API::DataPackages::Transmit::ValidateTransmission do
   describe ".call" do
     let(:data_package) { create(:data_package, :draft) }
     subject(:result) { described_class.call(data_package: data_package) }

@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe DataPackages::Transmit do
+RSpec.describe API::DataPackages::Transmit do
   describe ".call" do
     let(:data_stream) { create(:data_stream) }
     let(:sender_org) { create(:organization) }

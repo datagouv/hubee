@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe DeliveryCriteriaResolver do
+RSpec.describe API::DeliveryCriteriaResolver do
   describe ".resolve" do
     let(:data_stream) { create(:data_stream) }
 

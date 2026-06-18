@@ -2,7 +2,7 @@ class API::V1::TransmissionsController < API::BaseController
   before_action :set_data_package
 
   def create
-    result = DataPackages::Transmit.call(data_package: @data_package)
+    result = API::DataPackages::Transmit.call(data_package: @data_package)
 
     if result.success?
       render "api/v1/data_packages/show", status: :ok

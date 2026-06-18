@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe DataPackages::Transmit::TransitionToTransmitted do
+RSpec.describe API::DataPackages::Transmit::TransitionToTransmitted do
   describe ".call" do
     let(:data_package) { create(:data_package, :draft) }
     subject(:result) { described_class.call(data_package: data_package) }
