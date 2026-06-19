@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+require "fileutils"
+
+APP_ROOT = File.expand_path("..", __dir__)
+HOOKS_SOURCE = File.join(APP_ROOT, ".git-hooks")
+GIT_HOOKS_DIR = File.join(APP_ROOT, ".git", "hooks")
+
+puts "== Installing git hooks =="
+Dir.glob("#{HOOKS_SOURCE}/*").each do |source|
+  hook_name = File.basename(source)
+  target = File.join(GIT_HOOKS_DIR, hook_name)
+
+  if File.symlink?(target) && File.readlink(target) == source
+    puts "  Already linked: #{hook_name}"
+    next
+  end
+
+  FileUtils.ln_sf(source, target)
+  puts "  Linked: #{hook_name}"
+rescue SystemCallError => e
+  puts "  Skipped #{hook_name}: #{e.message}"
+end
+puts "Done."
