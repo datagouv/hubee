@@ -1,5 +1,6 @@
 # Hubee V2
 
+[![CI](https://github.com/datagouv/hubee/actions/workflows/ci.yml/badge.svg)](https://github.com/datagouv/hubee/actions/workflows/ci.yml)
 [![Ruby](https://img.shields.io/badge/Ruby-4.0.5-red.svg)](https://www.ruby-lang.org/)
 [![Rails](https://img.shields.io/badge/Rails-8.1.0-red.svg)](https://rubyonrails.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18+-blue.svg)](https://www.postgresql.org/)
