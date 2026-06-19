@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Api::V1::SubscriptionsController < Api::BaseController
+class API::V1::SubscriptionsController < API::BaseController
   before_action :set_subscription, only: [:show, :update, :destroy]
 
   def index

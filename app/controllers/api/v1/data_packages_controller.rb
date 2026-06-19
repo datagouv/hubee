@@ -1,4 +1,4 @@
-class Api::V1::DataPackagesController < Api::BaseController
+class API::V1::DataPackagesController < API::BaseController
   before_action :set_data_package, only: %i[show destroy]
 
   def index

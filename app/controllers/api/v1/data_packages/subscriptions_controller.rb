@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-class Api::V1::DataPackages::SubscriptionsController < Api::BaseController
+class API::V1::DataPackages::SubscriptionsController < API::BaseController
   before_action :set_data_package
 
   def index
     @pagy, @subscriptions = pagy(resolve_subscriptions)
-  rescue DeliveryCriteriaValidator::Invalid => e
+  rescue DataPackage::DeliveryCriteriaValidator::Invalid => e
     render json: {error: e.message}, status: :unprocessable_content
   end
 
@@ -18,7 +18,7 @@ class Api::V1::DataPackages::SubscriptionsController < Api::BaseController
   def resolve_subscriptions
     if @data_package.draft?
       # Preview mode: use resolver to find potential subscriptions
-      DeliveryCriteriaResolver.resolve(
+      API::DeliveryCriteriaResolver.resolve(
         @data_package.delivery_criteria,
         @data_package.data_stream
       ).includes(:organization)

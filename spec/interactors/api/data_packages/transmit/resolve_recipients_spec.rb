@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe DataPackages::Transmit::ResolveRecipients do
+RSpec.describe API::DataPackages::Transmit::ResolveRecipients do
   describe ".call" do
     let(:data_stream) { create(:data_stream) }
     let(:data_package) { create(:data_package, :draft, data_stream: data_stream) }

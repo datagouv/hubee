@@ -1,6 +1,10 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", :as => :rails_health_check
 
+  namespace :portail do
+    root to: "dashboard#index"
+  end
+
   # =============================================================================
   # API V2 — GELÉE LE 2026-06-12
   #

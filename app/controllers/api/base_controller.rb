@@ -1,4 +1,4 @@
-module Api
+module API
   class BaseController < ActionController::API
     include Pagy::Method
 
