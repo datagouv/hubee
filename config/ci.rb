@@ -14,11 +14,4 @@ CI.run("Hubee CI", "Plateforme SecNumCloud") do
   step "Tests: RSpec with Coverage", "env COVERAGE=true bundle exec rspec --format progress"
   step "Tests: E2E", "bundle exec cucumber"
   step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
-
-  if success?
-    echo "All checks passed! Coverage >= 90%. Ready for merge.", type: :success
-    step "Signoff: Mark commit as approved", "gh signoff" unless ENV["SKIP_SIGNOFF"]
-  else
-    failure "CI Failed", "Fix the issues above and run bin/ci again"
-  end
 end
