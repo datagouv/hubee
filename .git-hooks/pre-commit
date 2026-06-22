@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -e
+
+export DB_HOST="${DB_HOST:-localhost}"
+
+bin/ci

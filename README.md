@@ -1,5 +1,6 @@
 # Hubee V2
 
+[![CI](https://github.com/datagouv/hubee/actions/workflows/ci.yml/badge.svg)](https://github.com/datagouv/hubee/actions/workflows/ci.yml)
 [![Ruby](https://img.shields.io/badge/Ruby-4.0.5-red.svg)](https://www.ruby-lang.org/)
 [![Rails](https://img.shields.io/badge/Rails-8.1.0-red.svg)](https://rubyonrails.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18+-blue.svg)](https://www.postgresql.org/)
@@ -75,26 +76,8 @@ Cette commande exécute automatiquement :
 - ✅ **Database** : Préparation DB test
 - ✅ **Tests** : RSpec (models + requests) + Cucumber (E2E)
 - ✅ **Coverage** : Vérification >= 90%
-- ✅ **Signoff** : Marque le commit comme approuvé (si tous checks passent)
-
 **Durée** : ~10 secondes
 **Même workflow** en local et sur GitHub Actions
-
-#### Workflow avec GitHub Signoff
-
-```bash
-# 1. Commit vos changements
-git add .
-git commit -m "feat: nouvelle fonctionnalité"
-
-# 2. Lancer la CI locale
-bin/ci  # ✅ Si succès → commit marqué "approved"
-
-# 3. Pusher (le status vert est déjà sur GitHub)
-git push
-```
-
-**Prérequis** : `gh` CLI + extension `gh-signoff`
 
 ### RSpec
 

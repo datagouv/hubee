@@ -84,3 +84,4 @@ Si une règle est violée : **signaler explicitement la violation, refuser d'éc
 | `::Hubee::` | **Élevé** — impacte les deux modules, tests renforcés |
 | `::` modèles AR | **Élevé** — code commun, vérifier qu'aucune logique spécifique ne s'y glisse |
 | `::` Rails pur | **Critique** — impact global |
+
