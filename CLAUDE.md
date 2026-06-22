@@ -84,3 +84,7 @@ Si une règle est violée : **signaler explicitement la violation, refuser d'éc
 | `::Hubee::` | **Élevé** — impacte les deux modules, tests renforcés |
 | `::` modèles AR | **Élevé** — code commun, vérifier qu'aucune logique spécifique ne s'y glisse |
 | `::` Rails pur | **Critique** — impact global |
+
+## Règles CI pour Claude
+
+Le step `Signoff: Mark commit as approved` (`gh signoff`) en fin de `bin/ci` est optionnel et hors de portée de Claude — son échec ne constitue **pas** un échec de CI. Considérer `bin/ci` comme vert dès lors que tous les autres steps passent (Style, Security, Tests).

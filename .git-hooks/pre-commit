@@ -2,15 +2,6 @@
 set -e
 
 export DB_HOST="${DB_HOST:-127.0.0.1}"
+export SKIP_SIGNOFF=1
 
-echo "==> Pre-commit: suite complète (identique à la CI)"
-
-bundle exec standardrb
-bin/bundler-audit check --update
-bin/brakeman --quiet --no-pager --exit-on-warn
-bin/importmap audit
-bin/rails db:test:prepare
-COVERAGE=true bundle exec rspec --format progress
-bundle exec cucumber
-
-echo "==> Pre-commit: tous les checks sont passés — commit autorisé"
+bin/ci
