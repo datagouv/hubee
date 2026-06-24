@@ -143,6 +143,11 @@ GEM
     diff-lcs (1.6.2)
     docile (1.4.1)
     drb (2.2.3)
+    dsfr-assets (1.14.4)
+    dsfr-form_builder (0.0.14)
+      actionview (>= 6.1, < 9.0)
+      activemodel (>= 6.1, < 9.0)
+      activesupport (>= 6.1, < 9.0)
     erb (6.0.4)
     erubi (1.13.1)
     et-orbi (1.4.0)
@@ -439,6 +444,8 @@ DEPENDENCIES
   cucumber-rails
   database_cleaner-active_record
   debug
+  dsfr-assets
+  dsfr-form_builder
   factory_bot_rails
   faker
   image_processing

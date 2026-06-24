@@ -34,6 +34,13 @@ module Hubee
     # in config/environments, which are processed later.
     #
     config.time_zone = "Paris"
+    config.i18n.default_locale = :fr
+
+    # DSFR comme form builder par défaut (toutes les formes utilisent les helpers DSFR)
+    config.action_view.default_form_builder = "Dsfr::FormBuilder"
+
+    # Pages d'erreur rendues par l'application (layout DSFR) plutôt que les pages statiques
+    config.exceptions_app = routes
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Don't generate system test files.
