@@ -3,9 +3,9 @@
 require "rails_helper"
 
 RSpec.describe "Portail::Dashboard", type: :request do
-  describe "GET /portail" do
+  describe "GET /" do
     it "returns http success" do
-      get "/portail"
+      get "/"
       expect(response).to have_http_status(:success)
     end
   end

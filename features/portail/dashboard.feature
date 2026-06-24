@@ -5,5 +5,5 @@ Fonctionnalité: Portail HubEE — accueil
   Je veux pouvoir atteindre la page d'accueil
 
   Scénario: Accès à la page d'accueil du portail
-    Quand je visite "/portail"
+    Quand je visite "/"
     Alors la réponse n'est pas une erreur

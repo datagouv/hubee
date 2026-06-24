@@ -1,14 +1,28 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-fr-scheme="system">
   <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>HubEE Portail</title>
+    <title><%= content_for(:title) || t("app_name") %></title>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-    <%= stylesheet_link_tag "application", media: "all" %>
+
+    <%# DSFR — Design System de l'État (gem dsfr-assets) %>
+    <%= stylesheet_link_tag "dsfr.min", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "utility/dsfr-utility.min", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
   </head>
+
   <body>
-    <%= yield %>
+    <%= render "portail/shared/skip_links" %>
+    <%= render "portail/shared/header" %>
+
+    <main role="main" id="content" class="fr-container fr-my-6w">
+      <%= render "portail/shared/flash" %>
+      <%= yield %>
+    </main>
+
+    <%= render "portail/shared/footer" %>
   </body>
 </html>
