@@ -1,9 +1,13 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", :as => :rails_health_check
 
-  namespace :portail do
-    root to: "dashboard#index"
-  end
+  # Pages d'erreur DSFR rendues par l'application (cf. config.exceptions_app = routes)
+  match "/404", to: "portail/errors#not_found", via: :all
+  match "/422", to: "portail/errors#unprocessable_entity", via: :all
+  match "/500", to: "portail/errors#internal_server_error", via: :all
+
+  # La page d'accueil du portail est servie à la racine de l'application.
+  root "portail/dashboard#index"
 
   # =============================================================================
   # API V2 — GELÉE LE 2026-06-12

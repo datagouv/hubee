@@ -1,0 +1,48 @@
+fr:
+  app_name: HubEE
+  tagline: Plateforme d'échange sécurisé de fichiers entre administrations
+
+  portail:
+    shared:
+      skip_links:
+        quick_access: Accès rapide
+        content: Contenu
+        menu: Menu
+        footer: Pied de page
+      header:
+        home_title: Accueil — HubEE
+        menu: Menu
+        close: Fermer
+        nav_label: Menu principal
+        home: Accueil
+      footer:
+        home_title: Retour à l'accueil du site — HubEE — République Française
+        description: HubEE — Plateforme d'échange sécurisé de fichiers entre administrations.
+        new_window: "%{site} - nouvelle fenêtre"
+        accessibility: "Accessibilité : non conforme"
+        legal: Mentions légales
+        personal_data: Données personnelles
+        cookies: Gestion des cookies
+        license_link: licence etalab-2.0
+        license_link_title: Licence etalab - nouvelle fenêtre
+        license_html: Sauf mention explicite de propriété intellectuelle détenue par des tiers, les contenus de ce site sont proposés sous %{link}.
+    dashboard:
+      index:
+        title: Portail HubEE
+        heading: Portail HubEE
+        lead: Espace de gestion réservé aux administrations (accessible après authentification).
+        body: Le portail V2 est en cours de construction. Cette page sera remplacée par le tableau de bord une fois l'authentification en place.
+    errors:
+      back_home: Retour à l'accueil
+      not_found:
+        title: Page introuvable — HubEE
+        heading: Page introuvable
+        lead: La page que vous cherchez n'existe pas ou a été déplacée.
+      unprocessable_entity:
+        title: Requête invalide — HubEE
+        heading: Requête invalide
+        lead: La requête n'a pas pu être traitée.
+      internal_server_error:
+        title: Erreur serveur — HubEE
+        heading: Une erreur est survenue
+        lead: Le service rencontre un problème technique. Merci de réessayer ultérieurement.

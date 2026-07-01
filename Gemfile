@@ -14,6 +14,10 @@ gem "importmap-rails"
 gem "turbo-rails"
 # Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
 gem "stimulus-rails"
+
+# Frontend : DSFR (Design System de l'État) via gems — pas de npm (réduction surface supply chain)
+gem "dsfr-assets"
+gem "dsfr-form_builder"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
