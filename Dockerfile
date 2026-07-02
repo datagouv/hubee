@@ -5,8 +5,6 @@
 # docker build -t hubee .
 # docker run -d -p 80:3000 -e RAILS_MASTER_KEY=<value from config/master.key> --name hubee hubee
 
-# For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
-
 FROM docker.io/library/ruby:4.0.5-slim@sha256:f7866408e569d1699d9aceaa7f2726b231119871d42bb271fef1fb573c2418c5 AS base
 
 # Rails app lives here

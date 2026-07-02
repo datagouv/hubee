@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "dockerfile": {
-    "fileMatch": ["(^|/)Containerfile$", "(^|/)Dockerfile$", "(^|/)\\.devcontainer/Dockerfile$"]
+    "fileMatch": ["(^|/)Containerfile$", "(^|/)Dockerfile$"]
   },
   "mise": {
     "fileMatch": ["(^|/)mise\\.toml$", "(^|/)\\.mise\\.toml$"]
@@ -19,8 +19,7 @@
     {
       "matchPackageNames": [
         "ruby",
-        "docker.io/library/ruby",
-        "ghcr.io/rails/devcontainer/images/ruby"
+        "docker.io/library/ruby"
       ],
       "groupName": "Ruby version"
     }
