@@ -36,6 +36,10 @@ gem "aasm"
 # Business logic interactors [https://github.com/collectiveidea/interactor]
 gem "interactor"
 
+# Error monitoring [https://github.com/getsentry/sentry-ruby]
+gem "sentry-ruby"
+gem "sentry-rails"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[windows jruby]
 
