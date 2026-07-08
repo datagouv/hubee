@@ -1,3 +1,11 @@
+GIT
+  remote: https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git
+  revision: ed1f8f9376df7ea34953f2fe12012f3f2b23c5b5
+  tag: 1.1.1
+  specs:
+    hub-api-v1 (1.1.0)
+      activesupport (>= 7.0, < 10)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -456,6 +464,7 @@ DEPENDENCIES
   dsfr-form_builder
   factory_bot_rails
   faker
+  hub-api-v1!
   image_processing
   importmap-rails
   interactor

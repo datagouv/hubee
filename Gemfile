@@ -40,6 +40,9 @@ gem "interactor"
 gem "sentry-ruby"
 gem "sentry-rails"
 
+# Client API Hubee V1 (gem privée)
+gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "1.1.1", require: "hub_api_v1"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[windows jruby]
 
