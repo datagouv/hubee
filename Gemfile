@@ -41,7 +41,13 @@ gem "sentry-ruby"
 gem "sentry-rails"
 
 # Client API Hubee V1 (gem privée)
-gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "1.1.1", require: "hub_api_v1"
+# Groupe dédié (hors default) pour pouvoir l'exclure du bundle via BUNDLE_WITHOUT=hub_api_v1
+# là où la source GitLab privée est injoignable — ex. CI GitHub Actions (analyse statique +
+# sécurité). Conséquence : la gem n'est pas auto-requise par Bundler.require ; la requérir
+# explicitement à l'endroit qui la consomme.
+group :hub_api_v1 do
+  gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "1.1.1", require: "hub_api_v1"
+end
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[windows jruby]
