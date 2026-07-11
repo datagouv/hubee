@@ -54,4 +54,10 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Logs au format logfmt (format conseillé par le CSIRT), écrits dans log/test.log :
+  # on exerce la vraie sérialisation logfmt sans polluer la sortie RSpec.
+  config.rails_semantic_logger.appenders do |appenders|
+    appenders.add(file_name: Rails.root.join("log/test.log").to_s, formatter: :logfmt)
+  end
 end
