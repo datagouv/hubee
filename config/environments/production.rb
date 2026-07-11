@@ -24,14 +24,19 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
+  # HTTPS géré côté applicatif (décision #509, prise avec l'infra qui s'alignera
+  # ensuite). Le TLS est terminé par le reverse-proxy d'infra, qui transmet du
+  # HTTP en clair au conteneur.
+  # - assume_ssl : on considère toute requête comme arrivée en HTTPS. La
+  #   redirection interne de force_ssl ne se déclenche donc jamais → aucune boucle
+  #   de redirection possible, sans dépendre de X-Forwarded-Proto (dont on ne
+  #   maîtrise pas la traversée proxy + Thruster).
+  # - force_ssl : l'app devient source de vérité pour HSTS + flag Secure du cookie.
   config.assume_ssl = true
-
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = true
 
-  # Skip http-to-https redirect for the default health check endpoint.
-  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  # Pas de config.ssl_options ici : assume_ssl neutralise la redirection de
+  # force_ssl, donc /up n'est jamais redirigé (l'exclusion serait inutile).
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [:request_id]
