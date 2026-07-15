@@ -2,15 +2,23 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "dependencyDashboard": true,
   "dockerfile": {
-    "fileMatch": ["(^|/)Containerfile$", "(^|/)Dockerfile$"]
+    "managerFilePatterns": [
+      "/(^|/)Containerfile$/",
+      "/(^|/)Dockerfile$/"
+    ]
   },
   "mise": {
-    "fileMatch": ["(^|/)mise\\.toml$", "(^|/)\\.mise\\.toml$"]
+    "managerFilePatterns": [
+      "/(^|/)mise\\.toml$/",
+      "/(^|/)\\.mise\\.toml$/"
+    ]
   },
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["(^|/)\\.github/workflows/[^/]+\\.ya?ml$"],
+      "managerFilePatterns": [
+        "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
       "matchStrings": ["ruby-version:\\s*[\"']?(?<currentValue>[\\d.]+)"],
       "depNameTemplate": "ruby",
       "datasourceTemplate": "ruby-version"
