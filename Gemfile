@@ -57,6 +57,12 @@ gem "solid_cache"
 gem "solid_queue"
 gem "solid_cable"
 
+# Catch unsafe database migrations [https://github.com/ankane/strong_migrations]
+# Chargée dans tous les environnements : l'entrypoint Docker joue db:prepare en
+# production, les checks doivent donc protéger aussi les migrations prod — et
+# l'initializer référence la constante à chaque boot, y compris en prod.
+gem "strong_migrations"
+
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
@@ -72,9 +78,6 @@ group :development, :test do
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
-
-  # Catch unsafe database migrations [https://github.com/ankane/strong_migrations]
-  gem "strong_migrations"
 
   # Ruby style guide, linter, and formatter [https://github.com/standardrb/standard]
   gem "standard", require: false
