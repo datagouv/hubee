@@ -60,4 +60,8 @@ Rails.application.configure do
   config.rails_semantic_logger.appenders do |appenders|
     appenders.add(file_name: Rails.root.join("log/test.log").to_s, formatter: :logfmt)
   end
+
+  # Même tag nommé qu'en production, pour que spec/requests/hubee/logging_spec.rb
+  # puisse exercer le request_id sur une vraie requête plutôt que de le supposer.
+  config.log_tags = {request_id: :request_id}
 end
