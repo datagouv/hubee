@@ -54,4 +54,14 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Logs au format logfmt (format conseillé par le CSIRT), écrits dans log/test.log :
+  # on exerce la vraie sérialisation logfmt sans polluer la sortie RSpec.
+  config.rails_semantic_logger.appenders do |appenders|
+    appenders.add(file_name: Rails.root.join("log/test.log").to_s, formatter: :logfmt)
+  end
+
+  # Même tag nommé qu'en production, pour que spec/requests/hubee/logging_spec.rb
+  # puisse exercer le request_id sur une vraie requête plutôt que de le supposer.
+  config.log_tags = {request_id: :request_id}
 end

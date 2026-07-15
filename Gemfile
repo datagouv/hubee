@@ -49,6 +49,9 @@ group :hub_api_v1 do
   gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "1.1.1", require: "hub_api_v1"
 end
 
+# Logs structurés (format logfmt conseillé par le CSIRT), remplace le logger Rails
+gem "rails_semantic_logger"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[windows jruby]
 

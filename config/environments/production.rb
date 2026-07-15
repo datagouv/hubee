@@ -38,9 +38,14 @@ Rails.application.configure do
   # Pas de config.ssl_options ici : assume_ssl neutralise la redirection de
   # force_ssl, donc /up n'est jamais redirigé (l'exclusion serait inutile).
 
-  # Log to STDOUT with the current request id as a default log tag.
-  config.log_tags = [:request_id]
-  config.logger = ActiveSupport::TaggedLogging.logger($stdout)
+  # Logs vers STDOUT au format logfmt (format conseillé par le CSIRT). Le request_id
+  # est exposé comme tag nommé pour apparaître en `request_id=…` sur chaque ligne.
+  # rails_semantic_logger remplace la stack de log ; l'appender `add` est créé dans
+  # tous les process (web, jobs, rake), pas seulement en mode serveur.
+  config.log_tags = {request_id: :request_id}
+  config.rails_semantic_logger.appenders do |appenders|
+    appenders.add(io: $stdout, formatter: :logfmt)
+  end
 
   # Change to "debug" to log everything (including potentially personally-identifiable information!).
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")

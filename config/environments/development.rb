@@ -47,6 +47,17 @@ Rails.application.configure do
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
 
+  # Niveau debug par défaut (DX dev), mais surchargeable pour prévisualiser le
+  # rendu prod en local : RAILS_LOG_LEVEL=info bin/dev → 1 ligne par requête.
+  config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "debug")
+
+  # rails_semantic_logger remplace la stack de log : en dev on garde des logs
+  # colorés lisibles dans le terminal (bin/dev), et non le format logfmt de la prod.
+  # LOG_FORMAT=logfmt|json bin/dev permet de prévisualiser le rendu prod.
+  config.rails_semantic_logger.appenders do |appenders|
+    appenders.add(io: $stdout, formatter: ENV.fetch("LOG_FORMAT", "color").to_sym)
+  end
+
   # Raise an error on page load if there are pending migrations.
   config.active_record.migration_error = :page_load
 
