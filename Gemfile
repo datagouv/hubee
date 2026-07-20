@@ -109,6 +109,9 @@ group :test do
 
   # Additional test helpers
   gem "shoulda-matchers"
+
+  # Stub des appels HTTP ProConnect (discovery + JWKS) dans les specs d'infrastructure
+  gem "webmock"
 end
 
 group :development do
