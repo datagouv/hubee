@@ -9,10 +9,11 @@ RSpec.describe Portail::ProConnect::LogoutUrlBuilder do
   end
 
   around do |example|
+    original_redirect_uri = ENV["PROCONNECT_POST_LOGOUT_REDIRECT_URI"]
     ENV["PROCONNECT_POST_LOGOUT_REDIRECT_URI"] = "https://portail.hubee.gouv.fr/"
     example.run
   ensure
-    ENV.delete("PROCONNECT_POST_LOGOUT_REDIRECT_URI")
+    ENV["PROCONNECT_POST_LOGOUT_REDIRECT_URI"] = original_redirect_uri
   end
 
   describe ".call" do

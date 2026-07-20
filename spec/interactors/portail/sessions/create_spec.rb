@@ -12,10 +12,11 @@ RSpec.describe Portail::Sessions::Create do
   end
 
   around do |example|
+    original_client_id = ENV["PROCONNECT_CLIENT_ID"]
     ENV["PROCONNECT_CLIENT_ID"] = "client-abc"
     example.run
   ensure
-    ENV.delete("PROCONNECT_CLIENT_ID")
+    ENV["PROCONNECT_CLIENT_ID"] = original_client_id
   end
 
   context "when the token is valid and the agent is known" do

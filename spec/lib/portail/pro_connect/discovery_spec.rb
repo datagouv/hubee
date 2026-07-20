@@ -14,10 +14,11 @@ RSpec.describe Portail::ProConnect::Discovery do
   let(:jwks_document) { {keys: [{kty: "RSA", kid: "abc", n: "xxx", e: "AQAB"}]} }
 
   around do |example|
+    original_domain = ENV["PROCONNECT_DOMAIN"]
     ENV["PROCONNECT_DOMAIN"] = domain
     example.run
   ensure
-    ENV.delete("PROCONNECT_DOMAIN")
+    ENV["PROCONNECT_DOMAIN"] = original_domain
     Rails.cache.clear
   end
 

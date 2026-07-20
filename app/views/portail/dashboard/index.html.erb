@@ -4,6 +4,14 @@
   <div class="fr-col-12 fr-col-md-8">
     <h1><%= t(".heading") %></h1>
     <p class="fr-text--lead"><%= t(".lead") %></p>
-    <p><%= t(".body") %></p>
+
+    <% if agent_signed_in? %>
+      <p><%= t(".signed_in_as", name: current_agent.first_name) %></p>
+      <%= button_to t(".sign_out"), logout_path, method: :delete, class: "fr-btn fr-btn--secondary" %>
+    <% else %>
+      <p><%= t(".body") %></p>
+      <%# Phase requête OmniAuth : POST protégé CSRF (omniauth-rails_csrf_protection). %>
+      <%= button_to t(".sign_in"), "/auth/proconnect", class: "fr-btn", data: {turbo: false} %>
+    <% end %>
   </div>
 </div>
