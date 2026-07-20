@@ -6,10 +6,11 @@ RSpec.describe Portail::Sessions::Create::VerifyIdToken do
   subject(:result) { described_class.call(id_token: "raw-token", nonce: "nonce-1") }
 
   around do |example|
+    original_client_id = ENV["PROCONNECT_CLIENT_ID"]
     ENV["PROCONNECT_CLIENT_ID"] = "client-abc"
     example.run
   ensure
-    ENV.delete("PROCONNECT_CLIENT_ID")
+    ENV["PROCONNECT_CLIENT_ID"] = original_client_id
   end
 
   context "when the token verifier accepts the token" do

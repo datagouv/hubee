@@ -64,4 +64,9 @@ Rails.application.configure do
   # Même tag nommé qu'en production, pour que spec/requests/hubee/logging_spec.rb
   # puisse exercer le request_id sur une vraie requête plutôt que de le supposer.
   config.log_tags = {request_id: :request_id}
+
+  # ProConnect (socle #616) — valeurs factices pour les specs
+  ENV["PROCONNECT_CLIENT_ID"] ||= "test-client-id"
+  ENV["PROCONNECT_DOMAIN"] ||= "https://proconnect.test"
+  ENV["PROCONNECT_POST_LOGOUT_REDIRECT_URI"] ||= "http://www.example.com/"
 end
