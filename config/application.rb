@@ -26,7 +26,10 @@ module Hubee
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    #
+    # lib/omni_auth contient une stratégie OmniAuth qui rouvre le namespace ::OmniAuth
+    # de la gem — incompatible avec Zeitwerk. On l'ignore et on la `require` à la main.
+    config.autoload_lib(ignore: %w[assets tasks omni_auth])
 
     # Configuration for the application, engines, and railties goes here.
     #

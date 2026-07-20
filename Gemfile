@@ -25,6 +25,11 @@ gem "dsfr-form_builder"
 # omniauth-proconnect).
 gem "json-jwt"
 
+# Authentification ProConnect (OIDC)
+gem "omniauth-proconnect", "~> 0.6"
+# Protège la phase requête OmniAuth (POST obligatoire + jeton CSRF)
+gem "omniauth-rails_csrf_protection"
+
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
