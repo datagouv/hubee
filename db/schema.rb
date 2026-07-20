@@ -10,13 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_16_183502) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_20_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   # Custom types defined in this database.
   # Note that some types may not work with other database engines. Be careful if changing database.
   create_enum "data_package_state", ["draft", "transmitted", "acknowledged"]
+
+  create_table "agents", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.string "amr", default: [], null: false, array: true
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.string "first_name"
+    t.string "last_name"
+    t.string "provider_sub", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider_sub"], name: "index_agents_on_provider_sub", unique: true
+  end
 
   create_table "data_packages", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
     t.datetime "acknowledged_at", precision: nil
