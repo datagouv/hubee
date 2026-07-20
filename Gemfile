@@ -19,6 +19,12 @@ gem "stimulus-rails"
 # Frontend : DSFR (Design System de l'État) via gems — pas de npm (réduction surface supply chain)
 gem "dsfr-assets"
 gem "dsfr-form_builder"
+
+# Vérification JWT/JWKS des jetons ProConnect (id_token) — utilisée directement
+# par Portail::ProConnect::TokenVerifier, déclarée explicitement (tirée aussi par
+# omniauth-proconnect).
+gem "json-jwt"
+
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
