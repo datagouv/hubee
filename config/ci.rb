@@ -19,6 +19,9 @@ CI.run("Hubee CI", "Plateforme SecNumCloud") do
 
     step "Tests: RSpec with Coverage", "env COVERAGE=true bundle exec rspec --format progress"
     step "Tests: E2E", "bundle exec cucumber"
-    step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
+    # On valide que les seeds tournent, puis on recharge le schéma vide pour restaurer
+    # l'invariant « base de test vide » : sinon les données seedées (dont le SIRET DINUM,
+    # aussi codé en dur dans des specs) restent en base et cassent le prochain run local.
+    step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant db:schema:load"
   end
 end
