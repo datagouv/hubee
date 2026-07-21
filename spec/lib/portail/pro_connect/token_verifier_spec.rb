@@ -20,7 +20,7 @@ RSpec.describe Portail::ProConnect::TokenVerifier do
       iss: "https://proconnect.gouv.fr/api/v2",
       aud: "client-abc",
       exp: 5.minutes.from_now.to_i,
-      iat: Time.now.to_i,
+      iat: Time.current.to_i,
       nonce: "nonce-123",
       sub: "sub-xyz",
       amr: ["pwd", "mfa"]
@@ -101,7 +101,7 @@ RSpec.describe Portail::ProConnect::TokenVerifier do
           iss: "https://proconnect.gouv.fr/api/v2",
           aud: "client-abc",
           exp: 5.minutes.from_now.to_i,
-          iat: Time.now.to_i,
+          iat: Time.current.to_i,
           nonce: "nonce-123",
           sub: "sub-xyz",
           amr: ["pwd", "mfa"]
