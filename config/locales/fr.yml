@@ -35,8 +35,6 @@ fr:
         sign_in: S'identifier avec ProConnect
         sign_out: Se déconnecter
         signed_in_as: "Connecté en tant que %{name}"
-    authentication:
-      required: Vous devez être connecté pour accéder à cette page.
     sessions:
       create:
         signed_in: Vous êtes connecté.

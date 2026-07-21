@@ -28,6 +28,10 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
     end
   end
 
+  # Ces specs verrouillent NOTRE côté du contrat : que les blocs lisent bien les clés
+  # de session attendues. Ils n'exercent pas la gem qui les écrit (store_tokens! /
+  # store_new_nonce!) — un renommage côté gem ne serait donc pas capté ici ; ce résiduel
+  # se valide contre l'intégration ProConnect réelle (cf. spec §12).
   describe "#credentials" do
     it "reads the id_token from the gem's session key" do
       expect(strategy).to receive(:session).and_return({"omniauth.pc.id_token" => "the-id-token"})
