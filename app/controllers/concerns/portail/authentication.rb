@@ -19,11 +19,5 @@ module Portail
     def agent_signed_in?
       current_agent.present?
     end
-
-    def authenticate_agent!
-      return if agent_signed_in?
-
-      redirect_to root_path, alert: t("portail.authentication.required")
-    end
   end
 end

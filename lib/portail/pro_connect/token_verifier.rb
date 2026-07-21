@@ -9,8 +9,12 @@ module Portail
     class TokenVerifier
       class InvalidToken < StandardError; end
 
-      def self.call(id_token:, nonce:, audience:, discovery: Discovery.new)
-        new(id_token:, nonce:, audience:, discovery:).call
+      ALLOWED_ALGORITHMS = [:RS256].freeze
+
+      class << self
+        def call(id_token:, nonce:, audience:, discovery: Discovery.new)
+          new(id_token:, nonce:, audience:, discovery:).call
+        end
       end
 
       def initialize(id_token:, nonce:, audience:, discovery:)
@@ -31,7 +35,7 @@ module Portail
       attr_reader :id_token, :nonce, :audience, :discovery
 
       def decode_and_verify_signature
-        JSON::JWT.decode(id_token, discovery.jwks)
+        JSON::JWT.decode(id_token, discovery.jwks, ALLOWED_ALGORITHMS)
       rescue JSON::JWT::Exception => e
         raise InvalidToken, "signature verification failed: #{e.message}"
       end
@@ -39,8 +43,8 @@ module Portail
       def verify_claims!(claims)
         raise InvalidToken, "issuer mismatch" unless claims[:iss] == discovery.issuer
         raise InvalidToken, "audience mismatch" unless Array(claims[:aud]).include?(audience)
-        raise InvalidToken, "token expired" if claims[:exp].to_i <= Time.now.to_i
-        raise InvalidToken, "nonce mismatch" unless claims[:nonce] == nonce
+        raise InvalidToken, "token expired" if claims[:exp].to_i <= Time.current.to_i
+        raise InvalidToken, "nonce mismatch" unless nonce.present? && claims[:nonce] == nonce
       end
     end
   end

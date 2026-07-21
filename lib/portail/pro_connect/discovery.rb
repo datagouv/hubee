@@ -11,6 +11,8 @@ module Portail
     class Discovery
       DISCOVERY_PATH = "/.well-known/openid-configuration"
       CACHE_TTL = 1.hour
+      OPEN_TIMEOUT = 2
+      READ_TIMEOUT = 5
 
       def issuer
         config.fetch("issuer")
@@ -36,7 +38,14 @@ module Portail
       end
 
       def fetch_json(url)
-        JSON.parse(Net::HTTP.get(URI(url)))
+        uri = URI(url)
+        response = Net::HTTP.start(
+          uri.host, uri.port,
+          use_ssl: uri.scheme == "https",
+          open_timeout: OPEN_TIMEOUT,
+          read_timeout: READ_TIMEOUT
+        ) { |http| http.get(uri.request_uri) }
+        JSON.parse(response.body)
       end
     end
   end
