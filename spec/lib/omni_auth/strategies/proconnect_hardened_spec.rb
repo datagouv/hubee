@@ -27,4 +27,20 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
       expect(params["scope"]).to eq("openid given_name usual_name email")
     end
   end
+
+  describe "#credentials" do
+    it "reads the id_token from the gem's session key" do
+      expect(strategy).to receive(:session).and_return({"omniauth.pc.id_token" => "the-id-token"})
+
+      expect(strategy.credentials[:id_token]).to eq("the-id-token")
+    end
+  end
+
+  describe "#extra" do
+    it "reads the nonce from the gem's session key" do
+      expect(strategy).to receive(:session).and_return({"omniauth.nonce" => "the-nonce"})
+
+      expect(strategy.extra[:nonce]).to eq("the-nonce")
+    end
+  end
 end

@@ -94,5 +94,43 @@ RSpec.describe Portail::ProConnect::TokenVerifier do
         expect { result }.to raise_error(described_class::InvalidToken)
       end
     end
+
+    context "when the token is signed with a non-allowed algorithm" do
+      let(:id_token) do
+        claims = {
+          iss: "https://proconnect.gouv.fr/api/v2",
+          aud: "client-abc",
+          exp: 5.minutes.from_now.to_i,
+          iat: Time.now.to_i,
+          nonce: "nonce-123",
+          sub: "sub-xyz",
+          amr: ["pwd", "mfa"]
+        }
+        jwt = JSON::JWT.new(claims)
+        jwt.kid = jwk[:kid]
+        jwt.sign(rsa.to_s, :HS256).to_s
+      end
+
+      it "raises InvalidToken" do
+        expect { result }.to raise_error(described_class::InvalidToken)
+      end
+    end
+
+    context "when the expected nonce is nil" do
+      subject(:result) do
+        described_class.call(
+          id_token: id_token,
+          nonce: nil,
+          audience: "client-abc",
+          discovery: discovery
+        )
+      end
+
+      let(:id_token) { signed_id_token }
+
+      it "raises InvalidToken" do
+        expect { result }.to raise_error(described_class::InvalidToken)
+      end
+    end
   end
 end

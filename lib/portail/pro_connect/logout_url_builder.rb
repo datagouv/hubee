@@ -7,8 +7,10 @@ module Portail
     # se composer avec reset_session (anti-fixation) sans dépendre des clés de
     # session internes de la gem. Miroir de lib/keycloak/logout_url_builder.rb (V1).
     class LogoutUrlBuilder
-      def self.call(id_token:, discovery: Discovery.new)
-        new(id_token:, discovery:).call
+      class << self
+        def call(id_token:, discovery: Discovery.new)
+          new(id_token:, discovery:).call
+        end
       end
 
       def initialize(id_token:, discovery:)
