@@ -32,10 +32,13 @@ fr:
         heading: Portail HubEE
         lead: Espace de gestion réservé aux administrations (accessible après authentification).
         body: Le portail V2 est en cours de construction. Cette page sera remplacée par le tableau de bord une fois l'authentification en place.
-        sign_in: S'identifier avec ProConnect
         sign_out: Se déconnecter
         signed_in_as: "Connecté en tant que %{name}"
     sessions:
+      proconnect_button:
+        label: S'identifier avec ProConnect
+        info: Qu'est-ce que ProConnect ?
+        info_title: Qu'est-ce que ProConnect ? - nouvelle fenêtre
       create:
         signed_in: Vous êtes connecté.
       unknown:
@@ -46,7 +49,6 @@ fr:
         title: Échec de la connexion — HubEE
         heading: La connexion a échoué
         body: Une erreur est survenue pendant l'authentification. Aucune session n'a été ouverte. Vous pouvez réessayer.
-        retry: Réessayer de se connecter
     errors:
       back_home: Retour à l'accueil
       not_found:
