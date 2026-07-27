@@ -4,6 +4,6 @@
   <div class="fr-col-12 fr-col-md-8">
     <h1><%= t("portail.sessions.failure.heading") %></h1>
     <p class="fr-text--lead"><%= t("portail.sessions.failure.body") %></p>
-    <%= button_to t("portail.sessions.failure.retry"), "/auth/proconnect", class: "fr-btn", data: {turbo: false} %>
+    <%= render "portail/sessions/proconnect_button" %>
   </div>
 </div>

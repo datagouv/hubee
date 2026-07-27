@@ -10,8 +10,7 @@
       <%= button_to t(".sign_out"), logout_path, method: :delete, class: "fr-btn fr-btn--secondary" %>
     <% else %>
       <p><%= t(".body") %></p>
-      <%# Phase requête OmniAuth : POST protégé CSRF (omniauth-rails_csrf_protection). %>
-      <%= button_to t(".sign_in"), "/auth/proconnect", class: "fr-btn", data: {turbo: false} %>
+      <%= render "portail/sessions/proconnect_button" %>
     <% end %>
   </div>
 </div>

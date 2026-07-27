@@ -1,0 +1,14 @@
+<%# locals: () %>
+<%# Bouton officiel ProConnect (markup imposé, cf. doc partenaires ProConnect). %>
+<%# Phase requête OmniAuth : POST protégé CSRF (omniauth-rails_csrf_protection). %>
+<div>
+  <%= button_to "/auth/proconnect", class: "proconnect-button", form: {data: {turbo: false}} do %>
+    <span class="proconnect-sr-only"><%= t("portail.sessions.proconnect_button.label") %></span>
+  <% end %>
+  <p>
+    <%= link_to t("portail.sessions.proconnect_button.info"),
+          "https://www.proconnect.gouv.fr/",
+          target: "_blank", rel: "noopener noreferrer",
+          title: t("portail.sessions.proconnect_button.info_title") %>
+  </p>
+</div>
