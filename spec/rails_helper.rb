@@ -4,10 +4,9 @@
 if ENV.fetch("COVERAGE", "false") == "true"
   require "simplecov"
   SimpleCov.start "rails" do
-    add_filter "/vendor/"
-    add_filter "/spec/"
-    add_filter "/config/"
-    add_filter "/app/controllers/api/"
+    # L'API V2 est gelée : hors périmètre de couverture (cf. CLAUDE.md).
+    # Les filtres spec/, config/, db/ sont déjà fournis par le profil "rails".
+    skip "/app/controllers/api/"
     minimum_coverage 90
   end
 end
