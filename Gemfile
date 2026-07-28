@@ -46,7 +46,7 @@ gem "sentry-rails"
 # sécurité). Conséquence : la gem n'est pas auto-requise par Bundler.require ; la requérir
 # explicitement à l'endroit qui la consomme.
 group :hub_api_v1 do
-  gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "1.1.1", require: "hub_api_v1"
+  gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "1.1.2", require: "hub_api_v1"
 end
 
 # Logs structurés (format logfmt conseillé par le CSIRT), remplace le logger Rails
