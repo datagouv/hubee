@@ -13,7 +13,7 @@ set -euo pipefail
 # l'exécution de mise.toml malveillants). Trust idempotent au démarrage VM.
 mise trust
 
-# Ruby 4.0.5 (lu depuis .mise.toml) + autres outils déclarés
+# Ruby (lu depuis .mise.toml) + autres outils déclarés
 mise install
 
 # Gems Ruby — via `mise exec` car le PATH du shell n'est pas réactivé

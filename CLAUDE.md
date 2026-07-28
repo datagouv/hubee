@@ -4,7 +4,7 @@
 
 **Hubee V2** est une plateforme d'échange sécurisé de fichiers gouvernementaux (SecNumCloud, RGS niveau élevé). Elle permet à des administrations productrices de transmettre des fichiers à des administrations consommatrices via des flux récurrents (*data streams*) et des abonnements (*subscriptions*).
 
-Stack : Rails 8.1 · Ruby 4.0.5 · PostgreSQL 18 · Solid Queue · Active Storage (S3 chiffré)
+Stack : Rails 8.1 · Ruby 4.0 · PostgreSQL 18 · Solid Queue · Active Storage (S3 chiffré)
 
 ## Gel de l'API V2
 

@@ -10,7 +10,7 @@ Plateforme d'échange sécurisé de fichiers gouvernementaux (SecNumCloud, RGS n
 
 ## 📋 Prérequis
 
-- Ruby 4.0.5
+- Ruby 4.0
 - PostgreSQL 18+ (requis pour `uuidv7()` natif — RFC 9562)
 - Bundler 2.7+
 
