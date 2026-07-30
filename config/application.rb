@@ -36,6 +36,11 @@ module Hubee
     config.time_zone = "Paris"
     config.i18n.default_locale = :fr
 
+    # Aucune variante d'image n'est générée : les fichiers échangés sont des documents,
+    # jamais des images redimensionnées. Désactiver le processeur retire de la surface
+    # d'attaque tout le traitement de variantes (cf. CVE-2026-66066).
+    config.active_storage.variant_processor = :disabled
+
     # DSFR comme form builder par défaut (toutes les formes utilisent les helpers DSFR)
     config.action_view.default_form_builder = "Dsfr::FormBuilder"
 
