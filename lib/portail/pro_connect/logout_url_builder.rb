@@ -5,7 +5,7 @@ module Portail
     # Construit l'URL end_session ProConnect (RP-initiated logout / SLO).
     # On la construit nous-mêmes plutôt que via le other_phase de la gem, pour
     # se composer avec reset_session (anti-fixation) sans dépendre des clés de
-    # session internes de la gem. Miroir de lib/keycloak/logout_url_builder.rb (V1).
+    # session internes de la gem.
     class LogoutUrlBuilder
       class << self
         def call(id_token:, discovery: Discovery.new)
