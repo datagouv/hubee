@@ -14,7 +14,7 @@ jobs:
     env:
       PR_NUMBER: ${{ github.event.number }}
       REVIEW_DOMAIN: review.recette.hubee.data.gouv.fr
-      SSH_DOKKU: "ssh dokku@${DOKKU_HOST}"
+      SSH_DOKKU: "ssh dokku@${{ secrets.DOKKU_HOST }}"
       DOKKU_APP: hubee
     steps:
       - name: Checkout
