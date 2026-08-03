@@ -34,7 +34,9 @@ jobs:
           echo "=== Setting config ==="
             $SSH_DOKKU -- apps:exists $DOKKU_APP 2>/dev/null || $SSH_DOKKU -- apps:create $DOKKU_APP
             $SSH_DOKKU -- config:clear "$DOKKU_APP"
-            $SSH_DOKKU -- docker-options:add hubee build '--build-arg BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR=oauth2:"${{ secrets.DOKKU_GITLAB_TOKEN }}"'
+            $SSH_DOKKU -- docker-options:clear "$DOKKU_APP"
+            $SSH_DOKKU -- docker-options:add hubee build \
+              '--build-arg BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR=oauth2:"${{ secrets.DOKKU_GITLAB_TOKEN }}"'
             $SSH_DOKKU -- config:set --no-restart "$DOKKU_APP" \
               DATABASE_URL="${{ secrets.DOKKU_DATABASE_URL }}?search_path=pr_${PR_NUMBER}" \
               DATABASE_PASSWORD="${{ secrets.DOKKU_DATABASE_PASSWORD }}" \
