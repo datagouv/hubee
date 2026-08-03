@@ -49,5 +49,6 @@ jobs:
           $SSH_DOKKU -- letsencrypt:enable "$DOKKU_APP" || true
 
           echo "=== Push on dokku ==="
-          git remote add dokku dokku@${{ secrets.DOKKU_HOST }}:50022/pr${{ github.event.number }}
+          #git remote add dokku dokku@${{ secrets.DOKKU_HOST }}:50022/pr${{ github.event.number }}
+          git remote add dokku ssh://dokku@${{ secrets.DOKKU_HOST }}:50022/pr${{ github.event.number }}
           git push dokku HEAD:main --force
