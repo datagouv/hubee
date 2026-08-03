@@ -107,6 +107,17 @@ RSpec.describe "Portail::Sessions", type: :request do
 
       expect(Capybara.string(response.body)).to have_css("form[action='/logout'][data-turbo='false']")
     end
+
+    it "closes access on the next request when the membership is revoked" do
+      agent = create(:agent, provider_sub: "sub-known")
+      sign_in_via_proconnect(agent:)
+
+      agent.memberships.destroy_all
+      get root_path
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_button("S'identifier avec ProConnect")
+    end
   end
 
   describe "DELETE /logout" do
