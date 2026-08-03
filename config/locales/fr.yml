@@ -45,6 +45,9 @@ fr:
         title: Compte non reconnu — HubEE
         heading: Vous êtes authentifié, mais votre compte n'est pas reconnu
         body: Votre identité a bien été vérifiée par ProConnect, mais aucun compte HubEE ne lui est associé. Aucun compte n'a été créé. Rapprochez-vous de votre administration pour être enrôlé.
+        authenticated_with: "Vous vous êtes authentifié avec l'adresse %{email}."
+        switch_account_hint: Si votre compte HubEE utilise une autre adresse, vous pouvez réessayer avec celle-ci. Vous serez d'abord déconnecté de ProConnect.
+        switch_account: Essayer avec un autre compte
       failure:
         title: Échec de la connexion — HubEE
         heading: La connexion a échoué

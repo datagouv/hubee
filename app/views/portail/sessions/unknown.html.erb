@@ -4,6 +4,10 @@
   <div class="fr-col-12 fr-col-md-8">
     <h1><%= t("portail.sessions.unknown.heading") %></h1>
     <p class="fr-text--lead"><%= t("portail.sessions.unknown.body") %></p>
+    <p><%= t("portail.sessions.unknown.authenticated_with", email: @authenticated_email) %></p>
+    <p><%= t("portail.sessions.unknown.switch_account_hint") %></p>
+    <%# Lien externe (end_session ProConnect) : Turbo n'intercepte pas le cross-origin. %>
+    <%= link_to t("portail.sessions.unknown.switch_account"), @switch_account_url, class: "fr-btn" %>
     <%= link_to t("portail.errors.back_home"), root_path, class: "fr-btn fr-btn--secondary" %>
   </div>
 </div>

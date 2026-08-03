@@ -19,6 +19,17 @@ RSpec.describe "Portail::Sessions", type: :request do
     end
 
     context "when the agent is authenticated but unknown to the portal" do
+      let(:switch_account_url) { "https://proconnect.test/session/end?id_token_hint=test-id-token" }
+
+      # La page de refus construit l'URL de déconnexion ProConnect : les deux exemples
+      # passent donc par LogoutUrlBuilder. On le court-circuite ici — la découverte OIDC
+      # qu'il déclenche est testée en propre dans discovery_spec.rb.
+      before do
+        expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
+          .with(id_token: "test-id-token")
+          .and_return(switch_account_url)
+      end
+
       it "refuses access, creates nothing, and explains the situation" do
         mock_proconnect(sub: "sub-unknown")
 
@@ -28,6 +39,18 @@ RSpec.describe "Portail::Sessions", type: :request do
 
         expect(response).to have_http_status(:forbidden)
         expect(Capybara.string(response.body)).to have_text("votre compte n'est pas reconnu")
+      end
+
+      # Sa session ProConnect reste ouverte : sans ce lien, recliquer sur le bouton le
+      # réauthentifierait à l'identique et il resterait bloqué sur cette page.
+      it "shows the address used and offers to retry with another account" do
+        mock_proconnect(sub: "sub-unknown", email: "alex@example.gouv.fr")
+
+        get "/auth/proconnect/callback"
+
+        page = Capybara.string(response.body)
+        expect(page).to have_text("alex@example.gouv.fr")
+        expect(page).to have_link("Essayer avec un autre compte", href: switch_account_url)
       end
     end
 
