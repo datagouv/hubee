@@ -5,18 +5,23 @@
 # dans spec/lib/portail/pro_connect/token_verifier_spec.rb (frontière : les request
 # specs valident l'orchestration/UX, pas la crypto).
 module ProConnectTestHelper
-  def mock_proconnect(sub:, email: "agent@example.gouv.fr", first_name: "Alex", last_name: "Martin", amr: ["mfa"])
+  # Jamais le SIRET des seeds (13002526500013) : collision connue avec des specs de l'API.
+  # Hors de la plage générée par la factory organization_link, pour éviter tout doublon.
+  TEST_SIRET = "99999999911111"
+
+  def mock_proconnect(sub:, email: "agent@example.gouv.fr", first_name: "Alex", last_name: "Martin",
+    amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET)
     OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
       provider: "proconnect",
       uid: sub,
       info: {email:, first_name:, last_name:},
       credentials: {id_token: "test-id-token"},
-      extra: {nonce: "test-nonce"}
+      extra: {nonce: "test-nonce", raw_info: {"siret" => siret}}
     )
     # TokenVerifier renvoie l'identité vérifiée à partir de l'id_token.
     # expect (pas allow) : le callback DÉCLENCHE réellement cet appel une fois — la règle
     # « expect jamais allow » (rspec-conventions) s'applique, l'appel a bien lieu.
-    expect(Portail::ProConnect::TokenVerifier).to receive(:call).and_return(sub:, amr:)
+    expect(Portail::ProConnect::TokenVerifier).to receive(:call).and_return(sub:, amr:, acr:)
   end
 
   def sign_in_via_proconnect(agent:, amr: ["mfa"])

@@ -6,7 +6,8 @@ module Portail
       result = Portail::Sessions::Create.call(
         id_token: auth_hash.credentials.id_token,
         nonce: auth_hash.extra.nonce,
-        info: auth_hash.info
+        info: auth_hash.info,
+        siret: auth_hash.extra.raw_info&.dig("siret")
       )
 
       if result.success?

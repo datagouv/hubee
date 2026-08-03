@@ -37,7 +37,7 @@ module Portail
       def call
         claims = decode_and_verify_signature
         verify_claims!(claims)
-        {sub: claims[:sub], amr: Array(claims[:amr])}
+        {sub: claims[:sub], amr: Array(claims[:amr]), acr: claims[:acr]}
       end
 
       private
