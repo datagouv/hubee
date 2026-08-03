@@ -36,7 +36,7 @@ COPY Gemfile Gemfile.lock vendor ./
 
 # Bundler credentials for the private GitLab gem source (hub-api-v1 client)
 ARG BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR
-RUN echo "creds=${BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR:0:12}"
+RUN echo "creds=$(printf '%s' "$BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR" | cut -c1-12)"
 RUN bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     # -j 1 disable parallel compilation to avoid a QEMU bug: https://github.com/rails/bootsnap/issues/495
