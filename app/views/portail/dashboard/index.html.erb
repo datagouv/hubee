@@ -7,7 +7,10 @@
 
     <% if agent_signed_in? %>
       <p><%= t(".signed_in_as", name: current_agent.first_name) %></p>
-      <%= button_to t(".sign_out"), logout_path, method: :delete, class: "fr-btn fr-btn--secondary" %>
+      <%# Déconnexion : redirection cross-origin vers ProConnect (SLO), que Turbo ne
+          sait pas rendre — il laisserait la page inchangée. Hors Turbo, donc. %>
+      <%= button_to t(".sign_out"), logout_path, method: :delete, class: "fr-btn fr-btn--secondary",
+            form: {data: {turbo: false}} %>
     <% else %>
       <p><%= t(".body") %></p>
       <%= render "portail/sessions/proconnect_button" %>

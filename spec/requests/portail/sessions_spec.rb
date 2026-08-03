@@ -56,6 +56,21 @@ RSpec.describe "Portail::Sessions", type: :request do
     end
   end
 
+  describe "the signed-in dashboard" do
+    # La déconnexion redirige vers ProConnect (cross-origin). Turbo ne sait pas rendre
+    # une telle redirection et laisse la page inchangée : la session est bien détruite
+    # côté serveur, mais le bouton de connexion ne réapparaît pas. Le formulaire doit
+    # donc sortir de Turbo, comme celui de connexion.
+    it "renders a logout form that bypasses Turbo" do
+      agent = create(:agent, provider_sub: "sub-known")
+      sign_in_via_proconnect(agent:)
+
+      get root_path
+
+      expect(Capybara.string(response.body)).to have_css("form[action='/logout'][data-turbo='false']")
+    end
+  end
+
   describe "DELETE /logout" do
     it "clears the session and redirects to the ProConnect end_session URL" do
       agent = create(:agent, provider_sub: "sub-known")
