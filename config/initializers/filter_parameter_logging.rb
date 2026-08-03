@@ -6,3 +6,14 @@
 Rails.application.config.filter_parameters += [
   :passw, :email, :secret, :token, :_key, :crypt, :salt, :certificate, :otp, :ssn, :cvv, :cvc
 ]
+
+# Ajouts propres à HubEE :
+#
+#   code          le code d'autorisation OAuth, échangeable contre des jetons. Il
+#                 transite dans l'URL de callback ProConnect et se retrouvait en clair
+#                 dans les journaux.
+#   provider_sub  l'identifiant pseudonyme de l'agent chez ProConnect : donnée
+#                 personnelle, stable dans le temps.
+#
+# La correspondance est partielle : `code` masquerait aussi un futur `postal_code`.
+Rails.application.config.filter_parameters += [:code, :provider_sub]
