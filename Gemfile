@@ -102,6 +102,8 @@ group :development, :test do
 
   # Fake data generation [https://github.com/faker-ruby/faker]
   gem "faker"
+
+  gem "dotenv"
 end
 
 group :test do

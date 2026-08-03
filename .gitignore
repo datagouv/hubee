@@ -8,7 +8,10 @@
 /.bundle
 
 # Ignore all environment files.
+# Exception : le gabarit .env.example est versionné (valeurs vides uniquement).
 /.env*
+!/.env.example
+!/.env.test
 
 # Ignore all logfiles and tempfiles.
 /log/*
