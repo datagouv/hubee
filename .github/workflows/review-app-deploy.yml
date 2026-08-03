@@ -24,6 +24,8 @@ jobs:
 
       - name: Deploy hubee portail on dokku
         run: |
+          set -euo pipefail
+          set -x
           mkdir -p ~/.ssh
           echo "${{ secrets.DOKKU_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
@@ -31,8 +33,8 @@ jobs:
           git config --global --add safe.directory "$PWD"
           echo "=== Setting config ==="
             $SSH_DOKKU -- apps:exists $DOKKU_APP 2>/dev/null || $SSH_DOKKU -- apps:create $DOKKU_APP
-            $SSH_DOKKU -- config:clear "$DOKKU_APP" \
-            $SSH_DOKKU -- docker-options:add hubee build '--build-arg BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR=oauth2:"${{ secrets.DOKKU_GITLAB_TOKEN }}"' \
+            $SSH_DOKKU -- config:clear "$DOKKU_APP"
+            $SSH_DOKKU -- docker-options:add hubee build '--build-arg BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR=oauth2:"${{ secrets.DOKKU_GITLAB_TOKEN }}"'
             $SSH_DOKKU -- config:set --no-restart "$DOKKU_APP" \
               DATABASE_URL="${{ secrets.DOKKU_DATABASE_URL }}?search_path=pr_${PR_NUMBER}" \
               DATABASE_PASSWORD="${{ secrets.DOKKU_DATABASE_PASSWORD }}" \
@@ -40,7 +42,7 @@ jobs:
               DATABASE_USERNAME="${{ secrets.DOKKU_DATABASE_USERNAME }}" \
               RAILS_MAX_THREADS="${{ secrets.DOKKU_RAILS_MAX_THREADS }}" \
               SECRET_KEY_BASE="${{ secrets.DOKKU_SECRET_KEY_BASE }}" \
-              SOLID_QUEUE_IN_PUMA="${{ secrets.DOKKU_SOLID_QUEUE_IN_PUMA }}" \
+              SOLID_QUEUE_IN_PUMA="${{ secrets.DOKKU_SOLID_QUEUE_IN_PUMA }}"
 
           echo "=== Setting domain ==="
           $SSH_DOKKU -- domains:add "$DOKKU_APP" "pr${PR_NUMBER}.${REVIEW_DOMAIN}"
