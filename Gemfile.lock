@@ -154,6 +154,7 @@ GEM
       irb (~> 1.10)
       reline (>= 0.3.8)
     diff-lcs (1.6.2)
+    dotenv (3.2.0)
     drb (2.2.3)
     dsfr-assets (1.15.1)
     dsfr-form_builder (0.0.14)
@@ -505,6 +506,7 @@ DEPENDENCIES
   cucumber-rails
   database_cleaner-active_record
   debug
+  dotenv
   dsfr-assets
   dsfr-form_builder
   factory_bot_rails
