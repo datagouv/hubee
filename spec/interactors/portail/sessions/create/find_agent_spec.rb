@@ -49,6 +49,27 @@ RSpec.describe Portail::Sessions::Create::FindAgent do
     end
   end
 
+  # Le cas nominal de l'enrôlement : l'agent existe, il n'a jamais ouvert de session.
+  context "when the enrolled agent has no sub yet" do
+    it "binds the sub on this first login" do
+      agent = create(:agent, provider_sub: nil, email: "new@example.gouv.fr")
+
+      expect(result).to be_success
+      expect(result.agent).to eq(agent)
+      expect(agent.reload.provider_sub).to eq("sub-xyz")
+    end
+  end
+
+  # Les fournisseurs d'identité ne garantissent pas la casse de l'adresse.
+  context "when the email differs only by case" do
+    it "recognises the agent" do
+      agent = create(:agent, provider_sub: "sub-other", email: "New@Example.Gouv.FR")
+
+      expect(result).to be_success
+      expect(result.agent).to eq(agent)
+    end
+  end
+
   context "when neither the sub nor the email is known" do
     it "fails with unknown_agent and creates nothing" do
       expect { result }.not_to change(Agent, :count)

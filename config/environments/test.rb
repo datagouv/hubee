@@ -64,4 +64,8 @@ Rails.application.configure do
   # Même tag nommé qu'en production, pour que spec/requests/hubee/logging_spec.rb
   # puisse exercer le request_id sur une vraie requête plutôt que de le supposer.
   config.log_tags = {request_id: :request_id}
+
+  # Une clé manquante rend « translation missing » dans la page au lieu d'échouer : un
+  # écran de refus sans ses traductions passerait la CI. Ici, il casse le spec.
+  config.i18n.raise_on_missing_translations = true
 end

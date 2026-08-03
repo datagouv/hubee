@@ -60,15 +60,19 @@ module Portail
         nil
       end
 
-      # La signature prouve que ProConnect a bien émis ce jeton — rien de plus. Quatre
+      # La signature prouve que ProConnect a bien émis ce jeton — rien de plus. Cinq
       # champs restent à contrôler :
       #
+      #   sub   l'identité est présente. Sans ce garde-fou, un `sub` nul se comporterait
+      #         en joker : la recherche par sub matcherait le premier agent enrôlé pas
+      #         encore rattaché
       #   iss   l'émetteur est bien ProConnect, et pas un autre fournisseur d'identité
       #   aud   le jeton nous était destiné, pas à un autre service branché sur ProConnect
       #   exp   il n'a pas expiré
       #   nonce il répond à la demande que nous venons d'émettre, et non à une ancienne
       #         interceptée puis rejouée
       def verify_claims!(claims)
+        raise InvalidToken, "missing subject" if claims[:sub].blank?
         raise InvalidToken, "issuer mismatch" unless claims[:iss] == discovery.issuer
         raise InvalidToken, "audience mismatch" unless Array(claims[:aud]).include?(audience)
         raise InvalidToken, "token expired" if claims[:exp].to_i <= Time.current.to_i

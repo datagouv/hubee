@@ -46,9 +46,9 @@ module Portail
     # auto-porté et ne peut pas être révoqué côté serveur. Retirer un rattachement ferme
     # donc l'accès dès la requête suivante.
     def current_membership
-      return unless session[:membership_id]
+      return @current_membership if defined?(@current_membership)
 
-      @current_membership ||= Membership.find_by(id: session[:membership_id])
+      @current_membership = session[:membership_id] && Membership.find_by(id: session[:membership_id])
     end
 
     def current_organization_link

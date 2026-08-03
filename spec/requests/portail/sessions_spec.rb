@@ -69,6 +69,35 @@ RSpec.describe "Portail::Sessions", type: :request do
       end
     end
 
+    context "when the agent is attached to another organisation" do
+      it "refuses access and explains why" do
+        agent = create(:agent, provider_sub: "sub-known")
+        create(:membership, agent:, organization_link: create(:organization_link))
+        expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
+          .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
+        mock_proconnect(sub: "sub-known", email: agent.email)
+
+        get "/auth/proconnect/callback"
+
+        expect(response).to have_http_status(:forbidden)
+        expect(Capybara.string(response.body)).to have_text("aucune organisation")
+      end
+    end
+
+    context "when the sub is known but the email does not match" do
+      it "refuses access and explains why" do
+        create(:agent, provider_sub: "sub-known", email: "enrolled@example.gouv.fr")
+        expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
+          .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
+        mock_proconnect(sub: "sub-known", email: "other@example.gouv.fr")
+
+        get "/auth/proconnect/callback"
+
+        expect(response).to have_http_status(:forbidden)
+        expect(Capybara.string(response.body)).to have_text("ne correspond pas à votre compte")
+      end
+    end
+
     context "when token verification fails" do
       it "redirects to the failure page without opening a session" do
         OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(

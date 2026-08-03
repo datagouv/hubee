@@ -9,7 +9,9 @@ module Portail
         # Une connexion ProConnect ne crée JAMAIS de compte : agent inconnu → échec,
         # aucune écriture.
         def call
-          email = context.info[:email]
+          # Normalisée comme à l'écriture, sinon la recherche et la comparaison ci-dessous
+          # échoueraient sur une simple différence de casse.
+          email = Agent.normalize_value_for(:email, context.info[:email])
           sub = context.claims[:sub]
 
           # Le `sub` identifie l'agent une fois rattaché. L'adresse ne sert qu'au tout

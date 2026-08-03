@@ -72,6 +72,15 @@ RSpec.describe Portail::ProConnect::TokenVerifier do
       end
     end
 
+    # Un sub nul se comporterait en joker côté résolution de l'agent.
+    context "when the subject is missing" do
+      let(:id_token) { signed_id_token(sub: nil) }
+
+      it "raises InvalidToken" do
+        expect { result }.to raise_error(described_class::InvalidToken)
+      end
+    end
+
     context "when the issuer does not match" do
       let(:id_token) { signed_id_token(iss: "https://evil.example") }
 
