@@ -9,7 +9,7 @@ Rails.application.config.middleware.use OmniAuth::Builder do
     proconnect_domain: ENV["PROCONNECT_DOMAIN"],
     redirect_uri: ENV["PROCONNECT_REDIRECT_URI"],
     post_logout_redirect_uri: ENV["PROCONNECT_POST_LOGOUT_REDIRECT_URI"],
-    scope: "openid given_name usual_name email"
+    scope: "openid given_name usual_name email siret"
 end
 
 OmniAuth.config.logger = Rails.logger
