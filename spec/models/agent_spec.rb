@@ -10,4 +10,11 @@ RSpec.describe Agent, type: :model do
     it { is_expected.to validate_uniqueness_of(:provider_sub) }
     it { is_expected.to validate_presence_of(:email) }
   end
+
+  describe "associations" do
+    subject { build(:agent) }
+
+    it { is_expected.to have_many(:memberships) }
+    it { is_expected.to have_many(:organization_links).through(:memberships) }
+  end
 end

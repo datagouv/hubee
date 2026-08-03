@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_03_120100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -55,6 +55,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_090000) do
     t.index ["owner_organization_id"], name: "index_data_streams_on_owner_organization_id"
   end
 
+  create_table "memberships", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.uuid "agent_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "organization_link_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_id", "organization_link_id"], name: "index_memberships_on_agent_id_and_organization_link_id", unique: true
+    t.index ["agent_id"], name: "index_memberships_on_agent_id"
+    t.index ["organization_link_id"], name: "index_memberships_on_organization_link_id"
+  end
+
   create_table "notifications", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
     t.datetime "acknowledged_at", precision: nil
     t.datetime "created_at", null: false
@@ -65,6 +75,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_090000) do
     t.index ["data_package_id", "subscription_id"], name: "index_notifications_on_data_package_id_and_subscription_id", unique: true
     t.index ["data_package_id"], name: "index_notifications_on_data_package_id"
     t.index ["subscription_id"], name: "index_notifications_on_subscription_id"
+  end
+
+  create_table "organization_links", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "siret", null: false
+    t.datetime "updated_at", null: false
+    t.index ["siret"], name: "index_organization_links_on_siret", unique: true
   end
 
   create_table "organizations", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
@@ -90,6 +107,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_090000) do
   add_foreign_key "data_packages", "data_streams", on_delete: :restrict
   add_foreign_key "data_packages", "organizations", column: "sender_organization_id"
   add_foreign_key "data_streams", "organizations", column: "owner_organization_id"
+  add_foreign_key "memberships", "agents"
+  add_foreign_key "memberships", "organization_links"
   add_foreign_key "notifications", "data_packages", on_delete: :cascade
   add_foreign_key "notifications", "subscriptions", on_delete: :restrict
   add_foreign_key "subscriptions", "data_streams", on_delete: :cascade
