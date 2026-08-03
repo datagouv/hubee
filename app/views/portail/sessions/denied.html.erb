@@ -1,0 +1,14 @@
+<% content_for :title, t("portail.sessions.denied.title") %>
+
+<div class="fr-grid-row fr-grid-row--center">
+  <div class="fr-col-12 fr-col-md-8">
+    <h1><%= t("portail.sessions.denied.#{@denial_reason}.heading") %></h1>
+    <p class="fr-text--lead"><%= t("portail.sessions.denied.#{@denial_reason}.body") %></p>
+    <p><%= t("portail.sessions.denied.authenticated_with", email: @authenticated_email) %></p>
+    <p><%= t("portail.sessions.denied.support", email: "support@hubee.numerique.gouv.fr") %></p>
+    <p><%= t("portail.sessions.denied.switch_account_hint") %></p>
+    <%# Lien externe (end_session ProConnect) : Turbo n'intercepte pas le cross-origin. %>
+    <%= link_to t("portail.sessions.denied.switch_account"), @switch_account_url, class: "fr-btn" %>
+    <%= link_to t("portail.errors.back_home"), root_path, class: "fr-btn fr-btn--secondary" %>
+  </div>
+</div>

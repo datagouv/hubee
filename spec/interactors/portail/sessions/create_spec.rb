@@ -20,10 +20,10 @@ RSpec.describe Portail::Sessions::Create do
   end
 
   context "when the token is valid and the agent is known" do
-    it "verifies the token then resolves the agent by sub" do
+    it "verifies the token, checks the authentication level, then resolves the agent by sub" do
       create(:agent, provider_sub: "sub-xyz")
       expect(Portail::ProConnect::TokenVerifier).to receive(:call)
-        .and_return(sub: "sub-xyz", amr: ["mfa"])
+        .and_return(sub: "sub-xyz", amr: ["mfa"], acr: "eidas1")
 
       expect(result).to be_success
       expect(result.agent.provider_sub).to eq("sub-xyz")
