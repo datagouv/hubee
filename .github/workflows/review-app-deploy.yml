@@ -14,6 +14,8 @@ jobs:
     env:
       PR_NUMBER: ${{ github.event.number }}
       REVIEW_DOMAIN: portail.recette.hubee.data.gouv.fr
+      SSH_DOKKU: "ssh dokku@${DOKKU_HOST}"
+      DOKKU_APP: hubee
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -28,9 +30,10 @@ jobs:
           ssh-keyscan -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
           git config --global --add safe.directory "$PWD"
           echo "=== Setting config ==="
-            dokku config:clear "$APP" \
-            dokku docker-options:add hubee build '--build-arg BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR=oauth2:"${{ secrets.DOKKU_GITLAB_TOKEN }}"' \
-            dokku config:set --no-restart "$APP" \
+            SSH_DOKKU -- apps:exists $DOKKU_APP 2>/dev/null || $SSH_DOKKU -- apps:create $DOKKU_APP
+            $SSH_DOKKU -- config:clear "$APP" \
+            $SSH_DOKKU -- docker-options:add hubee build '--build-arg BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR=oauth2:"${{ secrets.DOKKU_GITLAB_TOKEN }}"' \
+            $SSH_DOKKU -- config:set --no-restart "$APP" \
               DATABASE_URL="${{ secrets.DOKKU_DATABASE_URL }}?search_path=pr_${PR_NUMBER}" \
               DATABASE_PASSWORD="${{ secrets.DOKKU_DATABASE_PASSWORD }}" \
               DATABSE_PORT="${{ secrets.DOKKU_DATABASE_PORT }}" \
@@ -40,8 +43,8 @@ jobs:
               SOLID_QUEUE_IN_PUMA="${{ secrets.DOKKU_SOLID_QUEUE_IN_PUMA }}" \
 
           echo "=== Setting domain ==="
-          dokku domains:add "$APP" "pr${PR_NUMBER}.${REVIEW_DOMAIN}"
-          dokku letsencrypt:enable "$APP" || true
+          $SSH_DOKKU -- domains:add "$APP" "pr${PR_NUMBER}.${REVIEW_DOMAIN}"
+          $SSH_DOKKU -- letsencrypt:enable "$APP" || true
 
           echo "=== Push on dokku ==="
           git remote add dokku dokku@${{ secrets.DOKKU_HOST }}:pr${{ github.event.number }}
