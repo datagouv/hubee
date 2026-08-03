@@ -85,6 +85,9 @@ RSpec.configure do |config|
 
   # FactoryBot configuration
   config.include FactoryBot::Syntax::Methods
+
+  # travel / travel_to, pour éprouver les bornes de session
+  config.include ActiveSupport::Testing::TimeHelpers
 end
 
 # Shoulda Matchers configuration
