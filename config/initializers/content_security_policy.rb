@@ -1,6 +1,6 @@
 # Be sure to restart your server when you modify this file.
 
-# Politique CSP minimale (defense-in-depth, ticket #509).
+# Politique CSP minimale (defense-in-depth).
 # Dérivée du stack V2 (importmap + DSFR), pas recopiée du code V1 :
 # - script-src : 'self' + nonce → importmap-rails pose le nonce automatiquement
 #   sur ses balises ; pas de 'unsafe-inline' JS.

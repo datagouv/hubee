@@ -40,7 +40,7 @@ Rails.application.routes.draw do
   #   end
   # end
 
-  # Authentification ProConnect (socle #616)
+  # Authentification ProConnect
   # La phase requête POST /auth/proconnect est interceptée par le middleware OmniAuth.
   get "auth/proconnect/callback", to: "portail/sessions#create"
   get "auth/failure", to: "portail/sessions#failure", as: :auth_failure
