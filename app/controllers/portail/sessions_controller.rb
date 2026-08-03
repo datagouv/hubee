@@ -11,7 +11,7 @@ module Portail
       )
 
       if result.success?
-        start_agent_session!(result.agent, auth_hash.credentials.id_token)
+        start_agent_session!(result.membership, auth_hash.credentials.id_token)
         redirect_to root_path, notice: t(".signed_in")
       elsif result.error == :invalid_token
         redirect_to auth_failure_path
@@ -56,9 +56,9 @@ module Portail
     end
 
     # reset_session AVANT de poser l'identité : protection contre la session fixation.
-    def start_agent_session!(agent, id_token)
+    def start_agent_session!(membership, id_token)
       reset_session
-      session[:agent_id] = agent.id
+      session[:membership_id] = membership.id
       session[:proconnect_id_token] = id_token
     end
   end
