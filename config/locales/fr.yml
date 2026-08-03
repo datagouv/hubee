@@ -53,6 +53,9 @@ fr:
         insufficient_authentication_level:
           heading: Votre méthode de connexion ne permet pas d'accéder au portail
           body: HubEE exige que votre organisation soit attestée par votre fournisseur d'identité. La connexion que vous venez d'utiliser ne l'atteste pas.
+        organization_mismatch:
+          heading: Vous n'êtes rattaché à aucune organisation sur ce portail
+          body: Votre identité a bien été vérifiée, mais aucun rattachement ne vous autorise à entrer dans HubEE au titre de l'organisation avec laquelle vous vous êtes connecté. Rapprochez-vous de votre administration.
         email_mismatch:
           heading: Votre adresse de connexion ne correspond pas à votre compte
           body: Le compte ProConnect que vous venez d'utiliser est bien connu du portail, mais l'adresse électronique qui lui est associée a changé. Par précaution, l'accès est suspendu le temps que votre administration mette votre compte à jour.
