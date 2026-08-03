@@ -29,7 +29,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DOKKU_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p 50022 -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
           git config --global --add safe.directory "$PWD"
           echo "=== Setting config ==="
             $SSH_DOKKU -- apps:exists $DOKKU_APP 2>/dev/null || $SSH_DOKKU -- apps:create $DOKKU_APP
