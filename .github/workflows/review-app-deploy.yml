@@ -1,0 +1,48 @@
+name: Review App Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  deploy:
+    name: Deploy review app
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      PR_NUMBER: ${{ github.event.number }}
+      REVIEW_DOMAIN: portail.recette.hubee.data.gouv.fr
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Deploy hubee portail on dokku
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DOKKU_SSH_KEY }}" > ~/.ssh/dokku_key
+          chmod 600 ~/.ssh/dokku_key
+          ssh-keyscan -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
+          git config --global --add safe.directory "$PWD"
+          echo "=== Setting config ==="
+            dokku config:clear "$APP" \
+            dokku docker-options:add hubee build '--build-arg BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR=oauth2:"${{ secrets.DOKKU_GITLAB_TOKEN }}"' \
+            dokku config:set --no-restart "$APP" \
+              DATABASE_URL="${{ secrets.DOKKU_DATABASE_URL }}?search_path=pr_${PR_NUMBER}" \
+              DATABASE_PASSWORD="${{ secrets.DOKKU_DATABASE_PASSWORD }}" \
+              DATABSE_PORT="${{ secrets.DOKKU_DATABASE_PORT }}" \
+              DATABASE_USERNAME="${{ secrets.DOKKU_DATABASE_USERNAME }}" \
+              RAILS_MAX_THREADS="${{ secrets.DOKKU_RAILS_MAX_THREADS }}" \
+              SECRET_KEY_BASE="${{ secrets.DOKKU_SECRET_KEY_BASE }}" \
+              SOLID_QUEUE_IN_PUMA="${{ secrets.DOKKU_SOLID_QUEUE_IN_PUMA }}" \
+
+          echo "=== Setting domain ==="
+          dokku domains:add "$APP" "pr${PR_NUMBER}.${REVIEW_DOMAIN}"
+          dokku letsencrypt:enable "$APP" || true
+
+          echo "=== Push on dokku ==="
+          git remote add dokku dokku@${{ secrets.DOKKU_HOST }}:pr${{ github.event.number }}
+          git push dokku HEAD:main --force

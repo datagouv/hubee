@@ -1,0 +1,43 @@
+name: Review App Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  destroy:
+    name: Destroy review app
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PR_NUMBER: ${{ github.event.number }}
+      REVIEW_DOMAIN: test.domain.fr
+    steps:
+      - name: Destroy Dokku app
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DOKKU_HOST }}
+          username: dokku
+          key: ${{ secrets.DOKKU_SSH_KEY }}
+          script: |
+            set -e
+            APP="pr-${PR_NUMBER}"
+            echo "=== Destroying app $APP ==="
+            dokku apps:destroy "$APP" --force
+
+      - name: Drop database schema
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DOKKU_HOST }}
+          username: root
+          key: ${{ secrets.DOKKU_SSH_KEY }}
+          script: |
+            set -e
+            echo "=== Dropping schema pr_${PR_NUMBER} ==="
+            # Try multiple approaches for schema cleanup
+            if command -v dokku >/dev/null 2>&1 && dokku postgres:list 2>/dev/null | grep -q "hubee"; then
+              dokku postgres:exec hubee "DROP SCHEMA IF EXISTS pr_${PR_NUMBER} CASCADE;" || true
+            else
+              psql "${{ secrets.DATABASE_URL }}" -c "DROP SCHEMA IF EXISTS pr_${PR_NUMBER} CASCADE;" || true
+            fi
