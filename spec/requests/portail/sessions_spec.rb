@@ -39,6 +39,7 @@ RSpec.describe "Portail::Sessions", type: :request do
 
         expect(response).to have_http_status(:forbidden)
         expect(Capybara.string(response.body)).to have_text("votre compte n'est pas reconnu")
+        expect(Capybara.string(response.body)).to have_text("support@hubee.numerique.gouv.fr")
       end
 
       # Sa session ProConnect reste ouverte : sans ce lien, recliquer sur le bouton le
@@ -51,6 +52,21 @@ RSpec.describe "Portail::Sessions", type: :request do
         page = Capybara.string(response.body)
         expect(page).to have_text("alex@example.gouv.fr")
         expect(page).to have_link("Essayer avec un autre compte", href: switch_account_url)
+      end
+    end
+
+    # Le niveau est contrôlé avant même de chercher l'agent : au niveau 0, le lien
+    # organisationnel est déclaratif, quel que soit le compte présenté.
+    context "when the authentication level does not certify the organisation" do
+      it "refuses access and explains why" do
+        expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
+          .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
+        mock_proconnect(sub: "sub-unknown", acr: "eidas0")
+
+        get "/auth/proconnect/callback"
+
+        expect(response).to have_http_status(:forbidden)
+        expect(Capybara.string(response.body)).to have_text("ne permet pas d'accéder au portail")
       end
     end
 
