@@ -108,6 +108,31 @@ RSpec.describe "Portail::Sessions", type: :request do
       expect(Capybara.string(response.body)).to have_css("form[action='/logout'][data-turbo='false']")
     end
 
+    it "requires a new authentication after too long without activity" do
+      agent = create(:agent, provider_sub: "sub-known")
+      sign_in_via_proconnect(agent:)
+
+      travel(31.minutes) { get root_path }
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_button("S'identifier avec ProConnect")
+    end
+
+    # Sans borne absolue, une session entretenue par de l'activité durerait indéfiniment.
+    # Les requêtes espacées de moins de 30 minutes empêchent le délai d'inactivité de se
+    # déclencher : seule la borne absolue peut fermer celle-ci.
+    it "requires a new authentication once the absolute lifetime is reached, even while active" do
+      agent = create(:agent, provider_sub: "sub-known")
+      opened_at = Time.current
+      sign_in_via_proconnect(agent:)
+
+      24.times { |i| travel_to(opened_at + ((i + 1) * 29).minutes) { get root_path } }
+      travel_to(opened_at + 12.hours + 1.minute) { get root_path }
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_button("S'identifier avec ProConnect")
+    end
+
     it "closes access on the next request when the membership is revoked" do
       agent = create(:agent, provider_sub: "sub-known")
       sign_in_via_proconnect(agent:)

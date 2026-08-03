@@ -60,6 +60,8 @@ module Portail
       reset_session
       session[:membership_id] = membership.id
       session[:proconnect_id_token] = id_token
+      session[:started_at] = Time.current.to_i
+      session[:last_seen_at] = Time.current.to_i
     end
   end
 end

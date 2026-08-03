@@ -4,11 +4,39 @@ module Portail
   module Authentication
     extend ActiveSupport::Concern
 
+    # Borne absolue alignée sur la session ProConnect, de 12 heures : plus courte, elle
+    # serait sans effet — un clic réauthentifie en silence tant que sa session vit, et
+    # `max-age`, qui corrigerait ça, n'est pas implémenté côté ProConnect. Ce que ces
+    # bornes garantissent : le rattachement et le niveau sont réévalués à chaque reprise.
+    IDLE_TIMEOUT = 30.minutes
+    ABSOLUTE_LIFETIME = 12.hours
+
     included do
       helper_method :current_agent, :agent_signed_in?, :current_membership, :current_organization_link
+      before_action :expire_stale_session!
     end
 
     private
+
+    def expire_stale_session!
+      return unless session[:membership_id]
+
+      if session_expired?
+        reset_session
+        return
+      end
+
+      session[:last_seen_at] = Time.current.to_i
+    end
+
+    def session_expired?
+      started_at = session[:started_at]
+      last_seen_at = session[:last_seen_at]
+      return true if started_at.nil? || last_seen_at.nil?
+
+      Time.current > Time.zone.at(started_at) + ABSOLUTE_LIFETIME ||
+        Time.current > Time.zone.at(last_seen_at) + IDLE_TIMEOUT
+    end
 
     def current_agent
       current_membership&.agent
