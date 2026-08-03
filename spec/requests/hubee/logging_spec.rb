@@ -10,9 +10,8 @@ require "rails_helper"
 # Lit log/test.log, c'est-à-dire l'appender que l'application a configuré — et non un
 # appender posé par la spec, qui ne testerait que lui-même.
 #
-# Que production.rb déclare logfmt n'est pas couvert ici : la production ne boote pas
-# (initializer strong_migrations, ticket séparé). Un spec en sous-process deviendra
-# possible une fois ce bug corrigé ; d'ici là, relecture humaine.
+# Que production.rb déclare logfmt n'est pas couvert : il faudrait booter l'environnement
+# de production dans un sous-process. Faisable désormais, non fait — relecture humaine.
 RSpec.describe "Request logging", type: :request do
   it "tags the completed request line with the request id carried by the response" do
     log = Rails.root.join("log/test.log")

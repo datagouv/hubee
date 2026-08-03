@@ -24,8 +24,8 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # HTTPS géré côté applicatif (décision #509, prise avec l'infra qui s'alignera
-  # ensuite). Le TLS est terminé par le reverse-proxy d'infra, qui transmet du
+  # HTTPS géré côté applicatif — décision prise avec l'infra, qui s'alignera
+  # ensuite. Le TLS est terminé par le reverse-proxy d'infra, qui transmet du
   # HTTP en clair au conteneur.
   # - assume_ssl : on considère toute requête comme arrivée en HTTPS. La
   #   redirection interne de force_ssl ne se déclenche donc jamais → aucune boucle
