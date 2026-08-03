@@ -5,7 +5,7 @@ module Portail
     class Create
       include Interactor::Organizer
 
-      organize VerifyIdToken, CheckAuthenticationLevel, FindAgent
+      organize VerifyIdToken, CheckAuthenticationLevel, FindAgent, FindMembership
     end
   end
 end

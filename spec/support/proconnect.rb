@@ -24,8 +24,13 @@ module ProConnectTestHelper
     expect(Portail::ProConnect::TokenVerifier).to receive(:call).and_return(sub:, amr:, acr:)
   end
 
-  def sign_in_via_proconnect(agent:, amr: ["mfa"])
-    mock_proconnect(sub: agent.provider_sub, email: agent.email, amr:)
+  # Se connecter suppose d'avoir le droit d'entrer : le helper garantit le rattachement
+  # correspondant au SIRET simulé. Un spec qui veut éprouver un refus construit sa
+  # situation lui-même plutôt que de passer par ici.
+  def sign_in_via_proconnect(agent:, amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET)
+    link = OrganizationLink.find_or_create_by!(siret: siret)
+    Membership.find_or_create_by!(agent: agent, organization_link: link)
+    mock_proconnect(sub: agent.provider_sub, email: agent.email, amr:, acr:, siret:)
     get "/auth/proconnect/callback"
   end
 end

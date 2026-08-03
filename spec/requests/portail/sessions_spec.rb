@@ -7,9 +7,8 @@ RSpec.describe "Portail::Sessions", type: :request do
     context "when the agent is known to the portal" do
       it "opens a session and redirects to the dashboard" do
         agent = create(:agent, provider_sub: "sub-known")
-        mock_proconnect(sub: "sub-known", email: agent.email)
 
-        get "/auth/proconnect/callback"
+        sign_in_via_proconnect(agent: agent)
 
         expect(response).to redirect_to(root_path)
         follow_redirect!
