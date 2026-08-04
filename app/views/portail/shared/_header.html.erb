@@ -18,6 +18,32 @@
             <p class="fr-header__service-tagline"><%= t("tagline") %></p>
           </div>
         </div>
+
+        <% if agent_signed_in? %>
+          <%# Accès rapides du DSFR. Le contenu de fr-header__tools-links est recopié
+              automatiquement dans fr-header__menu-links pour le mobile — l'identité doit
+              donc rester à l'intérieur, sans quoi elle disparaîtrait sur petit écran. %>
+          <div class="fr-header__tools">
+            <div class="fr-header__tools-links">
+              <ul class="fr-btns-group">
+                <li>
+                  <%# Même rembourrage vertical que le bouton : les <li> du groupe étant
+                      alignés en haut, c'est ce qui met les deux textes sur la même ligne. %>
+                  <p class="fr-text--sm fr-m-0 fr-py-1v">
+                    <%= t(".signed_in_as", name: current_agent.first_name, email: current_agent.email) %>
+                  </p>
+                </li>
+                <li>
+                  <%# Déconnexion : redirection cross-origin vers ProConnect (SLO), que Turbo
+                      ne sait pas rendre — il laisserait la page inchangée. Hors Turbo, donc. %>
+                  <%= button_to t(".sign_out"), logout_path, method: :delete,
+                        class: "fr-btn fr-btn--icon-left fr-icon-logout-box-r-line",
+                        form: {data: {turbo: false}} %>
+                </li>
+              </ul>
+            </div>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>
