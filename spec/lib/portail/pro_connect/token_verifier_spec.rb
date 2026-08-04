@@ -105,6 +105,15 @@ RSpec.describe Portail::ProConnect::TokenVerifier do
       end
     end
 
+    # Sans marge, une horloge en avance de quelques secondes refuserait des jetons valides.
+    context "when the token expired within the clock leeway" do
+      let(:id_token) { signed_id_token(exp: 10.seconds.ago.to_i) }
+
+      it "still accepts it" do
+        expect(result[:sub]).to eq("sub-xyz")
+      end
+    end
+
     context "when the token is signed with a non-allowed algorithm" do
       let(:id_token) do
         claims = {

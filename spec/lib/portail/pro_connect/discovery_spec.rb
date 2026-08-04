@@ -41,6 +41,40 @@ RSpec.describe Portail::ProConnect::Discovery do
     end
   end
 
+  # Une panne de ProConnect doit se présenter aux appelants sous une seule forme, pour
+  # qu'ils puissent dégrader au lieu de laisser fuir une exception de transport.
+  describe "when ProConnect cannot be reached or understood" do
+    it "raises Unavailable on a non-success response" do
+      stub_request(:get, "#{domain}/.well-known/openid-configuration")
+        .to_return(status: 502, body: "<html>Bad Gateway</html>")
+
+      expect { described_class.new.issuer }
+        .to raise_error(described_class::Unavailable, /502/)
+    end
+
+    it "raises Unavailable when the connection fails" do
+      stub_request(:get, "#{domain}/.well-known/openid-configuration").to_timeout
+
+      expect { described_class.new.issuer }.to raise_error(described_class::Unavailable)
+    end
+
+    it "raises Unavailable when the body is not the expected JSON" do
+      stub_request(:get, "#{domain}/.well-known/openid-configuration")
+        .to_return(status: 200, body: "pas du json")
+
+      expect { described_class.new.issuer }.to raise_error(described_class::Unavailable)
+    end
+
+    # Un annuaire bien formé mais amputé est tout aussi inexploitable.
+    it "raises Unavailable when the expected key is missing" do
+      stub_request(:get, "#{domain}/.well-known/openid-configuration")
+        .to_return(status: 200, body: {jwks_uri: "https://x.test/jwks"}.to_json)
+
+      expect { described_class.new.issuer }
+        .to raise_error(described_class::Unavailable, /issuer/)
+    end
+  end
+
   describe "#end_session_endpoint" do
     it "returns the end_session_endpoint from the discovery document" do
       expect(described_class.new.end_session_endpoint).to eq("https://proconnect.gouv.fr/api/v2/session/end")

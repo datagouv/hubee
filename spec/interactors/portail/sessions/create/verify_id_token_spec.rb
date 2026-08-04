@@ -33,4 +33,16 @@ RSpec.describe Portail::Sessions::Create::VerifyIdToken do
       expect(result.error).to eq(:invalid_token)
     end
   end
+
+  # Vérifier la signature suppose d'aller chercher les clés publiques : ProConnect muet,
+  # on ne peut rien imputer à l'agent — c'est une panne, pas un refus.
+  context "when ProConnect cannot be reached" do
+    it "fails with provider_unavailable" do
+      expect(Portail::ProConnect::TokenVerifier).to receive(:call)
+        .and_raise(Portail::ProConnect::Discovery::Unavailable)
+
+      expect(result).to be_failure
+      expect(result.error).to eq(:provider_unavailable)
+    end
+  end
 end

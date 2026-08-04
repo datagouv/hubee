@@ -21,6 +21,11 @@ module Portail
       # Le premier cas est couvert par token_verifier_spec.rb.
       ALLOWED_ALGORITHMS = [:RS256].freeze
 
+      # Deux horloges ne sont jamais parfaitement d'accord. Sans marge, quelques secondes
+      # de dérive suffiraient à refuser des jetons valides — panne intermittente et
+      # difficile à imputer. Trente secondes est l'usage courant.
+      CLOCK_LEEWAY = 30.seconds
+
       class << self
         def call(id_token:, nonce:, audience:, discovery: Discovery.new)
           new(id_token:, nonce:, audience:, discovery:).call
@@ -75,7 +80,7 @@ module Portail
         raise InvalidToken, "missing subject" if claims[:sub].blank?
         raise InvalidToken, "issuer mismatch" unless claims[:iss] == discovery.issuer
         raise InvalidToken, "audience mismatch" unless Array(claims[:aud]).include?(audience)
-        raise InvalidToken, "token expired" if claims[:exp].to_i <= Time.current.to_i
+        raise InvalidToken, "token expired" if claims[:exp].to_i <= (Time.current - CLOCK_LEEWAY).to_i
         raise InvalidToken, "nonce mismatch" unless nonce.present? && claims[:nonce] == nonce
       end
     end
