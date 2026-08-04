@@ -3,7 +3,13 @@
 <div class="fr-grid-row fr-grid-row--center">
   <div class="fr-col-12 fr-col-md-8">
     <h1><%= t("portail.sessions.denied.#{@denial.denial_reason}.heading") %></h1>
-    <p class="fr-text--lead"><%= t("portail.sessions.denied.#{@denial.denial_reason}.body") %></p>
+    <%# L'interpolation ne sert qu'au refus de rattachement ; les autres messages
+        l'ignorent, ce qui garde une seule vue pour tous les motifs. %>
+    <p class="fr-text--lead">
+      <%= t("portail.sessions.denied.#{@denial.denial_reason}.body",
+            organization: @denial.organization_label.presence ||
+                          t("portail.sessions.denied.unnamed_organization")) %>
+    </p>
 
     <p>
       <%# Clé _html : Rails échappe l'interpolation sauf si elle est déjà sûre, ce que

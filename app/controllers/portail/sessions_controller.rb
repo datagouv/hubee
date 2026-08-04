@@ -103,6 +103,7 @@ module Portail
       denial = ProviderSession.create!(
         denial_reason: reason.to_s, email: auth_hash.info.email,
         provider_id_token: auth_hash.credentials.id_token,
+        organization_label: auth_hash.extra.raw_info&.dig("organization_label"),
         ip_address: request.remote_ip, user_agent: request.user_agent
       )
       session[:provider_session_id] = denial.id
