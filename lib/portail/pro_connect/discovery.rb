@@ -15,6 +15,16 @@ module Portail
     # TokenVerifier et LogoutUrlBuilder s'exécutent ailleurs — dans un interactor et dans
     # un controller — et n'y ont donc pas accès.
     class Discovery
+      # ProConnect n'a pas répondu, ou pas de façon exploitable. Distinct d'un bug de
+      # notre côté : les appelants doivent pouvoir dégrader plutôt que tomber.
+      class Unavailable < StandardError; end
+
+      # Tout ce qui peut sortir de Net::HTTP quand le réseau ou le pair fait défaut.
+      NETWORK_ERRORS = [
+        Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH,
+        Net::OpenTimeout, Net::ReadTimeout, SocketError, OpenSSL::SSL::SSLError, IOError
+      ].freeze
+
       DISCOVERY_PATH = "/.well-known/openid-configuration"
       # Le cache évite un appel HTTP à chaque vérification de jeton. Il n'est pas ce qui
       # nous fait récupérer les nouvelles clés : #jwks s'en charge, immédiatement.
@@ -27,11 +37,11 @@ module Portail
       READ_TIMEOUT = 5
 
       def issuer
-        config.fetch("issuer")
+        config_value("issuer")
       end
 
       def end_session_endpoint
-        config.fetch("end_session_endpoint")
+        config_value("end_session_endpoint")
       end
 
       # Tout jeton signé porte dans son en-tête, en clair, l'identifiant de la clé qui a
@@ -60,7 +70,7 @@ module Portail
       def cached_jwks(force: false)
         Rails.cache.delete(JWKS_CACHE_KEY) if force
         raw = Rails.cache.fetch(JWKS_CACHE_KEY, expires_in: CACHE_TTL) do
-          fetch_json(config.fetch("jwks_uri"))
+          fetch_json(config_value("jwks_uri"))
         end
         JSON::JWK::Set.new(raw)
       end
@@ -78,6 +88,14 @@ module Portail
         end
       end
 
+      # Un annuaire amputé de la clé attendue est aussi inexploitable qu'une absence de
+      # réponse : même traitement, pour que les appelants n'aient qu'un cas à gérer.
+      def config_value(key)
+        config.fetch(key)
+      rescue KeyError
+        raise Unavailable, "annuaire ProConnect sans #{key}"
+      end
+
       def fetch_json(url)
         uri = URI(url)
         # On exige HTTPS au lieu de le déduire de l'URL. Récupérées en clair, les clés
@@ -91,7 +109,14 @@ module Portail
           open_timeout: OPEN_TIMEOUT,
           read_timeout: READ_TIMEOUT
         ) { |http| http.get(uri.request_uri) }
+
+        # Sans ce contrôle, une page d'erreur HTML renvoyée par un intermédiaire
+        # ressortirait en JSON::ParserError, indiscernable d'un bug de parsing.
+        raise Unavailable, "#{url} a répondu #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+
         JSON.parse(response.body)
+      rescue *NETWORK_ERRORS, JSON::ParserError => e
+        raise Unavailable, "#{url} injoignable ou illisible (#{e.class})"
       end
     end
   end
