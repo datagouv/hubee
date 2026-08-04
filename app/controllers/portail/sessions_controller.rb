@@ -9,6 +9,8 @@ module Portail
     # échange du code puis userinfo. Sans limite, on se laisse transformer en amplificateur.
     rate_limit to: 10, within: 3.minutes, only: :create, with: -> { head :too_many_requests }
 
+    before_action :require_pending_denial, only: :denied
+
     # Motifs qui ne portent aucun jugement sur l'agent : rien à lui expliquer sur son
     # compte, la page d'échec générique suffit.
     TECHNICAL_FAILURES = %i[invalid_token provider_unavailable sign_in_conflict].freeze
@@ -45,20 +47,8 @@ module Portail
     # Une seule vue pour tous les motifs : seul le message change. Tout nouveau refus
     # atterrit ici sans code supplémentaire — il lui suffit de ses deux clés de traduction.
     def denied
-      # La liste des motifs valides, c'est celle des traductions : un cookie d'avant un
-      # renommage ne fait pas tomber la page, et rien n'est à tenir à jour ici.
-      return redirect_to root_path unless known_denial_reason?
-
-      @denial_reason = session[:denial_reason]
-      @authenticated_email = session[:denial_email]
-      # ProConnect muet, on montre quand même le motif du refus : seul le bouton de
-      # changement de compte disparaît, faute de pouvoir construire son URL.
-      @switch_account_url = begin
-        Portail::ProConnect::LogoutUrlBuilder.call(id_token: session[:denial_id_token])
-      rescue Portail::ProConnect::Discovery::Unavailable
-        nil
-      end
-      render :denied, status: :forbidden
+      @switch_account_url = switch_account_url_for(@denial)
+      render status: :forbidden
     end
 
     # La session locale est fermée avant tout appel sortant : ProConnect injoignable ne
@@ -82,20 +72,43 @@ module Portail
       request.env["omniauth.auth"]
     end
 
-    def known_denial_reason?
-      session[:denial_reason].present? &&
-        I18n.exists?("portail.sessions.denied.#{session[:denial_reason]}.heading")
+    def require_pending_denial
+      @denial = pending_denial
+      redirect_to root_path unless @denial
     end
 
-    # Le motif transite par la session, pas par le flash : le flash se consomme à la
-    # première lecture, donc recharger la page de refus la viderait. reset_session d'abord,
-    # comme à l'ouverture d'une session — on s'apprête à y déposer une identité.
+    # Ne rend qu'un refus qu'on sait expliquer : la liste des motifs valides est celle des
+    # traductions, si bien qu'un enregistrement antérieur à un renommage ne fait pas
+    # tomber la page — et qu'ajouter un motif ne demande rien d'autre qu'une traduction.
+    def pending_denial
+      denial = ProviderSession.denied.find_by(id: session[:provider_session_id])
+      denial if denial && I18n.exists?("portail.sessions.denied.#{denial.denial_reason}.heading")
+    end
+
+    # ProConnect muet, on montre quand même le motif : seul le bouton de changement de
+    # compte disparaît, faute de pouvoir construire son URL.
+    def switch_account_url_for(denial)
+      Portail::ProConnect::LogoutUrlBuilder.call(id_token: denial.provider_id_token)
+    rescue Portail::ProConnect::Discovery::Unavailable
+      nil
+    end
+
+    # Le refus est consigné comme une authentification sans rattachement. reset_session
+    # d'abord, comme à l'ouverture d'une session : on s'apprête à désigner une identité.
+    #
+    # Sans adresse, la page de refus n'aurait rien à montrer — la page d'échec vaut mieux
+    # qu'une erreur serveur sur le chemin d'authentification.
     def deny_access!(reason)
       reset_session
-      session[:denial_reason] = reason.to_s
-      session[:denial_email] = auth_hash.info.email
-      session[:denial_id_token] = auth_hash.credentials.id_token
+      denial = ProviderSession.create!(
+        denial_reason: reason.to_s, email: auth_hash.info.email,
+        provider_id_token: auth_hash.credentials.id_token,
+        ip_address: request.remote_ip, user_agent: request.user_agent
+      )
+      session[:provider_session_id] = denial.id
       redirect_to denied_path
+    rescue ActiveRecord::RecordInvalid
+      redirect_to auth_failure_path
     end
   end
 end

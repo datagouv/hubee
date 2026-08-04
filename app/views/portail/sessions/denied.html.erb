@@ -2,8 +2,8 @@
 
 <div class="fr-grid-row fr-grid-row--center">
   <div class="fr-col-12 fr-col-md-8">
-    <h1><%= t("portail.sessions.denied.#{@denial_reason}.heading") %></h1>
-    <p class="fr-text--lead"><%= t("portail.sessions.denied.#{@denial_reason}.body") %></p>
+    <h1><%= t("portail.sessions.denied.#{@denial.denial_reason}.heading") %></h1>
+    <p class="fr-text--lead"><%= t("portail.sessions.denied.#{@denial.denial_reason}.body") %></p>
 
     <p>
       <%# Clé _html : Rails échappe l'interpolation sauf si elle est déjà sûre, ce que
@@ -13,7 +13,7 @@
 
     <%# L'adresse qualifie le refus, et reste juste au-dessus de l'action. %>
     <p class="fr-text--sm fr-mb-1w">
-      <%= t("portail.sessions.denied.authenticated_with", email: @authenticated_email) %>
+      <%= t("portail.sessions.denied.authenticated_with", email: @denial.email) %>
     </p>
 
     <% if @switch_account_url %>

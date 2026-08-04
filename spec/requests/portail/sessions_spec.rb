@@ -120,6 +120,30 @@ RSpec.describe "Portail::Sessions", type: :request do
     end
   end
 
+  # Un refus est une authentification ProConnect sans rattachement : elle est consignée
+  # comme telle, et le cookie cesse de porter un jeton sur ce chemin aussi.
+  describe "recording a refusal" do
+    it "keeps the refused authentication as a record" do
+      mock_proconnect(sub: "sub-unknown", email: "alex@example.gouv.fr")
+
+      expect { get "/auth/proconnect/callback" }.to change(ProviderSession.denied, :count).by(1)
+
+      expect(ProviderSession.denied.last).to have_attributes(
+        denial_reason: "unknown_agent", email: "alex@example.gouv.fr", membership: nil
+      )
+    end
+
+    # Sans adresse, la page de refus n'aurait rien à montrer. La page d'échec vaut mieux
+    # qu'un 500 sur le chemin d'authentification.
+    it "falls back to the failure page when ProConnect sent no address" do
+      mock_proconnect(sub: "sub-unknown", email: nil)
+
+      get "/auth/proconnect/callback"
+
+      expect(response).to redirect_to(auth_failure_path)
+    end
+  end
+
   # Le callback est joignable sans authentification et déclenche deux appels sortants vers
   # ProConnect. Sans limite, n'importe qui nous transforme en amplificateur à ses frais.
   describe "flooding the callback" do
@@ -159,6 +183,34 @@ RSpec.describe "Portail::Sessions", type: :request do
       get denied_path
 
       expect(response).to redirect_to(root_path)
+    end
+
+    # Un motif renommé depuis que l'agent a été refusé : mieux vaut l'accueil qu'une page
+    # qui tombe sur une traduction manquante.
+    it "sends the visitor home when the reason no longer has a message" do
+      mock_proconnect(sub: "sub-unknown")
+      get "/auth/proconnect/callback"
+      ProviderSession.denied.last.update!(denial_reason: "motif_disparu")
+
+      get denied_path
+
+      expect(response).to redirect_to(root_path)
+    end
+
+    # ProConnect injoignable : le motif du refus reste affiché, seul le bouton de
+    # changement de compte disparaît faute de pouvoir construire son URL.
+    it "still explains the refusal when ProConnect cannot be reached" do
+      expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
+        .and_raise(Portail::ProConnect::Discovery::Unavailable)
+      mock_proconnect(sub: "sub-unknown")
+      get "/auth/proconnect/callback"
+
+      get denied_path
+
+      expect(response).to have_http_status(:forbidden)
+      page = Capybara.string(response.body)
+      expect(page).to have_text("Votre compte n'est pas reconnu")
+      expect(page).to have_no_link("Essayer avec un autre compte")
     end
   end
 
