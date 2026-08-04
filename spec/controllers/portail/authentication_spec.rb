@@ -18,10 +18,9 @@ RSpec.describe Portail::BaseController, type: :controller do
 
   let(:membership) { create(:membership) }
 
-  def sign_in(started_at: Time.current, last_seen_at: Time.current)
-    session[:membership_id] = membership.id
-    session[:started_at] = started_at&.to_i
-    session[:last_seen_at] = last_seen_at&.to_i
+  def sign_in(created_at: Time.current, updated_at: Time.current)
+    provider_session = create(:provider_session, membership:, created_at:, updated_at:)
+    session[:provider_session_id] = provider_session.id
   end
 
   describe "the guard" do
@@ -55,33 +54,37 @@ RSpec.describe Portail::BaseController, type: :controller do
 
   describe "session expiry" do
     it "closes a session left idle and says so" do
-      sign_in(last_seen_at: 31.minutes.ago)
+      sign_in(updated_at: 31.minutes.ago)
 
       get :index
 
       expect(response).to redirect_to(root_path)
       expect(flash[:alert]).to include("Votre session a expiré")
-      expect(session[:membership_id]).to be_nil
+      expect(session[:provider_session_id]).to be_nil
     end
 
     it "closes a session that reached its absolute lifetime, however active" do
-      sign_in(started_at: 13.hours.ago)
+      sign_in(created_at: 13.hours.ago)
 
       get :index
 
       expect(response).to redirect_to(root_path)
-      expect(session[:membership_id]).to be_nil
+      expect(session[:provider_session_id]).to be_nil
     end
 
-    # Un cookie tronqué, ou antérieur à ces clés, porterait un rattachement sans ses
-    # horodatages : faute de pouvoir dater la session, on la referme.
-    it "closes a session whose timestamps are missing" do
-      sign_in(started_at: nil, last_seen_at: nil)
+    # L'enregistrement disparaît avec la session : il ne doit pas figurer dans un
+    # inventaire des sessions ouvertes.
+    it "destroys the record of the session it closes" do
+      sign_in(updated_at: 31.minutes.ago)
 
-      get :index
+      expect { get :index }.to change(ProviderSession, :count).by(-1)
+    end
 
-      expect(response).to redirect_to(root_path)
-      expect(session[:membership_id]).to be_nil
+    # Une écriture par requête serait inutilement coûteuse.
+    it "does not touch the record more than once a minute" do
+      sign_in(updated_at: 10.seconds.ago)
+
+      expect { get :index }.not_to change { ProviderSession.last.updated_at }
     end
   end
 
