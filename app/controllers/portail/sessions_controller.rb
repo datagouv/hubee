@@ -21,11 +21,11 @@ module Portail
         siret: auth_hash.extra.raw_info&.dig("siret")
       )
 
-      log_proconnect_exchange(result)
-
       if result.success?
+        # Lue avant : `start_new_session_for` réinitialise la session et l'effacerait.
         target = after_authentication_url
-        start_agent_session!(result.membership, auth_hash.credentials.id_token)
+        start_new_session_for(result.membership,
+          id_token: auth_hash.credentials.id_token, amr: result.claims[:amr])
         redirect_to target, notice: t(".signed_in")
       elsif TECHNICAL_FAILURES.include?(result.error)
         redirect_to auth_failure_path
@@ -61,11 +61,12 @@ module Portail
       render :denied, status: :forbidden
     end
 
-    # reset_session d'abord : la déconnexion du portail est acquise avant tout appel
-    # sortant. ProConnect injoignable ne doit jamais retenir un agent connecté.
+    # La session locale est fermée avant tout appel sortant : ProConnect injoignable ne
+    # doit jamais retenir un agent connecté.
     def destroy
-      id_token = session[:proconnect_id_token]
-      reset_session
+      # Lu avant : `terminate_session` détruit l'enregistrement qui le porte.
+      id_token = Current.provider_session&.provider_id_token
+      terminate_session
       redirect_to Portail::ProConnect::LogoutUrlBuilder.call(id_token:), allow_other_host: true
     rescue Portail::ProConnect::Discovery::Unavailable
       redirect_to root_path, alert: t(".provider_unavailable")
@@ -95,29 +96,6 @@ module Portail
       session[:denial_email] = auth_hash.info.email
       session[:denial_id_token] = auth_hash.credentials.id_token
       redirect_to denied_path
-    end
-
-    # Donne à voir ce que ProConnect a renvoyé et la décision qu'on en tire. Hors production
-    # seulement : ce sont des données personnelles, et la piste d'audit relève d'un autre
-    # dispositif. Le jeton lui-même n'est jamais journalisé, seuls ses claims vérifiés.
-    def log_proconnect_exchange(result)
-      return unless Rails.env.local?
-
-      Rails.logger.info <<~LOG
-        [ProConnect] userinfo  : #{JSON.pretty_generate(auth_hash.extra.raw_info&.to_h || {})}
-        [ProConnect] id_token  : #{(result.claims || {}).inspect}
-        [ProConnect] siret reçu: #{auth_hash.extra.raw_info&.dig("siret").inspect}
-        [ProConnect] décision  : #{result.success? ? "entrée accordée (rattachement ##{result.membership.id})" : "refus (#{result.error})"}
-      LOG
-    end
-
-    # reset_session AVANT de poser l'identité : protection contre la session fixation.
-    def start_agent_session!(membership, id_token)
-      reset_session
-      session[:membership_id] = membership.id
-      session[:proconnect_id_token] = id_token
-      session[:started_at] = Time.current.to_i
-      session[:last_seen_at] = Time.current.to_i
     end
   end
 end

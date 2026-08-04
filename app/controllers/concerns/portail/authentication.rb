@@ -4,12 +4,9 @@ module Portail
   module Authentication
     extend ActiveSupport::Concern
 
-    # Borne absolue alignée sur la session ProConnect, de 12 heures : plus courte, elle
-    # serait sans effet — un clic réauthentifie en silence tant que sa session vit, et
-    # `max-age`, qui corrigerait ça, n'est pas implémenté côté ProConnect. Ce que ces
-    # bornes garantissent : le rattachement et le niveau sont réévalués à chaque reprise.
-    IDLE_TIMEOUT = 30.minutes
-    ABSOLUTE_LIFETIME = 12.hours
+    # Toucher l'enregistrement à chaque requête serait inutilement coûteux : sur une borne
+    # de trente minutes, une granularité d'une minute ne change rien.
+    TOUCH_THROTTLE = 1.minute
 
     included do
       helper_method :current_agent, :agent_signed_in?, :current_membership
@@ -36,49 +33,56 @@ module Portail
       redirect_to root_path
     end
 
-    # À lire avant `start_agent_session!`, dont le reset_session efface la destination.
+    # À lire avant `start_new_session_for`, dont le reset_session efface la destination.
     def after_authentication_url
       session.delete(:return_to) || root_path
     end
 
+    # `granted` seulement : un refus laisse aussi un enregistrement, qui n'ouvre rien.
+    def find_session_by_cookie
+      session[:provider_session_id] &&
+        ProviderSession.granted.find_by(id: session[:provider_session_id])
+    end
+
+    # reset_session AVANT de poser l'identité : protection contre la session fixation.
+    def start_new_session_for(membership, id_token:, amr:)
+      reset_session
+      Current.provider_session = ProviderSession.create!(
+        membership:, provider_id_token: id_token, amr:, email: membership.agent.email,
+        ip_address: request.remote_ip, user_agent: request.user_agent
+      )
+      session[:provider_session_id] = Current.provider_session.id
+    end
+
+    def terminate_session
+      Current.provider_session&.destroy
+      Current.provider_session = nil
+      reset_session
+    end
+
     def expire_stale_session!
-      return unless session[:membership_id]
+      record = find_session_by_cookie
+      return unless record
 
-      if session_expired?
-        reset_session
-        # Après reset_session, sinon le message serait balayé avec la session. `now` et
-        # non `flash[]` : on ne redirige pas, la page anonyme est rendue dans la foulée.
-        flash.now[:alert] = t("portail.sessions.expired")
-        return
-      end
+      Current.provider_session = record
+      return close_expired_session! if Portail::SessionLifetime.expired?(record)
 
-      session[:last_seen_at] = Time.current.to_i
+      record.touch if record.updated_at < TOUCH_THROTTLE.ago
     end
 
-    def session_expired?
-      started_at = session[:started_at]
-      last_seen_at = session[:last_seen_at]
-      return true if started_at.nil? || last_seen_at.nil?
-
-      Time.current > Time.zone.at(started_at) + ABSOLUTE_LIFETIME ||
-        Time.current > Time.zone.at(last_seen_at) + IDLE_TIMEOUT
+    # Détruire plutôt qu'oublier le cookie : une session expirée ne doit pas figurer dans
+    # un inventaire des sessions ouvertes.
+    def close_expired_session!
+      terminate_session
+      flash.now[:alert] = t("portail.sessions.expired")
     end
 
-    def current_agent
-      current_membership&.agent
-    end
+    # Relu à chaque requête plutôt que porté par le cookie : retirer un rattachement ferme
+    # l'accès dès la requête suivante.
+    def current_membership = Current.membership
 
-    # Relu à chaque requête plutôt que porté par le cookie : le cookie_store est
-    # auto-porté et ne peut pas être révoqué côté serveur. Retirer un rattachement ferme
-    # donc l'accès dès la requête suivante.
-    def current_membership
-      return @current_membership if defined?(@current_membership)
+    def current_agent = Current.agent
 
-      @current_membership = session[:membership_id] && Membership.find_by(id: session[:membership_id])
-    end
-
-    def agent_signed_in?
-      current_agent.present?
-    end
+    def agent_signed_in? = Current.agent.present?
   end
 end
