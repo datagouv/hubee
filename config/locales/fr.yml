@@ -46,6 +46,7 @@ fr:
         label: S'identifier avec ProConnect
         info: Qu'est-ce que ProConnect ?
         info_title: Qu'est-ce que ProConnect ? - nouvelle fenêtre
+      expired: Votre session a expiré, reconnectez-vous pour continuer.
       create:
         signed_in: Vous êtes connecté.
       destroy:

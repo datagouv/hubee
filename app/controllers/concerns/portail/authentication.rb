@@ -12,17 +12,43 @@ module Portail
     ABSOLUTE_LIFETIME = 12.hours
 
     included do
-      helper_method :current_agent, :agent_signed_in?, :current_membership, :current_organization_link
+      helper_method :current_agent, :agent_signed_in?, :current_membership
       before_action :expire_stale_session!
+      before_action :require_authentication
+    end
+
+    class_methods do
+      # Fermé par défaut : un contrôleur ajouté demain l'est aussi, sauf déclaration ici.
+      def allow_unauthenticated_access(**options)
+        skip_before_action :require_authentication, **options
+      end
     end
 
     private
+
+    def require_authentication
+      return if agent_signed_in?
+
+      # Un chemin, jamais une URL ni un paramètre : sinon on ouvre une redirection
+      # arbitraire. Consultation seulement — rejouer un POST après connexion n'aurait pas
+      # de sens. HEAD est inclus : c'est un GET sans corps, et `request.get?` l'exclut.
+      session[:return_to] = request.fullpath if request.get? || request.head?
+      redirect_to root_path
+    end
+
+    # À lire avant `start_agent_session!`, dont le reset_session efface la destination.
+    def after_authentication_url
+      session.delete(:return_to) || root_path
+    end
 
     def expire_stale_session!
       return unless session[:membership_id]
 
       if session_expired?
         reset_session
+        # Après reset_session, sinon le message serait balayé avec la session. `now` et
+        # non `flash[]` : on ne redirige pas, la page anonyme est rendue dans la foulée.
+        flash.now[:alert] = t("portail.sessions.expired")
         return
       end
 
@@ -49,10 +75,6 @@ module Portail
       return @current_membership if defined?(@current_membership)
 
       @current_membership = session[:membership_id] && Membership.find_by(id: session[:membership_id])
-    end
-
-    def current_organization_link
-      current_membership&.organization_link
     end
 
     def agent_signed_in?
