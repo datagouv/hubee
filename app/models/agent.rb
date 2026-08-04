@@ -15,5 +15,8 @@ class Agent < ApplicationRecord
   # Nul tant que l'agent n'a pas ouvert sa première session : c'est ProConnect qui
   # l'attribue à la connexion. Un agent enrôlé existe donc avant d'en avoir un.
   validates :provider_sub, uniqueness: true, allow_nil: true
-  validates :email, presence: true
+
+  # L'adresse résout l'agent à la connexion : partagée par deux agents, la résolution
+  # en désignerait un au hasard. Toujours normalisée, donc comparable telle quelle.
+  validates :email, presence: true, uniqueness: true
 end
