@@ -39,7 +39,7 @@ jobs:
             $SSH_DOKKU -- docker-options:add hubee build \
               '--build-arg GITLAB__HUBEE__NUMERIQUE__GOUV__FR=oauth2:${{ secrets.DOKKU_GITLAB_TOKEN }}'
             $SSH_DOKKU -- config:set --no-restart "$DOKKU_APP" \
-              DATABASE_URL="${{ secrets.DOKKU_DATABASE_URL }}?search_path=pr_${PR_NUMBER}" \
+              DATABASE_URL="${{ secrets.DOKKU_DATABASE_URL }} \
               DATABASE_PASSWORD="${{ secrets.DOKKU_DATABASE_PASSWORD }}" \
               DATABASE_PORT="${{ secrets.DOKKU_DATABASE_PORT }}" \
               DATABASE_USERNAME="${{ secrets.DOKKU_DATABASE_USERNAME }}" \
@@ -54,4 +54,5 @@ jobs:
           echo "=== Push on dokku ==="
           #git remote add dokku dokku@${{ secrets.DOKKU_HOST }}:50022/pr${{ github.event.number }}
           git remote add dokku ssh://dokku@${{ secrets.DOKKU_HOST }}:50022/pr${{ github.event.number }}
-          git push dokku HEAD:refs/heads/main --force
+          #git push dokku HEAD:refs/heads/main --force
+          git push dokku main --force
