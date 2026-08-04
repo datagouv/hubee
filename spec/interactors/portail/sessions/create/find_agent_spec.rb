@@ -11,29 +11,26 @@ RSpec.describe Portail::Sessions::Create::FindAgent do
   end
 
   context "when an agent matches both the sub and the email" do
-    it "returns the agent and refreshes names and authentication methods" do
+    it "returns the agent without writing" do
       agent = create(:agent, provider_sub: "sub-xyz", email: "new@example.gouv.fr",
-        first_name: "Alexandre", last_name: "Ancien", amr: ["pwd"])
+        first_name: "Alexandre", last_name: "Ancien")
 
       expect(result).to be_success
       expect(result.agent).to eq(agent)
-      expect(agent.reload).to have_attributes(
-        first_name: "Alex",
-        last_name: "Nouveau",
-        amr: ["pwd", "mfa"]
-      )
+      # Aligner la fiche revient à SyncAgentIdentity, une fois l'accès accordé.
+      expect(agent.reload).to have_attributes(first_name: "Alexandre", last_name: "Ancien")
     end
   end
 
   # Premier rapprochement d'un agent enrôlé, ou retour après un changement de fournisseur
   # d'identité — qui change le sub sans changer la personne.
   context "when no agent matches the sub but one holds the email" do
-    it "binds the sub to that agent and lets them in" do
+    it "resolves that agent without binding the sub yet" do
       agent = create(:agent, provider_sub: "sub-other", email: "new@example.gouv.fr")
 
       expect(result).to be_success
       expect(result.agent).to eq(agent)
-      expect(agent.reload.provider_sub).to eq("sub-xyz")
+      expect(agent.reload.provider_sub).to eq("sub-other")
     end
   end
 
@@ -51,12 +48,11 @@ RSpec.describe Portail::Sessions::Create::FindAgent do
 
   # Le cas nominal de l'enrôlement : l'agent existe, il n'a jamais ouvert de session.
   context "when the enrolled agent has no sub yet" do
-    it "binds the sub on this first login" do
+    it "resolves the agent by email" do
       agent = create(:agent, provider_sub: nil, email: "new@example.gouv.fr")
 
       expect(result).to be_success
       expect(result.agent).to eq(agent)
-      expect(agent.reload.provider_sub).to eq("sub-xyz")
     end
   end
 

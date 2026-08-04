@@ -5,7 +5,10 @@ module Portail
     class Create
       include Interactor::Organizer
 
-      organize VerifyIdToken, CheckAuthenticationLevel, FindAgent, FindMembership
+      # SyncAgentIdentity vient en dernier : rien n'est écrit tant que l'accès n'est
+      # pas acquis.
+      organize VerifyIdToken, CheckAuthenticationLevel, FindAgent, FindMembership,
+        SyncAgentIdentity
     end
   end
 end
