@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_03_120100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_04_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -92,6 +92,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_120100) do
     t.index ["siret"], name: "index_organizations_on_siret", unique: true
   end
 
+  create_table "provider_sessions", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.string "amr", default: [], null: false, array: true
+    t.datetime "created_at", null: false
+    t.string "denial_reason"
+    t.string "email", null: false
+    t.string "ip_address"
+    t.uuid "membership_id"
+    t.string "organization_label"
+    t.text "provider_id_token", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.index ["created_at"], name: "index_provider_sessions_on_created_at"
+    t.index ["membership_id"], name: "index_provider_sessions_on_membership_id"
+    t.index ["updated_at"], name: "index_provider_sessions_on_updated_at"
+  end
+
   create_table "subscriptions", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
     t.boolean "can_read", default: true, null: false
     t.boolean "can_write", default: false, null: false
@@ -111,6 +127,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_120100) do
   add_foreign_key "memberships", "organization_links"
   add_foreign_key "notifications", "data_packages", on_delete: :cascade
   add_foreign_key "notifications", "subscriptions", on_delete: :restrict
+  add_foreign_key "provider_sessions", "memberships", on_delete: :cascade
   add_foreign_key "subscriptions", "data_streams", on_delete: :cascade
   add_foreign_key "subscriptions", "organizations", on_delete: :cascade
 end
