@@ -2,6 +2,8 @@
 
 module Portail
   class DashboardController < Portail::BaseController
+    allow_unauthenticated_access
+
     def index
     end
   end
