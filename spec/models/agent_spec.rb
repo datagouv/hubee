@@ -11,6 +11,10 @@ RSpec.describe Agent, type: :model do
     # Un agent enrôlé existe avant d'avoir ouvert sa première session.
     it { is_expected.to allow_value(nil).for(:provider_sub) }
     it { is_expected.to validate_presence_of(:email) }
+
+    # ignoring_case_sensitivity : le matcher éprouve la casse en la permutant, or
+    # `normalizes` la rabat en minuscules — la permutation entre donc en collision.
+    it { is_expected.to validate_uniqueness_of(:email).ignoring_case_sensitivity }
   end
 
   describe "associations" do

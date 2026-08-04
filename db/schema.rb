@@ -19,13 +19,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_120100) do
   create_enum "data_package_state", ["draft", "transmitted", "acknowledged"]
 
   create_table "agents", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
-    t.string "amr", default: [], null: false, array: true
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.string "first_name"
     t.string "last_name"
     t.string "provider_sub"
     t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_agents_on_email", unique: true
     t.index ["provider_sub"], name: "index_agents_on_provider_sub", unique: true
   end
 

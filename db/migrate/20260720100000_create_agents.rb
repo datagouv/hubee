@@ -5,10 +5,10 @@ class CreateAgents < ActiveRecord::Migration[8.1]
       t.string :email, null: false
       t.string :first_name
       t.string :last_name
-      t.string :amr, array: true, null: false, default: []
       t.timestamps
     end
 
     add_index :agents, :provider_sub, unique: true
+    add_index :agents, :email, unique: true
   end
 end
