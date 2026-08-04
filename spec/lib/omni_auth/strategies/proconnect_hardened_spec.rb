@@ -14,7 +14,9 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
   end
 
   describe "#authorization_uri" do
-    it "requests the amr claim as essential in the id_token" do
+    # Sans acr_values, ProConnect n'émet aucun acr et toute connexion serait refusée
+    # faute de niveau d'authentification constatable.
+    it "requests the amr claim as essential and the minimum authentication level" do
       expect(strategy).to receive(:discovered_configuration)
         .and_return("authorization_endpoint" => "https://proconnect.gouv.fr/api/v2/authorize")
       expect(strategy).to receive(:store_new_state!).and_return("state-1")
@@ -24,6 +26,7 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
       params = Rack::Utils.parse_query(URI(uri).query)
 
       expect(params["claims"]).to eq({id_token: {amr: {essential: true}}}.to_json)
+      expect(params["acr_values"]).to eq("eidas1")
       expect(params["scope"]).to eq("openid given_name usual_name email")
     end
   end
