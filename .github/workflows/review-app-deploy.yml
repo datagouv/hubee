@@ -47,7 +47,7 @@ jobs:
               SOLID_QUEUE_IN_PUMA="${{ secrets.DOKKU_SOLID_QUEUE_IN_PUMA }}"
 
           echo "=== Setting domain ==="
-          $SSH_DOKKU -- domains:add "$DOKKU_APP.${REVIEW_DOMAIN}"
+          $SSH_DOKKU -- domains:add $DOKKU_APP "$DOKKU_APP.${REVIEW_DOMAIN}"
           $SSH_DOKKU -- letsencrypt:enable "$DOKKU_APP" || true
 
           echo "=== Push on dokku ==="
