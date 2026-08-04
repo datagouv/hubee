@@ -46,10 +46,11 @@ jobs:
               SECRET_KEY_BASE="${{ secrets.DOKKU_SECRET_KEY_BASE }}" \
               SOLID_QUEUE_IN_PUMA="${{ secrets.DOKKU_SOLID_QUEUE_IN_PUMA }}"
 
-          echo "=== Setting domain ==="
-          $SSH_DOKKU -- domains:add $DOKKU_APP "$DOKKU_APP.${REVIEW_DOMAIN}"
-          $SSH_DOKKU -- letsencrypt:enable "$DOKKU_APP" --force
 
           echo "=== Push on dokku ==="
           git remote add dokku ssh://dokku@${{ secrets.DOKKU_HOST }}:50022/$DOKKU_APP
           git push dokku HEAD:refs/heads/main --force
+
+          echo "=== Setting domain ==="
+          $SSH_DOKKU -- domains:add $DOKKU_APP "$DOKKU_APP.${REVIEW_DOMAIN}"
+          $SSH_DOKKU -- letsencrypt:enable "$DOKKU_APP" --force
