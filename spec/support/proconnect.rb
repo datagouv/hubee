@@ -10,13 +10,14 @@ module ProConnectTestHelper
   TEST_SIRET = "99999999911111"
 
   def mock_proconnect(sub:, email: "agent@example.gouv.fr", first_name: "Alex", last_name: "Martin",
-    amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET)
+    amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET, organization_label: "Mairie de Test")
     OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
       provider: "proconnect",
       uid: sub,
       info: {email:, first_name:, last_name:},
       credentials: {id_token: "test-id-token"},
-      extra: {nonce: "test-nonce", raw_info: {"siret" => siret}}
+      extra: {nonce: "test-nonce",
+              raw_info: {"siret" => siret, "organization_label" => organization_label}}
     )
     # TokenVerifier renvoie l'identité vérifiée à partir de l'id_token.
     # expect (pas allow) : le callback DÉCLENCHE réellement cet appel une fois — la règle

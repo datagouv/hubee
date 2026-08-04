@@ -63,9 +63,10 @@ fr:
         insufficient_authentication_level:
           heading: Votre rattachement n'a pas été vérifié
           body: "L'organisation de votre compte est déclarative : HubEE exige qu'elle soit vérifiée. Reconnectez-vous avec le compte fourni par votre administration."
+        unnamed_organization: l'organisation que vous avez choisie
         organization_mismatch:
           heading: Vous n'êtes pas autorisé au titre de cette organisation
-          body: "Aucun rattachement ne vous autorise à entrer au titre de l'organisation choisie. Si vous en avez plusieurs, réessayez avec une autre ; sinon, contactez votre administration."
+          body: "Aucun rattachement ne vous autorise à entrer au titre de %{organization}. Si vous appartenez à plusieurs organisations, réessayez avec une autre ; sinon, contactez votre administration."
         email_mismatch:
           heading: Votre adresse ne correspond pas à votre compte
           body: "L'adresse de votre compte ProConnect n'est plus celle enregistrée par HubEE. Par précaution, l'accès est suspendu : demandez sa mise à jour à votre administration."
