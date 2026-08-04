@@ -78,6 +78,10 @@ RSpec.configure do |config|
   # To enable this behaviour uncomment the line below.
   config.infer_spec_type_from_file_location!
 
+  # Les compteurs de `rate_limit` survivraient d'un exemple à l'autre : un spec qui
+  # enchaîne quelques connexions ferait alors tomber le suivant.
+  config.before { ActionController::Base.cache_store.clear }
+
   # Filter lines from Rails gems in backtraces.
   config.filter_rails_from_backtrace!
   # arbitrary gems may also be filtered via:

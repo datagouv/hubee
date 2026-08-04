@@ -120,6 +120,25 @@ RSpec.describe "Portail::Sessions", type: :request do
     end
   end
 
+  # Le callback est joignable sans authentification et déclenche deux appels sortants vers
+  # ProConnect. Sans limite, n'importe qui nous transforme en amplificateur à ses frais.
+  describe "flooding the callback" do
+    it "turns away a caller who hammers it" do
+      OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
+        provider: "proconnect", uid: "x",
+        info: {email: "a@b.fr"}, credentials: {id_token: "t"}, extra: {nonce: "n"}
+      )
+      # Un jeton rejeté : chaque passage coûte le minimum et n'écrit rien.
+      expect(Portail::ProConnect::TokenVerifier).to receive(:call).at_least(:once)
+        .and_raise(Portail::ProConnect::TokenVerifier::InvalidToken)
+
+      10.times { get "/auth/proconnect/callback" }
+      get "/auth/proconnect/callback"
+
+      expect(response).to have_http_status(:too_many_requests)
+    end
+  end
+
   # Le callback porte un code à usage unique : rendre le refus sur son URL la rendait
   # irrechargeable. Le motif vit en session, la page a sa propre adresse.
   describe "GET /connexion/refusee" do
