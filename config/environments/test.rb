@@ -26,6 +26,11 @@ Rails.application.configure do
   config.consider_all_requests_local = true
   config.cache_store = :null_store
 
+  # `rate_limit` compte dans le magasin des contrôleurs, capturé au chargement de la
+  # classe : avec :null_store il ne compterait jamais et la limite serait intestable.
+  # Vidé entre chaque exemple par rails_helper, sinon le compteur cumulerait.
+  config.action_controller.cache_store = :memory_store
+
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 

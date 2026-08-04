@@ -5,6 +5,10 @@ module Portail
     # La surface d'authentification elle-même : s'y authentifier ne peut être un prérequis.
     allow_unauthenticated_access
 
+    # Ouvert à tous, et chaque appel déclenche deux requêtes sortantes vers ProConnect —
+    # échange du code puis userinfo. Sans limite, on se laisse transformer en amplificateur.
+    rate_limit to: 10, within: 3.minutes, only: :create, with: -> { head :too_many_requests }
+
     # Motifs qui ne portent aucun jugement sur l'agent : rien à lui expliquer sur son
     # compte, la page d'échec générique suffit.
     TECHNICAL_FAILURES = %i[invalid_token provider_unavailable sign_in_conflict].freeze
