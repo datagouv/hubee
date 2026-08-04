@@ -2,6 +2,14 @@ fr:
   app_name: HubEE
   tagline: Plateforme d'échange sécurisé de fichiers entre administrations
 
+  activerecord:
+    errors:
+      models:
+        organization_link:
+          attributes:
+            siret:
+              invalid: doit comporter 14 chiffres
+
   portail:
     shared:
       skip_links:
@@ -30,8 +38,7 @@ fr:
       index:
         title: Portail HubEE
         heading: Portail HubEE
-        lead: Espace de gestion réservé aux administrations (accessible après authentification).
-        body: Le portail V2 est en cours de construction. Cette page sera remplacée par le tableau de bord une fois l'authentification en place.
+        lead: Espace de gestion réservé aux administrations.
         sign_out: Se déconnecter
         signed_in_as: "Connecté en tant que %{name}"
     sessions:
@@ -41,30 +48,33 @@ fr:
         info_title: Qu'est-ce que ProConnect ? - nouvelle fenêtre
       create:
         signed_in: Vous êtes connecté.
+      destroy:
+        provider_unavailable: Vous êtes déconnecté du portail. ProConnect étant momentanément indisponible, votre session ProConnect reste ouverte.
       denied:
         title: Accès refusé — HubEE
-        authenticated_with: "Vous vous êtes authentifié avec l'adresse %{email}."
-        support: "Si vous pensez qu'il s'agit d'une erreur, écrivez à %{email} en précisant cette adresse et l'heure de votre tentative."
-        switch_account_hint: Vous pouvez réessayer avec un autre compte. Vous serez d'abord déconnecté de ProConnect.
+        authenticated_with: "Adresse utilisée : %{email}"
+        support_html: "Si vous pensez qu'il s'agit d'une erreur ou si vous avez besoin d'aide, écrivez à %{email} en précisant l'heure de votre tentative."
+        switch_account_hint: Réessayer avec un autre compte vous déconnectera d'abord de ProConnect.
         switch_account: Essayer avec un autre compte
         unknown_agent:
-          heading: Vous êtes authentifié, mais votre compte n'est pas reconnu
-          body: Votre identité a bien été vérifiée par ProConnect, mais aucun compte HubEE ne lui est associé. Aucun compte n'a été créé. Rapprochez-vous de votre administration pour être enrôlé.
+          heading: Votre compte n'est pas reconnu
+          body: Votre identité est vérifiée, mais aucun compte HubEE ne lui correspond. Demandez à votre administration de vous déclarer.
         insufficient_authentication_level:
-          heading: Votre méthode de connexion ne permet pas d'accéder au portail
-          body: HubEE exige que votre organisation soit attestée par votre fournisseur d'identité. La connexion que vous venez d'utiliser ne l'atteste pas.
+          heading: Votre rattachement n'a pas été vérifié
+          body: "L'organisation de votre compte est déclarative : HubEE exige qu'elle soit vérifiée. Reconnectez-vous avec le compte fourni par votre administration."
         organization_mismatch:
-          heading: Vous n'êtes rattaché à aucune organisation sur ce portail
-          body: Votre identité a bien été vérifiée, mais aucun rattachement ne vous autorise à entrer dans HubEE au titre de l'organisation avec laquelle vous vous êtes connecté. Rapprochez-vous de votre administration.
+          heading: Vous n'êtes pas autorisé au titre de cette organisation
+          body: "Aucun rattachement ne vous autorise à entrer au titre de l'organisation choisie. Si vous en avez plusieurs, réessayez avec une autre ; sinon, contactez votre administration."
         email_mismatch:
-          heading: Votre adresse de connexion ne correspond pas à votre compte
-          body: Le compte ProConnect que vous venez d'utiliser est bien connu du portail, mais l'adresse électronique qui lui est associée a changé. Par précaution, l'accès est suspendu le temps que votre administration mette votre compte à jour.
+          heading: Votre adresse ne correspond pas à votre compte
+          body: "L'adresse de votre compte ProConnect n'est plus celle enregistrée par HubEE. Par précaution, l'accès est suspendu : demandez sa mise à jour à votre administration."
       failure:
         title: Échec de la connexion — HubEE
         heading: La connexion a échoué
         body: Une erreur est survenue pendant l'authentification. Aucune session n'a été ouverte. Vous pouvez réessayer.
     errors:
       back_home: Retour à l'accueil
+      stale_page: Cette page n'était plus à jour, elle a été rechargée.
       not_found:
         title: Page introuvable — HubEE
         heading: Page introuvable

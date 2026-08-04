@@ -36,8 +36,10 @@ RSpec.describe "Portail::Sessions", type: :request do
           get "/auth/proconnect/callback"
         }.not_to change(Agent, :count)
 
+        expect(response).to redirect_to(denied_path)
+        follow_redirect!
         expect(response).to have_http_status(:forbidden)
-        expect(Capybara.string(response.body)).to have_text("votre compte n'est pas reconnu")
+        expect(Capybara.string(response.body)).to have_text("Votre compte n'est pas reconnu")
         expect(Capybara.string(response.body)).to have_text("support@hubee.numerique.gouv.fr")
       end
 
@@ -47,6 +49,7 @@ RSpec.describe "Portail::Sessions", type: :request do
         mock_proconnect(sub: "sub-unknown", email: "alex@example.gouv.fr")
 
         get "/auth/proconnect/callback"
+        follow_redirect!
 
         page = Capybara.string(response.body)
         expect(page).to have_text("alex@example.gouv.fr")
@@ -63,9 +66,10 @@ RSpec.describe "Portail::Sessions", type: :request do
         mock_proconnect(sub: "sub-unknown", acr: "eidas0")
 
         get "/auth/proconnect/callback"
+        follow_redirect!
 
         expect(response).to have_http_status(:forbidden)
-        expect(Capybara.string(response.body)).to have_text("ne permet pas d'accéder au portail")
+        expect(Capybara.string(response.body)).to have_text("Votre rattachement n'a pas été vérifié")
       end
     end
 
@@ -78,9 +82,10 @@ RSpec.describe "Portail::Sessions", type: :request do
         mock_proconnect(sub: "sub-known", email: agent.email)
 
         get "/auth/proconnect/callback"
+        follow_redirect!
 
         expect(response).to have_http_status(:forbidden)
-        expect(Capybara.string(response.body)).to have_text("aucune organisation")
+        expect(Capybara.string(response.body)).to have_text("au titre de cette organisation")
       end
     end
 
@@ -92,6 +97,7 @@ RSpec.describe "Portail::Sessions", type: :request do
         mock_proconnect(sub: "sub-known", email: "other@example.gouv.fr")
 
         get "/auth/proconnect/callback"
+        follow_redirect!
 
         expect(response).to have_http_status(:forbidden)
         expect(Capybara.string(response.body)).to have_text("ne correspond pas à votre compte")
@@ -111,6 +117,58 @@ RSpec.describe "Portail::Sessions", type: :request do
 
         expect(response).to redirect_to(auth_failure_path)
       end
+    end
+  end
+
+  # Le callback porte un code à usage unique : rendre le refus sur son URL la rendait
+  # irrechargeable. Le motif vit en session, la page a sa propre adresse.
+  describe "GET /connexion/refusee" do
+    it "still explains the refusal when the page is reloaded" do
+      expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call).twice
+        .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
+      mock_proconnect(sub: "sub-unknown")
+      get "/auth/proconnect/callback"
+
+      get denied_path
+      get denied_path
+
+      expect(response).to have_http_status(:forbidden)
+      expect(Capybara.string(response.body)).to have_text("Votre compte n'est pas reconnu")
+    end
+
+    it "sends the visitor home when no refusal is pending" do
+      get denied_path
+
+      expect(response).to redirect_to(root_path)
+    end
+  end
+
+  # Deux onglets, une seule session : celui qui agit en second présente le jeton d'avant
+  # le renouvellement. La requête doit être refusée sans exposer d'erreur brute.
+  describe "a page whose CSRF token has expired" do
+    it "reloads the home page instead of failing" do
+      agent = create(:agent, provider_sub: "sub-known")
+      sign_in_via_proconnect(agent:)
+      ActionController::Base.allow_forgery_protection = true
+
+      delete "/logout", params: {authenticity_token: "périmé"}
+
+      expect(response).to redirect_to(root_path)
+      follow_redirect!
+      expect(Capybara.string(response.body)).to have_text("Cette page n'était plus à jour")
+    ensure
+      ActionController::Base.allow_forgery_protection = false
+    end
+  end
+
+  # Une page ressortie du cache porterait un jeton CSRF périmé, et le bouton ProConnect
+  # échouerait en InvalidAuthenticityToken au clic suivant.
+  describe "browser caching" do
+    it "forbids storing portal pages" do
+      get root_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.headers["Cache-Control"]).to eq("no-store")
     end
   end
 
@@ -185,6 +243,38 @@ RSpec.describe "Portail::Sessions", type: :request do
       delete "/logout"
 
       expect(response).to redirect_to("https://proconnect.test/session/end?id_token_hint=test-id-token")
+    end
+
+    # La session locale est détruite avant tout appel sortant : une panne de ProConnect ne
+    # doit jamais retenir un agent connecté au portail.
+    it "still signs the agent out of the portal when ProConnect is unreachable" do
+      agent = create(:agent, provider_sub: "sub-known")
+      sign_in_via_proconnect(agent:)
+      expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
+        .and_raise(Portail::ProConnect::Discovery::Unavailable)
+
+      delete "/logout"
+
+      expect(response).to redirect_to(root_path)
+      follow_redirect!
+      expect(Capybara.string(response.body)).to have_button("S'identifier avec ProConnect")
+    end
+  end
+
+  # Une panne du fournisseur n'est pas une décision sur l'agent : elle ne doit pas
+  # atterrir sur la page de refus, qui parlerait à tort de son compte.
+  describe "when ProConnect is unreachable during the callback" do
+    it "redirects to the failure page without opening a session" do
+      OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
+        provider: "proconnect", uid: "x",
+        info: {email: "a@b.fr"}, credentials: {id_token: "t"}, extra: {nonce: "n"}
+      )
+      expect(Portail::ProConnect::TokenVerifier).to receive(:call)
+        .and_raise(Portail::ProConnect::Discovery::Unavailable)
+
+      get "/auth/proconnect/callback"
+
+      expect(response).to redirect_to(auth_failure_path)
     end
   end
 end
