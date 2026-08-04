@@ -12,10 +12,9 @@ jobs:
       contents: read
       pull-requests: read
     env:
-      PR_NUMBER: ${{ github.event.number }}
       REVIEW_DOMAIN: review.recette.hubee.data.gouv.fr
       SSH_DOKKU: "ssh -p 50022 dokku@${{ secrets.DOKKU_HOST }}"
-      DOKKU_APP: "pr${PR_NUMBER}"
+      DOKKU_APP: "pr${{ github.event.number }}"
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -48,7 +47,7 @@ jobs:
               SOLID_QUEUE_IN_PUMA="${{ secrets.DOKKU_SOLID_QUEUE_IN_PUMA }}"
 
           echo "=== Setting domain ==="
-          $SSH_DOKKU -- domains:add "pr${PR_NUMBER}.${REVIEW_DOMAIN}"
+          $SSH_DOKKU -- domains:add "pr$${{ github.event.number }}.${REVIEW_DOMAIN}"
           $SSH_DOKKU -- letsencrypt:enable "$DOKKU_APP" || true
 
           echo "=== Push on dokku ==="
