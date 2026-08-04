@@ -31,6 +31,29 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
     end
   end
 
+  # ProConnect renvoie ses refus en paramètre. La gem ne les lit pas : elle enchaîne
+  # l'échange du code, qui échoue plus loin sous un motif trompeur — une erreur de
+  # décodage JWT là où il faudrait lire « accès refusé ».
+  describe "#callback_phase" do
+    it "fails with the reason ProConnect gave instead of exchanging the code" do
+      expect(strategy).to receive(:request).at_least(:once)
+        .and_return(instance_double(Rack::Request, params: {"error" => "access_denied"}))
+      expect(strategy).to receive(:fail!).with("access_denied")
+
+      strategy.callback_phase
+    end
+
+    it "hands over to the gem when ProConnect returned no error" do
+      expect(strategy).to receive(:request).at_least(:once)
+        .and_return(instance_double(Rack::Request, params: {"code" => "abc", "state" => "s"}))
+      expect(strategy).not_to receive(:fail!)
+      # Première chose que fait la gem : on s'arrête là, le reste appellerait ProConnect.
+      expect(strategy).to receive(:verify_state!).and_raise(ArgumentError, "délégué")
+
+      expect { strategy.callback_phase }.to raise_error(ArgumentError, "délégué")
+    end
+  end
+
   # Ces specs verrouillent NOTRE côté du contrat : que les blocs lisent bien les clés
   # de session attendues. Ils n'exercent pas la gem qui les écrit (store_tokens! /
   # store_new_nonce!) — un renommage côté gem ne serait donc pas capté ici ; ce résiduel
