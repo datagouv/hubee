@@ -24,6 +24,15 @@ module OmniAuth
         {raw_info: @userinfo, nonce: session["omniauth.nonce"]}
       end
 
+      # ProConnect renvoie ses refus en paramètre. La gem ne les lit pas et enchaîne
+      # l'échange du code, qui échoue plus loin sous un motif trompeur : les journaux
+      # parlent alors de décodage JWT là où il faudrait lire le refus lui-même.
+      def callback_phase
+        return fail!(request.params["error"]) if request.params["error"].present?
+
+        super
+      end
+
       private
 
       def authorization_uri
