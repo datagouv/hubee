@@ -23,6 +23,8 @@ fr:
         close: Fermer
         nav_label: Menu principal
         home: Accueil
+        signed_in_as: "Connecté en tant que %{name} (%{email})"
+        sign_out: Se déconnecter
       footer:
         home_title: Retour à l'accueil du site — HubEE — République Française
         description: HubEE — Plateforme d'échange sécurisé de fichiers entre administrations.
@@ -39,8 +41,6 @@ fr:
         title: Portail HubEE
         heading: Portail HubEE
         lead: Espace de gestion réservé aux administrations.
-        sign_out: Se déconnecter
-        signed_in_as: "Connecté en tant que %{name}"
     sessions:
       proconnect_button:
         label: S'identifier avec ProConnect
