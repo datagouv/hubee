@@ -203,6 +203,8 @@ RSpec.describe "Portail::Sessions", type: :request do
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_button("S'identifier avec ProConnect")
+      # Sans message, l'agent retrouve le bouton de connexion sans savoir pourquoi.
+      expect(Capybara.string(response.body)).to have_text("Votre session a expiré")
     end
 
     # Sans borne absolue, une session entretenue par de l'activité durerait indéfiniment.

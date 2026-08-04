@@ -2,6 +2,9 @@
 
 module Portail
   class SessionsController < Portail::BaseController
+    # La surface d'authentification elle-même : s'y authentifier ne peut être un prérequis.
+    allow_unauthenticated_access
+
     # Motifs qui ne portent aucun jugement sur l'agent : rien à lui expliquer sur son
     # compte, la page d'échec générique suffit.
     TECHNICAL_FAILURES = %i[invalid_token provider_unavailable sign_in_conflict].freeze
@@ -17,8 +20,9 @@ module Portail
       log_proconnect_exchange(result)
 
       if result.success?
+        target = after_authentication_url
         start_agent_session!(result.membership, auth_hash.credentials.id_token)
-        redirect_to root_path, notice: t(".signed_in")
+        redirect_to target, notice: t(".signed_in")
       elsif TECHNICAL_FAILURES.include?(result.error)
         redirect_to auth_failure_path
       else
