@@ -11,33 +11,18 @@ jobs:
     permissions:
       contents: read
     env:
-      PR_NUMBER: ${{ github.event.number }}
-      REVIEW_DOMAIN: test.domain.fr
+      REVIEW_DOMAIN: review.recette.hubee.data.gouv.fr
+      SSH_DOKKU: "ssh -p 50022 dokku@${{ secrets.DOKKU_HOST }}"
+      DOKKU_APP: "pr${{ github.event.number }}"
     steps:
       - name: Destroy Dokku app
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DOKKU_HOST }}
-          username: dokku
-          key: ${{ secrets.DOKKU_SSH_KEY }}
-          script: |
-            set -e
-            APP="pr-${PR_NUMBER}"
-            echo "=== Destroying app $APP ==="
-            dokku apps:destroy "$APP" --force
+        run: |
+          set -euo pipefail
+          set -x
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DOKKU_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p 50022 -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Drop database schema
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DOKKU_HOST }}
-          username: root
-          key: ${{ secrets.DOKKU_SSH_KEY }}
-          script: |
-            set -e
-            echo "=== Dropping schema pr_${PR_NUMBER} ==="
-            # Try multiple approaches for schema cleanup
-            if command -v dokku >/dev/null 2>&1 && dokku postgres:list 2>/dev/null | grep -q "hubee"; then
-              dokku postgres:exec hubee "DROP SCHEMA IF EXISTS pr_${PR_NUMBER} CASCADE;" || true
-            else
-              psql "${{ secrets.DATABASE_URL }}" -c "DROP SCHEMA IF EXISTS pr_${PR_NUMBER} CASCADE;" || true
-            fi
+          echo "=== Destroying app $APP ==="
+          $SSH_DOKKU -- apps:destroy "$APP" --force
