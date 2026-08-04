@@ -44,5 +44,8 @@ Rails.application.routes.draw do
   # La phase requête POST /auth/proconnect est interceptée par le middleware OmniAuth.
   get "auth/proconnect/callback", to: "portail/sessions#create"
   get "auth/failure", to: "portail/sessions#failure", as: :auth_failure
+  # Le callback porte un code à usage unique : il redirige ici plutôt que de rendre le
+  # refus, sinon la page ne serait ni rechargeable ni partageable.
+  get "connexion/refusee", to: "portail/sessions#denied", as: :denied
   delete "logout", to: "portail/sessions#destroy", as: :logout
 end
