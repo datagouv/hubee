@@ -43,7 +43,8 @@ module Portail
     def find_session_by_cookie
       return @session_in_cookie if defined?(@session_in_cookie)
 
-      @session_in_cookie = ProviderSession.find_by(id: session[:provider_session_id])
+      @session_in_cookie = ProviderSession.includes(membership: :agent)
+        .find_by(id: session[:provider_session_id])
     end
 
     # Le métier a produit l'enregistrement, accordé ou refusé ; il reste à en ranger
@@ -58,7 +59,7 @@ module Portail
 
     def terminate_session
       find_session_by_cookie&.destroy
-      @session_in_cookie = nil
+      remove_instance_variable(:@session_in_cookie)
       Current.provider_session = nil
       reset_session
     end
@@ -70,7 +71,7 @@ module Portail
       return unless record&.granted?
 
       Current.provider_session = record
-      return close_expired_session! if Portail::SessionLifetime.expired?(record)
+      return close_expired_session! if record.expired?
 
       record.touch if record.updated_at < TOUCH_THROTTLE.ago
     end
@@ -79,7 +80,7 @@ module Portail
     # un inventaire des sessions ouvertes.
     def close_expired_session!
       terminate_session
-      flash.now[:alert] = t("portail.sessions.expired")
+      redirect_to root_path, alert: t("portail.sessions.expired")
     end
 
     # Relu à chaque requête plutôt que porté par le cookie : retirer un rattachement ferme

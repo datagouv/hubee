@@ -11,10 +11,7 @@ module Portail
 
     def perform
       ProviderSession.denied.where(created_at: ..DENIAL_RETENTION.ago).delete_all
-      ProviderSession.granted
-        .where("updated_at < ? OR created_at < ?",
-          SessionLifetime::IDLE.ago, SessionLifetime::ABSOLUTE.ago)
-        .delete_all
+      ProviderSession.expired.delete_all
     end
   end
 end
