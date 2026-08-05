@@ -7,7 +7,7 @@ module Portail
 
     # Ouvert à tous, et chaque appel déclenche deux requêtes sortantes vers ProConnect —
     # échange du code puis userinfo. Sans limite, on se laisse transformer en amplificateur.
-    rate_limit to: 10, within: 3.minutes, only: :create, with: -> { head :too_many_requests }
+    rate_limit to: 10, within: 1.minute, only: :create, with: -> { head :too_many_requests }
 
     # Motifs qui ne portent aucun jugement sur l'agent : rien à lui expliquer sur son
     # compte, la page d'échec générique suffit.
@@ -18,14 +18,20 @@ module Portail
         id_token: auth_hash.credentials.id_token,
         nonce: auth_hash.extra.nonce,
         info: auth_hash.info,
-        siret: auth_hash.extra.raw_info&.dig("siret")
+        siret: auth_hash.extra.raw_info&.dig("siret"),
+        step_up_attempted: session[:proconnect_step_up]
       )
 
       if result.success?
-        # Lue avant : `terminate_session` réinitialise la session et l'effacerait.
+        # Lus avant : `terminate_session` réinitialise la session et les effacerait.
         target = after_authentication_url
+        remember_device = session[:proconnect_remember_device]
         adopt_session(result.provider_session)
+        remember_device!(remember_device, result.membership)
         redirect_to target, notice: t(".signed_in")
+      elsif result.error == :step_up_required
+        session[:proconnect_step_up] = true
+        redirect_to step_up_path
       elsif TECHNICAL_FAILURES.include?(result.error)
         redirect_to auth_failure_path
       else
@@ -53,6 +59,12 @@ module Portail
       render status: :forbidden
     end
 
+    # Le marqueur porte à la fois la page et sa raison d'être : sans lui, l'adresse est
+    # arrivée par un lien ou un signet, et il n'y a rien à élever.
+    def step_up
+      redirect_to root_path unless session[:proconnect_step_up]
+    end
+
     # Sert la déconnexion d'un agent entré comme l'abandon d'une tentative refusée : dans
     # les deux cas on ferme chez nous d'abord, pour que ProConnect injoignable ne retienne
     # jamais personne.
@@ -73,6 +85,22 @@ module Portail
 
     def auth_hash
       request.env["omniauth.auth"]
+    end
+
+    # Mémorise que ce navigateur sert à un compte à privilèges, pour lui exiger la MFA dès
+    # la première autorisation et lui épargner l'aller-retour d'élévation. Aucune identité
+    # dedans, et il ne peut qu'élever l'exigence — d'où l'absence de signature.
+    # `nil` signifie que la question n'a pas été posée : on laisse alors le choix précédent.
+    def remember_device!(choice, membership)
+      return if choice.nil? || !Portail::SecondFactor.required_for?(membership)
+
+      if choice
+        cookies[OmniAuth::Strategies::ProconnectHardened::PRIVILEGED_DEVICE_COOKIE] = {
+          value: "1", expires: 1.year, httponly: true, same_site: :lax, secure: request.ssl?
+        }
+      else
+        cookies.delete(OmniAuth::Strategies::ProconnectHardened::PRIVILEGED_DEVICE_COOKIE)
+      end
     end
 
     # Sans adresse, la page de refus n'aurait rien à montrer — la page d'échec vaut mieux
