@@ -295,7 +295,10 @@ RSpec.describe "Portail::Sessions", type: :request do
       agent = create(:agent, provider_sub: "sub-known")
       sign_in_via_proconnect(agent:)
 
+      # follow_redirect! n'est pas décoratif : c'est le seul moyen de vérifier que le
+      # message franchit la redirection. Posé en flash.now, il serait perdu ici.
       travel(31.minutes) { get root_path }
+      follow_redirect!
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_button("S'identifier avec ProConnect")
@@ -312,7 +315,10 @@ RSpec.describe "Portail::Sessions", type: :request do
       sign_in_via_proconnect(agent:)
 
       24.times { |i| travel_to(opened_at + ((i + 1) * 29).minutes) { get root_path } }
-      travel_to(opened_at + 12.hours + 1.minute) { get root_path }
+      travel_to(opened_at + 12.hours + 1.minute) do
+        get root_path
+        follow_redirect!
+      end
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_button("S'identifier avec ProConnect")
