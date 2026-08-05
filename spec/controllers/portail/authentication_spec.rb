@@ -16,10 +16,9 @@ RSpec.describe Portail::BaseController, type: :controller do
     end
   end
 
-  let(:membership) { create(:membership) }
-
   def sign_in(created_at: Time.current, updated_at: Time.current)
-    provider_session = create(:provider_session, membership:, created_at:, updated_at:)
+    provider_session = create(:provider_session, membership: create(:membership),
+      created_at:, updated_at:)
     session[:provider_session_id] = provider_session.id
   end
 
@@ -53,13 +52,14 @@ RSpec.describe Portail::BaseController, type: :controller do
   end
 
   describe "session expiry" do
-    it "closes a session left idle and says so" do
+    # Le message lui-même se vérifie là où l'agent le lit, une fois la redirection suivie
+    # (spec/requests) : ici, `flash[:alert]` passerait au vert même posé en flash.now.
+    it "closes a session left idle" do
       sign_in(updated_at: 31.minutes.ago)
 
       get :index
 
       expect(response).to redirect_to(root_path)
-      expect(flash[:alert]).to include("Votre session a expiré")
       expect(session[:provider_session_id]).to be_nil
     end
 
