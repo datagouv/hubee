@@ -64,6 +64,7 @@ fr:
         info: Qu'est-ce que ProConnect ?
         info_title: Qu'est-ce que ProConnect ? - nouvelle fenêtre
       expired: Votre session a expiré, reconnectez-vous pour continuer.
+      second_factor_required: "Vos droits ont changé : votre compte exige désormais une authentification renforcée."
       step_up:
         title: Authentification renforcée — HubEE
         heading: Une authentification renforcée est requise
