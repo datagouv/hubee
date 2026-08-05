@@ -16,6 +16,10 @@ module OmniAuth
       # accepte. Voir Portail::Sessions::Create::CheckAuthenticationLevel.
       MINIMUM_AUTHENTICATION_LEVEL = "eidas1"
 
+      # Posé par le contrôleur, relu ici. Le nom est partagé, la valeur ne l'est pas :
+      # ce cookie ne porte aucune identité, seulement « ce navigateur a déjà servi ».
+      PRIVILEGED_DEVICE_COOKIE = "hubee_second_factor_device"
+
       credentials do
         {id_token: session["omniauth.pc.id_token"]}
       end
@@ -29,6 +33,16 @@ module OmniAuth
       # parlent alors de décodage JWT là où il faudrait lire le refus lui-même.
       def callback_phase
         return fail!(request.params["error"]) if request.params["error"].present?
+
+        super
+      end
+
+      # La case n'existe que sur la page d'élévation : ailleurs, le paramètre est absent et
+      # le choix précédent doit être laissé intact plutôt qu'écrasé par un faux « non ».
+      def request_phase
+        if request.params.key?("remember_device")
+          session["proconnect_remember_device"] = request.params["remember_device"] == "1"
+        end
 
         super
       end
@@ -49,7 +63,7 @@ module OmniAuth
             # ne suffit pas — et CheckAuthenticationLevel refuserait alors tout le monde.
             # La valeur annonce notre minimum ; elle ne dispense pas de vérifier le niveau
             # réellement atteint au retour, seul contrôle qui fasse foi.
-            acr_values: MINIMUM_AUTHENTICATION_LEVEL
+            acr_values: requested_acr_values
           )
         end
       end
@@ -64,10 +78,22 @@ module OmniAuth
         claims.to_json
       end
 
-      # Marqué par le contrôleur au retour du premier callback. Jamais un paramètre de
-      # requête : c'est l'application qui décide du niveau exigé, pas l'appelant.
+      # Élevé en même temps que les claims : laisser `acr_values` au plancher enverrait
+      # deux consignes contradictoires — « il me faut du MFA » et « eidas1 me convient ».
+      def requested_acr_values
+        return MINIMUM_AUTHENTICATION_LEVEL unless stepping_up?
+
+        Portail::SecondFactor::LEVELS.join(" ")
+      end
+
+      # Deux origines : le marqueur posé par le contrôleur au retour du premier callback,
+      # et le cookie d'un navigateur qui a déjà servi à un compte à privilèges — celui-ci
+      # évite le second aller-retour à l'agent qui revient.
+      # Jamais un paramètre de requête : c'est l'application qui décide du niveau exigé.
+      # Le cookie n'est pas signé : il ne peut qu'élever l'exigence, jamais l'abaisser,
+      # donc le forger ne donne rien. C'est CheckSecondFactor qui tranche, pas lui.
       def stepping_up?
-        session["proconnect_step_up"].present?
+        session["proconnect_step_up"].present? || request.cookies[PRIVILEGED_DEVICE_COOKIE].present?
       end
     end
   end

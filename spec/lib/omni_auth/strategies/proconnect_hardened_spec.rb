@@ -22,6 +22,8 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
       expect(strategy).to receive(:store_new_state!).and_return("state-1")
       expect(strategy).to receive(:store_new_nonce!).and_return("nonce-1")
       expect(strategy).to receive(:session).at_least(:once).and_return({})
+      expect(strategy).to receive(:request).at_least(:once)
+        .and_return(instance_double(Rack::Request, cookies: {}))
 
       uri = strategy.send(:authorization_uri)
       params = Rack::Utils.parse_query(URI(uri).query)
@@ -38,6 +40,8 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
         .and_return("authorization_endpoint" => "https://proconnect.gouv.fr/api/v2/authorize")
       expect(strategy).to receive(:store_new_state!).and_return("state-1")
       expect(strategy).to receive(:store_new_nonce!).and_return("nonce-1")
+      # Pas de stub de `request` : le marqueur de session suffit, les cookies ne sont
+      # même pas consultés.
       expect(strategy).to receive(:session).at_least(:once)
         .and_return({"proconnect_step_up" => true})
 
@@ -47,6 +51,25 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
         {id_token: {amr: {essential: true},
                     acr: {essential: true, values: Portail::SecondFactor::LEVELS}}}.to_json
       )
+      # Laisser acr_values au plancher enverrait la consigne inverse dans la même requête.
+      expect(params["acr_values"]).to eq("eidas1-mfa eidas2 eidas3")
+    end
+
+    # Un navigateur déjà reconnu évite le second aller-retour : on exige dès la première
+    # autorisation, sans attendre de savoir qui arrive.
+    it "demands a second factor from the start on a remembered device" do
+      expect(strategy).to receive(:discovered_configuration)
+        .and_return("authorization_endpoint" => "https://proconnect.gouv.fr/api/v2/authorize")
+      expect(strategy).to receive(:store_new_state!).and_return("state-1")
+      expect(strategy).to receive(:store_new_nonce!).and_return("nonce-1")
+      expect(strategy).to receive(:session).at_least(:once).and_return({})
+      expect(strategy).to receive(:request).at_least(:once).and_return(
+        instance_double(Rack::Request, cookies: {described_class::PRIVILEGED_DEVICE_COOKIE => "1"})
+      )
+
+      params = Rack::Utils.parse_query(URI(strategy.send(:authorization_uri)).query)
+
+      expect(params["acr_values"]).to eq("eidas1-mfa eidas2 eidas3")
     end
   end
 

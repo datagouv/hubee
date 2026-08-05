@@ -47,5 +47,8 @@ Rails.application.routes.draw do
   # Le callback porte un code à usage unique : il redirige ici plutôt que de rendre le
   # refus, sinon la page ne serait ni rechargeable ni partageable.
   get "connexion/refusee", to: "portail/sessions#denied", as: :denied
+  # Même raison : rendre l'élévation au callback rejouerait le code à usage unique au
+  # moindre rechargement, et ProConnect répondrait 400.
+  get "connexion/second-facteur", to: "portail/sessions#step_up", as: :step_up
   delete "logout", to: "portail/sessions#destroy", as: :logout
 end
