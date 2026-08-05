@@ -1,0 +1,37 @@
+<% content_for :title, t("portail.sessions.step_up.title") %>
+
+<div class="fr-grid-row fr-grid-row--center">
+  <div class="fr-col-12 fr-col-md-8">
+    <h1><%= t("portail.sessions.step_up.heading") %></h1>
+    <p class="fr-text--lead"><%= t("portail.sessions.step_up.body") %></p>
+
+    <%# ProConnect réidentifie l'agent et prend en charge l'enrôlement : le prévenir ici
+        évite qu'il croie s'être trompé ou que la connexion ait échoué. %>
+    <p><%= t("portail.sessions.step_up.what_to_expect") %></p>
+
+    <%# L'agent quitte le portail pour un service tiers puis y revient : sans consigne
+        explicite, il peut s'arrêter en chemin en croyant en avoir fini. %>
+    <p><%= t("portail.sessions.step_up.call_to_action") %></p>
+
+    <%# Pas d'auto-soumission : le clic est le moment où l'agent comprend pourquoi il
+        repart vers ProConnect. Hors Turbo, la cible étant un hôte externe. %>
+    <%= form_with url: "/auth/proconnect", method: :post, data: {turbo: false} do |form| %>
+      <%# Markup DSFR : libellé court dans le label, explication dans un fr-hint-text
+          à l'intérieur du label — c'est lui qui reçoit la pleine largeur, un libellé
+          long posé à plat désaligne la case. %>
+      <div class="fr-mb-4w">
+        <div class="fr-checkbox-group">
+          <%= form.check_box :remember_device, checked: true, class: "fr-checkbox" %>
+          <%= form.label :remember_device, class: "fr-label" do %>
+            <%= t("portail.sessions.step_up.remember_device") %>
+            <span class="fr-hint-text"><%= t("portail.sessions.step_up.remember_device_hint") %></span>
+          <% end %>
+        </div>
+      </div>
+
+      <%= form.button class: "proconnect-button" do %>
+        <span class="proconnect-sr-only"><%= t("portail.sessions.proconnect_button.label") %></span>
+      <% end %>
+    <% end %>
+  </div>
+</div>

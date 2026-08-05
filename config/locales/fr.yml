@@ -64,6 +64,14 @@ fr:
         info: Qu'est-ce que ProConnect ?
         info_title: Qu'est-ce que ProConnect ? - nouvelle fenêtre
       expired: Votre session a expiré, reconnectez-vous pour continuer.
+      step_up:
+        title: Authentification renforcée — HubEE
+        heading: Une authentification renforcée est requise
+        body: "Votre compte donne accès à des fonctions sensibles : y entrer demande un second facteur d'authentification, en plus de votre mot de passe."
+        what_to_expect: ProConnect va vous redemander votre adresse électronique, puis un code fourni par votre méthode de double authentification — et vous guidera pour en mettre une en place si vous n'en avez pas encore. C'est normal, votre connexion n'a pas échoué.
+        call_to_action: Cliquez sur le bouton ci-dessous et suivez les étapes jusqu'au bout. Vous reviendrez ensuite automatiquement sur HubEE.
+        remember_device: Se souvenir de cet appareil
+        remember_device_hint: La double authentification vous sera demandée dès la connexion suivante, sans cette étape intermédiaire. À décocher si ce poste est partagé avec d'autres agents.
       create:
         signed_in: Vous êtes connecté.
       destroy:
@@ -84,6 +92,9 @@ fr:
         organization_mismatch:
           heading: Vous n'êtes pas autorisé au titre de cette organisation
           body: "Aucun rattachement ne vous autorise à entrer au titre de %{organization}. Si vous appartenez à plusieurs organisations, réessayez avec une autre ; sinon, contactez votre administration."
+        second_factor_required:
+          heading: Votre compte exige une authentification à deux facteurs
+          body: Votre compte donne accès à des fonctions sensibles et n'a pas pu être protégé par un second facteur. Reconnectez-vous et allez au bout de l'étape proposée par ProConnect, qui prend en charge son installation.
         email_mismatch:
           heading: Votre adresse ne correspond pas à votre compte
           body: "L'adresse de votre compte ProConnect n'est plus celle enregistrée par HubEE. Par précaution, l'accès est suspendu : demandez sa mise à jour à votre administration, puis reconnectez-vous."

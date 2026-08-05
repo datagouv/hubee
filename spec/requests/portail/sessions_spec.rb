@@ -381,4 +381,80 @@ RSpec.describe "Portail::Sessions", type: :request do
       expect(response).to redirect_to(auth_failure_path)
     end
   end
+
+  describe "second factor" do
+    def administrator_agent
+      create(:agent).tap do |agent|
+        link = OrganizationLink.find_or_create_by!(siret: ProConnectTestHelper::TEST_SIRET)
+        create(:membership, :local_administrator, agent:, organization_link: link)
+      end
+    end
+
+    # L'agent ne clique sur rien : la page porte un formulaire auto-soumis vers ProConnect.
+    it "sends a single-factor administrator back to ProConnect for a second factor" do
+      agent = administrator_agent
+
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      get "/auth/proconnect/callback"
+
+      expect(response).to redirect_to(step_up_path)
+      expect(session[:proconnect_step_up]).to be(true)
+    end
+
+    # Le callback porte un code à usage unique : rendre l'élévation à son adresse la
+    # rendrait irrechargeable, et ProConnect répondrait 400 en rejouant le code.
+    it "serves the step-up page from its own address, and only when one is due" do
+      agent = administrator_agent
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      get "/auth/proconnect/callback"
+
+      get step_up_path
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("/auth/proconnect")
+
+      # Rechargeable, contrairement au callback.
+      get step_up_path
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "turns away a visitor who lands on the step-up page with nothing to raise" do
+      get step_up_path
+
+      expect(response).to redirect_to(root_path)
+    end
+
+    it "lets the administrator in once the second factor is presented" do
+      agent = administrator_agent
+
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      get "/auth/proconnect/callback"
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
+      get "/auth/proconnect/callback"
+
+      expect(response).to redirect_to(root_path)
+      expect(ProviderSession.last).to be_granted
+    end
+
+    # Une seule élévation : ProConnect n'ayant pas relevé le niveau, redemander bouclerait.
+    it "refuses when the step-up came back at the same level" do
+      agent = administrator_agent
+
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      get "/auth/proconnect/callback"
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      get "/auth/proconnect/callback"
+
+      expect(response).to redirect_to(denied_path)
+      expect(ProviderSession.last.denial_reason).to eq("second_factor_required")
+    end
+
+    it "never raises the requirement for an ordinary agent" do
+      agent = create(:agent)
+
+      sign_in_via_proconnect(agent:, acr: "eidas1")
+
+      expect(response).to redirect_to(root_path)
+      expect(session[:proconnect_step_up]).to be_nil
+    end
+  end
 end
