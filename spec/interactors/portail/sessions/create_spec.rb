@@ -33,6 +33,8 @@ RSpec.describe Portail::Sessions::Create do
       expect(result.agent).to eq(agent)
       expect(result.membership).to eq(membership)
       expect(agent.reload).to have_attributes(provider_sub: "sub-xyz", first_name: "Alex")
+      expect(result.provider_session).to have_attributes(membership: membership,
+        provider_id_token: "raw-token", acr: "eidas1")
     end
   end
 
