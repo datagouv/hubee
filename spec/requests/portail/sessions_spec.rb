@@ -271,6 +271,9 @@ RSpec.describe "Portail::Sessions", type: :request do
 
       expect(response).to have_http_status(:unauthorized)
       expect(response.body).to include("La connexion a échoué")
+      # Réessayer ne changera rien à une panne du fournisseur : sans le support, l'agent
+      # n'a aucun recours.
+      expect(response.body).to include("support@hubee.numerique.gouv.fr")
     end
   end
 
