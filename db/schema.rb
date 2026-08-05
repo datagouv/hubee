@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_05_141431) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_05_141910) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -97,6 +97,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_05_141431) do
     t.index ["siret"], name: "index_organizations_on_siret", unique: true
   end
 
+  create_table "process_accesses", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "membership_id", null: false
+    t.string "process_code", null: false
+    t.datetime "updated_at", null: false
+    t.index ["membership_id", "process_code"], name: "index_process_accesses_on_membership_id_and_process_code", unique: true
+  end
+
   create_table "provider_sessions", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
     t.string "acr"
     t.string "amr", default: [], null: false, array: true
@@ -131,6 +139,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_05_141431) do
   add_foreign_key "memberships", "organization_links"
   add_foreign_key "notifications", "data_packages", on_delete: :cascade
   add_foreign_key "notifications", "subscriptions", on_delete: :restrict
+  add_foreign_key "process_accesses", "memberships", on_delete: :cascade
   add_foreign_key "provider_sessions", "memberships", on_delete: :cascade
   add_foreign_key "subscriptions", "data_streams", on_delete: :cascade
   add_foreign_key "subscriptions", "organizations", on_delete: :cascade
