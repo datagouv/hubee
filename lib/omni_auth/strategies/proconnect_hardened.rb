@@ -44,7 +44,7 @@ module OmniAuth
             scope: options[:scope],
             state: store_new_state!,
             nonce: store_new_nonce!,
-            claims: {id_token: {amr: {essential: true}}}.to_json,
+            claims: requested_claims,
             # Sans `acr_values`, ProConnect n'émet aucun `acr` — le demander via `claims`
             # ne suffit pas — et CheckAuthenticationLevel refuserait alors tout le monde.
             # La valeur annonce notre minimum ; elle ne dispense pas de vérifier le niveau
@@ -52,6 +52,22 @@ module OmniAuth
             acr_values: MINIMUM_AUTHENTICATION_LEVEL
           )
         end
+      end
+
+      # Le second facteur se demande par `claims`, comme le prescrit la doc ProConnect —
+      # `acr_values` n'annonce qu'un plancher et n'oblige à rien. `essential: true` fait
+      # renvoyer une erreur si ProConnect ne peut pas satisfaire, plutôt qu'un niveau plus
+      # faible : `callback_phase` la lit déjà.
+      def requested_claims
+        claims = {id_token: {amr: {essential: true}}}
+        claims[:id_token][:acr] = {essential: true, values: Portail::SecondFactor::LEVELS} if stepping_up?
+        claims.to_json
+      end
+
+      # Marqué par le contrôleur au retour du premier callback. Jamais un paramètre de
+      # requête : c'est l'application qui décide du niveau exigé, pas l'appelant.
+      def stepping_up?
+        session["proconnect_step_up"].present?
       end
     end
   end

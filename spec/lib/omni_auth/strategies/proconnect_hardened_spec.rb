@@ -21,6 +21,7 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
         .and_return("authorization_endpoint" => "https://proconnect.gouv.fr/api/v2/authorize")
       expect(strategy).to receive(:store_new_state!).and_return("state-1")
       expect(strategy).to receive(:store_new_nonce!).and_return("nonce-1")
+      expect(strategy).to receive(:session).at_least(:once).and_return({})
 
       uri = strategy.send(:authorization_uri)
       params = Rack::Utils.parse_query(URI(uri).query)
@@ -28,6 +29,24 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
       expect(params["claims"]).to eq({id_token: {amr: {essential: true}}}.to_json)
       expect(params["acr_values"]).to eq("eidas1")
       expect(params["scope"]).to eq("openid given_name usual_name email")
+    end
+
+    # L'élévation se demande par `claims`, pas par acr_values, qui n'annonce qu'un plancher
+    # et n'oblige à rien — cf. doc ProConnect « Forcer la double authentification ».
+    it "demands a second factor when the session is marked for a step-up" do
+      expect(strategy).to receive(:discovered_configuration)
+        .and_return("authorization_endpoint" => "https://proconnect.gouv.fr/api/v2/authorize")
+      expect(strategy).to receive(:store_new_state!).and_return("state-1")
+      expect(strategy).to receive(:store_new_nonce!).and_return("nonce-1")
+      expect(strategy).to receive(:session).at_least(:once)
+        .and_return({"proconnect_step_up" => true})
+
+      params = Rack::Utils.parse_query(URI(strategy.send(:authorization_uri)).query)
+
+      expect(params["claims"]).to eq(
+        {id_token: {amr: {essential: true},
+                    acr: {essential: true, values: Portail::SecondFactor::LEVELS}}}.to_json
+      )
     end
   end
 
