@@ -14,12 +14,10 @@ module Portail
       membership.local_administrator? || sensitive_habilitation?(membership)
     end
 
-    # N'a de sens que sur une session accordée : un refus n'a pas de rattachement, et
-    # l'appelant s'en assure.
-    def satisfied?(provider_session)
-      return true unless required_for?(provider_session.membership)
+    def satisfied?(membership, acr)
+      return true unless required_for?(membership)
 
-      LEVELS.include?(provider_session.acr)
+      LEVELS.include?(acr)
     end
 
     def sensitive_habilitation?(membership)
