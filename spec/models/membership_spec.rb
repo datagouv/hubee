@@ -8,6 +8,7 @@ RSpec.describe Membership, type: :model do
 
     it { is_expected.to belong_to(:agent) }
     it { is_expected.to belong_to(:organization_link) }
+    it { is_expected.to have_many(:process_accesses) }
   end
 
   describe "validations" do
