@@ -86,6 +86,32 @@ RSpec.describe Portail::BaseController, type: :controller do
 
       expect { get :index }.not_to change { ProviderSession.last.updated_at }
     end
+
+    # Le second facteur se relit comme l'autorisation : un rattachement devenu à
+    # privilèges pendant la session ne doit pas la laisser se poursuivre.
+    it "closes a session whose membership became privileged mid-flight" do
+      provider_session = create(:provider_session,
+        membership: create(:membership, :local_administrator), acr: "eidas1")
+      session[:provider_session_id] = provider_session.id
+
+      get :index
+
+      # Vers l'élévation, pas vers l'accueil : l'agent éjecté doit savoir quoi faire, et
+      # le marqueur fait exiger la MFA dès la première autorisation suivante.
+      expect(response).to redirect_to(step_up_path)
+      expect(session[:provider_session_id]).to be_nil
+      expect(session[:proconnect_step_up]).to be(true)
+    end
+
+    it "leaves a privileged session alone once it carries a second factor" do
+      provider_session = create(:provider_session,
+        membership: create(:membership, :local_administrator), acr: "eidas1-mfa")
+      session[:provider_session_id] = provider_session.id
+
+      get :index
+
+      expect(response).to have_http_status(:ok)
+    end
   end
 
   describe ".allow_unauthenticated_access" do
@@ -99,6 +125,18 @@ RSpec.describe Portail::BaseController, type: :controller do
       expect(authentication_required?(Portail::DashboardController)).to be(false)
       expect(authentication_required?(Portail::ErrorsController)).to be(false)
       expect(authentication_required?(Portail::SessionsController)).to be(false)
+    end
+
+    def second_factor_enforced?(controller_class)
+      controller_class._process_action_callbacks.any? { |callback| callback.filter == :enforce_second_factor! }
+    end
+
+    # Entrer et sortir doit rester possible : un agent dont les droits viennent de changer
+    # se ferait sinon éjecter au moment où il essaie de se déconnecter, et sa session
+    # ProConnect resterait ouverte.
+    it "never gets between an agent and the sign-out path" do
+      expect(second_factor_enforced?(Portail::SessionsController)).to be(false)
+      expect(second_factor_enforced?(Portail::DashboardController)).to be(true)
     end
   end
 end

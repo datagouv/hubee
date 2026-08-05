@@ -448,6 +448,18 @@ RSpec.describe "Portail::Sessions", type: :request do
       expect(ProviderSession.last.denial_reason).to eq("second_factor_required")
     end
 
+    # Un rattachement rétrogradé doit cesser de marquer le navigateur : sinon celui-ci
+    # réclamerait la MFA pour toujours, et l'agent ne reverrait jamais la case pour la
+    # décocher — la page d'élévation n'ayant plus lieu d'apparaître.
+    it "forgets a device once its agent no longer owes a second factor" do
+      cookie = OmniAuth::Strategies::ProconnectHardened::PRIVILEGED_DEVICE_COOKIE
+      cookies[cookie] = "1"
+
+      sign_in_via_proconnect(agent: create(:agent), acr: "eidas1")
+
+      expect(cookies[cookie]).to be_blank
+    end
+
     it "never raises the requirement for an ordinary agent" do
       agent = create(:agent)
 
