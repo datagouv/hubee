@@ -38,31 +38,44 @@ module Portail
       session.delete(:return_to) || root_path
     end
 
-    # `granted` seulement : un refus laisse aussi un enregistrement, qui n'ouvre rien.
+    # Ce que ce navigateur détient, accordé ou refusé. Un refus laisse lui aussi un
+    # enregistrement : il n'ouvre rien, mais il doit pouvoir être relu puis abandonné.
     def find_session_by_cookie
-      session[:provider_session_id] &&
-        ProviderSession.granted.find_by(id: session[:provider_session_id])
+      return @session_in_cookie if defined?(@session_in_cookie)
+
+      @session_in_cookie = ProviderSession.find_by(id: session[:provider_session_id])
     end
 
-    # reset_session AVANT de poser l'identité : protection contre la session fixation.
-    def start_new_session_for(membership, id_token:, amr:)
-      reset_session
+    # `terminate_session` plutôt qu'un simple `reset_session` : ouvrir une authentification
+    # ferme ce que ce navigateur détenait déjà — protection contre la fixation de session,
+    # et une tentative abandonnée ne survit pas jusqu'à la purge avec son jeton.
+    def start_new_session_for(membership, id_token:, amr:, acr:)
+      terminate_session
       Current.provider_session = ProviderSession.create!(
-        membership:, provider_id_token: id_token, amr:, email: membership.agent.email,
-        ip_address: request.remote_ip, user_agent: request.user_agent
+        membership:, provider_id_token: id_token, amr:, acr:, email: membership.agent.email
       )
       session[:provider_session_id] = Current.provider_session.id
     end
 
+    # Symétrique de la précédente : même invariant, même clé de session. L'assemblage des
+    # attributs revient à l'appelant, qui seul connaît la réponse de ProConnect.
+    def start_denied_session(attributes)
+      terminate_session
+      session[:provider_session_id] = ProviderSession.create!(attributes).id
+    end
+
     def terminate_session
-      Current.provider_session&.destroy
+      find_session_by_cookie&.destroy
+      @session_in_cookie = nil
       Current.provider_session = nil
       reset_session
     end
 
     def expire_stale_session!
       record = find_session_by_cookie
-      return unless record
+      # Un refus n'est pas une session ouverte : ni la borne d'inactivité ni le message
+      # d'expiration ne le concernent.
+      return unless record&.granted?
 
       Current.provider_session = record
       return close_expired_session! if Portail::SessionLifetime.expired?(record)

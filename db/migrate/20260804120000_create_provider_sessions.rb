@@ -12,10 +12,12 @@ class CreateProviderSessions < ActiveRecord::Migration[8.1]
       # aussi la seule trace disponible quand le refus est « compte inconnu ».
       t.string :email, null: false
       t.string :denial_reason
+      # Comment l'agent s'est authentifié, et à quel niveau. Ni l'un ni l'autre n'est
+      # relu aujourd'hui, mais ils ne sont captables qu'ici : un contrôle d'autorisation
+      # n'ira pas les chercher dans une piste d'audit.
       t.string :amr, array: true, null: false, default: []
+      t.string :acr
       t.string :organization_label
-      t.string :ip_address
-      t.string :user_agent
       t.timestamps
     end
 
