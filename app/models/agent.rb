@@ -5,6 +5,11 @@ class Agent < ApplicationRecord
   has_many :memberships, dependent: :destroy
   has_many :organization_links, through: :memberships
 
+  # === Enums ===
+  # Liste fermée sans type PostgreSQL derrière (contrairement au rôle du rattachement) :
+  # une civilité fausse est un défaut d'affichage, pas un privilège usurpé
+  enum :civility, {mr: "mr", ms: "ms"}, prefix: true, validate: {allow_nil: true}
+
   # === Normalisations ===
   # Les fournisseurs d'identité ne garantissent pas la casse : sans ça, un agent enrôlé
   # en « Alice.Martin@… » serait refusé s'il se présente en « alice.martin@… ».
