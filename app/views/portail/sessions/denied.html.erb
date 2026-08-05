@@ -22,18 +22,16 @@
       <%= t("portail.sessions.denied.authenticated_with", email: @denial.email) %>
     </p>
 
-    <% if @switch_account_url %>
-      <%# Avant le bouton, pas après : il déconnecte de ProConnect pour tous les services. %>
-      <p class="fr-hint-text fr-mb-2w"><%= t("portail.sessions.denied.switch_account_hint") %></p>
-    <% end %>
+    <%# Avant le bouton, pas après : il déconnecte de ProConnect pour tous les services. %>
+    <p class="fr-hint-text fr-mb-2w"><%= t("portail.sessions.denied.switch_account_hint") %></p>
 
     <ul class="fr-btns-group fr-btns-group--inline-md">
-      <% if @switch_account_url %>
-        <li>
-          <%# Lien externe (end_session ProConnect) : Turbo n'intercepte pas le cross-origin. %>
-          <%= link_to t("portail.sessions.denied.switch_account"), @switch_account_url, class: "fr-btn" %>
-        </li>
-      <% end %>
+      <li>
+        <%# Passe par nous pour que la tentative abandonnée soit effacée avant la
+            redirection. Hors Turbo : la redirection finale est cross-origin. %>
+        <%= button_to t("portail.sessions.denied.switch_account"), logout_path,
+              method: :delete, class: "fr-btn", form: {data: {turbo: false}} %>
+      </li>
       <li>
         <%= link_to t("portail.errors.back_home"), root_path, class: "fr-btn fr-btn--secondary" %>
       </li>

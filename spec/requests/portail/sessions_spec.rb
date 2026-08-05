@@ -18,17 +18,6 @@ RSpec.describe "Portail::Sessions", type: :request do
     end
 
     context "when the agent is authenticated but unknown to the portal" do
-      let(:switch_account_url) { "https://proconnect.test/session/end?id_token_hint=test-id-token" }
-
-      # La page de refus construit l'URL de déconnexion ProConnect : les deux exemples
-      # passent donc par LogoutUrlBuilder. On le court-circuite ici — la découverte OIDC
-      # qu'il déclenche est testée en propre dans discovery_spec.rb.
-      before do
-        expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
-          .with(id_token: "test-id-token")
-          .and_return(switch_account_url)
-      end
-
       it "refuses access, creates nothing, and explains the situation" do
         mock_proconnect(sub: "sub-unknown")
 
@@ -43,8 +32,8 @@ RSpec.describe "Portail::Sessions", type: :request do
         expect(Capybara.string(response.body)).to have_text("support@hubee.numerique.gouv.fr")
       end
 
-      # Sa session ProConnect reste ouverte : sans ce lien, recliquer sur le bouton le
-      # réauthentifierait à l'identique et il resterait bloqué sur cette page.
+      # Sa session ProConnect reste ouverte : sans cette issue, recliquer sur le bouton
+      # le réauthentifierait à l'identique et il resterait bloqué sur cette page.
       it "shows the address used and offers to retry with another account" do
         mock_proconnect(sub: "sub-unknown", email: "alex@example.gouv.fr")
 
@@ -53,7 +42,8 @@ RSpec.describe "Portail::Sessions", type: :request do
 
         page = Capybara.string(response.body)
         expect(page).to have_text("alex@example.gouv.fr")
-        expect(page).to have_link("Essayer avec un autre compte", href: switch_account_url)
+        expect(page).to have_button("Essayer avec un autre compte")
+        expect(page).to have_css("form[action='/logout'][data-turbo='false']")
       end
     end
 
@@ -61,8 +51,6 @@ RSpec.describe "Portail::Sessions", type: :request do
     # organisationnel est déclaratif, quel que soit le compte présenté.
     context "when the authentication level does not certify the organisation" do
       it "refuses access and explains why" do
-        expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
-          .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
         mock_proconnect(sub: "sub-unknown", acr: "eidas0")
 
         get "/auth/proconnect/callback"
@@ -79,8 +67,6 @@ RSpec.describe "Portail::Sessions", type: :request do
       it "refuses access and names the organisation he came in with" do
         agent = create(:agent, provider_sub: "sub-known")
         create(:membership, agent:, organization_link: create(:organization_link))
-        expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
-          .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
         mock_proconnect(sub: "sub-known", email: agent.email, organization_label: "Commune de Clamart")
 
         get "/auth/proconnect/callback"
@@ -94,8 +80,6 @@ RSpec.describe "Portail::Sessions", type: :request do
       it "falls back to a generic wording when ProConnect sent no label" do
         agent = create(:agent, provider_sub: "sub-known")
         create(:membership, agent:, organization_link: create(:organization_link))
-        expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
-          .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
         mock_proconnect(sub: "sub-known", email: agent.email, organization_label: nil)
 
         get "/auth/proconnect/callback"
@@ -109,8 +93,6 @@ RSpec.describe "Portail::Sessions", type: :request do
     context "when the sub is known but the email does not match" do
       it "refuses access and explains why" do
         create(:agent, provider_sub: "sub-known", email: "enrolled@example.gouv.fr")
-        expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
-          .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
         mock_proconnect(sub: "sub-known", email: "other@example.gouv.fr")
 
         get "/auth/proconnect/callback"
@@ -150,6 +132,33 @@ RSpec.describe "Portail::Sessions", type: :request do
       )
     end
 
+    # Un refus pour niveau insuffisant qui ne dirait pas quel niveau a été atteint ne
+    # consignerait pas son propre diagnostic.
+    it "records how the agent authenticated, and at which level" do
+      mock_proconnect(sub: "sub-unknown", amr: ["pwd"], acr: "eidas0")
+
+      get "/auth/proconnect/callback"
+
+      expect(ProviderSession.denied.last).to have_attributes(
+        denial_reason: "insufficient_authentication_level", amr: ["pwd"], acr: "eidas0"
+      )
+    end
+
+    # Abandon implicite : l'agent ne clique pas sur « essayer avec un autre compte », il
+    # retente simplement. La tentative précédente n'a plus lieu d'être conservée.
+    it "discards the previous attempt when a new one begins" do
+      OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
+        provider: "proconnect", uid: "sub-unknown",
+        info: {email: "alex@example.gouv.fr"}, credentials: {id_token: "test-id-token"},
+        extra: {nonce: "test-nonce", raw_info: {"siret" => "99999999911111"}}
+      )
+      expect(Portail::ProConnect::TokenVerifier).to receive(:call).twice
+        .and_return(sub: "sub-unknown", amr: ["pwd"], acr: "eidas1")
+      get "/auth/proconnect/callback"
+
+      expect { get "/auth/proconnect/callback" }.not_to change(ProviderSession, :count)
+    end
+
     # Sans adresse, la page de refus n'aurait rien à montrer. La page d'échec vaut mieux
     # qu'un 500 sur le chemin d'authentification.
     it "falls back to the failure page when ProConnect sent no address" do
@@ -184,8 +193,6 @@ RSpec.describe "Portail::Sessions", type: :request do
   # irrechargeable. Le motif vit en session, la page a sa propre adresse.
   describe "GET /connexion/refusee" do
     it "still explains the refusal when the page is reloaded" do
-      expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call).twice
-        .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
       mock_proconnect(sub: "sub-unknown")
       get "/auth/proconnect/callback"
 
@@ -214,20 +221,18 @@ RSpec.describe "Portail::Sessions", type: :request do
       expect(response).to redirect_to(root_path)
     end
 
-    # ProConnect injoignable : le motif du refus reste affiché, seul le bouton de
-    # changement de compte disparaît faute de pouvoir construire son URL.
-    it "still explains the refusal when ProConnect cannot be reached" do
+    # Abandonner une tentative doit l'effacer : sans ça, son jeton survivrait un quart
+    # d'heure alors que l'agent a explicitement tourné la page.
+    it "erases the refused attempt when the agent gives up on it" do
       expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
-        .and_raise(Portail::ProConnect::Discovery::Unavailable)
+        .with(id_token: "test-id-token")
+        .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
       mock_proconnect(sub: "sub-unknown")
       get "/auth/proconnect/callback"
 
-      get denied_path
+      expect { delete "/logout" }.to change(ProviderSession, :count).by(-1)
 
-      expect(response).to have_http_status(:forbidden)
-      page = Capybara.string(response.body)
-      expect(page).to have_text("Votre compte n'est pas reconnu")
-      expect(page).to have_no_link("Essayer avec un autre compte")
+      expect(response).to redirect_to("https://proconnect.test/session/end?id_token_hint=test-id-token")
     end
   end
 

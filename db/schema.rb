@@ -93,16 +93,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_120000) do
   end
 
   create_table "provider_sessions", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.string "acr"
     t.string "amr", default: [], null: false, array: true
     t.datetime "created_at", null: false
     t.string "denial_reason"
     t.string "email", null: false
-    t.string "ip_address"
     t.uuid "membership_id"
     t.string "organization_label"
     t.text "provider_id_token", null: false
     t.datetime "updated_at", null: false
-    t.string "user_agent"
     t.index ["created_at"], name: "index_provider_sessions_on_created_at"
     t.index ["membership_id"], name: "index_provider_sessions_on_membership_id"
     t.index ["updated_at"], name: "index_provider_sessions_on_updated_at"

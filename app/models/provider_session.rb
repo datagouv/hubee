@@ -19,4 +19,6 @@ class ProviderSession < ApplicationRecord
 
   # === Méthodes d'instance ===
   def granted? = membership_id.present?
+
+  def denied? = !granted?
 end
