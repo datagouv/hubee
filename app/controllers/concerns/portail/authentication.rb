@@ -33,7 +33,7 @@ module Portail
       redirect_to root_path
     end
 
-    # À lire avant `start_new_session_for`, dont le reset_session efface la destination.
+    # À lire avant `adopt_session`, dont le reset_session efface la destination.
     def after_authentication_url
       session.delete(:return_to) || root_path
     end
@@ -46,22 +46,14 @@ module Portail
       @session_in_cookie = ProviderSession.find_by(id: session[:provider_session_id])
     end
 
-    # `terminate_session` plutôt qu'un simple `reset_session` : ouvrir une authentification
-    # ferme ce que ce navigateur détenait déjà — protection contre la fixation de session,
-    # et une tentative abandonnée ne survit pas jusqu'à la purge avec son jeton.
-    def start_new_session_for(membership, id_token:, amr:, acr:)
+    # Le métier a produit l'enregistrement, accordé ou refusé ; il reste à en ranger
+    # l'identifiant dans le cookie. `terminate_session` plutôt qu'un simple `reset_session` :
+    # ouvrir une authentification ferme ce que ce navigateur détenait déjà — protection
+    # contre la fixation de session, et une tentative abandonnée ne survit pas jusqu'à la
+    # purge avec son jeton.
+    def adopt_session(provider_session)
       terminate_session
-      Current.provider_session = ProviderSession.create!(
-        membership:, provider_id_token: id_token, amr:, acr:, email: membership.agent.email
-      )
-      session[:provider_session_id] = Current.provider_session.id
-    end
-
-    # Symétrique de la précédente : même invariant, même clé de session. L'assemblage des
-    # attributs revient à l'appelant, qui seul connaît la réponse de ProConnect.
-    def start_denied_session(attributes)
-      terminate_session
-      session[:provider_session_id] = ProviderSession.create!(attributes).id
+      session[:provider_session_id] = provider_session.id
     end
 
     def terminate_session
