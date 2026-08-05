@@ -5,6 +5,11 @@ module Portail
     # La surface d'authentification elle-même : s'y authentifier ne peut être un prérequis.
     allow_unauthenticated_access
 
+    # Entrer et sortir doit rester possible quels que soient les droits : un agent dont le
+    # rattachement vient de changer doit pouvoir se déconnecter, et fermer aussi sa session
+    # ProConnect.
+    skip_before_action :enforce_second_factor!
+
     # Ouvert à tous, et chaque appel déclenche deux requêtes sortantes vers ProConnect —
     # échange du code puis userinfo. Sans limite, on se laisse transformer en amplificateur.
     rate_limit to: 10, within: 1.minute, only: :create, with: -> { head :too_many_requests }
@@ -92,7 +97,12 @@ module Portail
     # dedans, et il ne peut qu'élever l'exigence — d'où l'absence de signature.
     # `nil` signifie que la question n'a pas été posée : on laisse alors le choix précédent.
     def remember_device!(choice, membership)
-      return if choice.nil? || !Portail::SecondFactor.required_for?(membership)
+      # Un agent qui n'y est plus soumis efface le marquage : sans ça, un rattachement
+      # rétrogradé laisserait le navigateur réclamer la MFA pour toujours, et l'agent ne
+      # reverrait jamais la case pour la décocher.
+      return cookies.delete(OmniAuth::Strategies::ProconnectHardened::PRIVILEGED_DEVICE_COOKIE) unless
+        Portail::SecondFactor.required_for?(membership)
+      return if choice.nil?
 
       if choice
         cookies[OmniAuth::Strategies::ProconnectHardened::PRIVILEGED_DEVICE_COOKIE] = {

@@ -11,6 +11,7 @@ module Portail
     included do
       helper_method :current_agent, :agent_signed_in?, :current_membership
       before_action :expire_stale_session!
+      before_action :enforce_second_factor!
       before_action :require_authentication
     end
 
@@ -43,7 +44,9 @@ module Portail
     def find_session_by_cookie
       return @session_in_cookie if defined?(@session_in_cookie)
 
-      @session_in_cookie = ProviderSession.includes(membership: :agent)
+      # Les habilitations viennent avec le reste : le garde du second facteur les lit à
+      # chaque requête, autant les charger dans la requête déjà faite.
+      @session_in_cookie = ProviderSession.includes(membership: [:agent, :process_accesses])
         .find_by(id: session[:provider_session_id])
     end
 
@@ -62,6 +65,22 @@ module Portail
       remove_instance_variable(:@session_in_cookie)
       Current.provider_session = nil
       reset_session
+    end
+
+    # Relu à chaque requête plutôt que porté par le cookie : un rattachement peut devenir
+    # à privilèges pendant la session. On éjecte sans élever — détourner une requête
+    # quelconque vers ProConnect donnerait un retour qui ne sait plus où renvoyer l'agent.
+    def enforce_second_factor!
+      record = find_session_by_cookie
+      return unless record&.granted?
+      return if Portail::SecondFactor.satisfied?(record.membership, record.acr)
+
+      terminate_session
+      # Après `terminate_session` : son reset_session effacerait un marqueur posé avant.
+      # L'agent repart donc directement sur l'élévation plutôt que sur un accueil qui ne
+      # lui dirait pas quoi faire.
+      session[:proconnect_step_up] = true
+      redirect_to step_up_path, alert: t("portail.sessions.second_factor_required")
     end
 
     def expire_stale_session!
