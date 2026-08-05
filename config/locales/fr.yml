@@ -59,7 +59,7 @@ fr:
         switch_account: Essayer avec un autre compte
         unknown_agent:
           heading: Votre compte n'est pas reconnu
-          body: Votre identité est vérifiée, mais aucun compte HubEE ne lui correspond. Demandez à votre administration de vous déclarer.
+          body: Votre identité est vérifiée, mais aucun compte HubEE ne lui correspond. Demandez à votre administration de vous déclarer, puis reconnectez-vous.
         insufficient_authentication_level:
           heading: Votre rattachement n'a pas été vérifié
           body: "L'organisation de votre compte est déclarative : HubEE exige qu'elle soit vérifiée. Reconnectez-vous avec le compte fourni par votre administration."
@@ -69,11 +69,12 @@ fr:
           body: "Aucun rattachement ne vous autorise à entrer au titre de %{organization}. Si vous appartenez à plusieurs organisations, réessayez avec une autre ; sinon, contactez votre administration."
         email_mismatch:
           heading: Votre adresse ne correspond pas à votre compte
-          body: "L'adresse de votre compte ProConnect n'est plus celle enregistrée par HubEE. Par précaution, l'accès est suspendu : demandez sa mise à jour à votre administration."
+          body: "L'adresse de votre compte ProConnect n'est plus celle enregistrée par HubEE. Par précaution, l'accès est suspendu : demandez sa mise à jour à votre administration, puis reconnectez-vous."
       failure:
         title: Échec de la connexion — HubEE
         heading: La connexion a échoué
         body: Une erreur est survenue pendant l'authentification. Aucune session n'a été ouverte. Vous pouvez réessayer.
+        support_html: "Si le problème persiste, écrivez à %{email} en précisant l'heure de votre tentative."
     errors:
       back_home: Retour à l'accueil
       stale_page: Cette page n'était plus à jour, elle a été rechargée.
