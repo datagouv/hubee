@@ -11,6 +11,13 @@ fr:
       agent/civilities:
         mr: M.
         ms: Mme
+      membership:
+        role: Rôle
+        job_title: Fonction
+        phone_number: Téléphone
+      membership/roles:
+        member: Agent
+        local_administrator: Administrateur local
     errors:
       models:
         organization_link:
