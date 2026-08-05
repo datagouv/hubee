@@ -13,3 +13,9 @@ production:
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
+
+  # Horaire : le plus long à mourir vit douze heures. Un quart d'heure serait zélé, une
+  # fois par jour laisserait une tentative d'abus s'accumuler.
+  purge_provider_sessions:
+    class: Portail::PurgeProviderSessionsJob
+    schedule: every hour at minute 42
