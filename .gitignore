@@ -45,3 +45,10 @@ docs/superpowers/
 
 # Ignore test coverage reports (generated artifact)
 /coverage/
+
+# Ignore macOS metadata and editor/assistant local directories
+.DS_Store
+.ai/
+.cursor/
+.vscode/
+.claude/worktrees/
