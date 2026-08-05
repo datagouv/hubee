@@ -26,13 +26,13 @@ module Portail
       if result.success?
         # Lue avant : `start_new_session_for` réinitialise la session et l'effacerait.
         target = after_authentication_url
-        start_new_session_for(result.membership,
-          id_token: auth_hash.credentials.id_token, amr: result.claims[:amr])
+        start_new_session_for(result.membership, id_token: auth_hash.credentials.id_token,
+          amr: result.claims[:amr], acr: result.claims[:acr])
         redirect_to target, notice: t(".signed_in")
       elsif TECHNICAL_FAILURES.include?(result.error)
         redirect_to auth_failure_path
       else
-        deny_access!(result.error)
+        deny_access!(result)
       end
     end
 
@@ -47,15 +47,15 @@ module Portail
     # Une seule vue pour tous les motifs : seul le message change. Tout nouveau refus
     # atterrit ici sans code supplémentaire — il lui suffit de ses deux clés de traduction.
     def denied
-      @switch_account_url = switch_account_url_for(@denial)
       render status: :forbidden
     end
 
-    # La session locale est fermée avant tout appel sortant : ProConnect injoignable ne
-    # doit jamais retenir un agent connecté.
+    # Sert la déconnexion d'un agent entré comme l'abandon d'une tentative refusée : dans
+    # les deux cas on ferme chez nous d'abord, pour que ProConnect injoignable ne retienne
+    # jamais personne.
     def destroy
       # Lu avant : `terminate_session` détruit l'enregistrement qui le porte.
-      id_token = Current.provider_session&.provider_id_token
+      id_token = find_session_by_cookie&.provider_id_token
       terminate_session
       redirect_to Portail::ProConnect::LogoutUrlBuilder.call(id_token:), allow_other_host: true
     rescue Portail::ProConnect::Discovery::Unavailable
@@ -81,32 +81,19 @@ module Portail
     # traductions, si bien qu'un enregistrement antérieur à un renommage ne fait pas
     # tomber la page — et qu'ajouter un motif ne demande rien d'autre qu'une traduction.
     def pending_denial
-      denial = ProviderSession.denied.find_by(id: session[:provider_session_id])
-      denial if denial && I18n.exists?("portail.sessions.denied.#{denial.denial_reason}.heading")
+      denial = find_session_by_cookie
+      denial if denial&.denied? && I18n.exists?("portail.sessions.denied.#{denial.denial_reason}.heading")
     end
 
-    # ProConnect muet, on montre quand même le motif : seul le bouton de changement de
-    # compte disparaît, faute de pouvoir construire son URL.
-    def switch_account_url_for(denial)
-      Portail::ProConnect::LogoutUrlBuilder.call(id_token: denial.provider_id_token)
-    rescue Portail::ProConnect::Discovery::Unavailable
-      nil
-    end
-
-    # Le refus est consigné comme une authentification sans rattachement. reset_session
-    # d'abord, comme à l'ouverture d'une session : on s'apprête à désigner une identité.
-    #
     # Sans adresse, la page de refus n'aurait rien à montrer — la page d'échec vaut mieux
     # qu'une erreur serveur sur le chemin d'authentification.
-    def deny_access!(reason)
-      reset_session
-      denial = ProviderSession.create!(
-        denial_reason: reason.to_s, email: auth_hash.info.email,
+    def deny_access!(result)
+      start_denied_session(
+        denial_reason: result.error.to_s, email: auth_hash.info.email,
         provider_id_token: auth_hash.credentials.id_token,
-        organization_label: auth_hash.extra.raw_info&.dig("organization_label"),
-        ip_address: request.remote_ip, user_agent: request.user_agent
+        amr: result.claims[:amr], acr: result.claims[:acr],
+        organization_label: auth_hash.extra.raw_info&.dig("organization_label")
       )
-      session[:provider_session_id] = denial.id
       redirect_to denied_path
     rescue ActiveRecord::RecordInvalid
       redirect_to auth_failure_path
