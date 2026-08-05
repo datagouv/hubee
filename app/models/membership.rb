@@ -6,6 +6,8 @@ class Membership < ApplicationRecord
   # === Associations ===
   belongs_to :agent
   belongs_to :organization_link
+  # Pas de `dependent:` — la cascade est portée par la base.
+  has_many :process_accesses
 
   # === Enums ===
   # `validate: true` fait d'une valeur inconnue une erreur de validation là où Rails

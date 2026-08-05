@@ -18,6 +18,8 @@ fr:
       membership/roles:
         member: Agent
         local_administrator: Administrateur local
+      process_access:
+        process_code: Code du processus
     errors:
       models:
         organization_link:
