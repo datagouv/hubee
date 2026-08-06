@@ -103,6 +103,23 @@ RSpec.describe "Portail::Sessions", type: :request do
       end
     end
 
+    # ProConnect renvoie ses refus en paramètre. Les lire d'abord : enchaîner l'échange du
+    # code échouerait plus loin sous un motif trompeur — les journaux parleraient de
+    # décodage JWT là où il faudrait lire « accès refusé ».
+    context "when ProConnect refuses in the callback parameters" do
+      it "goes to the failure page without trying to exchange anything" do
+        mock_proconnect_transport
+        expect(Portail::ProConnect::Client).not_to receive(:exchange)
+        depart_for_proconnect
+
+        get "/auth/proconnect/callback",
+          params: {error: "access_denied", state: ProConnectTestHelper::STATE}
+
+        expect(response).to redirect_to(auth_failure_path)
+        expect(ProviderSession.count).to eq(0)
+      end
+    end
+
     # Le `state` lie la réponse à la demande qu'on a émise. Sans ce contrôle, un callback
     # fabriqué par un tiers ouvrirait une session dans le navigateur de l'agent.
     context "when the state does not match the one we sent" do

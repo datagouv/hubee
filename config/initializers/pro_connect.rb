@@ -7,6 +7,14 @@
 # Le cache du JWKS est indexé par `kid` : une clé inconnue est un défaut de cache, donc un
 # rechargement immédiat. C'est le comportement anti-rotation qu'on entretenait à la main,
 # en plus fin — on rechargeait le jeu entier, lui ne va chercher que ce qui manque.
+# Exigé, non déduit de la valeur fournie : récupérées en clair, les clés publiques de
+# ProConnect pourraient être remplacées en chemin — la vérification de signature
+# continuerait de passer, mais en validant les jetons de l'attaquant. Le gem, lui, se
+# contente de vérifier que c'est une URL. Panne au démarrage plutôt qu'à la connexion.
+unless ENV.fetch("PROCONNECT_DOMAIN", "").start_with?("https://")
+  raise "PROCONNECT_DOMAIN doit être une URL HTTPS (reçu : #{ENV["PROCONNECT_DOMAIN"].inspect})"
+end
+
 module ProConnectCache
   # Résolu à l'appel et non au démarrage : `Rails.cache` est remplacé par les specs qui
   # éprouvent la mise en cache, et un magasin capturé ici les rendrait aveugles.

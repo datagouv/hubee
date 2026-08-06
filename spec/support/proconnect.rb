@@ -26,6 +26,11 @@ module ProConnectTestHelper
 
   # Le transport aboutit, mais rien n'est dit de la vérification : pour les specs qui
   # bouchonnent TokenVerifier eux-mêmes, en refus ou en panne.
+  #
+  # `allow` et non `expect`, contrairement à TokenVerifier ci-dessus : un `expect` nu vaut
+  # « exactement une fois », or le nombre de départs et d'échanges varie d'un exemple à
+  # l'autre — onze fois dans la spec de débit. Une spec qui veut compter pose son propre
+  # `expect`, comme le fait celle des suggestions d'élévation.
   def mock_proconnect_transport(email: "agent@example.gouv.fr", first_name: "Alex",
     last_name: "Martin", siret: TEST_SIRET, organization_label: "Mairie de Test", idp_id: nil)
     allow(Portail::ProConnect::Client).to receive(:exchange).and_return(
