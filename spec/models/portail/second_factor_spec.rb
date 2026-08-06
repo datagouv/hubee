@@ -35,15 +35,24 @@ RSpec.describe Portail::SecondFactor do
 
   describe ".satisfied?" do
     it "lets any level through for a membership that owes no second factor" do
-      expect(described_class.satisfied?(membership_with(nil), "eidas1")).to be(true)
+      expect(described_class.satisfied?(membership_with(nil), acr: "eidas1")).to be(true)
     end
 
-    it "accepts only the levels that attest a second factor" do
+    it "accepts the levels that attest a second factor" do
       membership = membership_with(nil, :local_administrator)
 
-      expect(described_class.satisfied?(membership, "eidas1")).to be(false)
-      expect(described_class.satisfied?(membership, "eidas1-mfa")).to be(true)
-      expect(described_class.satisfied?(membership, "eidas2")).to be(true)
+      expect(described_class.satisfied?(membership, acr: "eidas1")).to be(false)
+      expect(described_class.satisfied?(membership, acr: "eidas1-mfa")).to be(true)
+      expect(described_class.satisfied?(membership, acr: "eidas2")).to be(true)
+    end
+
+    # Certains fournisseurs d'identité imposent leur propre MFA sans être qualifiés pour
+    # l'attester en niveau : l'acr reste eidas1, l'amr du jeton vérifié en témoigne.
+    it "accepts a second factor the identity provider imposed on its own" do
+      membership = membership_with(nil, :local_administrator)
+
+      expect(described_class.satisfied?(membership, acr: "eidas1", amr: ["pwd", "mfa"])).to be(true)
+      expect(described_class.satisfied?(membership, acr: "eidas1", amr: ["pwd"])).to be(false)
     end
   end
 end
