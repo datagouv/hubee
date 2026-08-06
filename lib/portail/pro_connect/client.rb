@@ -67,7 +67,8 @@ module Portail
           raise Unavailable, e.message
         end
 
-        def logout_url(id_token:, post_logout_redirect_uri:)
+        def logout_url(id_token:,
+          post_logout_redirect_uri: ENV.fetch("PROCONNECT_POST_LOGOUT_REDIRECT_URI"))
           query = {id_token_hint: id_token, post_logout_redirect_uri:}.compact.to_query
           "#{config.end_session_endpoint}?#{query}"
         end
