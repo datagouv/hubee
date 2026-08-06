@@ -3,15 +3,16 @@
 require "rails_helper"
 
 RSpec.describe Portail::ProConnect::TokenVerifier do
-  # Clé RSA de test + JWKS correspondant, injectés via un fake discovery.
+  # Clé RSA de test + JWK correspondant, injectés via un faux annuaire ProConnect. C'est
+  # désormais l'objet de configuration du gem qui les porte : `jwk(kid)` va chercher la
+  # clé annoncée par le jeton, et recharge le JWKS si elle est inconnue.
   let(:rsa) { OpenSSL::PKey::RSA.generate(2048) }
   let(:jwk) { JSON::JWK.new(rsa.public_key) }
-  let(:discovery) do
+  let(:config) do
     instance_double(
-      "Portail::ProConnect::Discovery",
-      issuer: "https://proconnect.gouv.fr/api/v2",
-      jwks: JSON::JWK::Set.new(jwk)
-    )
+      OpenIDConnect::Discovery::Provider::Config::Response,
+      issuer: "https://proconnect.gouv.fr/api/v2"
+    ).tap { |double| allow(double).to receive(:jwk).and_return(jwk) }
   end
 
   # Construit un id_token signé. Les surcharges permettent de casser un claim.
@@ -37,7 +38,7 @@ RSpec.describe Portail::ProConnect::TokenVerifier do
       id_token: id_token,
       nonce: "nonce-123",
       audience: "client-abc",
-      discovery: discovery
+      config: config
     )
   end
 
@@ -141,7 +142,7 @@ RSpec.describe Portail::ProConnect::TokenVerifier do
           id_token: id_token,
           nonce: nil,
           audience: "client-abc",
-          discovery: discovery
+          config: config
         )
       end
 
