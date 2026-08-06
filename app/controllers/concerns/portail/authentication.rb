@@ -47,7 +47,7 @@ module Portail
 
       # Les habilitations viennent avec le reste : le garde du second facteur les lit à
       # chaque requête, autant les charger dans la requête déjà faite.
-      @session_in_cookie = ProviderSession.includes(membership: [:agent, :process_accesses])
+      @session_in_cookie = ProviderSession.includes(membership: [:agent, :process_accesses, :organization_link])
         .find_by(id: session[:provider_session_id])
     end
 
@@ -89,11 +89,17 @@ module Portail
         agent_id: record.membership.agent_id, membership_id: record.membership_id
       ))
 
+      # Lus avant : `terminate_session` détruit l'enregistrement qui les porte.
+      email = record.email
+      siret = record.membership.organization_link.siret
+
       terminate_session
       # Après `terminate_session` : son reset_session effacerait un marqueur posé avant.
       # L'agent repart donc directement sur l'élévation plutôt que sur un accueil qui ne
       # lui dirait pas quoi faire.
       session[:proconnect_step_up] = true
+      session[:proconnect_step_up_email] = email
+      session[:proconnect_step_up_siret] = siret
       redirect_to step_up_path, alert: t("portail.sessions.second_factor_required")
     end
 
