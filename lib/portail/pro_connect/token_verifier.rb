@@ -4,27 +4,16 @@ require "json/jwt"
 
 module Portail
   module ProConnect
-    # À la fin d'une connexion, ProConnect renvoie un `id_token` : un jeton signé par lui,
-    # qui atteste qui vient de se connecter et par quel moyen. Cette classe est le seul
-    # endroit où ce jeton est réellement contrôlé.
-    #
-    # Le gem porte la signature et le jeu de clés ; les six contrôles ci-dessous restent
-    # ici, car `IdToken#verify!` n'en fait que quatre — sans marge d'horloge, et en
-    # acceptant un `nonce` attendu nul.
+    # Seul endroit où l'id_token est contrôlé. Le gem porte la signature et le jeu de
+    # clés ; les contrôles de contenu restent ici — `IdToken#verify!` n'en fait que
+    # quatre, sans marge d'horloge et en acceptant un nonce attendu nul.
     class TokenVerifier
       class InvalidToken < StandardError; end
 
-      # Un jeton annonce lui-même, dans son en-tête, l'algorithme qui l'a signé. Se fier à
-      # cette annonce est le piège classique : on peut fabriquer un jeton en le signant
-      # avec la clé *publique* de ProConnect — que tout le monde peut télécharger — en la
-      # présentant comme un secret partagé (algorithme HS256), ou déclarer `alg: none` et
-      # ne rien signer du tout. En imposant la liste, ces deux jetons sont rejetés d'emblée.
-      # Le premier cas est couvert par token_verifier_spec.rb.
+      # Imposé, jamais lu dans le jeton : un HS256 signé avec la clé publique passerait sinon.
       ALLOWED_ALGORITHMS = [:RS256].freeze
 
-      # Deux horloges ne sont jamais parfaitement d'accord. Sans marge, quelques secondes
-      # de dérive suffiraient à refuser des jetons valides — panne intermittente et
-      # difficile à imputer. Trente secondes est l'usage courant.
+      # Dérive entre horloges : sans marge, des jetons valides seraient refusés par à-coups.
       CLOCK_LEEWAY = 30.seconds
 
       class << self
@@ -50,36 +39,23 @@ module Portail
 
       attr_reader :id_token, :nonce, :audience, :config
 
-      # `config.jwk` récupère la clé annoncée par le jeton, et va la chercher chez
-      # ProConnect si le cache ne l'a pas — la rotation de clés est gérée par le gem, clé
-      # par clé, là où notre Discovery rechargeait le jeu entier.
+      # `config.jwk` va chercher chez ProConnect toute clé absente du cache (rotation).
       def decode_and_verify_signature
         JSON::JWT.decode(id_token, config.jwk(token_kid), ALLOWED_ALGORITHMS)
       rescue JSON::JWT::Exception, JSON::JWK::Set::KidNotFound => e
         raise InvalidToken, "signature verification failed: #{e.message}"
       end
 
-      # On lit l'en-tête sans contrôler la signature. C'est volontaire et sans risque : il
-      # ne sert qu'à savoir quelle clé publique demander, et la signature est vérifiée
-      # juste après, contre cette clé. Si l'identifiant de clé est inconnu, Discovery
-      # recharge le jeu de clés — voir Discovery#jwks.
+      # Lu sans vérifier : ne sert qu'à choisir la clé, la signature est contrôlée juste après.
       def token_kid
         JSON::JWT.decode(id_token, :skip_verification).header[:kid]
       rescue JSON::JWT::Exception
         nil
       end
 
-      # La signature prouve que ProConnect a bien émis ce jeton — rien de plus. Cinq
-      # champs restent à contrôler :
-      #
-      #   sub   l'identité est présente. Sans ce garde-fou, un `sub` nul se comporterait
-      #         en joker : la recherche par sub matcherait le premier agent enrôlé pas
-      #         encore rattaché
-      #   iss   l'émetteur est bien ProConnect, et pas un autre fournisseur d'identité
-      #   aud   le jeton nous était destiné, pas à un autre service branché sur ProConnect
-      #   exp   il n'a pas expiré
-      #   nonce il répond à la demande que nous venons d'émettre, et non à une ancienne
-      #         interceptée puis rejouée
+      # La signature prouve l'émetteur ; le contenu reste à contrôler. Un `sub` absent
+      # ferait joker dans la résolution d'agent ; le `nonce` lie le jeton à notre demande
+      # et interdit le rejeu.
       def verify_claims!(claims)
         raise InvalidToken, "missing subject" if claims[:sub].blank?
         raise InvalidToken, "issuer mismatch" unless claims[:iss] == config.issuer
