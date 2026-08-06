@@ -535,11 +535,24 @@ RSpec.describe "Portail::Sessions", type: :request do
     it "sends a single-factor administrator straight back to ProConnect" do
       agent = administrator_agent
 
-      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
       proconnect_callback
 
       expect(response).to redirect_to("https://proconnect.test/api/v2/authorize")
       expect(session[:proconnect_step_up]).to be(true)
+    end
+
+    # Certains FI imposent leur propre MFA avant que ProConnect ne la demande : l'acr
+    # reste eidas1 mais l'amr du jeton vérifié en témoigne — rien à élever.
+    it "lets an administrator in directly when the identity provider already imposed MFA" do
+      agent = administrator_agent
+      mock_proconnect(sub: agent.provider_sub, email: agent.email,
+        acr: "eidas1", amr: ["pwd", "mfa"])
+
+      proconnect_callback
+
+      expect(response).to redirect_to(root_path)
+      expect(ProviderSession.last).to be_granted
     end
 
     # L'agent vient de s'identifier : lui refaire saisir son adresse et rechoisir son
@@ -547,7 +560,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     # lire — elles ne transitent plus par la session, donc ne survivent à personne.
     it "suggests the address and the organisation it already knows" do
       agent = administrator_agent
-      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
 
       expect(Portail::ProConnect::Client).to receive(:authorization)
         .with(step_up: false, login_hint: nil, siret_hint: nil)
@@ -574,7 +587,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     it "lets the administrator in once the second factor is presented" do
       agent = administrator_agent
 
-      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
       proconnect_callback
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
       proconnect_callback
@@ -587,9 +600,9 @@ RSpec.describe "Portail::Sessions", type: :request do
     it "refuses when the step-up came back at the same level" do
       agent = administrator_agent
 
-      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
       proconnect_callback
-      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
       proconnect_callback
 
       expect(response).to redirect_to(denied_path)
@@ -599,7 +612,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     # L'éjection porte un message que l'agent doit lire avant de repartir.
     it "explains itself when the agent was ejected mid-session" do
       agent = create(:agent)
-      sign_in_via_proconnect(agent:)
+      sign_in_via_proconnect(agent:, amr: ["pwd"])
       Membership.last.update!(role: "local_administrator")
 
       get root_path
@@ -612,7 +625,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     # Le renvoi conserve ce qu'on savait de l'agent : ProConnect n'a rien à lui redemander.
     it "suggests the ejected agent's address and organisation on the way back" do
       agent = create(:agent)
-      sign_in_via_proconnect(agent:)
+      sign_in_via_proconnect(agent:, amr: ["pwd"])
       Membership.last.update!(role: "local_administrator")
       get root_path
 
@@ -632,7 +645,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     # MFA de toute connexion suivante — y compris d'un autre agent sur un poste partagé.
     it "stops demanding a second factor once the journey has failed" do
       agent = administrator_agent
-      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
       proconnect_callback
 
       mock_proconnect_transport

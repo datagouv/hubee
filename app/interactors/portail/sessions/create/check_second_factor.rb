@@ -9,7 +9,8 @@ module Portail
         include Interactor
 
         def call
-          return if SecondFactor.satisfied?(context.membership, context.claims[:acr])
+          return if SecondFactor.satisfied?(context.membership,
+            acr: context.claims[:acr], amr: context.claims[:amr])
 
           # Une seule élévation : redemander enverrait l'agent en boucle entre les deux
           # services.

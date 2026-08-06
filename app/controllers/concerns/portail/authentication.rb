@@ -77,7 +77,8 @@ module Portail
     def enforce_second_factor!
       record = find_session_by_cookie
       return unless record&.granted?
-      return if Portail::SecondFactor.satisfied?(record.membership, record.acr)
+      return if Portail::SecondFactor.satisfied?(record.membership,
+        acr: record.acr, amr: record.amr)
 
       Rails.event.notify(Portail::Auth::Decision.new(
         outcome: :denied, reason: :second_factor_required,
