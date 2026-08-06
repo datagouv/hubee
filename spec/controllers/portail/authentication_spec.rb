@@ -114,6 +114,20 @@ RSpec.describe Portail::BaseController, type: :controller do
     end
   end
 
+  # Le contexte évite d'élargir la signature de toute la chaîne : aucun interactor ne reçoit
+  # l'IP, et elle arrive quand même dans la trace.
+  describe "the event context" do
+    it "carries what identifies the request" do
+      request.headers["User-Agent"] = "Firefox"
+      expect(Rails.event).to receive(:set_context) do |context|
+        expect(context).to include(:ip_address, :request_id)
+        expect(context[:user_agent]).to eq("Firefox")
+      end
+
+      get :index
+    end
+  end
+
   describe ".allow_unauthenticated_access" do
     def authentication_required?(controller_class)
       controller_class._process_action_callbacks.any? { |callback| callback.filter == :require_authentication }
