@@ -24,6 +24,8 @@ module Portail
         nonce: auth_hash.extra.nonce,
         info: auth_hash.info,
         siret: auth_hash.extra.raw_info&.dig("siret"),
+        idp_id: auth_hash.extra.raw_info&.dig("idp_id"),
+        organization_label: auth_hash.extra.raw_info&.dig("organization_label"),
         step_up_attempted: session[:proconnect_step_up]
       )
 
@@ -120,6 +122,7 @@ module Portail
         reason: result.error, claims: result.claims,
         id_token: auth_hash.credentials.id_token, email: auth_hash.info.email,
         siret: auth_hash.extra.raw_info&.dig("siret"),
+        idp_id: auth_hash.extra.raw_info&.dig("idp_id"),
         organization_label: auth_hash.extra.raw_info&.dig("organization_label"),
         agent_id: result.agent&.id
       )

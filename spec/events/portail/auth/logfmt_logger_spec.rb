@@ -12,8 +12,8 @@ RSpec.describe Portail::Auth::LogfmtLogger do
              context: {ip_address: "203.0.113.7"}, tags: {}}
 
     expect(Rails.logger).to receive(:info) do |line|
-      expect(line).to include("outcome=:denied", "siret=\"13002526500013\"",
-        "ip_address=\"203.0.113.7\"")
+      expect(line).to include("event=\"Portail::Auth::Decision\"", "outcome=:denied",
+        "siret=\"13002526500013\"", "ip_address=\"203.0.113.7\"")
       expect(line).not_to include("agent@example.gouv.fr", "sub-abc")
     end
 

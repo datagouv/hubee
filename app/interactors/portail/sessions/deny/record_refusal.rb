@@ -17,6 +17,7 @@ module Portail
             email: context.email,
             provider_sub: context.claims[:sub],
             siret: context.siret,
+            idp_id: context.idp_id,
             organization_label: context.organization_label,
             acr: context.claims[:acr],
             amr: context.claims[:amr],
