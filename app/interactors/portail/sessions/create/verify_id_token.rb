@@ -12,8 +12,11 @@ module Portail
             nonce: context.nonce,
             audience: ENV.fetch("PROCONNECT_CLIENT_ID")
           )
-        rescue Portail::ProConnect::TokenVerifier::InvalidToken => e
-          Rails.logger.warn("[ProConnect] id_token rejected: #{e.message}")
+        rescue Portail::ProConnect::TokenVerifier::InvalidToken
+          # Aucun sujet, délibérément : tout ce que le jeton contient devient inutilisable au
+          # moment où il échoue, et l'attribuer à un agent réel donnerait au support un faux
+          # diagnostic. Seul le contexte de requête — IP, user_agent — qualifie ce refus.
+          Rails.event.notify(Portail::Auth::Decision.new(outcome: :denied, reason: :invalid_token))
           context.fail!(error: :invalid_token)
         rescue Portail::ProConnect::Discovery::Unavailable => e
           # Vérifier la signature suppose d'aller chercher les clés publiques. ProConnect
