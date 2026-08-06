@@ -8,8 +8,9 @@ module Portail
     # qui atteste qui vient de se connecter et par quel moyen. Cette classe est le seul
     # endroit où ce jeton est réellement contrôlé.
     #
-    # La gem, elle, ne le contrôle jamais : elle prend l'identité dans le `userinfo` sans
-    # rien vérifier, et le `nonce` qu'elle génère au départ n'est jamais relu au retour.
+    # Le gem porte la signature et le jeu de clés ; les six contrôles ci-dessous restent
+    # ici, car `IdToken#verify!` n'en fait que quatre — sans marge d'horloge, et en
+    # acceptant un `nonce` attendu nul.
     class TokenVerifier
       class InvalidToken < StandardError; end
 
@@ -27,16 +28,16 @@ module Portail
       CLOCK_LEEWAY = 30.seconds
 
       class << self
-        def call(id_token:, nonce:, audience:, discovery: Discovery.new)
-          new(id_token:, nonce:, audience:, discovery:).call
+        def call(id_token:, nonce:, audience:, config: Client.config)
+          new(id_token:, nonce:, audience:, config:).call
         end
       end
 
-      def initialize(id_token:, nonce:, audience:, discovery:)
+      def initialize(id_token:, nonce:, audience:, config:)
         @id_token = id_token
         @nonce = nonce
         @audience = audience
-        @discovery = discovery
+        @config = config
       end
 
       def call
@@ -47,11 +48,14 @@ module Portail
 
       private
 
-      attr_reader :id_token, :nonce, :audience, :discovery
+      attr_reader :id_token, :nonce, :audience, :config
 
+      # `config.jwk` récupère la clé annoncée par le jeton, et va la chercher chez
+      # ProConnect si le cache ne l'a pas — la rotation de clés est gérée par le gem, clé
+      # par clé, là où notre Discovery rechargeait le jeu entier.
       def decode_and_verify_signature
-        JSON::JWT.decode(id_token, discovery.jwks(kid: token_kid), ALLOWED_ALGORITHMS)
-      rescue JSON::JWT::Exception => e
+        JSON::JWT.decode(id_token, config.jwk(token_kid), ALLOWED_ALGORITHMS)
+      rescue JSON::JWT::Exception, JSON::JWK::Set::KidNotFound => e
         raise InvalidToken, "signature verification failed: #{e.message}"
       end
 
@@ -78,7 +82,7 @@ module Portail
       #         interceptée puis rejouée
       def verify_claims!(claims)
         raise InvalidToken, "missing subject" if claims[:sub].blank?
-        raise InvalidToken, "issuer mismatch" unless claims[:iss] == discovery.issuer
+        raise InvalidToken, "issuer mismatch" unless claims[:iss] == config.issuer
         raise InvalidToken, "audience mismatch" unless Array(claims[:aud]).include?(audience)
         raise InvalidToken, "token expired" if claims[:exp].to_i <= (Time.current - CLOCK_LEEWAY).to_i
         raise InvalidToken, "nonce mismatch" unless nonce.present? && claims[:nonce] == nonce
