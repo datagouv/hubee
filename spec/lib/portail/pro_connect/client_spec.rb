@@ -123,6 +123,23 @@ RSpec.describe Portail::ProConnect::Client do
           headers: {"Content-Type" => "application/json"})
     end
 
+    # rack-oauth2 authentifie le client en Basic par défaut ; ProConnect attend le secret
+    # dans le corps, comme le faisait omniauth-proconnect. C'est `client_auth_method:
+    # :secret` qui l'obtient — le retirer casserait l'échange sans rien casser d'autre.
+    it "authenticates itself with the secret in the body, not in a Basic header" do
+      stub_request(:get, openid_config[:userinfo_endpoint])
+        .to_return(status: 200, body: signed_user_info,
+          headers: {"Content-Type" => "application/jwt"})
+
+      described_class.exchange(code: "the-code")
+
+      expect(WebMock).to have_requested(:post, openid_config[:token_endpoint]).with { |request|
+        request.headers["Authorization"].nil? &&
+          request.body.include?("client_secret=s3cret") &&
+          request.body.include?("client_id=client-abc")
+      }
+    end
+
     it "returns the raw id_token and the identity claims from the userinfo" do
       stub_request(:get, openid_config[:userinfo_endpoint])
         .to_return(status: 200, body: signed_user_info,
