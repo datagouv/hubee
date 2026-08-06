@@ -34,14 +34,9 @@ module Portail
       return redirect_to auth_failure_path if params[:error].present?
       return redirect_to auth_failure_path unless valid_state?
 
-      tokens = Portail::ProConnect::Client.exchange(code: params[:code])
       result = Portail::Sessions::Create.call(
-        id_token: tokens.id_token,
+        code: params[:code],
         nonce: session.delete(:proconnect_nonce),
-        info: tokens.info,
-        siret: tokens.siret,
-        idp_id: tokens.idp_id,
-        organization_label: tokens.organization_label,
         step_up_attempted: session[:proconnect_step_up]
       )
 
@@ -54,16 +49,18 @@ module Portail
         # Retour direct vers ProConnect, sans page intermédiaire : les suggestions sortent
         # du userinfo qu'on vient de lire, rien ne transite par la session.
         session[:proconnect_step_up] = true
-        depart_for_proconnect(step_up: true, login_hint: tokens.info.email, siret_hint: tokens.siret)
+        depart_for_proconnect(step_up: true, login_hint: result.info.email, siret_hint: result.siret)
       elsif TECHNICAL_FAILURES.include?(result.error)
         redirect_to auth_failure_path
       else
-        deny_access!(result, tokens)
+        denial = Portail::Sessions::Deny.call(denial_attributes(result))
+        # Sans adresse, la page de refus n'aurait rien à montrer — page d'échec plutôt
+        # qu'une erreur serveur.
+        return redirect_to auth_failure_path if denial.failure?
+
+        adopt_session(denial.provider_session)
+        redirect_to denied_path
       end
-    rescue Portail::ProConnect::Client::Unavailable => e
-      # Rien n'est imputable à l'agent : page d'échec, pas page de refus.
-      Rails.logger.error("[ProConnect] #{e.message}")
-      redirect_to auth_failure_path
     end
 
     # L'agent est identifié chez ProConnect mais refusé ici, et sa session ProConnect
@@ -90,14 +87,18 @@ module Portail
       # Lu avant : `terminate_session` détruit l'enregistrement qui le porte.
       id_token = find_session_by_cookie&.provider_id_token
       terminate_session
-      redirect_to Portail::ProConnect::Client.logout_url(
-        id_token:, post_logout_redirect_uri: ENV.fetch("PROCONNECT_POST_LOGOUT_REDIRECT_URI")
-      ), allow_other_host: true
+      redirect_to Portail::ProConnect::Client.logout_url(id_token:), allow_other_host: true
     rescue Portail::ProConnect::Client::Unavailable
       redirect_to root_path, alert: t(".provider_unavailable")
     end
 
     def failure
+      # L'échec clôt le parcours : sans ça, une élévation interrompue laisserait ce
+      # navigateur exiger la MFA de toute connexion suivante, suggestions comprises.
+      session.delete(:proconnect_step_up)
+      session.delete(:proconnect_step_up_email)
+      session.delete(:proconnect_step_up_siret)
+
       render :failure, status: :unauthorized
     end
 
@@ -123,20 +124,11 @@ module Portail
         ActiveSupport::SecurityUtils.secure_compare(expected, params[:state])
     end
 
-    # Sans adresse, la page de refus n'aurait rien à montrer — page d'échec plutôt qu'une
-    # erreur serveur.
-    def deny_access!(result, tokens)
-      denial = Portail::Sessions::Deny.call(
-        reason: result.error, claims: result.claims,
-        id_token: tokens.id_token, email: tokens.info.email,
-        siret: tokens.siret, idp_id: tokens.idp_id,
-        organization_label: tokens.organization_label,
-        agent_id: result.agent&.id
-      )
-      return redirect_to auth_failure_path if denial.failure?
-
-      adopt_session(denial.provider_session)
-      redirect_to denied_path
+    # Pure : traduit le contexte échoué de la chaîne vers ce que Deny consigne.
+    def denial_attributes(result)
+      {reason: result.error, claims: result.claims, id_token: result.id_token,
+       email: result.info.email, siret: result.siret, idp_id: result.idp_id,
+       organization_label: result.organization_label, agent_id: result.agent&.id}
     end
   end
 end

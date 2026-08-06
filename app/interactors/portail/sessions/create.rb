@@ -7,8 +7,8 @@ module Portail
 
       # Les deux dernières étapes écrivent : rien ne l'est tant que l'accès n'est pas
       # acquis, c'est-à-dire tant que FindMembership n'a pas conclu.
-      organize VerifyIdToken, CheckAuthenticationLevel, FindAgent, FindMembership,
-        CheckSecondFactor, SyncAgentIdentity, OpenSession
+      organize ExchangeCode, VerifyIdToken, CheckAuthenticationLevel, FindAgent,
+        FindMembership, CheckSecondFactor, SyncAgentIdentity, OpenSession
     end
   end
 end
