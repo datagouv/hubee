@@ -2,34 +2,24 @@
 
 module Portail
   module ProConnect
-    # Le transport : construire la demande d'autorisation, échanger le code, lire le
-    # userinfo, bâtir l'URL de déconnexion.
-    #
-    # Ne juge rien de ce que ProConnect répond — c'est TokenVerifier, appelé par la chaîne
-    # d'interactors, qui décide si l'id_token est recevable. Ici on parle, là-bas on juge.
+    # Dialogue OIDC avec ProConnect : autorisation, échange du code, userinfo, déconnexion.
+    # Ne juge pas ce que ProConnect répond — la vérification de l'id_token appartient à
+    # TokenVerifier, appelé par la chaîne d'interactors.
     class Client
-      # ProConnect n'a pas répondu, ou pas de façon exploitable. Les appelants doivent
-      # pouvoir dégrader plutôt que laisser fuir une exception de transport.
+      # ProConnect n'a pas répondu, ou pas de façon exploitable : les appelants dégradent.
       class Unavailable < StandardError; end
 
       Authorization = Data.define(:url, :state, :nonce)
-      # La seule chose utile que faisait le auth_hash d'OmniAuth : normaliser. On la garde,
-      # typée — une faute de frappe lève au lieu de rendre nil en silence.
+      # Typés : une clé absente lève, là où un Hash rendrait nil en silence.
       Info = Data.define(:email, :first_name, :last_name)
       Tokens = Data.define(:id_token, :info, :siret, :idp_id, :organization_label)
 
-      # organization_label : sans lui, un refus de rattachement ne peut pas nommer
-      # l'organisation présentée, et l'agent n'a aucun moyen de comprendre son refus.
-      #
-      # idp_id : quel fournisseur d'identité a authentifié l'agent, consigné dans les
-      # traces de décision. Le scope demande une habilitation du support ProConnect — sans
-      # elle, la demande d'autorisation échoue ENTIÈREMENT et plus personne ne se connecte.
-      # Retirer ce mot suffit à revenir en arrière.
+      # `organization_label` nomme l'organisation sur la page de refus. `idp_id` trace le
+      # fournisseur d'identité et demande une habilitation ProConnect — sans elle,
+      # l'autorisation échoue entièrement ; retirer le mot suffit à revenir en arrière.
       SCOPES = %w[openid given_name usual_name email siret organization_label idp_id].freeze
 
-      # ProConnect signe son userinfo en RS256. Imposé plutôt que lu dans l'en-tête du
-      # jeton : sinon on accepterait `alg: HS256` signé avec sa clé publique, que tout le
-      # monde peut télécharger.
+      # Imposé, jamais lu dans le jeton : un HS256 signé avec la clé publique passerait sinon.
       SIGNING_ALGORITHM = :RS256
 
       TRANSPORT_ERRORS = [
@@ -38,10 +28,8 @@ module Portail
       ].freeze
 
       class << self
-        # Appelable de partout — c'est le gain de la sortie d'OmniAuth, dont la phase
-        # requête exigeait un POST du navigateur : l'élévation part directement du
-        # callback, sans page intermédiaire. L'appelant range `state` et `nonce`, et les
-        # représente au retour.
+        # Construit l'URL de départ ; l'appelant range `state` et `nonce` en session et
+        # les représente au retour.
         def authorization(step_up: false, login_hint: nil, siret_hint: nil)
           state = SecureRandom.urlsafe_base64(32)
           nonce = SecureRandom.urlsafe_base64(32)
@@ -49,14 +37,10 @@ module Portail
           url = client.authorization_uri(
             scope: SCOPES, state:, nonce:,
             claims: requested_claims(step_up),
-            # Sans `acr_values`, ProConnect n'émet aucun `acr` — le demander via `claims`
-            # ne suffit pas — et CheckAuthenticationLevel refuserait tout le monde faute de
-            # niveau constatable. Élevé en même temps que les claims : le laisser au
-            # plancher enverrait deux consignes contradictoires dans la même requête.
+            # Les deux doivent dire la même chose : sans acr_values, ProConnect n'émet
+            # aucun acr, et un plancher contredirait l'exigence MFA des claims.
             acr_values: requested_acr_values(step_up),
-            # L'agent vient de s'identifier : lui refaire saisir son adresse et rechoisir
-            # son organisation serait gratuit. Des suggestions seulement — c'est l'`acr`
-            # du jeton au retour qui fait foi.
+            # Suggestions seulement : c'est l'acr du jeton au retour qui fait foi.
             **{login_hint:, siret_hint:}.compact
           )
 
@@ -65,8 +49,8 @@ module Portail
           raise Unavailable, e.message
         end
 
-        # Rend l'id_token brut : sa vérification appartient à TokenVerifier. Le userinfo,
-        # lui, est vérifié ici — aucune autre étape ne le fera.
+        # Échange le code contre les jetons. L'id_token part brut vers TokenVerifier ;
+        # le userinfo est vérifié ici, aucune autre étape ne le fera.
         def exchange(code:)
           tokens = client.tap { |c| c.authorization_code = code }
             .access_token!(client_auth_method: :secret)
@@ -88,8 +72,8 @@ module Portail
           "#{config.end_session_endpoint}?#{query}"
         end
 
-        # Mis en cache par SWD.cache, câblé dans l'initializer : un appel HTTP par heure,
-        # pas un par connexion. Public — TokenVerifier y prend l'émetteur et les clés.
+        # Annuaire ProConnect (endpoints, clés publiques), en cache une heure — cf.
+        # config/initializers/pro_connect.rb.
         def config
           OpenIDConnect::Discovery::Provider::Config.discover!(
             ENV.fetch("PROCONNECT_DOMAIN"), expires_in: DISCOVERY_TTL
@@ -105,10 +89,8 @@ module Portail
         DISCOVERY_TTL = 1.hour
         private_constant :DISCOVERY_TTL
 
-        # ProConnect renvoie le userinfo en JWT signé, pas en JSON : `userinfo!` du gem
-        # attend du JSON et ne convient donc pas. Et contrairement à omniauth-proconnect,
-        # qui décodait en `:skip_verification`, on contrôle la signature — ProConnect prend
-        # la peine de l'apposer.
+        # ProConnect renvoie un JWT signé là où `userinfo!` du gem attend du JSON : on le
+        # décode nous-mêmes, signature vérifiée.
         def user_info(access_token)
           jwt = access_token.get(config.userinfo_endpoint).body
           kid = JSON::JWT.decode(jwt, :skip_verification).kid
@@ -118,12 +100,8 @@ module Portail
           raise Unavailable, "userinfo illisible ou mal signé (#{e.class})"
         end
 
-        # Le second facteur se demande par `claims`, comme le prescrit la doc ProConnect —
-        # `acr_values` n'annonce qu'un plancher et n'oblige à rien. `essential: true` fait
-        # renvoyer une erreur si ProConnect ne peut pas satisfaire, plutôt qu'un niveau
-        # plus faible : le contrôleur la lit déjà.
-        # Les niveaux viennent d'AuthenticationLevels : ici on ne connaît que leur mise en
-        # forme OIDC, pas la politique qu'ils portent.
+        # L'exigence MFA se demande par `claims`, `essential: true` : ProConnect répond
+        # par une erreur plutôt que par un niveau plus faible.
         def requested_claims(step_up)
           id_token = {amr: {essential: true}}
           id_token[:acr] = {essential: true, values: demanded(step_up)} if step_up
@@ -135,7 +113,6 @@ module Portail
 
         def demanded(step_up) = Portail::AuthenticationLevels.demanded(step_up:)
 
-        # `config` est relu quatre fois sinon — des accès au cache, mais du bruit.
         def client
           discovered = config
 

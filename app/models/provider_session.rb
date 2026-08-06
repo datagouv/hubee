@@ -4,17 +4,13 @@
 # Sans rattachement, c'est une authentification refusée : ProConnect a bien identifié
 # l'agent, le portail ne lui a pas ouvert de session.
 #
-# Enregistrement propre à ::Portail : il porte lui-même sa politique d'expiration, qu'un
-# module satellite obligerait à écrire deux fois, en Ruby et en SQL. Écart assumé à la
-# règle « un modèle AR ne porte que du code commun aux deux modules », en attente
-# d'arbitrage.
+# Modèle propre à ::Portail, qui porte sa politique d'expiration : écart assumé à la
+# règle « un modèle AR ne porte que du code commun », en attente d'arbitrage d'équipe.
 class ProviderSession < ApplicationRecord
   # === Constants ===
-  # Deux bornes indépendantes. L'absolue est alignée sur la session ProConnect, de douze
-  # heures : plus courte, elle serait sans effet — un clic réauthentifie en silence tant
-  # que celle-ci vit, et `max-age`, qui corrigerait ça, n'est pas implémenté côté
-  # ProConnect. Ce qu'elles garantissent : le rattachement et le niveau sont réévalués à
-  # chaque reprise.
+  # L'absolue est alignée sur la session ProConnect (12 h) : plus courte, un clic
+  # réauthentifierait en silence (`max-age` non implémenté chez eux). Les deux bornes
+  # forcent la réévaluation du rattachement et du niveau à chaque reprise.
   IDLE = 30.minutes
   ABSOLUTE = 12.hours
 
