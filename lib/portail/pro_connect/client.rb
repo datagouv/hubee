@@ -18,10 +18,6 @@ module Portail
       Info = Data.define(:email, :first_name, :last_name)
       Tokens = Data.define(:id_token, :info, :siret, :idp_id, :organization_label)
 
-      # Le plancher demandé à ProConnect, aligné sur le premier niveau que le portail
-      # accepte. Voir Portail::Sessions::Create::CheckAuthenticationLevel.
-      MINIMUM_AUTHENTICATION_LEVEL = "eidas1"
-
       # organization_label : sans lui, un refus de rattachement ne peut pas nommer
       # l'organisation présentée, et l'agent n'a aucun moyen de comprendre son refus.
       #
@@ -126,26 +122,30 @@ module Portail
         # `acr_values` n'annonce qu'un plancher et n'oblige à rien. `essential: true` fait
         # renvoyer une erreur si ProConnect ne peut pas satisfaire, plutôt qu'un niveau
         # plus faible : le contrôleur la lit déjà.
+        # Les niveaux viennent d'AuthenticationLevels : ici on ne connaît que leur mise en
+        # forme OIDC, pas la politique qu'ils portent.
         def requested_claims(step_up)
-          claims = {id_token: {amr: {essential: true}}}
-          claims[:id_token][:acr] = {essential: true, values: Portail::SecondFactor::LEVELS} if step_up
-          claims.to_json
+          id_token = {amr: {essential: true}}
+          id_token[:acr] = {essential: true, values: demanded(step_up)} if step_up
+
+          {id_token:}.to_json
         end
 
-        def requested_acr_values(step_up)
-          return MINIMUM_AUTHENTICATION_LEVEL unless step_up
+        def requested_acr_values(step_up) = demanded(step_up).join(" ")
 
-          Portail::SecondFactor::LEVELS.join(" ")
-        end
+        def demanded(step_up) = Portail::AuthenticationLevels.demanded(step_up:)
 
+        # `config` est relu quatre fois sinon — des accès au cache, mais du bruit.
         def client
+          discovered = config
+
           OpenIDConnect::Client.new(
             identifier: client_id,
             secret: ENV.fetch("PROCONNECT_CLIENT_SECRET"),
             redirect_uri: ENV.fetch("PROCONNECT_REDIRECT_URI"),
-            authorization_endpoint: config.authorization_endpoint,
-            token_endpoint: config.token_endpoint,
-            userinfo_endpoint: config.userinfo_endpoint
+            authorization_endpoint: discovered.authorization_endpoint,
+            token_endpoint: discovered.token_endpoint,
+            userinfo_endpoint: discovered.userinfo_endpoint
           )
         end
       end
