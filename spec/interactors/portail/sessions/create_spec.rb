@@ -6,8 +6,9 @@ RSpec.describe Portail::Sessions::Create do
   subject(:result) { described_class.call(code: "the-code", nonce: "nonce-1") }
 
   before do
-    # La chaîne commence à l'échange : on bouchonne le transport, comme les request specs.
-    allow(Portail::ProConnect::Client).to receive(:exchange).with(code: "the-code").and_return(
+    # La chaîne commence à l'échange. `expect` et non `allow` : les deux exemples le
+    # déclenchent réellement, une fois chacun (rspec-conventions).
+    expect(Portail::ProConnect::Client).to receive(:exchange).with(code: "the-code").and_return(
       Portail::ProConnect::Client::Tokens.new(
         id_token: "raw-token",
         info: Portail::ProConnect::Client::Info.new(
