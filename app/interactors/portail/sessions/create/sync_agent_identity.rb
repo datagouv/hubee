@@ -13,6 +13,10 @@ module Portail
         include Interactor
 
         def call
+          # Lu avant l'écriture : après, le `sub` du jeton et celui de la fiche sont
+          # identiques et la différence n'est plus constatable.
+          context.provider_sub_changed = context.agent.provider_sub != context.claims[:sub]
+
           context.agent.update!(
             provider_sub: context.claims[:sub],
             first_name: context.info[:first_name],

@@ -16,6 +16,20 @@ module Portail
             amr: context.claims[:amr],
             acr: context.claims[:acr]
           )
+
+          # Émis après l'écriture, contrairement au refus : un accès n'est un fait qu'une
+          # fois la session ouverte.
+          Rails.event.notify(Portail::Auth::Decision.new(
+            outcome: :granted,
+            email: context.agent.email,
+            provider_sub: context.claims[:sub],
+            siret: context.siret,
+            acr: context.claims[:acr],
+            amr: context.claims[:amr],
+            agent_id: context.agent.id,
+            membership_id: context.membership.id,
+            provider_sub_changed: context.provider_sub_changed
+          ))
         end
       end
     end

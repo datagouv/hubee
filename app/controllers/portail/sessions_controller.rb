@@ -119,7 +119,9 @@ module Portail
       denial = Portail::Sessions::Deny.call(
         reason: result.error, claims: result.claims,
         id_token: auth_hash.credentials.id_token, email: auth_hash.info.email,
-        organization_label: auth_hash.extra.raw_info&.dig("organization_label")
+        siret: auth_hash.extra.raw_info&.dig("siret"),
+        organization_label: auth_hash.extra.raw_info&.dig("organization_label"),
+        agent_id: result.agent&.id
       )
       return redirect_to auth_failure_path if denial.failure?
 
