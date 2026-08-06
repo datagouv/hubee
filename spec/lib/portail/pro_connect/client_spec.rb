@@ -199,6 +199,31 @@ RSpec.describe Portail::ProConnect::Client do
     end
   end
 
+  # Le gem ne met rien en cache par défaut : sa classe Cache est un passe-plat. Ces deux
+  # exemples éprouvent le câblage de l'initializer — sans lui, chaque vérification de jeton
+  # coûterait deux appels HTTP à ProConnect, en silence.
+  describe "caching what ProConnect publishes" do
+    it "reads the discovery document once, not on every departure" do
+      3.times { described_class.authorization }
+
+      expect(WebMock).to have_requested(:get, "#{domain}/.well-known/openid-configuration").once
+    end
+
+    # Le cache du JWKS est indexé par `kid` : une clé jamais vue est un défaut de cache,
+    # donc une récupération immédiate. C'est ce qui fait qu'une rotation de clés chez
+    # ProConnect ne coupe pas les connexions jusqu'à l'expiration du cache.
+    it "goes back for a key it has never seen, so a rotation is picked up at once" do
+      described_class.config.jwk(jwk[:kid])
+      described_class.config.jwk(jwk[:kid])
+
+      expect(WebMock).to have_requested(:get, openid_config[:jwks_uri]).once
+
+      expect { described_class.config.jwk("un-kid-jamais-vu") }
+        .to raise_error(JSON::JWK::Set::KidNotFound)
+      expect(WebMock).to have_requested(:get, openid_config[:jwks_uri]).twice
+    end
+  end
+
   describe ".logout_url" do
     it "points at the provider's end-session endpoint and carries the id_token" do
       url = described_class.logout_url(id_token: "the-id-token",
