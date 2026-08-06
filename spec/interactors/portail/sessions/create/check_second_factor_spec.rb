@@ -3,9 +3,10 @@
 require "rails_helper"
 
 RSpec.describe Portail::Sessions::Create::CheckSecondFactor do
-  subject(:result) { described_class.call(membership:, claims: {acr:}, step_up_attempted:) }
+  subject(:result) { described_class.call(membership:, claims: {acr:, amr:}, step_up_attempted:) }
 
   let(:step_up_attempted) { nil }
+  let(:amr) { ["pwd"] }
 
   context "when the membership owes no second factor" do
     let(:membership) { create(:membership) }
@@ -23,6 +24,17 @@ RSpec.describe Portail::Sessions::Create::CheckSecondFactor do
       let(:acr) { "eidas1-mfa" }
 
       it "lets the session through" do
+        expect(result).to be_success
+      end
+    end
+
+    # Le FI a imposé sa propre MFA sans être qualifié pour l'attester en niveau : l'acr
+    # reste eidas1, l'amr en témoigne — rien à élever.
+    context "and the identity provider already imposed a second factor" do
+      let(:acr) { "eidas1" }
+      let(:amr) { ["pwd", "mfa"] }
+
+      it "lets the session through without a step-up" do
         expect(result).to be_success
       end
     end
