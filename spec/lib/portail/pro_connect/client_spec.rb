@@ -69,7 +69,8 @@ RSpec.describe Portail::ProConnect::Client do
 
       expect(params["claims"]).to eq({id_token: {amr: {essential: true}}}.to_json)
       expect(params["acr_values"]).to eq("eidas1")
-      expect(params["scope"]).to eq("openid given_name usual_name email siret idp_id")
+      expect(params["scope"])
+        .to eq("openid given_name usual_name email siret organization_label idp_id")
       expect(params["client_id"]).to eq("client-abc")
       expect(params["response_type"]).to eq("code")
     end
