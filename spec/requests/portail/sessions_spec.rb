@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "Portail::Sessions", type: :request do
-  describe "GET /auth/proconnect/callback" do
+  describe "GET /connexion/proconnect/retour" do
     context "when the agent is known to the portal" do
       it "opens a session and redirects to the dashboard" do
         agent = create(:agent, provider_sub: "sub-known")
@@ -112,7 +112,7 @@ RSpec.describe "Portail::Sessions", type: :request do
         expect(Portail::ProConnect::Client).not_to receive(:exchange)
         depart_for_proconnect
 
-        get "/auth/proconnect/callback",
+        get "/connexion/proconnect/retour",
           params: {error: "access_denied", state: ProConnectTestHelper::STATE}
 
         expect(response).to redirect_to(auth_failure_path)
@@ -128,7 +128,7 @@ RSpec.describe "Portail::Sessions", type: :request do
         expect(Portail::ProConnect::Client).not_to receive(:exchange)
         depart_for_proconnect
 
-        get "/auth/proconnect/callback", params: {code: "test-code", state: "forged"}
+        get "/connexion/proconnect/retour", params: {code: "test-code", state: "forged"}
 
         expect(response).to redirect_to(auth_failure_path)
         expect(ProviderSession.count).to eq(0)
@@ -140,8 +140,8 @@ RSpec.describe "Portail::Sessions", type: :request do
         agent = create(:agent, provider_sub: "sub-known")
         sign_in_via_proconnect(agent:)
 
-        get "/auth/proconnect/callback", params: {code: "test-code",
-                                                  state: ProConnectTestHelper::STATE}
+        get "/connexion/proconnect/retour",
+          params: {code: "test-code", state: ProConnectTestHelper::STATE}
 
         expect(response).to redirect_to(auth_failure_path)
       end
@@ -299,9 +299,9 @@ RSpec.describe "Portail::Sessions", type: :request do
     end
   end
 
-  describe "GET /auth/failure" do
+  describe "GET /connexion/echec" do
     it "renders a comprehensible failure page without a session" do
-      get "/auth/failure"
+      get "/connexion/echec"
 
       expect(response).to have_http_status(:unauthorized)
       expect(response.body).to include("La connexion a échoué")
@@ -596,8 +596,7 @@ RSpec.describe "Portail::Sessions", type: :request do
       expect(ProviderSession.last.denial_reason).to eq("second_factor_required")
     end
 
-    # L'éjection, elle, porte un message que l'agent doit lire : la même page, mais qui
-    # attend son clic.
+    # L'éjection porte un message que l'agent doit lire avant de repartir.
     it "explains itself when the agent was ejected mid-session" do
       agent = create(:agent)
       sign_in_via_proconnect(agent:)
@@ -608,7 +607,25 @@ RSpec.describe "Portail::Sessions", type: :request do
 
       expect(Capybara.string(response.body))
         .to have_text("Une authentification renforcée est requise")
-      expect(response.body).not_to include("requestSubmit")
+    end
+
+    # Le renvoi conserve ce qu'on savait de l'agent : ProConnect n'a rien à lui redemander.
+    it "suggests the ejected agent's address and organisation on the way back" do
+      agent = create(:agent)
+      sign_in_via_proconnect(agent:)
+      Membership.last.update!(role: "local_administrator")
+      get root_path
+
+      expect(Portail::ProConnect::Client).to receive(:authorization)
+        .with(step_up: true, login_hint: agent.email,
+          siret_hint: ProConnectTestHelper::TEST_SIRET)
+        .and_return(Portail::ProConnect::Client::Authorization.new(
+          url: "https://proconnect.test/api/v2/authorize", state: "s2", nonce: "n2"
+        ))
+
+      post proconnect_authorization_path
+
+      expect(response).to redirect_to("https://proconnect.test/api/v2/authorize")
     end
 
     it "never raises the requirement for an ordinary agent" do

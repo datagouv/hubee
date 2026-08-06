@@ -31,7 +31,7 @@ RSpec.describe Portail::ProConnect::Client do
     ENV["PROCONNECT_DOMAIN"] = domain
     ENV["PROCONNECT_CLIENT_ID"] = "client-abc"
     ENV["PROCONNECT_CLIENT_SECRET"] = "s3cret"
-    ENV["PROCONNECT_REDIRECT_URI"] = "https://portail.hubee.gouv.fr/auth/proconnect/callback"
+    ENV["PROCONNECT_REDIRECT_URI"] = "https://portail.hubee.gouv.fr/connexion/proconnect/retour"
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
     example.run
   ensure
