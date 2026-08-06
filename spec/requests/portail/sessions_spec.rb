@@ -628,6 +628,22 @@ RSpec.describe "Portail::Sessions", type: :request do
       expect(response).to redirect_to("https://proconnect.test/api/v2/authorize")
     end
 
+    # Sans ça, une élévation interrompue par une panne laisserait ce navigateur exiger la
+    # MFA de toute connexion suivante — y compris d'un autre agent sur un poste partagé.
+    it "stops demanding a second factor once the journey has failed" do
+      agent = administrator_agent
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
+      proconnect_callback
+
+      mock_proconnect_transport
+      expect(Portail::ProConnect::TokenVerifier).to receive(:call)
+        .and_raise(Portail::ProConnect::TokenVerifier::InvalidToken)
+      proconnect_callback
+      follow_redirect!
+
+      expect(session[:proconnect_step_up]).to be_nil
+    end
+
     it "never raises the requirement for an ordinary agent" do
       agent = create(:agent)
 
