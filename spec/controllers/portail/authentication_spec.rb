@@ -103,6 +103,15 @@ RSpec.describe Portail::BaseController, type: :controller do
       expect(session[:proconnect_step_up]).to be(true)
     end
 
+    it "records the session it closes for want of a second factor" do
+      membership = create(:membership, :local_administrator)
+      session[:provider_session_id] = create(:provider_session, membership:, acr: "eidas1").id
+
+      expect { get :index }.to change(AccessDecision, :count).by(1)
+      expect(AccessDecision.last).to have_attributes(outcome: "denied",
+        reason: "second_factor_required", membership_id: membership.id)
+    end
+
     it "leaves a privileged session alone once it carries a second factor" do
       provider_session = create(:provider_session,
         membership: create(:membership, :local_administrator), acr: "eidas1-mfa")
