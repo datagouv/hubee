@@ -31,8 +31,10 @@ gem "dsfr-form_builder"
 gem "json-jwt"
 
 # Authentification ProConnect (OIDC)
+gem "openid_connect"
+# Sortants une fois la migration vers openid_connect terminée — gardés le temps que les
+# deux chemins coexistent.
 gem "omniauth-proconnect", "~> 0.6"
-# Protège la phase requête OmniAuth (POST obligatoire + jeton CSRF)
 gem "omniauth-rails_csrf_protection"
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
