@@ -83,6 +83,12 @@ module Portail
       return unless record&.granted?
       return if Portail::SecondFactor.satisfied?(record.membership, record.acr)
 
+      Rails.event.notify(Portail::Auth::Decision.new(
+        outcome: :denied, reason: :second_factor_required,
+        email: record.email, acr: record.acr, amr: record.amr,
+        agent_id: record.membership.agent_id, membership_id: record.membership_id
+      ))
+
       terminate_session
       # Après `terminate_session` : son reset_session effacerait un marqueur posé avant.
       # L'agent repart donc directement sur l'élévation plutôt que sur un accueil qui ne

@@ -9,6 +9,20 @@ module Portail
         include Interactor
 
         def call
+          # Émis avant l'écriture : un refus sans adresse fait échouer la ligne de session,
+          # mais la décision a bien été prise et doit rester retrouvable.
+          Rails.event.notify(Portail::Auth::Decision.new(
+            outcome: :denied,
+            reason: context.reason,
+            email: context.email,
+            provider_sub: context.claims[:sub],
+            siret: context.siret,
+            organization_label: context.organization_label,
+            acr: context.claims[:acr],
+            amr: context.claims[:amr],
+            agent_id: context.agent_id
+          ))
+
           context.provider_session = ProviderSession.create!(
             denial_reason: context.reason.to_s,
             provider_id_token: context.id_token,

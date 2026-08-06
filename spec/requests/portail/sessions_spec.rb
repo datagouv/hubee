@@ -382,6 +382,107 @@ RSpec.describe "Portail::Sessions", type: :request do
     end
   end
 
+  describe "tracing access decisions" do
+    it "records a granted access with what it was based on" do
+      agent = create(:agent)
+
+      expect { sign_in_via_proconnect(agent:) }.to change(AccessDecision, :count).by(1)
+
+      expect(AccessDecision.last).to have_attributes(outcome: "granted", reason: nil,
+        email: agent.email, siret: ProConnectTestHelper::TEST_SIRET, acr: "eidas1",
+        agent_id: agent.id, membership_id: Membership.last.id)
+    end
+
+    # Le chemin le plus long du dispositif : le before_action pose le contexte, Rails.event
+    # le transporte, l'abonné le range en colonnes. Aucune spec unitaire ne l'éprouve.
+    it "carries the request context all the way to the row" do
+      sign_in_via_proconnect(agent: create(:agent))
+
+      expect(AccessDecision.last.ip_address).to be_present
+      expect(AccessDecision.last.request_id).to be_present
+    end
+
+    # L'abonnement du persisteur est couvert par les compteurs ci-dessus ; celui du
+    # journaliseur ne l'est par rien — le retirer ne casserait aucune autre spec.
+    it "logs the decision for the CSIRT as well as recording it" do
+      # Rails journalise beaucoup pendant une requête : on laisse passer le reste et on
+      # n'exige que notre ligne.
+      allow(Rails.logger).to receive(:info)
+      expect(Rails.logger).to receive(:info).with(/outcome=:granted/).at_least(:once)
+
+      sign_in_via_proconnect(agent: create(:agent))
+    end
+
+    it "records a refusal with its reason" do
+      mock_proconnect(sub: "sub-unknown", email: "alex@example.gouv.fr")
+
+      get "/auth/proconnect/callback"
+
+      expect(AccessDecision.last).to have_attributes(outcome: "denied",
+        reason: "unknown_agent", email: "alex@example.gouv.fr", agent_id: nil)
+    end
+
+    # L'agent est connu, aucun rattachement ne correspond : la ligne doit porter son sujet,
+    # sinon la population que le pilotage veut compter n'a pas d'identité.
+    it "records the agent on a refusal that has one, even without a membership" do
+      agent = create(:agent, provider_sub: "sub-known")
+      create(:membership, agent:, organization_link: create(:organization_link))
+      mock_proconnect(sub: "sub-known", email: agent.email)
+
+      get "/auth/proconnect/callback"
+
+      expect(AccessDecision.last).to have_attributes(outcome: "denied",
+        reason: "organization_mismatch", agent_id: agent.id, membership_id: nil)
+    end
+
+    # Un jeton rejeté est la décision la plus intéressante du lot : quelqu'un a présenté
+    # quelque chose qui ne tient pas, et elle n'a aucun sujet.
+    it "records a rejected token, which has no subject at all" do
+      OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
+        provider: "proconnect", uid: "x",
+        info: {email: "a@b.fr"}, credentials: {id_token: "t"}, extra: {nonce: "n"}
+      )
+      expect(Portail::ProConnect::TokenVerifier).to receive(:call)
+        .and_raise(Portail::ProConnect::TokenVerifier::InvalidToken)
+
+      get "/auth/proconnect/callback"
+
+      expect(AccessDecision.last).to have_attributes(outcome: "denied", reason: "invalid_token",
+        email: nil)
+    end
+
+    it "tells a first identity binding from an ordinary sign-in" do
+      agent = create(:agent, provider_sub: nil)
+      link = OrganizationLink.find_or_create_by!(siret: ProConnectTestHelper::TEST_SIRET)
+      create(:membership, agent:, organization_link: link)
+      mock_proconnect(sub: "sub-fresh", email: agent.email)
+
+      get "/auth/proconnect/callback"
+
+      expect(AccessDecision.last.provider_sub_changed).to be(true)
+    end
+
+    it "leaves the flag down when the identity was already bound" do
+      sign_in_via_proconnect(agent: create(:agent))
+
+      expect(AccessDecision.last.provider_sub_changed).to be(false)
+    end
+
+    # L'invariant du ticket : tracer ne modifie jamais la décision. Rails ne l'applique
+    # qu'en production — `raise_on_error` suit `consider_all_requests_local`, pour qu'un
+    # abonné cassé se voie en développement. On éprouve donc le réglage de production.
+    it "lets a legitimate agent in even when the recorder blows up" do
+      Rails.event.raise_on_error = false
+      expect(AccessDecision).to receive(:create!).and_raise(ActiveRecord::StatementInvalid)
+
+      sign_in_via_proconnect(agent: create(:agent))
+
+      expect(response).to redirect_to(root_path)
+    ensure
+      Rails.event.raise_on_error = true
+    end
+  end
+
   describe "second factor" do
     def administrator_agent
       create(:agent).tap do |agent|
