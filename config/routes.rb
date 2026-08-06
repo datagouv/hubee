@@ -41,7 +41,11 @@ Rails.application.routes.draw do
   # end
 
   # Authentification ProConnect
-  # La phase requête POST /auth/proconnect est interceptée par le middleware OmniAuth.
+  # En POST : c'est ce qui rend la protection CSRF de Rails applicable au départ vers
+  # ProConnect, comme le faisait omniauth-rails_csrf_protection avant elle.
+  post "connexion/proconnect", to: "portail/sessions#authorize", as: :proconnect_authorization
+  # Adresse imposée : c'est le redirect_uri déclaré auprès de ProConnect. La changer
+  # suppose de le redéclarer côté fournisseur.
   get "auth/proconnect/callback", to: "portail/sessions#create"
   get "auth/failure", to: "portail/sessions#failure", as: :auth_failure
   # Le callback porte un code à usage unique : il redirige ici plutôt que de rendre le

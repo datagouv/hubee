@@ -7,7 +7,9 @@ RSpec.describe Portail::Sessions::Create do
     described_class.call(
       id_token: "raw-token",
       nonce: "nonce-1",
-      info: {email: "agent@example.gouv.fr", first_name: "Alex", last_name: "Martin"},
+      info: Portail::ProConnect::Client::Info.new(
+        email: "agent@example.gouv.fr", first_name: "Alex", last_name: "Martin"
+      ),
       siret: "99999999911111"
     )
   end

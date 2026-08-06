@@ -39,7 +39,7 @@ RSpec.describe Portail::Sessions::Create::VerifyIdToken do
   context "when ProConnect cannot be reached" do
     it "fails with provider_unavailable" do
       expect(Portail::ProConnect::TokenVerifier).to receive(:call)
-        .and_raise(Portail::ProConnect::Discovery::Unavailable)
+        .and_raise(Portail::ProConnect::Client::Unavailable)
 
       expect(result).to be_failure
       expect(result.error).to eq(:provider_unavailable)
