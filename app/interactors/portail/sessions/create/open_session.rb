@@ -24,6 +24,10 @@ module Portail
             email: context.agent.email,
             provider_sub: context.claims[:sub],
             siret: context.siret,
+            # Le libellé revendiqué par ProConnect, conservé même quand le rattachement le
+            # rend redondant : il permet de constater un désaccord avec le référentiel V1.
+            organization_label: context.organization_label,
+            idp_id: context.idp_id,
             acr: context.claims[:acr],
             amr: context.claims[:amr],
             agent_id: context.agent.id,
