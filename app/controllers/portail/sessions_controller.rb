@@ -30,7 +30,7 @@ module Portail
       )
 
       if result.success?
-        # Lus avant : `terminate_session` réinitialise la session et les effacerait.
+        # Lus avant : `adopt_session` réinitialise la session et les effacerait.
         target = after_authentication_url
         remember_device = session[:proconnect_remember_device]
         adopt_session(result.provider_session)
@@ -38,6 +38,9 @@ module Portail
         redirect_to target, notice: t(".signed_in")
       elsif result.error == :step_up_required
         session[:proconnect_step_up] = true
+        # L'agent vient de les fournir : ProConnect n'a pas à les redemander à vide.
+        session[:proconnect_step_up_email] = auth_hash.info.email
+        session[:proconnect_step_up_siret] = auth_hash.extra.raw_info&.dig("siret")
         redirect_to step_up_path
       elsif TECHNICAL_FAILURES.include?(result.error)
         redirect_to auth_failure_path

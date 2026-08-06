@@ -55,6 +55,23 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
       expect(params["acr_values"]).to eq("eidas1-mfa eidas2 eidas3")
     end
 
+    # L'agent vient de s'identifier : lui refaire tout saisir serait gratuit.
+    it "suggests the address and the organisation it already knows" do
+      expect(strategy).to receive(:discovered_configuration)
+        .and_return("authorization_endpoint" => "https://proconnect.gouv.fr/api/v2/authorize")
+      expect(strategy).to receive(:store_new_state!).and_return("state-1")
+      expect(strategy).to receive(:store_new_nonce!).and_return("nonce-1")
+      expect(strategy).to receive(:session).at_least(:once).and_return(
+        {"proconnect_step_up" => true, "proconnect_step_up_email" => "agent@example.gouv.fr",
+         "proconnect_step_up_siret" => "13002526500013"}
+      )
+
+      params = Rack::Utils.parse_query(URI(strategy.send(:authorization_uri)).query)
+
+      expect(params["login_hint"]).to eq("agent@example.gouv.fr")
+      expect(params["siret_hint"]).to eq("13002526500013")
+    end
+
     # Un navigateur déjà reconnu évite le second aller-retour : on exige dès la première
     # autorisation, sans attendre de savoir qui arrive.
     it "demands a second factor from the start on a remembered device" do
@@ -70,6 +87,8 @@ RSpec.describe OmniAuth::Strategies::ProconnectHardened do
       params = Rack::Utils.parse_query(URI(strategy.send(:authorization_uri)).query)
 
       expect(params["acr_values"]).to eq("eidas1-mfa eidas2 eidas3")
+      # Aucun hint : on ne sait pas encore qui arrive.
+      expect(params).not_to have_key("login_hint")
     end
   end
 

@@ -63,9 +63,24 @@ module OmniAuth
             # ne suffit pas — et CheckAuthenticationLevel refuserait alors tout le monde.
             # La valeur annonce notre minimum ; elle ne dispense pas de vérifier le niveau
             # réellement atteint au retour, seul contrôle qui fasse foi.
-            acr_values: requested_acr_values
+            acr_values: requested_acr_values,
+            **step_up_hints
           )
         end
+      end
+
+      # Sur l'élévation, l'agent vient de s'identifier : lui refaire saisir son adresse et
+      # rechoisir son organisation serait gratuit. Deux suggestions seulement — il peut les
+      # changer, et c'est l'`acr` du jeton au retour qui fait foi.
+      # Absentes quand l'élévation vient du cookie d'appareil : on ne sait pas encore qui
+      # arrive.
+      # Consommés : abandonnés sur la page d'élévation, ils resteraient en session et le
+      # suivant sur un poste partagé verrait l'adresse du précédent pré-remplie.
+      def step_up_hints
+        return {} unless stepping_up?
+
+        {login_hint: session.delete("proconnect_step_up_email"),
+         siret_hint: session.delete("proconnect_step_up_siret")}.compact
       end
 
       # Le second facteur se demande par `claims`, comme le prescrit la doc ProConnect —
