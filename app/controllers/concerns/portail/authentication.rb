@@ -10,6 +10,7 @@ module Portail
 
     included do
       helper_method :current_agent, :agent_signed_in?, :current_membership
+      before_action :set_event_context
       before_action :expire_stale_session!
       before_action :enforce_second_factor!
       before_action :require_authentication
@@ -65,6 +66,13 @@ module Portail
       remove_instance_variable(:@session_in_cookie)
       Current.provider_session = nil
       reset_session
+    end
+
+    # Posé une fois par requête : tout événement émis pendant celle-ci le porte, sans qu'aucun
+    # point d'émission ne le connaisse. Rails le réinitialise entre deux requêtes.
+    def set_event_context
+      Rails.event.set_context(ip_address: request.remote_ip, user_agent: request.user_agent,
+        request_id: request.request_id)
     end
 
     # Relu à chaque requête plutôt que porté par le cookie : un rattachement peut devenir
