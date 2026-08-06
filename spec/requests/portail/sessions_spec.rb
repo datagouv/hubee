@@ -390,7 +390,17 @@ RSpec.describe "Portail::Sessions", type: :request do
 
       expect(AccessDecision.last).to have_attributes(outcome: "granted", reason: nil,
         email: agent.email, siret: ProConnectTestHelper::TEST_SIRET, acr: "eidas1",
+        organization_label: "Mairie de Test",
         agent_id: agent.id, membership_id: Membership.last.id)
+    end
+
+    # Le scope `idp_id` n'est pas encore demandé — il attend une habilitation ProConnect —
+    # mais tout ce qui le consomme est en place : le jour où il arrive, il atterrit en base
+    # sans autre changement que la ligne de scope.
+    it "records which identity provider the agent came through" do
+      sign_in_via_proconnect(agent: create(:agent), idp_id: "idp-dinum")
+
+      expect(AccessDecision.last.idp_id).to eq("idp-dinum")
     end
 
     # Le chemin le plus long du dispositif : le before_action pose le contexte, Rails.event
@@ -408,7 +418,7 @@ RSpec.describe "Portail::Sessions", type: :request do
       # Rails journalise beaucoup pendant une requête : on laisse passer le reste et on
       # n'exige que notre ligne.
       allow(Rails.logger).to receive(:info)
-      expect(Rails.logger).to receive(:info).with(/outcome=:granted/).at_least(:once)
+      expect(Rails.logger).to receive(:info).with(/event="Portail::Auth::Decision".*outcome=:granted/).at_least(:once)
 
       sign_in_via_proconnect(agent: create(:agent))
     end

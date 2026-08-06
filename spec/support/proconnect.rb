@@ -10,14 +10,16 @@ module ProConnectTestHelper
   TEST_SIRET = "99999999911111"
 
   def mock_proconnect(sub:, email: "agent@example.gouv.fr", first_name: "Alex", last_name: "Martin",
-    amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET, organization_label: "Mairie de Test")
+    amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET, organization_label: "Mairie de Test",
+    idp_id: nil)
     OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
       provider: "proconnect",
       uid: sub,
       info: {email:, first_name:, last_name:},
       credentials: {id_token: "test-id-token"},
       extra: {nonce: "test-nonce",
-              raw_info: {"siret" => siret, "organization_label" => organization_label}}
+              raw_info: {"siret" => siret, "organization_label" => organization_label,
+                         "idp_id" => idp_id}}
     )
     # TokenVerifier renvoie l'identité vérifiée à partir de l'id_token.
     # expect (pas allow) : le callback DÉCLENCHE réellement cet appel une fois — la règle
@@ -28,10 +30,10 @@ module ProConnectTestHelper
   # Se connecter suppose d'avoir le droit d'entrer : le helper garantit le rattachement
   # correspondant au SIRET simulé. Un spec qui veut éprouver un refus construit sa
   # situation lui-même plutôt que de passer par ici.
-  def sign_in_via_proconnect(agent:, amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET)
+  def sign_in_via_proconnect(agent:, amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET, idp_id: nil)
     link = OrganizationLink.find_or_create_by!(siret: siret)
     Membership.find_or_create_by!(agent: agent, organization_link: link)
-    mock_proconnect(sub: agent.provider_sub, email: agent.email, amr:, acr:, siret:)
+    mock_proconnect(sub: agent.provider_sub, email: agent.email, amr:, acr:, siret:, idp_id:)
     get "/auth/proconnect/callback"
   end
 end
