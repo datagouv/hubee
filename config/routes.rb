@@ -41,18 +41,15 @@ Rails.application.routes.draw do
   # end
 
   # Authentification ProConnect
-  # En POST : c'est ce qui rend la protection CSRF de Rails applicable au départ vers
-  # ProConnect, comme le faisait omniauth-rails_csrf_protection avant elle.
+  # En POST : le départ est couvert par le jeton CSRF de Rails.
   post "connexion/proconnect", to: "portail/sessions#authorize", as: :proconnect_authorization
-  # Adresse imposée : c'est le redirect_uri déclaré auprès de ProConnect. La changer
-  # suppose de le redéclarer côté fournisseur.
-  get "auth/proconnect/callback", to: "portail/sessions#create"
-  get "auth/failure", to: "portail/sessions#failure", as: :auth_failure
-  # Le callback porte un code à usage unique : il redirige ici plutôt que de rendre le
-  # refus, sinon la page ne serait ni rechargeable ni partageable.
+  # Doit correspondre au redirect_uri déclaré auprès de ProConnect (env + espace
+  # partenaires) : les deux se changent ensemble.
+  get "connexion/proconnect/retour", to: "portail/sessions#create", as: :proconnect_callback
+  get "connexion/echec", to: "portail/sessions#failure", as: :auth_failure
+  # Leurs propres adresses, hors du callback : son code à usage unique rendrait ces pages
+  # irrechargeables — ProConnect répond 400 sur un code rejoué.
   get "connexion/refusee", to: "portail/sessions#denied", as: :denied
-  # Même raison : rendre l'élévation au callback rejouerait le code à usage unique au
-  # moindre rechargement, et ProConnect répondrait 400.
   get "connexion/second-facteur", to: "portail/sessions#step_up", as: :step_up
   delete "logout", to: "portail/sessions#destroy", as: :logout
 end
