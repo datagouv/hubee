@@ -11,7 +11,7 @@ module Portail
         def call
           # Normalisée comme à l'écriture : sinon une différence de casse suffirait à
           # faire échouer la recherche puis la comparaison.
-          email = Agent.normalize_value_for(:email, context.info[:email])
+          email = Agent.normalize_value_for(:email, context.info.email)
 
           # Le `sub` identifie l'agent une fois rattaché ; l'adresse ne sert qu'au tout
           # premier rattachement, celui d'un agent enrôlé jamais connecté.
