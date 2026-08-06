@@ -195,8 +195,6 @@ GEM
     globalid (1.4.0)
       activesupport (>= 6.1)
     hashdiff (1.2.1)
-    hashie (5.1.0)
-      logger
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
     importmap-rails (2.2.3)
@@ -271,18 +269,6 @@ GEM
       racc (~> 1.4)
     nokogiri (1.19.4-x86_64-linux-musl)
       racc (~> 1.4)
-    omniauth (2.1.4)
-      hashie (>= 3.4.6)
-      logger
-      rack (>= 2.2.3)
-      rack-protection
-    omniauth-proconnect (0.6)
-      faraday (~> 2)
-      json-jwt (~> 1)
-      omniauth
-    omniauth-rails_csrf_protection (2.0.1)
-      actionpack (>= 4.2)
-      omniauth (~> 2.0)
     openid_connect (2.5.0)
       activemodel
       attr_required (>= 1.0.0)
@@ -332,10 +318,6 @@ GEM
       faraday-follow_redirects
       json-jwt (>= 1.11.0)
       rack (>= 2.1.0)
-    rack-protection (4.2.1)
-      base64 (>= 0.1.0)
-      logger (>= 1.6.0)
-      rack (>= 3.0.0, < 4)
     rack-session (2.1.2)
       base64 (>= 0.1.0)
       rack (>= 3.0.0)
@@ -551,8 +533,6 @@ DEPENDENCIES
   interactor
   jbuilder
   json-jwt
-  omniauth-proconnect (~> 0.6)
-  omniauth-rails_csrf_protection
   openid_connect
   pagy
   pg (~> 1.1)

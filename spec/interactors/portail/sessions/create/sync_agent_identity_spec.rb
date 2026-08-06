@@ -10,7 +10,9 @@ RSpec.describe Portail::Sessions::Create::SyncAgentIdentity do
       result = described_class.call(
         agent: agent,
         claims: {sub: "sub-xyz"},
-        info: {first_name: "Alex", last_name: "Nouveau"}
+        info: Portail::ProConnect::Client::Info.new(
+          email: nil, first_name: "Alex", last_name: "Nouveau"
+        )
       )
 
       expect(result).to be_success
@@ -27,7 +29,8 @@ RSpec.describe Portail::Sessions::Create::SyncAgentIdentity do
       agent = create(:agent, provider_sub: nil)
       create(:agent, provider_sub: "sub-xyz")
 
-      result = described_class.call(agent: agent, claims: {sub: "sub-xyz"}, info: {})
+      result = described_class.call(agent: agent, claims: {sub: "sub-xyz"},
+        info: Portail::ProConnect::Client::Info.new(email: nil, first_name: nil, last_name: nil))
 
       expect(result).to be_failure
       expect(result.error).to eq(:sign_in_conflict)

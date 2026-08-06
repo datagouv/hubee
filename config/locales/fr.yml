@@ -71,8 +71,6 @@ fr:
         body: "Votre compte donne accès à des fonctions sensibles : y entrer demande un second facteur d'authentification, en plus de votre mot de passe."
         what_to_expect: ProConnect va vous redemander votre adresse électronique, puis un code fourni par votre méthode de double authentification — et vous guidera pour en mettre une en place si vous n'en avez pas encore. C'est normal, votre connexion n'a pas échoué.
         call_to_action: Cliquez sur le bouton ci-dessous et suivez les étapes jusqu'au bout. Vous reviendrez ensuite automatiquement sur HubEE.
-        remember_device: Se souvenir de cet appareil
-        remember_device_hint: La double authentification vous sera demandée dès la connexion suivante, sans cette étape intermédiaire. À décocher si ce poste est partagé avec d'autres agents.
       create:
         signed_in: Vous êtes connecté.
       destroy:

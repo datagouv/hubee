@@ -1,5 +1,8 @@
 <% content_for :title, t("portail.sessions.step_up.title") %>
 
+<%# Vue de l'éjection en cours de session uniquement : l'élévation à la connexion repart
+    directement du callback, sans rien afficher. L'agent éjecté, lui, a un message à lire
+    avant de partir — d'où le clic, qui reste le sien. %>
 <div class="fr-grid-row fr-grid-row--center">
   <div class="fr-col-12 fr-col-md-8">
     <h1><%= t("portail.sessions.step_up.heading") %></h1>
@@ -13,25 +16,9 @@
         explicite, il peut s'arrêter en chemin en croyant en avoir fini. %>
     <p><%= t("portail.sessions.step_up.call_to_action") %></p>
 
-    <%# Pas d'auto-soumission : le clic est le moment où l'agent comprend pourquoi il
-        repart vers ProConnect. Hors Turbo, la cible étant un hôte externe. %>
-    <%= form_with url: "/auth/proconnect", method: :post, data: {turbo: false} do |form| %>
-      <%# Markup DSFR : libellé court dans le label, explication dans un fr-hint-text
-          à l'intérieur du label — c'est lui qui reçoit la pleine largeur, un libellé
-          long posé à plat désaligne la case. %>
-      <div class="fr-mb-4w">
-        <div class="fr-checkbox-group">
-          <%= form.check_box :remember_device, checked: true, class: "fr-checkbox" %>
-          <%= form.label :remember_device, class: "fr-label" do %>
-            <%= t("portail.sessions.step_up.remember_device") %>
-            <span class="fr-hint-text"><%= t("portail.sessions.step_up.remember_device_hint") %></span>
-          <% end %>
-        </div>
-      </div>
-
-      <%= form.button class: "proconnect-button" do %>
-        <span class="proconnect-sr-only"><%= t("portail.sessions.proconnect_button.label") %></span>
-      <% end %>
+    <%= button_to proconnect_authorization_path, class: "proconnect-button",
+          form: {data: {turbo: false}} do %>
+      <span class="proconnect-sr-only"><%= t("portail.sessions.proconnect_button.label") %></span>
     <% end %>
   </div>
 </div>

@@ -22,7 +22,7 @@ RSpec.describe "Portail::Sessions", type: :request do
         mock_proconnect(sub: "sub-unknown")
 
         expect {
-          get "/auth/proconnect/callback"
+          proconnect_callback
         }.not_to change(Agent, :count)
 
         expect(response).to redirect_to(denied_path)
@@ -37,7 +37,7 @@ RSpec.describe "Portail::Sessions", type: :request do
       it "shows the address used and offers to retry with another account" do
         mock_proconnect(sub: "sub-unknown", email: "alex@example.gouv.fr")
 
-        get "/auth/proconnect/callback"
+        proconnect_callback
         follow_redirect!
 
         page = Capybara.string(response.body)
@@ -53,7 +53,7 @@ RSpec.describe "Portail::Sessions", type: :request do
       it "refuses access and explains why" do
         mock_proconnect(sub: "sub-unknown", acr: "eidas0")
 
-        get "/auth/proconnect/callback"
+        proconnect_callback
         follow_redirect!
 
         expect(response).to have_http_status(:forbidden)
@@ -69,7 +69,7 @@ RSpec.describe "Portail::Sessions", type: :request do
         create(:membership, agent:, organization_link: create(:organization_link))
         mock_proconnect(sub: "sub-known", email: agent.email, organization_label: "Commune de Clamart")
 
-        get "/auth/proconnect/callback"
+        proconnect_callback
         follow_redirect!
 
         expect(response).to have_http_status(:forbidden)
@@ -82,7 +82,7 @@ RSpec.describe "Portail::Sessions", type: :request do
         create(:membership, agent:, organization_link: create(:organization_link))
         mock_proconnect(sub: "sub-known", email: agent.email, organization_label: nil)
 
-        get "/auth/proconnect/callback"
+        proconnect_callback
         follow_redirect!
 
         expect(response).to have_http_status(:forbidden)
@@ -95,7 +95,7 @@ RSpec.describe "Portail::Sessions", type: :request do
         create(:agent, provider_sub: "sub-known", email: "enrolled@example.gouv.fr")
         mock_proconnect(sub: "sub-known", email: "other@example.gouv.fr")
 
-        get "/auth/proconnect/callback"
+        proconnect_callback
         follow_redirect!
 
         expect(response).to have_http_status(:forbidden)
@@ -105,14 +105,11 @@ RSpec.describe "Portail::Sessions", type: :request do
 
     context "when token verification fails" do
       it "redirects to the failure page without opening a session" do
-        OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
-          provider: "proconnect", uid: "x",
-          info: {email: "a@b.fr"}, credentials: {id_token: "t"}, extra: {nonce: "n"}
-        )
+        mock_proconnect_transport(email: "a@b.fr")
         expect(Portail::ProConnect::TokenVerifier).to receive(:call)
           .and_raise(Portail::ProConnect::TokenVerifier::InvalidToken)
 
-        get "/auth/proconnect/callback"
+        proconnect_callback
 
         expect(response).to redirect_to(auth_failure_path)
       end
@@ -125,7 +122,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     it "keeps the refused authentication as a record" do
       mock_proconnect(sub: "sub-unknown", email: "alex@example.gouv.fr")
 
-      expect { get "/auth/proconnect/callback" }.to change(ProviderSession.denied, :count).by(1)
+      expect { proconnect_callback }.to change(ProviderSession.denied, :count).by(1)
 
       expect(ProviderSession.denied.last).to have_attributes(
         denial_reason: "unknown_agent", email: "alex@example.gouv.fr", membership: nil
@@ -137,7 +134,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     it "records how the agent authenticated, and at which level" do
       mock_proconnect(sub: "sub-unknown", amr: ["pwd"], acr: "eidas0")
 
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       expect(ProviderSession.denied.last).to have_attributes(
         denial_reason: "insufficient_authentication_level", amr: ["pwd"], acr: "eidas0"
@@ -147,16 +144,12 @@ RSpec.describe "Portail::Sessions", type: :request do
     # Abandon implicite : l'agent ne clique pas sur « essayer avec un autre compte », il
     # retente simplement. La tentative précédente n'a plus lieu d'être conservée.
     it "discards the previous attempt when a new one begins" do
-      OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
-        provider: "proconnect", uid: "sub-unknown",
-        info: {email: "alex@example.gouv.fr"}, credentials: {id_token: "test-id-token"},
-        extra: {nonce: "test-nonce", raw_info: {"siret" => "99999999911111"}}
-      )
+      mock_proconnect_transport(email: "alex@example.gouv.fr")
       expect(Portail::ProConnect::TokenVerifier).to receive(:call).twice
         .and_return(sub: "sub-unknown", amr: ["pwd"], acr: "eidas1")
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
-      expect { get "/auth/proconnect/callback" }.not_to change(ProviderSession, :count)
+      expect { proconnect_callback }.not_to change(ProviderSession, :count)
     end
 
     # Sans adresse, la page de refus n'aurait rien à montrer. La page d'échec vaut mieux
@@ -164,7 +157,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     it "falls back to the failure page when ProConnect sent no address" do
       mock_proconnect(sub: "sub-unknown", email: nil)
 
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       expect(response).to redirect_to(auth_failure_path)
     end
@@ -174,16 +167,13 @@ RSpec.describe "Portail::Sessions", type: :request do
   # ProConnect. Sans limite, n'importe qui nous transforme en amplificateur à ses frais.
   describe "flooding the callback" do
     it "turns away a caller who hammers it" do
-      OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
-        provider: "proconnect", uid: "x",
-        info: {email: "a@b.fr"}, credentials: {id_token: "t"}, extra: {nonce: "n"}
-      )
+      mock_proconnect_transport(email: "a@b.fr")
       # Un jeton rejeté : chaque passage coûte le minimum et n'écrit rien.
       expect(Portail::ProConnect::TokenVerifier).to receive(:call).at_least(:once)
         .and_raise(Portail::ProConnect::TokenVerifier::InvalidToken)
 
-      10.times { get "/auth/proconnect/callback" }
-      get "/auth/proconnect/callback"
+      10.times { proconnect_callback }
+      proconnect_callback
 
       expect(response).to have_http_status(:too_many_requests)
     end
@@ -194,7 +184,7 @@ RSpec.describe "Portail::Sessions", type: :request do
   describe "GET /connexion/refusee" do
     it "still explains the refusal when the page is reloaded" do
       mock_proconnect(sub: "sub-unknown")
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       get denied_path
       get denied_path
@@ -213,7 +203,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     # qui tombe sur une traduction manquante.
     it "sends the visitor home when the reason no longer has a message" do
       mock_proconnect(sub: "sub-unknown")
-      get "/auth/proconnect/callback"
+      proconnect_callback
       ProviderSession.denied.last.update!(denial_reason: "motif_disparu")
 
       get denied_path
@@ -224,11 +214,11 @@ RSpec.describe "Portail::Sessions", type: :request do
     # Abandonner une tentative doit l'effacer : sans ça, son jeton survivrait un quart
     # d'heure alors que l'agent a explicitement tourné la page.
     it "erases the refused attempt when the agent gives up on it" do
-      expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
-        .with(id_token: "test-id-token")
+      expect(Portail::ProConnect::Client).to receive(:logout_url)
+        .with(hash_including(id_token: "test-id-token"))
         .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
       mock_proconnect(sub: "sub-unknown")
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       expect { delete "/logout" }.to change(ProviderSession, :count).by(-1)
 
@@ -340,8 +330,8 @@ RSpec.describe "Portail::Sessions", type: :request do
     it "clears the session and redirects to the ProConnect end_session URL" do
       agent = create(:agent, provider_sub: "sub-known")
       sign_in_via_proconnect(agent:)
-      expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
-        .with(id_token: "test-id-token")
+      expect(Portail::ProConnect::Client).to receive(:logout_url)
+        .with(hash_including(id_token: "test-id-token"))
         .and_return("https://proconnect.test/session/end?id_token_hint=test-id-token")
 
       delete "/logout"
@@ -354,8 +344,8 @@ RSpec.describe "Portail::Sessions", type: :request do
     it "still signs the agent out of the portal when ProConnect is unreachable" do
       agent = create(:agent, provider_sub: "sub-known")
       sign_in_via_proconnect(agent:)
-      expect(Portail::ProConnect::LogoutUrlBuilder).to receive(:call)
-        .and_raise(Portail::ProConnect::Discovery::Unavailable)
+      expect(Portail::ProConnect::Client).to receive(:logout_url)
+        .and_raise(Portail::ProConnect::Client::Unavailable)
 
       delete "/logout"
 
@@ -369,14 +359,11 @@ RSpec.describe "Portail::Sessions", type: :request do
   # atterrir sur la page de refus, qui parlerait à tort de son compte.
   describe "when ProConnect is unreachable during the callback" do
     it "redirects to the failure page without opening a session" do
-      OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
-        provider: "proconnect", uid: "x",
-        info: {email: "a@b.fr"}, credentials: {id_token: "t"}, extra: {nonce: "n"}
-      )
+      mock_proconnect_transport(email: "a@b.fr")
       expect(Portail::ProConnect::TokenVerifier).to receive(:call)
-        .and_raise(Portail::ProConnect::Discovery::Unavailable)
+        .and_raise(Portail::ProConnect::Client::Unavailable)
 
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       expect(response).to redirect_to(auth_failure_path)
     end
@@ -426,7 +413,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     it "records a refusal with its reason" do
       mock_proconnect(sub: "sub-unknown", email: "alex@example.gouv.fr")
 
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       expect(AccessDecision.last).to have_attributes(outcome: "denied",
         reason: "unknown_agent", email: "alex@example.gouv.fr", agent_id: nil)
@@ -439,7 +426,7 @@ RSpec.describe "Portail::Sessions", type: :request do
       create(:membership, agent:, organization_link: create(:organization_link))
       mock_proconnect(sub: "sub-known", email: agent.email)
 
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       expect(AccessDecision.last).to have_attributes(outcome: "denied",
         reason: "organization_mismatch", agent_id: agent.id, membership_id: nil)
@@ -448,14 +435,11 @@ RSpec.describe "Portail::Sessions", type: :request do
     # Un jeton rejeté est la décision la plus intéressante du lot : quelqu'un a présenté
     # quelque chose qui ne tient pas, et elle n'a aucun sujet.
     it "records a rejected token, which has no subject at all" do
-      OmniAuth.config.mock_auth[:proconnect] = OmniAuth::AuthHash.new(
-        provider: "proconnect", uid: "x",
-        info: {email: "a@b.fr"}, credentials: {id_token: "t"}, extra: {nonce: "n"}
-      )
+      mock_proconnect_transport(email: "a@b.fr")
       expect(Portail::ProConnect::TokenVerifier).to receive(:call)
         .and_raise(Portail::ProConnect::TokenVerifier::InvalidToken)
 
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       expect(AccessDecision.last).to have_attributes(outcome: "denied", reason: "invalid_token",
         email: nil)
@@ -467,7 +451,7 @@ RSpec.describe "Portail::Sessions", type: :request do
       create(:membership, agent:, organization_link: link)
       mock_proconnect(sub: "sub-fresh", email: agent.email)
 
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       expect(AccessDecision.last.provider_sub_changed).to be(true)
     end
@@ -501,31 +485,40 @@ RSpec.describe "Portail::Sessions", type: :request do
       end
     end
 
-    # L'agent ne clique sur rien : la page porte un formulaire auto-soumis vers ProConnect.
-    it "sends a single-factor administrator back to ProConnect for a second factor" do
+    # Plus aucune page intermédiaire : on repart de ProConnect vers ProConnect. C'est ce
+    # que la phase requête d'OmniAuth interdisait, faute de pouvoir forger une demande
+    # d'autorisation ailleurs que depuis un POST du navigateur.
+    it "sends a single-factor administrator straight back to ProConnect" do
       agent = administrator_agent
 
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
-      expect(response).to redirect_to(step_up_path)
+      expect(response).to redirect_to("https://proconnect.test/api/v2/authorize")
       expect(session[:proconnect_step_up]).to be(true)
     end
 
-    # Le callback porte un code à usage unique : rendre l'élévation à son adresse la
-    # rendrait irrechargeable, et ProConnect répondrait 400 en rejouant le code.
-    it "serves the step-up page from its own address, and only when one is due" do
+    # L'agent vient de s'identifier : lui refaire saisir son adresse et rechoisir son
+    # organisation serait gratuit. Les suggestions viennent du userinfo qu'on vient de
+    # lire — elles ne transitent plus par la session, donc ne survivent à personne.
+    it "suggests the address and the organisation it already knows" do
       agent = administrator_agent
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
-      get "/auth/proconnect/callback"
 
-      get step_up_path
-      expect(response).to have_http_status(:ok)
-      expect(response.body).to include("/auth/proconnect")
+      expect(Portail::ProConnect::Client).to receive(:authorization)
+        .with(step_up: false, login_hint: nil, siret_hint: nil)
+        .and_return(Portail::ProConnect::Client::Authorization.new(
+          url: "https://proconnect.test/api/v2/authorize",
+          state: ProConnectTestHelper::STATE, nonce: ProConnectTestHelper::NONCE
+        ))
+      expect(Portail::ProConnect::Client).to receive(:authorization)
+        .with(step_up: true, login_hint: agent.email,
+          siret_hint: ProConnectTestHelper::TEST_SIRET)
+        .and_return(Portail::ProConnect::Client::Authorization.new(
+          url: "https://proconnect.test/api/v2/authorize", state: "s2", nonce: "n2"
+        ))
 
-      # Rechargeable, contrairement au callback.
-      get step_up_path
-      expect(response).to have_http_status(:ok)
+      proconnect_callback
     end
 
     it "turns away a visitor who lands on the step-up page with nothing to raise" do
@@ -538,9 +531,9 @@ RSpec.describe "Portail::Sessions", type: :request do
       agent = administrator_agent
 
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
-      get "/auth/proconnect/callback"
+      proconnect_callback
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       expect(response).to redirect_to(root_path)
       expect(ProviderSession.last).to be_granted
@@ -551,24 +544,27 @@ RSpec.describe "Portail::Sessions", type: :request do
       agent = administrator_agent
 
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
-      get "/auth/proconnect/callback"
+      proconnect_callback
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1")
-      get "/auth/proconnect/callback"
+      proconnect_callback
 
       expect(response).to redirect_to(denied_path)
       expect(ProviderSession.last.denial_reason).to eq("second_factor_required")
     end
 
-    # Un rattachement rétrogradé doit cesser de marquer le navigateur : sinon celui-ci
-    # réclamerait la MFA pour toujours, et l'agent ne reverrait jamais la case pour la
-    # décocher — la page d'élévation n'ayant plus lieu d'apparaître.
-    it "forgets a device once its agent no longer owes a second factor" do
-      cookie = OmniAuth::Strategies::ProconnectHardened::PRIVILEGED_DEVICE_COOKIE
-      cookies[cookie] = "1"
+    # L'éjection, elle, porte un message que l'agent doit lire : la même page, mais qui
+    # attend son clic.
+    it "explains itself when the agent was ejected mid-session" do
+      agent = create(:agent)
+      sign_in_via_proconnect(agent:)
+      Membership.last.update!(role: "local_administrator")
 
-      sign_in_via_proconnect(agent: create(:agent), acr: "eidas1")
+      get root_path
+      follow_redirect!
 
-      expect(cookies[cookie]).to be_blank
+      expect(Capybara.string(response.body))
+        .to have_text("Une authentification renforcée est requise")
+      expect(response.body).not_to include("requestSubmit")
     end
 
     it "never raises the requirement for an ordinary agent" do

@@ -19,8 +19,8 @@ module Portail
 
           context.agent.update!(
             provider_sub: context.claims[:sub],
-            first_name: context.info[:first_name],
-            last_name: context.info[:last_name]
+            first_name: context.info.first_name,
+            last_name: context.info.last_name
           )
         rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
           # Deux connexions simultanées d'un agent jamais rattaché : la seconde bute sur

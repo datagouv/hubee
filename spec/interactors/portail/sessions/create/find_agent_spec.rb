@@ -6,7 +6,9 @@ RSpec.describe Portail::Sessions::Create::FindAgent do
   subject(:result) do
     described_class.call(
       claims: {sub: "sub-xyz", amr: ["pwd", "mfa"]},
-      info: {email: "new@example.gouv.fr", first_name: "Alex", last_name: "Nouveau"}
+      info: Portail::ProConnect::Client::Info.new(
+        email: "new@example.gouv.fr", first_name: "Alex", last_name: "Nouveau"
+      )
     )
   end
 

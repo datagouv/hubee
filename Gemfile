@@ -25,17 +25,13 @@ gem "stimulus-rails"
 gem "dsfr-assets"
 gem "dsfr-form_builder"
 
-# Vérification JWT/JWKS des jetons ProConnect (id_token) — utilisée directement
-# par Portail::ProConnect::TokenVerifier, déclarée explicitement (tirée aussi par
-# omniauth-proconnect).
+# Vérification JWT/JWKS des jetons ProConnect (id_token et userinfo) — utilisée
+# directement par TokenVerifier et Client, déclarée explicitement (tirée aussi par
+# openid_connect).
 gem "json-jwt"
 
-# Authentification ProConnect (OIDC)
+# Authentification ProConnect (OIDC), via Portail::ProConnect::Client
 gem "openid_connect"
-# Sortants une fois la migration vers openid_connect terminée — gardés le temps que les
-# deux chemins coexistent.
-gem "omniauth-proconnect", "~> 0.6"
-gem "omniauth-rails_csrf_protection"
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"

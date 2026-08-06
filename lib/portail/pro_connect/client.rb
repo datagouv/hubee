@@ -21,7 +21,15 @@ module Portail
       # Le plancher demandé à ProConnect, aligné sur le premier niveau que le portail
       # accepte. Voir Portail::Sessions::Create::CheckAuthenticationLevel.
       MINIMUM_AUTHENTICATION_LEVEL = "eidas1"
-      SCOPES = %w[openid given_name usual_name email siret idp_id].freeze
+
+      # organization_label : sans lui, un refus de rattachement ne peut pas nommer
+      # l'organisation présentée, et l'agent n'a aucun moyen de comprendre son refus.
+      #
+      # idp_id : quel fournisseur d'identité a authentifié l'agent, consigné dans les
+      # traces de décision. Le scope demande une habilitation du support ProConnect — sans
+      # elle, la demande d'autorisation échoue ENTIÈREMENT et plus personne ne se connecte.
+      # Retirer ce mot suffit à revenir en arrière.
+      SCOPES = %w[openid given_name usual_name email siret organization_label idp_id].freeze
 
       # ProConnect signe son userinfo en RS256. Imposé plutôt que lu dans l'en-tête du
       # jeton : sinon on accepterait `alg: HS256` signé avec sa clé publique, que tout le

@@ -1,9 +1,10 @@
 <%# locals: () %>
 <%# Bouton officiel ProConnect (markup imposé, cf. doc partenaires ProConnect). %>
-<%# Phase requête OmniAuth : POST protégé CSRF (omniauth-rails_csrf_protection). %>
+<%# En POST : `button_to` pose le jeton CSRF, seule protection du départ vers ProConnect. %>
 <%# L'espacement est porté ici, pas dans la feuille de marque, qui ne doit pas bouger. %>
 <div class="fr-mt-4w">
-  <%= button_to "/auth/proconnect", class: "proconnect-button", form: {data: {turbo: false}} do %>
+  <%= button_to proconnect_authorization_path, class: "proconnect-button",
+        form: {data: {turbo: false}} do %>
     <span class="proconnect-sr-only"><%= t("portail.sessions.proconnect_button.label") %></span>
   <% end %>
   <p class="fr-mt-1w fr-mb-0">

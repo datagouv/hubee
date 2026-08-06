@@ -18,7 +18,7 @@ module Portail
           # diagnostic. Seul le contexte de requête — IP, user_agent — qualifie ce refus.
           Rails.event.notify(Portail::Auth::Decision.new(outcome: :denied, reason: :invalid_token))
           context.fail!(error: :invalid_token)
-        rescue Portail::ProConnect::Discovery::Unavailable => e
+        rescue Portail::ProConnect::Client::Unavailable => e
           # Vérifier la signature suppose d'aller chercher les clés publiques. ProConnect
           # muet, on ne peut ni accepter ni imputer quoi que ce soit à l'agent.
           Rails.logger.error("[ProConnect] discovery unavailable: #{e.message}")
