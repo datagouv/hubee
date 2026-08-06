@@ -3,20 +3,14 @@
 module Portail
   module Sessions
     class Create
-      # ProConnect gradue l'authentification sur trois dimensions : la preuve d'identité,
-      # la méthode d'authentification, et le lien organisationnel. Au niveau 0 ce dernier
-      # est déclaratif — l'agent affirme son organisation sans que personne ne l'atteste —,
-      # y compris avec un second facteur. On refuse donc sur le niveau, pas sur l'absence
-      # de MFA : `eidas0-mfa` est tout aussi déclaratif que `eidas0`.
-      #
-      # Le niveau est lu dans le jeton vérifié, jamais ailleurs.
+      # Le niveau est lu dans le jeton vérifié, jamais ailleurs : ce qui a été demandé au
+      # départ ne prouve rien de ce qui a été atteint. Ce que le portail accepte, et
+      # pourquoi le plancher est là, sont décrits par Portail::AuthenticationLevels.
       class CheckAuthenticationLevel
         include Interactor
 
-        ACCEPTED_LEVELS = %w[eidas1 eidas1-mfa eidas2 eidas3].freeze
-
         def call
-          return if ACCEPTED_LEVELS.include?(context.claims[:acr])
+          return if Portail::AuthenticationLevels.accepted?(context.claims[:acr])
 
           context.fail!(error: :insufficient_authentication_level)
         end
