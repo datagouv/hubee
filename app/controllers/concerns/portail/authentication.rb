@@ -89,17 +89,17 @@ module Portail
         agent_id: record.membership.agent_id, membership_id: record.membership_id
       ))
 
-      # Lus avant : `terminate_session` détruit l'enregistrement qui les porte.
+      # `terminate_session` détruit l'enregistrement et réinitialise la session : tout se
+      # lit avant, tout se réécrit après.
       email = record.email
       siret = record.membership.organization_link.siret
 
       terminate_session
-      # Après `terminate_session` : son reset_session effacerait un marqueur posé avant.
-      # L'agent repart donc directement sur l'élévation plutôt que sur un accueil qui ne
-      # lui dirait pas quoi faire.
+
       session[:proconnect_step_up] = true
       session[:proconnect_step_up_email] = email
       session[:proconnect_step_up_siret] = siret
+      # Vers l'élévation, pas vers un accueil qui ne dirait pas quoi faire.
       redirect_to step_up_path, alert: t("portail.sessions.second_factor_required")
     end
 
