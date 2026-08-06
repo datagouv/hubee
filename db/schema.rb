@@ -10,14 +10,39 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_05_141910) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_092109) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   # Custom types defined in this database.
   # Note that some types may not work with other database engines. Be careful if changing database.
+  create_enum "access_outcome", ["granted", "denied"]
   create_enum "data_package_state", ["draft", "transmitted", "acknowledged"]
   create_enum "membership_role", ["member", "local_administrator"]
+
+  create_table "access_decisions", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.string "acr"
+    t.uuid "agent_id"
+    t.string "amr", default: [], null: false, array: true
+    t.datetime "created_at", null: false
+    t.string "email"
+    t.string "idp_id"
+    t.string "ip_address"
+    t.uuid "membership_id"
+    t.string "organization_label"
+    t.enum "outcome", null: false, enum_type: "access_outcome"
+    t.string "provider_sub"
+    t.boolean "provider_sub_changed", default: false, null: false
+    t.string "reason"
+    t.string "request_id"
+    t.string "siret"
+    t.datetime "updated_at", null: false
+    t.text "user_agent"
+    t.index ["created_at"], name: "index_access_decisions_on_created_at"
+    t.index ["email"], name: "index_access_decisions_on_email"
+    t.index ["reason"], name: "index_access_decisions_on_reason"
+    t.index ["siret"], name: "index_access_decisions_on_siret"
+  end
 
   create_table "agents", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
     t.string "civility"
