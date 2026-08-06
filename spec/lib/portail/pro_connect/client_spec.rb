@@ -26,12 +26,14 @@ RSpec.describe Portail::ProConnect::Client do
   # neuf à chaque exemple, pour que ce qui est mis en cache le soit réellement.
   around do |example|
     originals = ENV.to_h.slice("PROCONNECT_DOMAIN", "PROCONNECT_CLIENT_ID",
-      "PROCONNECT_CLIENT_SECRET", "PROCONNECT_REDIRECT_URI")
+      "PROCONNECT_CLIENT_SECRET", "PROCONNECT_REDIRECT_URI",
+      "PROCONNECT_POST_LOGOUT_REDIRECT_URI")
     original_cache = Rails.cache
     ENV["PROCONNECT_DOMAIN"] = domain
     ENV["PROCONNECT_CLIENT_ID"] = "client-abc"
     ENV["PROCONNECT_CLIENT_SECRET"] = "s3cret"
     ENV["PROCONNECT_REDIRECT_URI"] = "https://portail.hubee.gouv.fr/connexion/proconnect/retour"
+    ENV["PROCONNECT_POST_LOGOUT_REDIRECT_URI"] = "https://portail.hubee.gouv.fr/"
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
     example.run
   ensure
@@ -226,8 +228,7 @@ RSpec.describe Portail::ProConnect::Client do
 
   describe ".logout_url" do
     it "points at the provider's end-session endpoint and carries the id_token" do
-      url = described_class.logout_url(id_token: "the-id-token",
-        post_logout_redirect_uri: "https://portail.hubee.gouv.fr/")
+      url = described_class.logout_url(id_token: "the-id-token")
 
       expect(url).to start_with("#{domain}/api/v2/session/end?")
       expect(params_of(url)).to eq(
