@@ -103,6 +103,33 @@ RSpec.describe "Portail::Sessions", type: :request do
       end
     end
 
+    # Le `state` lie la réponse à la demande qu'on a émise. Sans ce contrôle, un callback
+    # fabriqué par un tiers ouvrirait une session dans le navigateur de l'agent.
+    context "when the state does not match the one we sent" do
+      it "refuses the callback without exchanging anything" do
+        mock_proconnect_transport
+        expect(Portail::ProConnect::Client).not_to receive(:exchange)
+        depart_for_proconnect
+
+        get "/auth/proconnect/callback", params: {code: "test-code", state: "forged"}
+
+        expect(response).to redirect_to(auth_failure_path)
+        expect(ProviderSession.count).to eq(0)
+      end
+
+      # Un `state` ne vaut que pour un aller-retour : le rejouer doit échouer, sinon un
+      # callback intercepté resterait utilisable.
+      it "refuses a second callback carrying the same state" do
+        agent = create(:agent, provider_sub: "sub-known")
+        sign_in_via_proconnect(agent:)
+
+        get "/auth/proconnect/callback", params: {code: "test-code",
+                                                  state: ProConnectTestHelper::STATE}
+
+        expect(response).to redirect_to(auth_failure_path)
+      end
+    end
+
     context "when token verification fails" do
       it "redirects to the failure page without opening a session" do
         mock_proconnect_transport(email: "a@b.fr")
