@@ -28,9 +28,8 @@ module Portail
     def require_authentication
       return if agent_signed_in?
 
-      # Un chemin, jamais une URL ni un paramètre : sinon on ouvre une redirection
-      # arbitraire. Consultation seulement — rejouer un POST après connexion n'aurait pas
-      # de sens. HEAD est inclus : c'est un GET sans corps, et `request.get?` l'exclut.
+      # Un chemin, jamais une URL : sinon redirection arbitraire. GET et HEAD seulement —
+      # rejouer un POST après connexion n'aurait pas de sens.
       session[:return_to] = request.fullpath if request.get? || request.head?
       redirect_to root_path
     end
@@ -45,17 +44,14 @@ module Portail
     def find_session_by_cookie
       return @session_in_cookie if defined?(@session_in_cookie)
 
-      # Les habilitations viennent avec le reste : le garde du second facteur les lit à
-      # chaque requête, autant les charger dans la requête déjà faite.
+      # Habilitations chargées d'avance : le garde du second facteur les lit à chaque requête.
       @session_in_cookie = ProviderSession.includes(membership: [:agent, :process_accesses, :organization_link])
         .find_by(id: session[:provider_session_id])
     end
 
-    # Le métier a produit l'enregistrement, accordé ou refusé ; il reste à en ranger
-    # l'identifiant dans le cookie. `terminate_session` plutôt qu'un simple `reset_session` :
-    # ouvrir une authentification ferme ce que ce navigateur détenait déjà — protection
-    # contre la fixation de session, et une tentative abandonnée ne survit pas jusqu'à la
-    # purge avec son jeton.
+    # `terminate_session` plutôt que `reset_session` : ouvrir une authentification ferme
+    # ce que ce navigateur détenait — anti-fixation, et une tentative abandonnée ne
+    # survit pas avec son jeton.
     def adopt_session(provider_session)
       terminate_session
       session[:provider_session_id] = provider_session.id
@@ -97,6 +93,7 @@ module Portail
       terminate_session
 
       session[:proconnect_step_up] = true
+      # Relus par SessionsController#authorize, pour suggérer l'adresse et l'organisation.
       session[:proconnect_step_up_email] = email
       session[:proconnect_step_up_siret] = siret
       # Vers l'élévation, pas vers un accueil qui ne dirait pas quoi faire.
