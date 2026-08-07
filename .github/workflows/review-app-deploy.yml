@@ -1,0 +1,56 @@
+name: Review App Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  deploy:
+    name: Deploy review app
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      REVIEW_DOMAIN: review.recette.hubee.data.gouv.fr
+      SSH_DOKKU: "ssh -p 50022 dokku@${{ secrets.DOKKU_HOST }}"
+      DOKKU_APP: "pr${{ github.event.number }}"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Deploy hubee portail on dokku
+        run: |
+          #bundle config set --local GITLAB__HUBEE__NUMERIQUE__GOUV__FR "oauth2:${{ secrets.DOKKU_GITLAB_TOKEN }}"
+          set -euo pipefail
+          set -x
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DOKKU_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p 50022 -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
+          git config --global --add safe.directory "$PWD"
+          echo "=== Setting config ==="
+            $SSH_DOKKU -- apps:exists "$DOKKU_APP" 2>/dev/null || $SSH_DOKKU -- apps:create "$DOKKU_APP"
+            $SSH_DOKKU -- config:clear "$DOKKU_APP"
+            $SSH_DOKKU -- docker-options:clear "$DOKKU_APP"
+            $SSH_DOKKU -- docker-options:add "$DOKKU_APP" build \
+              '--build-arg BUNDLE_GITLAB__HUBEE__NUMERIQUE__GOUV__FR=oauth2:${{ secrets.DOKKU_GITLAB_TOKEN }}'
+            $SSH_DOKKU -- config:set --no-restart "$DOKKU_APP" \
+              DATABASE_HOST="${{ secrets.DOKKU_DATABASE_URL }}" \
+              DATABASE_PASSWORD="${{ secrets.DOKKU_DATABASE_PASSWORD }}" \
+              DATABASE_PORT="${{ secrets.DOKKU_DATABASE_PORT }}" \
+              DATABASE_USERNAME="${{ secrets.DOKKU_DATABASE_USERNAME }}" \
+              RAILS_MAX_THREADS="${{ secrets.DOKKU_RAILS_MAX_THREADS }}" \
+              SECRET_KEY_BASE="${{ secrets.DOKKU_SECRET_KEY_BASE }}" \
+              SOLID_QUEUE_IN_PUMA="${{ secrets.DOKKU_SOLID_QUEUE_IN_PUMA }}"
+
+
+          echo "=== Push on dokku ==="
+          git remote add dokku ssh://dokku@${{ secrets.DOKKU_HOST }}:50022/$DOKKU_APP
+          git push dokku HEAD:refs/heads/main --force
+
+          echo "=== Setting domain ==="
+          $SSH_DOKKU -- domains:add $DOKKU_APP "$DOKKU_APP.${REVIEW_DOMAIN}"
+          $SSH_DOKKU -- letsencrypt:enable "$DOKKU_APP" --force
