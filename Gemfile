@@ -117,6 +117,9 @@ group :test do
   gem "cucumber-rails", require: false
   gem "database_cleaner-active_record"
 
+  # Pilote le Chrome headless des scénarios @javascript
+  gem "selenium-webdriver"
+
   # Additional test helpers
   gem "shoulda-matchers"
 
