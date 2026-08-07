@@ -7,6 +7,10 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <%# La favicon HubEE (reprise du portail V1). Servie depuis /favicon.ico, l'adresse
+        que les navigateurs sondent d'office — plus de RoutingError dans les journaux. %>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+
     <%# DSFR — Design System de l'État (gem dsfr-assets) %>
     <%= stylesheet_link_tag "dsfr.min", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "utility/dsfr-utility.min", "data-turbo-track": "reload" %>
