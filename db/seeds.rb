@@ -332,11 +332,56 @@ data_packages_data.each do |pkg_data|
 end
 
 puts "  ✅ Created #{DataPackage.count} data packages"
+
+# Agents du portail V2, alignés sur les comptes réels des FI de test ProConnect :
+# userN@yopmail.com (ProConnect Identité, org DINUM), identités libres de FIA1
+# (@test.proconnect.gouv.fr, SIRET saisissable), et le compte du FI ANCT.
+# Idempotent et non destructif : identités scellées (provider_sub) et traces
+# (AccessDecision) préservées ; seul le rôle est réaligné.
+puts "  👤 Creating portal agents..."
+
+dinum_link = OrganizationLink.find_or_create_by!(siret: "13002526500013")
+lyon_link = OrganizationLink.find_or_create_by!(siret: "26690123100013")
+sardine_link = OrganizationLink.find_or_create_by!(siret: "84087593400027")
+
+# Aligné sur SENSITIVE_PROCESS_CODES pour que l'habilitation semée déclenche bien
+# l'élévation ; repli documenté si la liste est vide.
+sensitive_code = Portail::SensitiveProcesses::CODES.first || "DEMO_SENSIBLE"
+
+portal_agents = [
+  # [email, prénom, nom, lien, rôle, habilitation sensible]
+  ["user@yopmail.com", "Camille", "Ordinaire", dinum_link, "member", false],
+  ["user1@yopmail.com", "Alex", "Admin", dinum_link, "local_administrator", false],
+  ["user2@yopmail.com", "Dominique", "Habilite", dinum_link, "member", true],
+  ["user3@yopmail.com", "Sacha", "Ailleurs", lyon_link, "member", false],
+  ["agent@test.proconnect.gouv.fr", "Camille", "Fia", dinum_link, "member", false],
+  ["admin@test.proconnect.gouv.fr", "Alex", "Fia", dinum_link, "local_administrator", false],
+  ["sensible@test.proconnect.gouv.fr", "Dominique", "Fia", dinum_link, "member", true],
+  ["bastien.ogier@sardinepq.fr", "Bastien", "Ogier", sardine_link, "local_administrator", false]
+]
+
+portal_agents.each do |email, first_name, last_name, link, role, sensitive|
+  agent = Agent.find_or_create_by!(email:) do |a|
+    a.first_name = first_name
+    a.last_name = last_name
+  end
+  # update! séparé : le bloc de find_or_create_by! ne tourne pas sur un existant.
+  membership = Membership.find_or_create_by!(agent:, organization_link: link)
+  membership.update!(role:)
+  ProcessAccess.find_or_create_by!(membership:, process_code: sensitive_code) if sensitive
+end
+
+puts "  ✅ Created #{Agent.count} agents"
+if Portail::SensitiveProcesses::CODES.empty?
+  puts "  ⚠️  SENSITIVE_PROCESS_CODES vide : l'habilitation #{sensitive_code} ne déclenchera pas d'élévation"
+end
+
 puts ""
 puts "📊 Summary:"
 puts "  - Organizations: #{Organization.count}"
 puts "  - Data Streams: #{DataStream.count}"
 puts "  - Subscriptions: #{Subscription.count}"
 puts "  - Data Packages: #{DataPackage.count}"
+puts "  - Agents: #{Agent.count} (#{Membership.count} memberships)"
 puts ""
 puts "🎉 Seeding completed!"
