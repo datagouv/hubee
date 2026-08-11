@@ -2,7 +2,9 @@
 
 # En clair, les clés publiques de ProConnect seraient substituables en chemin — panne au
 # démarrage plutôt qu'à la connexion.
-unless ENV.fetch("PROCONNECT_DOMAIN", "").start_with?("https://")
+# SECRET_KEY_BASE_DUMMY marque la précompilation des assets, qui démarre l'application sans
+# aucun secret : la variable est requise pour servir, pas pour construire l'image.
+unless ENV.fetch("PROCONNECT_DOMAIN", "").start_with?("https://") || ENV["SECRET_KEY_BASE_DUMMY"].present?
   raise "PROCONNECT_DOMAIN doit être une URL HTTPS (reçu : #{ENV["PROCONNECT_DOMAIN"].inspect})"
 end
 
