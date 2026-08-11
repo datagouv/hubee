@@ -60,8 +60,13 @@ gem "sentry-rails"
 # là où la source GitLab privée est injoignable — ex. CI GitHub Actions (analyse statique +
 # sécurité). Conséquence : la gem n'est pas auto-requise par Bundler.require ; la requérir
 # explicitement à l'endroit qui la consomme.
+# HUB_API_V1_PATH=../hub-api-v1 substitue un checkout local au tag si nécessaire
 group :hub_api_v1 do
-  gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "1.1.3", require: "hub_api_v1"
+  if (path = ENV["HUB_API_V1_PATH"])
+    gem "hub-api-v1", path: path, require: "hub_api_v1"
+  else
+    gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "1.1.3", require: "hub_api_v1"
+  end
 end
 
 # Logs structurés (format logfmt conseillé par le CSIRT), remplace le logger Rails
