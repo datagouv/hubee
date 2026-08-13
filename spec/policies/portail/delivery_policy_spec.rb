@@ -4,14 +4,14 @@ require "rails_helper"
 
 RSpec.describe Portail::DeliveryPolicy do
   describe "Scope#resolve" do
-    it "renvoie nil pour un administrateur local, qui voit tout le périmètre" do
+    it "returns nil for a local administrator, who sees the whole perimeter" do
       membership = create(:membership, :local_administrator)
       create(:process_access, membership: membership, process_code: "CERTDC")
 
       expect(described_class::Scope.new(membership).resolve).to be_nil
     end
 
-    it "renvoie les codes habilités pour un membre" do
+    it "returns the habilitated codes for a member" do
       membership = create(:membership)
       create(:process_access, membership: membership, process_code: "CERTDC")
       create(:process_access, membership: membership, process_code: "AEC")
@@ -19,7 +19,7 @@ RSpec.describe Portail::DeliveryPolicy do
       expect(described_class::Scope.new(membership).resolve).to contain_exactly("CERTDC", "AEC")
     end
 
-    it "renvoie un tableau vide pour un membre sans aucune habilitation" do
+    it "returns an empty array for a member without any habilitation" do
       membership = create(:membership)
 
       expect(described_class::Scope.new(membership).resolve).to eq([])
@@ -27,7 +27,7 @@ RSpec.describe Portail::DeliveryPolicy do
 
     # Le cas qui fait la valeur de cette classe : deux agents de la même organisation n'ont
     # pas le même périmètre, et une jointure trop large les confondrait.
-    it "ignore les habilitations des autres rattachements" do
+    it "ignores the habilitations of other memberships" do
       link = create(:organization_link)
       membership = create(:membership, organization_link: link)
       autre = create(:membership, organization_link: link)
@@ -38,14 +38,14 @@ RSpec.describe Portail::DeliveryPolicy do
   end
 
   describe "#show?" do
-    it "autorise un administrateur local sur n'importe quel flux de sa structure" do
+    it "allows a local administrator on any data stream of their organisation" do
       membership = create(:membership, :local_administrator)
       delivery = build_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "AEC"))
 
       expect(described_class.new(membership, delivery).show?).to be(true)
     end
 
-    it "autorise un membre sur un flux qu'il est habilité à lire" do
+    it "allows a member on a data stream they are habilitated to read" do
       membership = create(:membership)
       create(:process_access, membership: membership, process_code: "CERTDC")
       delivery = build_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC"))
@@ -55,7 +55,7 @@ RSpec.describe Portail::DeliveryPolicy do
 
     # Le trou que cette policy ferme : la liste ne montre pas cette démarche, mais son
     # identifiant suffirait à l'ouvrir si personne ne vérifiait ici.
-    it "refuse un membre sur un flux hors de ses habilitations" do
+    it "refuses a member on a data stream outside their habilitations" do
       membership = create(:membership)
       create(:process_access, membership: membership, process_code: "CERTDC")
       delivery = build_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "AEC"))
@@ -63,7 +63,7 @@ RSpec.describe Portail::DeliveryPolicy do
       expect(described_class.new(membership, delivery).show?).to be(false)
     end
 
-    it "refuse un membre sans aucune habilitation" do
+    it "refuses a member without any habilitation" do
       membership = create(:membership)
       delivery = build_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC"))
 

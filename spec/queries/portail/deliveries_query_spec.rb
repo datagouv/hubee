@@ -14,7 +14,7 @@ RSpec.describe Portail::DeliveriesQuery do
   end
 
   describe "#call" do
-    it "renvoie les démarches du périmètre de l'organisation du rattachement" do
+    it "returns the deliveries within the membership organisation perimeter" do
       client = fake_client.add_case(build_delivery)
 
       result = described_class.new(membership, client: client).call(state: :acknowledged)
@@ -24,7 +24,7 @@ RSpec.describe Portail::DeliveriesQuery do
     end
 
     # Sans client injecté : un périmètre vide ne doit exiger ni appel, ni credentials.
-    it "ne déclenche aucun appel quand le périmètre autorisé est vide" do
+    it "makes no call when the authorised perimeter is empty" do
       expect(HubApiV1::V2::Delivery).not_to receive(:list)
 
       result = described_class.new(membership).call(data_stream_codes: [])
@@ -34,7 +34,7 @@ RSpec.describe Portail::DeliveriesQuery do
       expect(result.counts_by_state.values).to all(eq(0))
     end
 
-    it "transmet les codes de flux autorisés en filtre" do
+    it "passes the authorised data stream codes as a filter" do
       allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))
 
       described_class.new(membership, client: fake_client).call(state: :transmitted, data_stream_codes: ["CERTDC"])
@@ -43,7 +43,7 @@ RSpec.describe Portail::DeliveriesQuery do
         .with(hash_including(data_stream_codes: ["CERTDC"]))
     end
 
-    it "n'impose aucun filtre quand le périmètre autorisé n'en porte pas" do
+    it "applies no filter when the authorised perimeter carries none" do
       allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))
 
       described_class.new(membership, client: fake_client).call(state: :transmitted, data_stream_codes: nil)
@@ -52,7 +52,7 @@ RSpec.describe Portail::DeliveriesQuery do
         .with(hash_including(data_stream_codes: []))
     end
 
-    it "traduit la page demandée en décalage" do
+    it "translates the requested page into an offset" do
       allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))
 
       described_class.new(membership, client: fake_client).call(state: :transmitted, page: 3)
@@ -62,7 +62,7 @@ RSpec.describe Portail::DeliveriesQuery do
     end
 
     # Un paramètre d'URL trafiqué ne doit pas produire de décalage négatif.
-    it "ramène une page inférieure à 1 sur la première page" do
+    it "clamps a page below 1 to the first page" do
       allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))
 
       described_class.new(membership, client: fake_client).call(state: :transmitted, page: 0)
