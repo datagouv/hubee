@@ -9,6 +9,18 @@ Rails.application.routes.draw do
   # La page d'accueil du portail est servie à la racine de l'application.
   root "portail/dashboard#index"
 
+  # Les démarches de l'organisation de l'agent. La racine y renvoie l'agent connecté plutôt
+  # qu'une contrainte de routage : une contrainte ne peut lire que la présence du cookie, là
+  # où l'authentification réelle relit la session en base. Les deux divergent dès qu'un cookie
+  # survit à son enregistrement, et cette divergence produit une boucle de redirection.
+  #
+  # Routes explicites plutôt que `resources` : l'inflecteur est anglais et singularise
+  # « demarches » en « demarch », ce qui donnerait un `demarch_path`. Les nommer à la main
+  # suit d'ailleurs ce que font déjà les chemins français de la connexion, et évite d'ajouter
+  # une règle d'inflexion globale pour un seul mot.
+  get "demarches", to: "portail/deliveries#index", as: :demarches
+  get "demarches/:id", to: "portail/deliveries#show", as: :demarche
+
   # =============================================================================
   # API V2 — GELÉE LE 2026-06-12
   #

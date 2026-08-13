@@ -5,12 +5,15 @@ require "rails_helper"
 RSpec.describe "Portail::Sessions", type: :request do
   describe "GET /connexion/proconnect/retour" do
     context "when the agent is known to the portal" do
-      it "opens a session and redirects to the dashboard" do
+      it "opens a session and lands on the agent's deliveries" do
         agent = create(:agent, provider_sub: "sub-known")
 
         sign_in_via_proconnect(agent: agent)
 
         expect(response).to redirect_to(root_path)
+        follow_redirect!
+        # La racine renvoie l'agent connecté sur ses démarches : une redirection de plus.
+        expect(response).to redirect_to(demarches_path)
         follow_redirect!
         expect(response).to have_http_status(:success)
         expect(response.body).to include("Connecté en tant que")
@@ -282,6 +285,9 @@ RSpec.describe "Portail::Sessions", type: :request do
 
       expect(response).to redirect_to(root_path)
       follow_redirect!
+      # La session est toujours ouverte : la racine renvoie donc sur les démarches. L'alerte,
+      # pas encore rendue, survit à cette redirection supplémentaire.
+      follow_redirect!
       expect(Capybara.string(response.body)).to have_text("Cette page n'était plus à jour")
     ensure
       ActionController::Base.allow_forgery_protection = false
@@ -311,7 +317,9 @@ RSpec.describe "Portail::Sessions", type: :request do
     end
   end
 
-  describe "the signed-in dashboard" do
+  # Plus « le tableau de bord » : un agent connecté est renvoyé sur ses démarches, et c'est
+  # la mise en page — commune aux deux — qui porte ce qu'on vérifie ici.
+  describe "the signed-in portal" do
     # La déconnexion redirige vers ProConnect (cross-origin). Turbo ne sait pas rendre
     # une telle redirection et laisse la page inchangée : la session est bien détruite
     # côté serveur, mais le bouton de connexion ne réapparaît pas. Le formulaire doit
@@ -321,6 +329,9 @@ RSpec.describe "Portail::Sessions", type: :request do
       sign_in_via_proconnect(agent:)
 
       get root_path
+      # La racine renvoie l'agent connecté sur ses démarches, où la même mise en page rend
+      # le formulaire de déconnexion.
+      follow_redirect!
 
       expect(Capybara.string(response.body)).to have_css("form[action='/logout'][data-turbo='false']")
     end

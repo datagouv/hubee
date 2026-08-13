@@ -1,0 +1,26 @@
+<% if pagination.total_pages > 1 %>
+  <nav role="navigation" class="fr-pagination fr-mt-4w" aria-label="<%= t("portail.deliveries.pagination.label") %>">
+    <ul class="fr-pagination__list">
+      <li>
+        <% if pagination.current_page > 1 %>
+          <%= link_to t("portail.deliveries.pagination.previous"),
+                demarches_path(statut: state, page: pagination.current_page - 1),
+                class: "fr-pagination__link fr-pagination__link--prev" %>
+        <% end %>
+      </li>
+      <li>
+        <span class="fr-pagination__link">
+          <%= t("portail.deliveries.pagination.position",
+                current: pagination.current_page, total: pagination.total_pages) %>
+        </span>
+      </li>
+      <li>
+        <% if pagination.current_page < pagination.total_pages %>
+          <%= link_to t("portail.deliveries.pagination.next"),
+                demarches_path(statut: state, page: pagination.current_page + 1),
+                class: "fr-pagination__link fr-pagination__link--next" %>
+        <% end %>
+      </li>
+    </ul>
+  </nav>
+<% end %>

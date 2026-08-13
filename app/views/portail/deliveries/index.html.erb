@@ -1,0 +1,39 @@
+<% content_for :title, t(".title") %>
+
+<h1><%= t(".heading") %></h1>
+
+<% if @result.nil? %>
+  <%# L'alerte est rendue par portail/shared/_flash. %>
+<% elsif @no_habilitation %>
+  <p class="fr-text--lead"><%= t(".empty.scope") %></p>
+<% elsif @result.deliveries.empty? %>
+  <p class="fr-text--lead"><%= t(".empty.state") %></p>
+<% else %>
+  <div class="fr-table fr-table--bordered">
+    <table>
+      <caption><%= t(".caption", state: t("portail.deliveries.states.#{@state}")) %></caption>
+      <thead>
+        <tr>
+          <th scope="col"><%= t(".columns.number") %></th>
+          <th scope="col"><%= t(".columns.data_stream") %></th>
+          <th scope="col"><%= t(".columns.state") %></th>
+          <th scope="col"><%= t(".columns.transmitted_at") %></th>
+          <th scope="col"><%= t(".columns.updated_at") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @result.deliveries.each do |delivery| %>
+          <tr>
+            <td><%= link_to delivery.number, demarche_path(delivery.id) %></td>
+            <td><%= delivery.data_stream.code %></td>
+            <td><%= t("portail.deliveries.states.#{delivery.state}") %></td>
+            <td><%= delivery.transmitted_at ? l(delivery.transmitted_at, format: :short) : "—" %></td>
+            <td><%= delivery.updated_at ? l(delivery.updated_at, format: :short) : "—" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%= render "pagination", pagination: @result.pagination, state: @state %>
+<% end %>

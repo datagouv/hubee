@@ -63,6 +63,38 @@ fr:
         title: Portail HubEE
         heading: Portail HubEE
         lead: Espace de gestion réservé aux administrations.
+    deliveries:
+      states:
+        transmitted: Transmise
+        acknowledged: Reçue
+        in_progress: En cours
+        awaiting_documents: Pièces attendues
+        done: Traitée
+        refused: Refusée
+        closed: Clôturée
+        integration_error: Erreur d'intégration
+      pagination:
+        label: Pagination des démarches
+        previous: Page précédente
+        next: Page suivante
+        position: "Page %{current} sur %{total}"
+      index:
+        title: Mes démarches — HubEE
+        heading: Les démarches de ma structure
+        caption: "Démarches à l'état « %{state} »"
+        columns:
+          number: Numéro
+          data_stream: Flux
+          state: État
+          transmitted_at: Transmise le
+          updated_at: Mise à jour le
+        empty:
+          state: Aucune démarche dans cet état pour votre structure.
+          scope: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
+        errors:
+          unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
+          ambiguous_organization: "Votre SIRET correspond à plusieurs organisations : le périmètre ne peut pas être déterminé. Contactez le support."
+          organization_not_found: Votre structure est introuvable dans le référentiel. Contactez le support.
     sessions:
       proconnect_button:
         label: S'identifier avec ProConnect
