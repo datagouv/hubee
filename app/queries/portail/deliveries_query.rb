@@ -38,7 +38,12 @@ module Portail
         state: state,
         data_stream_codes: data_stream_codes || [],
         offset: offset_for(page),
-        per_page: PER_PAGE
+        per_page: PER_PAGE,
+        # Deux scopes parce que deux routes : la surcouche résout d'abord le périmètre auprès
+        # du référentiel, puis liste les téléservices, et l'API amont ne les ouvre pas aux
+        # mêmes. Les valeurs sont les nôtres — la gem ne fait que les transmettre.
+        referential_scope: HubAPIScopes.referential,
+        teleservices_scope: HubAPIScopes.teleservices
       }
       # `client:` n'est transmis que s'il a été injecté. Le passer inconditionnellement
       # obligerait à résoudre `HubApiV1.client` ici, dans l'expression d'argument — donc

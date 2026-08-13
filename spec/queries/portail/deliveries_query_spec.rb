@@ -61,6 +61,22 @@ RSpec.describe Portail::DeliveriesQuery do
         .with(hash_including(offset: 50, per_page: 25))
     end
 
+    # La surcouche traverse deux routes que l'API amont n'ouvre pas aux mêmes scopes, et elle
+    # ne connaît aucune de ces valeurs : c'est à nous de les lui passer. Sans cet exemple, un
+    # oubli ne se verrait qu'en 403 contre une vraie API.
+    it "passes both scopes, the overlay knowing neither" do
+      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))
+
+      described_class.new(membership, client: fake_client).call(state: :transmitted)
+
+      expect(HubApiV1::V2::Delivery).to have_received(:list).with(
+        hash_including(
+          referential_scope: Portail::HubAPIScopes.referential,
+          teleservices_scope: Portail::HubAPIScopes.teleservices
+        )
+      )
+    end
+
     # Un paramètre d'URL trafiqué ne doit pas produire de décalage négatif.
     it "clamps a page below 1 to the first page" do
       allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))

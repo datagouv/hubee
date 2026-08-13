@@ -27,7 +27,11 @@ module Portail
     end
 
     def show
-      @delivery = HubApiV1::V2::Delivery.find(id: params[:id])
+      # Le détail ne traverse que les téléservices : pas de résolution de périmètre, donc pas
+      # de scope référentiel.
+      @delivery = HubApiV1::V2::Delivery.find(
+        id: params[:id], teleservices_scope: HubAPIScopes.teleservices
+      )
       # L'API amont ne borne que sur l'organisation : sans cette ligne, un identifiant connu
       # ouvre une démarche hors habilitation que la liste ne montre pas.
       authorize @delivery, policy_class: DeliveryPolicy
@@ -56,6 +60,10 @@ module Portail
     # une indisponibilité doit laisser l'agent devant une explication, pas devant une page
     # d'erreur qui ne dit rien et n'offre rien.
     def render_degraded(exception, message)
+      # Journalisé en plus d'être remonté : sans DSN Sentry — le cas en développement —
+      # l'exception partirait au néant, et l'agent comme le développeur n'auraient que le
+      # message générique de la page pour diagnostiquer.
+      Rails.logger.error("Démarches indisponibles — #{exception.class} : #{exception.message}")
       Sentry.capture_exception(exception)
       @result = nil
       flash.now[:alert] = message
