@@ -93,4 +93,51 @@ RSpec.describe "Portail::Deliveries", type: :request do
       end
     end
   end
+
+  describe "GET /demarches/:id" do
+    let(:delivery_id) { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
+
+    it "redirects a signed-out visitor to the home page" do
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to redirect_to(root_path)
+    end
+
+    it "shows the delivery metadata, applicant included" do
+      sign_in_local_administrator
+      stub_hub_api_v2_delivery_found(delivery_id)
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
+      expect(Capybara.string(response.body)).to have_text("Demandeur")
+    end
+
+    # Le trou que ferme la policy : la liste ne montre pas cette démarche, mais son
+    # identifiant suffirait à l'ouvrir si personne ne vérifiait à l'entrée.
+    it "refuses a delivery whose data stream is outside the agent habilitations" do
+      agent = create(:agent, provider_sub: "sub-habilite")
+      sign_in_via_proconnect(agent: agent)
+      create(:process_access, membership: Membership.find_by!(agent: agent), process_code: "AEC")
+      stub_hub_api_v2_delivery_found(delivery_id)
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to redirect_to(demarches_path)
+      follow_redirect!
+      expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
+    end
+
+    it "gives the same message when the delivery does not exist" do
+      sign_in_local_administrator
+      stub_hub_api_v2_delivery_not_found(delivery_id)
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to redirect_to(demarches_path)
+      follow_redirect!
+      expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
+    end
+  end
 end

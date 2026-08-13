@@ -95,6 +95,12 @@ fr:
           unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
           ambiguous_organization: "Votre SIRET correspond à plusieurs organisations : le périmètre ne peut pas être déterminé. Contactez le support."
           organization_not_found: Votre structure est introuvable dans le référentiel. Contactez le support.
+      show:
+        title: Détail d'une démarche — HubEE
+        heading: "Démarche %{number}"
+        back: Retour à la liste
+        applicant: Demandeur
+        not_found: Cette démarche est introuvable ou hors de votre périmètre.
     sessions:
       proconnect_button:
         label: S'identifier avec ProConnect

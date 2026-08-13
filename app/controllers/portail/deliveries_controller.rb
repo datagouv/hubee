@@ -26,6 +26,19 @@ module Portail
       render_degraded(e, t(".errors.unavailable"))
     end
 
+    def show
+      @delivery = HubApiV1::V2::Delivery.find(id: params[:id])
+      # L'API amont ne borne que sur l'organisation : sans cette ligne, un identifiant connu
+      # ouvre une démarche hors habilitation que la liste ne montre pas.
+      authorize @delivery, policy_class: DeliveryPolicy
+    rescue Pundit::NotAuthorizedError, HubApiV1::Client::NotFoundError, HubApiV1::Client::ForbiddenError
+      # Refus et inexistence donnent le même message : les distinguer révélerait l'existence
+      # de démarches hors du périmètre de l'agent.
+      redirect_to demarches_path, alert: t(".not_found")
+    rescue HubApiV1::Client::Error
+      redirect_to demarches_path, alert: t("portail.deliveries.index.errors.unavailable")
+    end
+
     private
 
     # Le paramètre porte les états de la surcouche ; le français vit dans les libellés. Un
