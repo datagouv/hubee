@@ -373,6 +373,20 @@ portal_agents.each do |email, first_name, last_name, link, role, sensitive|
   ProcessAccess.find_or_create_by!(membership:, process_code: sensitive_code) if sensitive
 end
 
+# Le socle de développement local ne sert de démarches que pour cette organisation et ce
+# flux. Une identité libre de FIA1 permet de saisir le SIRET à la connexion : c'est ce qui
+# rend ce rattachement atteignable en navigateur, sans rien changer au socle. Membre plutôt
+# qu'administrateur local, pour que le filtrage par habilitation soit réellement traversé.
+# Sans ce rattachement, l'écran reste vide sans que rien ne l'explique.
+socle_link = OrganizationLink.find_or_create_by!(siret: "22770001000019")
+socle_agent = Agent.find_or_create_by!(email: "socle@test.proconnect.gouv.fr") do |a|
+  a.first_name = "Camille"
+  a.last_name = "Socle"
+end
+socle_membership = Membership.find_or_create_by!(agent: socle_agent, organization_link: socle_link)
+socle_membership.update!(role: "member")
+ProcessAccess.find_or_create_by!(membership: socle_membership, process_code: "CERTDC")
+
 puts "  ✅ Created #{Agent.count} agents"
 if Portail::SensitiveProcesses::CODES.empty?
   puts "  ⚠️  SENSITIVE_PROCESS_CODES vide : l'habilitation #{sensitive_code} ne déclenchera pas d'élévation"
