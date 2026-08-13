@@ -18,9 +18,7 @@ module Portail
     DEFAULT_STATE = :transmitted
 
     # `client:` n'existe que pour l'injection en test — sur le chemin nominal, la gem gère
-    # elle-même son jeton et son cache. Résolu à l'appel et non ici : construire la requête
-    # exigerait sinon les variables d'environnement du client, y compris sur le chemin où le
-    # périmètre est vide et où aucun appel n'aura lieu.
+    # elle-même son jeton et son cache, et on ne le lui transmet pas du tout (cf. #call).
     def initialize(membership, client: nil)
       @membership = membership
       @client = client
@@ -35,14 +33,20 @@ module Portail
       # avant l'appel plutôt que de le laisser fuir.
       return empty_result if data_stream_codes == []
 
-      HubApiV1::V2::Delivery.list(
+      options = {
         siret: @membership.organization_link.siret,
         state: state,
         data_stream_codes: data_stream_codes || [],
         offset: offset_for(page),
-        per_page: PER_PAGE,
-        client: @client || HubApiV1.client
-      )
+        per_page: PER_PAGE
+      }
+      # `client:` n'est transmis que s'il a été injecté. Le passer inconditionnellement
+      # obligerait à résoudre `HubApiV1.client` ici, dans l'expression d'argument — donc
+      # avant l'appel, et même lorsque `list` est bouchonné en spec, où aucune variable
+      # d'environnement n'est posée. Absent, c'est la gem qui résout le sien, à l'intérieur.
+      options[:client] = @client if @client
+
+      HubApiV1::V2::Delivery.list(**options)
     end
 
     private
