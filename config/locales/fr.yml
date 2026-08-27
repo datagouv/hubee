@@ -15,6 +15,7 @@ fr:
         role: Rôle
         job_title: Fonction
         phone_number: Téléphone
+        organization_link: Organisation
       membership/roles:
         member: Agent
         local_administrator: Administrateur local
@@ -26,6 +27,12 @@ fr:
           attributes:
             siret:
               invalid: doit comporter 14 chiffres
+            branch_code:
+              invalid: ne peut contenir que chiffres, majuscules et tirets (20 caractères max)
+        membership:
+          attributes:
+            organization_link:
+              siret_already_attached: désigne un SIRET auquel l'agent est déjà rattaché
 
   portail:
     shared:
