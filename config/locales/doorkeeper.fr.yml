@@ -1,0 +1,33 @@
+# Doorkeeper ne fournit que l'anglais ; seuls les messages d'erreur OAuth sont
+# atteignables ici (api_only, controllers d'écrans exclus des routes).
+fr:
+  doorkeeper:
+    errors:
+      messages:
+        invalid_request:
+          unknown: "La requête est incomplète, contient une valeur de paramètre non supportée, ou est malformée."
+          missing_param: "Paramètre requis manquant : %{value}."
+          request_not_authorized: "La requête doit être autorisée. Un paramètre requis pour l'autorisation est manquant ou invalide."
+          invalid_code_challenge: "Le code challenge est requis."
+        invalid_redirect_uri: "L'URI de redirection demandée est malformée ou ne correspond pas à celle du client."
+        unauthorized_client: "Le client n'est pas autorisé à effectuer cette requête par ce moyen."
+        access_denied: "Le propriétaire de la ressource ou le serveur d'autorisation a refusé la requête."
+        invalid_scope: "Le scope demandé est invalide, inconnu ou malformé."
+        server_error: "Le serveur d'autorisation a rencontré une erreur inattendue qui l'a empêché de traiter la requête."
+        temporarily_unavailable: "Le serveur d'autorisation est temporairement indisponible (surcharge ou maintenance)."
+        credential_flow_not_configured: "Le flux Resource Owner Password Credentials a échoué : Doorkeeper.configure.resource_owner_from_credentials n'est pas configuré."
+        resource_owner_authenticator_not_configured: "La recherche du resource owner a échoué : Doorkeeper.configure.resource_owner_authenticator n'est pas configuré."
+        admin_authenticator_not_configured: "L'accès au panneau d'administration est interdit : Doorkeeper.configure.admin_authenticator n'est pas configuré."
+        unsupported_response_type: "Le serveur d'autorisation ne supporte pas ce type de réponse."
+        unsupported_response_mode: "Le serveur d'autorisation ne supporte pas ce mode de réponse."
+        invalid_client: "L'authentification du client a échoué : client inconnu, authentification absente ou méthode non supportée."
+        invalid_grant: "L'autorisation fournie est invalide, expirée, révoquée, ne correspond pas à l'URI de redirection utilisée, ou a été délivrée à un autre client."
+        unsupported_grant_type: "Ce type d'autorisation n'est pas supporté par le serveur d'autorisation."
+        invalid_token:
+          revoked: "Le token d'accès a été révoqué."
+          expired: "Le token d'accès a expiré."
+          unknown: "Le token d'accès est invalide."
+        revoke:
+          unauthorized: "Vous n'êtes pas autorisé à révoquer ce token."
+        forbidden_token:
+          missing_scope: "L'accès à cette ressource requiert le scope « %{oauth_scopes} »."
