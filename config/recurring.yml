@@ -12,3 +12,7 @@ production:
   purge_access_decisions:
     class: Portail::PurgeAccessDecisionsJob
     schedule: every day at 4am
+
+  purge_api_access_tokens:
+    class: API::PurgeStaleTokensJob
+    schedule: every day at 5am
