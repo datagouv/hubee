@@ -5,7 +5,8 @@ class AddBranchCodeToOrganizationLinks < ActiveRecord::Migration[8.1]
   def change
     add_column :organization_links, :branch_code, :string, null: false
 
-    remove_index :organization_links, :siret
+    # `unique: true` pour qu'un rollback recrée l'index d'origine, pas un index affaibli.
+    remove_index :organization_links, :siret, unique: true
     add_index :organization_links, [:siret, :branch_code], unique: true
   end
 end
