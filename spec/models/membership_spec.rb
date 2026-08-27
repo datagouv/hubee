@@ -24,6 +24,58 @@ RSpec.describe Membership, type: :model do
     }
   end
 
+  describe "one membership per SIRET" do
+    let(:agent) { create(:agent) }
+    let(:link) { create(:organization_link, siret: "99999999900001", branch_code: "001") }
+    let(:twin_link) { create(:organization_link, siret: "99999999900001", branch_code: "002") }
+
+    # ProConnect n'atteste que le SIRET : deux rattachements le partageant seraient
+    # indépartageables à la connexion.
+    it "refuses a second membership whose link shares the SIRET of an existing one" do
+      create(:membership, agent: agent, organization_link: link)
+
+      second = build(:membership, agent: agent, organization_link: twin_link)
+
+      expect(second).not_to be_valid
+      expect(second.errors[:organization_link])
+        .to eq(["désigne un SIRET auquel l'agent est déjà rattaché"])
+    end
+
+    it "refuses moving a membership onto the SIRET of another one" do
+      create(:membership, agent: agent, organization_link: link)
+      other = create(:membership, agent: agent)
+
+      other.organization_link = twin_link
+
+      expect(other).not_to be_valid
+    end
+
+    it "does not count a membership against itself" do
+      membership = create(:membership, agent: agent, organization_link: link)
+
+      membership.job_title = "Cheffe de bureau"
+
+      expect(membership).to be_valid
+    end
+
+    it "accepts two agents attached to the two organizations of a shared SIRET" do
+      create(:membership, agent: agent, organization_link: link)
+
+      neighbour = build(:membership, agent: create(:agent), organization_link: twin_link)
+
+      expect(neighbour).to be_valid
+    end
+
+    it "accepts one agent attached to two distinct SIRET" do
+      create(:membership, agent: agent, organization_link: link)
+
+      elsewhere = build(:membership, agent: agent,
+        organization_link: create(:organization_link, siret: "99999999900002"))
+
+      expect(elsewhere).to be_valid
+    end
+  end
+
   describe "role" do
     # Le moindre privilège est le défaut : un rôle non accordé n'est pas administrateur.
     it "makes a membership a plain member until told otherwise" do
