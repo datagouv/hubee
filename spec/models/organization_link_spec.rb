@@ -7,16 +7,39 @@ RSpec.describe OrganizationLink, type: :model do
     subject { build(:organization_link) }
 
     it { is_expected.to validate_presence_of(:siret) }
+    it { is_expected.to validate_presence_of(:branch_code) }
+
+    # Valeurs fictives calquées sur les formes réelles du référentiel : chiffres, lettres, tirets.
+    it { is_expected.to allow_value("00001").for(:branch_code) }
+    it { is_expected.to allow_value("2Z999").for(:branch_code) }
+    it { is_expected.to allow_value("1234C").for(:branch_code) }
+    it { is_expected.to allow_value("99123-XY").for(:branch_code) }
+
+    # Un code hors charset ne matcherait jamais le référentiel : mieux vaut une erreur
+    # explicite à l'écriture qu'un rattachement mort.
+    it { is_expected.not_to allow_value("2z999").for(:branch_code) }
+    it { is_expected.not_to allow_value("00 01").for(:branch_code) }
+    it { is_expected.not_to allow_value("École").for(:branch_code) }
+    it { is_expected.not_to allow_value("A" * 21).for(:branch_code) }
 
     # ignoring_case_sensitivity : le matcher éprouve la casse en la permutant, or un SIRET
     # n'a que des chiffres — il n'a rien à permuter et refuse de conclure.
-    it { is_expected.to validate_uniqueness_of(:siret).ignoring_case_sensitivity }
+    it { is_expected.to validate_uniqueness_of(:siret).scoped_to(:branch_code).ignoring_case_sensitivity }
 
     it { is_expected.to allow_value("13002526500013").for(:siret) }
 
     # Un SIRET espacé ou tronqué ne correspondrait jamais à celui attesté par ProConnect.
     it { is_expected.not_to allow_value("130 025 265 00013").for(:siret) }
     it { is_expected.not_to allow_value("1300252650001").for(:siret) }
+
+    # Le critère d'acceptation de #688 : deux organisations partageant un SIRET sont deux liens.
+    it "accepts two organizations sharing a SIRET under distinct branch codes" do
+      create(:organization_link, siret: "99999999900001", branch_code: "001")
+
+      twin = build(:organization_link, siret: "99999999900001", branch_code: "002")
+
+      expect(twin).to be_valid
+    end
   end
 
   describe "associations" do
