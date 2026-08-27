@@ -33,4 +33,17 @@ RSpec.describe Portail::Sessions::Create::FindMembership do
       expect(result.error).to eq(:organization_mismatch)
     end
   end
+
+  context "when two organizations share the SIRET ProConnect certifies" do
+    # L'invariant garantit au plus un rattachement par SIRET : la recherche tombe sur
+    # l'organisation de l'agent, jamais sur son homonyme de SIRET.
+    it "returns the membership of the agent's own organization" do
+      create(:organization_link, siret: "99999999911111", branch_code: "001")
+      own_link = create(:organization_link, siret: "99999999911111", branch_code: "002")
+      membership = create(:membership, agent: agent, organization_link: own_link)
+
+      expect(result).to be_success
+      expect(result.membership).to eq(membership)
+    end
+  end
 end
