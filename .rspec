@@ -1,4 +1,4 @@
 --require spec_helper
 --format documentation
 --color
---exclude-pattern "spec/requests/api/**/*_spec.rb"
+--exclude-pattern "spec/requests/api/v1/**/*_spec.rb"

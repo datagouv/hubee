@@ -40,6 +40,16 @@ Rails.application.routes.draw do
   #   end
   # end
 
+  # API V2 — authentification des systèmes clients. Flux client_credentials
+  # seul : pas d'écrans d'autorisation ni de gestion.
+  use_doorkeeper scope: "api/oauth" do
+    skip_controllers :authorizations, :applications, :authorized_applications
+  end
+
+  namespace :api do
+    get "ping", to: "pings#show"
+  end
+
   # Authentification ProConnect
   # En POST : le départ est couvert par le jeton CSRF de Rails.
   post "connexion/proconnect", to: "portail/sessions#authorize", as: :proconnect_authorization
