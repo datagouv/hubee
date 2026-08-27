@@ -5,7 +5,7 @@ E2E_SIRET = "99999999911111"
 
 Étantdonné("un agent rattaché à une organisation") do
   @agent = create(:agent, email: "agent@example.gouv.fr", first_name: "Alex", last_name: "Martin")
-  link = OrganizationLink.find_or_create_by!(siret: E2E_SIRET)
+  link = OrganizationLink.find_or_create_by!(siret: E2E_SIRET, branch_code: "00001")
   create(:membership, agent: @agent, organization_link: link)
 end
 

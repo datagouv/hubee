@@ -53,7 +53,7 @@ module ProConnectTestHelper
   # Garantit le rattachement correspondant au SIRET simulé : un spec qui veut un refus
   # construit sa situation lui-même.
   def sign_in_via_proconnect(agent:, amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET, idp_id: nil)
-    link = OrganizationLink.find_or_create_by!(siret: siret)
+    link = OrganizationLink.find_or_create_by!(siret: siret, branch_code: "00001")
     Membership.find_or_create_by!(agent: agent, organization_link: link)
     mock_proconnect(sub: agent.provider_sub, email: agent.email, amr:, acr:, siret:, idp_id:)
     proconnect_callback
