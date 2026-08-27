@@ -340,9 +340,11 @@ puts "  ✅ Created #{DataPackage.count} data packages"
 # (AccessDecision) préservées ; seul le rôle est réaligné.
 puts "  👤 Creating portal agents..."
 
-dinum_link = OrganizationLink.find_or_create_by!(siret: "13002526500013")
-lyon_link = OrganizationLink.find_or_create_by!(siret: "26690123100013")
-sardine_link = OrganizationLink.find_or_create_by!(siret: "84087593400027")
+# Comme au référentiel V1 : chaque organisation porte son propre code branche, sous la
+# forme majoritaire observée (numérique, 5 chiffres).
+dinum_link = OrganizationLink.find_or_create_by!(siret: "13002526500013", branch_code: "00001")
+lyon_link = OrganizationLink.find_or_create_by!(siret: "26690123100013", branch_code: "00002")
+sardine_link = OrganizationLink.find_or_create_by!(siret: "84087593400027", branch_code: "00003")
 
 # Aligné sur SENSITIVE_PROCESS_CODES pour que l'habilitation semée déclenche bien
 # l'élévation ; repli documenté si la liste est vide.
