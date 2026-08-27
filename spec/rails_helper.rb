@@ -4,9 +4,10 @@
 if ENV.fetch("COVERAGE", "false") == "true"
   require "simplecov"
   SimpleCov.start "rails" do
-    # L'API V2 est gelée : hors périmètre de couverture (cf. CLAUDE.md).
+    # L'API v1 est gelée : hors périmètre de couverture (cf. CLAUDE.md). Le socle
+    # API (base_controller, ping) est, lui, actif et couvert.
     # Les filtres spec/, config/, db/ sont déjà fournis par le profil "rails".
-    skip "/app/controllers/api/"
+    skip "/app/controllers/api/v1/"
     minimum_coverage 90
   end
 end
