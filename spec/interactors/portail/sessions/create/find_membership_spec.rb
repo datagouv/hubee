@@ -35,10 +35,11 @@ RSpec.describe Portail::Sessions::Create::FindMembership do
   end
 
   context "when two organizations share the SIRET ProConnect certifies" do
-    # L'invariant garantit au plus un rattachement par SIRET : la recherche tombe sur
-    # l'organisation de l'agent, jamais sur son homonyme de SIRET.
+    # L'organisation homonyme est habitée par un autre agent : une recherche qui
+    # perdrait son scope par agent pourrait retourner ce voisin.
     it "returns the membership of the agent's own organization" do
-      create(:organization_link, siret: "99999999911111", branch_code: "001")
+      twin_link = create(:organization_link, siret: "99999999911111", branch_code: "001")
+      create(:membership, agent: create(:agent), organization_link: twin_link)
       own_link = create(:organization_link, siret: "99999999911111", branch_code: "002")
       membership = create(:membership, agent: agent, organization_link: own_link)
 
