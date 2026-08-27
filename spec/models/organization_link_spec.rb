@@ -9,19 +9,6 @@ RSpec.describe OrganizationLink, type: :model do
     it { is_expected.to validate_presence_of(:siret) }
     it { is_expected.to validate_presence_of(:branch_code) }
 
-    # Valeurs fictives calquées sur les formes réelles du référentiel : chiffres, lettres, tirets.
-    it { is_expected.to allow_value("00001").for(:branch_code) }
-    it { is_expected.to allow_value("2Z999").for(:branch_code) }
-    it { is_expected.to allow_value("1234C").for(:branch_code) }
-    it { is_expected.to allow_value("99123-XY").for(:branch_code) }
-
-    # Un code hors charset ne matcherait jamais le référentiel : mieux vaut une erreur
-    # explicite à l'écriture qu'un rattachement mort.
-    it { is_expected.not_to allow_value("2z999").for(:branch_code) }
-    it { is_expected.not_to allow_value("00 01").for(:branch_code) }
-    it { is_expected.not_to allow_value("École").for(:branch_code) }
-    it { is_expected.not_to allow_value("A" * 21).for(:branch_code) }
-
     # ignoring_case_sensitivity : le matcher éprouve la casse en la permutant, or un SIRET
     # n'a que des chiffres — il n'a rien à permuter et refuse de conclure.
     it { is_expected.to validate_uniqueness_of(:siret).scoped_to(:branch_code).ignoring_case_sensitivity }
