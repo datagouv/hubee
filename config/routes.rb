@@ -40,10 +40,11 @@ Rails.application.routes.draw do
   #   end
   # end
 
-  # API V2 — authentification des systèmes clients. Flux client_credentials
-  # seul : pas d'écrans d'autorisation ni de gestion.
-  use_doorkeeper scope: "api/oauth" do
-    skip_controllers :authorizations, :applications, :authorized_applications
+  # API V2 — authentification des systèmes clients (client_credentials). Route
+  # dessinée à la main : seule la délivrance de token est exposée, pas le reste
+  # de la surface use_doorkeeper (revoke, introspect, token/info, écrans).
+  scope "api/oauth", as: "oauth" do
+    resource :token, path: "token", only: [:create], controller: "doorkeeper/tokens"
   end
 
   namespace :api do
