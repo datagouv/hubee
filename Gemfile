@@ -33,6 +33,9 @@ gem "json-jwt"
 # Authentification ProConnect (OIDC), via Portail::ProConnect::Client
 gem "openid_connect"
 
+# Serveur OAuth2 de l'API V2 (flux client_credentials seul)
+gem "doorkeeper", "~> 5.9"
+
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
