@@ -17,7 +17,7 @@ RSpec.describe "API OAuth token endpoint", type: :request do
     context "with valid client credentials" do
       let(:params) { valid_params }
 
-      it "delivers an opaque bearer token expiring in 2 hours" do
+      it "delivers an opaque bearer token expiring in 2 hours, without refresh token" do
         request_token
 
         expect(response).to have_http_status(:ok)
@@ -26,11 +26,6 @@ RSpec.describe "API OAuth token endpoint", type: :request do
           "token_type" => "Bearer",
           "expires_in" => 7200
         )
-      end
-
-      it "does not deliver a refresh token" do
-        request_token
-
         expect(json).not_to have_key("refresh_token")
       end
     end
