@@ -4,6 +4,6 @@ FactoryBot.define do
     # une collision avec des specs de l'API.
     sequence(:siret) { |n| format("%014d", 99999999900000 + n) }
     # Séquencé pour la même raison que le SIRET : l'index unique porte sur le couple.
-    sequence(:branch_code) { |n| format("%03d", n) }
+    sequence(:insee_code) { |n| format("%03d", n) }
   end
 end

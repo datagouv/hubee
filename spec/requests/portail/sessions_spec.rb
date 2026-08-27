@@ -491,7 +491,7 @@ RSpec.describe "Portail::Sessions", type: :request do
 
     it "tells a first identity binding from an ordinary sign-in" do
       agent = create(:agent, provider_sub: nil)
-      link = OrganizationLink.find_or_create_by!(siret: ProConnectTestHelper::TEST_SIRET, branch_code: "00001")
+      link = OrganizationLink.find_or_create_by!(siret: ProConnectTestHelper::TEST_SIRET, insee_code: "00001")
       create(:membership, agent:, organization_link: link)
       mock_proconnect(sub: "sub-fresh", email: agent.email)
 
@@ -524,7 +524,7 @@ RSpec.describe "Portail::Sessions", type: :request do
   describe "second factor" do
     def administrator_agent
       create(:agent).tap do |agent|
-        link = OrganizationLink.find_or_create_by!(siret: ProConnectTestHelper::TEST_SIRET, branch_code: "00001")
+        link = OrganizationLink.find_or_create_by!(siret: ProConnectTestHelper::TEST_SIRET, insee_code: "00001")
         create(:membership, :local_administrator, agent:, organization_link: link)
       end
     end

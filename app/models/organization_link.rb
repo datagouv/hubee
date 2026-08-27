@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Référence vers une organisation du référentiel V1, identifiée par le couple
-# (SIRET, code branche) : un SIRET peut porter plusieurs organisations.
+# (SIRET, code INSEE) : un SIRET peut porter plusieurs organisations.
 # Ne porte aucune copie de l'organisation : le nom d'affichage sera lu en direct.
 class OrganizationLink < ApplicationRecord
   # === Constants ===
@@ -16,7 +16,7 @@ class OrganizationLink < ApplicationRecord
   # === Validations ===
   # Le SIRET est la clé de jointure vers le référentiel V1 : mal formé, le lien ne
   # correspondra jamais à rien et l'agent sera refusé sans qu'on sache pourquoi.
-  validates :siret, presence: true, uniqueness: {scope: :branch_code}, format: {with: SIRET_FORMAT}
+  validates :siret, presence: true, uniqueness: {scope: :insee_code}, format: {with: SIRET_FORMAT}
 
-  validates :branch_code, presence: true
+  validates :insee_code, presence: true
 end

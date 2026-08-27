@@ -26,14 +26,14 @@ RSpec.describe Membership, type: :model do
 
   describe "one membership per SIRET" do
     let(:agent) { create(:agent) }
-    let(:link) { create(:organization_link, siret: "99999999900001", branch_code: "001") }
+    let(:link) { create(:organization_link, siret: "99999999900001", insee_code: "001") }
 
     # ProConnect n'atteste que le SIRET : deux rattachements le partageant seraient
     # indépartageables à la connexion.
     it "refuses a second membership whose link shares the SIRET of an existing one" do
       create(:membership, agent: agent, organization_link: link)
 
-      twin_link = create(:organization_link, siret: "99999999900001", branch_code: "002")
+      twin_link = create(:organization_link, siret: "99999999900001", insee_code: "002")
       second = build(:membership, agent: agent, organization_link: twin_link)
 
       expect(second).not_to be_valid
@@ -43,7 +43,7 @@ RSpec.describe Membership, type: :model do
 
     it "refuses moving a membership onto the SIRET of another one" do
       create(:membership, agent: agent, organization_link: link)
-      twin_link = create(:organization_link, siret: "99999999900001", branch_code: "002")
+      twin_link = create(:organization_link, siret: "99999999900001", insee_code: "002")
       other = create(:membership, agent: agent)
 
       other.organization_link = twin_link
@@ -64,7 +64,7 @@ RSpec.describe Membership, type: :model do
     it "accepts two agents attached to the two organizations of a shared SIRET" do
       create(:membership, agent: agent, organization_link: link)
 
-      twin_link = create(:organization_link, siret: "99999999900001", branch_code: "002")
+      twin_link = create(:organization_link, siret: "99999999900001", insee_code: "002")
       neighbour = build(:membership, agent: create(:agent), organization_link: twin_link)
 
       expect(neighbour).to be_valid
