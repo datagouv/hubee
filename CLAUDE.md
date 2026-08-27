@@ -6,11 +6,13 @@
 
 Stack : Rails 8.1 · Ruby 4.0 · PostgreSQL 18 · Solid Queue · Active Storage (S3 chiffré)
 
-## Gel de l'API V2
+## Gel de l'API V2 — reprise partielle (août 2026)
 
-L'ébauche d'API V2 présente dans ce repo (routes `api/v1`, 6 modèles, interactors) est **gelée** — ne pas décommenter les routes ni relancer le développement sans décision explicite de l'équipe.
+Le développement de l'API V2 est rouvert **uniquement** pour deux chantiers : le socle d'authentification des systèmes clients (OAuth2 `client_credentials`, `API::BaseController`) et la gestion des utilisateurs nécessaire au portail V2.
 
-Le portail V2 ([datagouv/hubee](https://github.com/datagouv/hubee)) consomme l'API **V1** via une gem cliente privée. La reprise de l'API V2 se fera ultérieurement dans ce même repo.
+Le reste de l'ébauche d'API V2 (routes `api/v1` commentées, 6 modèles, interactors — data streams, subscriptions, data packages…) reste **gelé** — ne pas décommenter ces routes ni élargir le périmètre sans décision explicite de l'équipe.
+
+Le portail V2 ([datagouv/hubee](https://github.com/datagouv/hubee)) consomme l'API **V1** via une gem cliente privée.
 
 ## Frontière de confidentialité V1
 
