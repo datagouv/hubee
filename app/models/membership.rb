@@ -24,4 +24,21 @@ class Membership < ApplicationRecord
   # reçoit une erreur et peut réessayer sans le numéro plutôt que de perdre l'agent.
   validates :phone_number, format: {with: PhoneNumber::E164_FORMAT}, allow_nil: true
   validates :job_title, length: {maximum: 255}
+
+  # L'invariant traverse une jointure, aucun index ne peut le tenir : validation seule,
+  # fenêtre de course assumée tant que l'écriture des rattachements est séquentielle.
+  validate :one_membership_per_siret
+
+  private
+
+  # ProConnect n'atteste que le SIRET : deux rattachements le partageant seraient
+  # indépartageables à la connexion.
+  def one_membership_per_siret
+    return if agent_id.blank? || organization_link.nil?
+
+    clash = self.class.joins(:organization_link)
+      .where(agent_id:, organization_links: {siret: organization_link.siret})
+      .where.not(id: id)
+    errors.add(:organization_link, :siret_already_attached) if clash.exists?
+  end
 end
