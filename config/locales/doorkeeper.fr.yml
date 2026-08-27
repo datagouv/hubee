@@ -23,9 +23,11 @@ fr:
         invalid_client: "L'authentification du client a échoué : client inconnu, authentification absente ou méthode non supportée."
         invalid_grant: "L'autorisation fournie est invalide, expirée, révoquée, ne correspond pas à l'URI de redirection utilisée, ou a été délivrée à un autre client."
         unsupported_grant_type: "Ce type d'autorisation n'est pas supporté par le serveur d'autorisation."
+        # Volontairement identiques : le header WWW-Authenticate reprend ces
+        # messages et ne doit pas révéler l'état du token (révoqué/expiré/inconnu).
         invalid_token:
-          revoked: "Le token d'accès a été révoqué."
-          expired: "Le token d'accès a expiré."
+          revoked: "Le token d'accès est invalide."
+          expired: "Le token d'accès est invalide."
           unknown: "Le token d'accès est invalide."
         revoke:
           unauthorized: "Vous n'êtes pas autorisé à révoquer ce token."
