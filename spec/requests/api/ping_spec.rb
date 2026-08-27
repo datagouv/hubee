@@ -6,7 +6,6 @@ RSpec.describe "API::Pings", type: :request do
   let(:application) { create(:oauth_application, name: "hub-api") }
   let(:access_token) { create(:oauth_access_token, application: application) }
   let(:headers) { {"Authorization" => "Bearer #{access_token.plaintext_token}"} }
-  let(:json) { JSON.parse(response.body) }
 
   describe "GET /api/ping" do
     context "with a valid token" do
@@ -14,7 +13,7 @@ RSpec.describe "API::Pings", type: :request do
         make_request
 
         expect(response).to have_http_status(:ok)
-        expect(json).to eq("status" => "ok")
+        expect(JSON.parse(response.body)).to eq("status" => "ok")
       end
 
       it "attributes the request to the client in the request log payload" do
@@ -30,24 +29,20 @@ RSpec.describe "API::Pings", type: :request do
     end
 
     context "without a token" do
-      let(:headers) { {} }
-
       it "refuses with a uniform 401" do
-        make_request
+        get "/api/ping"
 
         expect(response).to have_http_status(:unauthorized)
-        expect(json).to eq("error" => "invalid_token")
+        expect(JSON.parse(response.body)).to eq("error" => "invalid_token")
       end
     end
 
     context "with an unknown token" do
-      let(:headers) { {"Authorization" => "Bearer unknown-token"} }
-
       it "refuses with the same uniform 401" do
-        make_request
+        get "/api/ping", headers: {"Authorization" => "Bearer unknown-token"}
 
         expect(response).to have_http_status(:unauthorized)
-        expect(json).to eq("error" => "invalid_token")
+        expect(JSON.parse(response.body)).to eq("error" => "invalid_token")
       end
     end
 
@@ -59,7 +54,7 @@ RSpec.describe "API::Pings", type: :request do
           get "/api/ping", headers: expired_headers
 
           expect(response).to have_http_status(:unauthorized)
-          expect(json).to eq("error" => "invalid_token")
+          expect(JSON.parse(response.body)).to eq("error" => "invalid_token")
         end
       end
     end
@@ -72,7 +67,7 @@ RSpec.describe "API::Pings", type: :request do
         make_request
 
         expect(response).to have_http_status(:unauthorized)
-        expect(json).to eq("error" => "invalid_token")
+        expect(JSON.parse(response.body)).to eq("error" => "invalid_token")
       end
     end
 
@@ -84,7 +79,30 @@ RSpec.describe "API::Pings", type: :request do
         make_request
 
         expect(response).to have_http_status(:unauthorized)
-        expect(json).to eq("error" => "invalid_token")
+        expect(JSON.parse(response.body)).to eq("error" => "invalid_token")
+      end
+    end
+
+    context "whatever the invalid token reason" do
+      # Doorkeeper pose le header avant nos render options : il reprenait les
+      # messages traduits et divulguait révoqué / expiré / inconnu.
+      it "returns the same WWW-Authenticate header for expired, revoked and unknown tokens" do
+        expired = travel_to(3.hours.ago) { create(:oauth_access_token, application: application) }
+        revoked = create(:oauth_access_token, application: application)
+        revoked_token = revoked.plaintext_token
+        revoked.revoke
+
+        www_authenticate_headers = [expired.plaintext_token, revoked_token, "unknown-token"].map do |token|
+          get "/api/ping", headers: {"Authorization" => "Bearer #{token}"}
+
+          expect(response).to have_http_status(:unauthorized)
+          response.headers["WWW-Authenticate"]
+        end
+
+        # « acc_s » : Doorkeeper remplace les caractères non-ASCII par « _ » (RFC 6750).
+        expect(www_authenticate_headers.uniq).to eq(
+          [%(Bearer realm="Doorkeeper", error="invalid_token", error_description="Le token d'acc_s est invalide.")]
+        )
       end
     end
   end
