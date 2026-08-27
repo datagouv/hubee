@@ -38,9 +38,9 @@ RSpec.describe Portail::Sessions::Create::FindMembership do
     # L'organisation homonyme est habitée par un autre agent : une recherche qui
     # perdrait son scope par agent pourrait retourner ce voisin.
     it "returns the membership of the agent's own organization" do
-      twin_link = create(:organization_link, siret: "99999999911111", branch_code: "001")
+      twin_link = create(:organization_link, siret: "99999999911111", insee_code: "001")
       create(:membership, agent: create(:agent), organization_link: twin_link)
-      own_link = create(:organization_link, siret: "99999999911111", branch_code: "002")
+      own_link = create(:organization_link, siret: "99999999911111", insee_code: "002")
       membership = create(:membership, agent: agent, organization_link: own_link)
 
       expect(result).to be_success
