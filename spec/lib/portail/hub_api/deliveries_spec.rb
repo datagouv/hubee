@@ -52,17 +52,27 @@ RSpec.describe Portail::HubAPI::Deliveries do
         data_stream_codes: [], page: 1, per_page: 25)
     end
 
-    # Une page trafiquée n'est pas rattrapée ici : elle produit un décalage que l'amont
-    # refuse, et le refus remonte à l'agent plutôt que de réinitialiser son filtre en silence.
+    # Ces deux exemples ne bouchonnent RIEN : c'est le vrai refus de l'amont qui doit se
+    # produire, sinon ils ne prouvent que notre traduction d'un refus imaginaire. Ils tombent
+    # donc aussi bien si l'amont cesse de valider avant réseau que si le portail réintroduit
+    # une garde qui rattrape le paramètre avant lui.
+    it "lets an unknown state reach the upstream refusal" do
+      client = HubApiV1::Testing::FakeClient.new
+
+      expect {
+        described_class.list(siret: siret, insee_code: insee_code, state: "n-importe-quoi",
+          data_stream_codes: [], page: 1, per_page: 25, client: client)
+      }.to raise_error(Portail::HubAPI::InvalidRequest)
+    end
+
+    # Une page trafiquée produit un décalage négatif, que l'amont refuse : le refus remonte à
+    # l'agent plutôt que de réinitialiser son filtre en silence.
     it "lets an unusable page reach the upstream refusal" do
-      expect(HubApiV1::V2::Delivery).to receive(:list)
-        .with(hash_including(offset: -25))
-        # Seul l'offset est en cause ici ; le hash complet est éprouvé juste au-dessus.
-        .and_raise(HubApiV1::V2::InvalidArgumentError)
+      client = HubApiV1::Testing::FakeClient.new
 
       expect {
         described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
-          data_stream_codes: [], page: "n-importe-quoi", per_page: 25)
+          data_stream_codes: [], page: "n-importe-quoi", per_page: 25, client: client)
       }.to raise_error(Portail::HubAPI::InvalidRequest)
     end
 
@@ -97,6 +107,18 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result.applicant.full_name).to eq("George DUBOIS")
     end
 
+    # Le demandeur vient du paquet de données, et l'amont peut le servir sans. Sans cet
+    # exemple, la branche qui rend `applicant` nul n'est jamais empruntée.
+    it "renders no applicant when the upstream serves none" do
+      expect(HubApiV1::V2::Delivery).to receive(:find)
+        .and_return(build_v2_delivery(data_package: nil))
+
+      result = described_class.find(id: "an-id", siret: siret, insee_code: insee_code)
+
+      expect(result).to be_a(Portail::Delivery)
+      expect(result.applicant).to be_nil
+    end
+
     it "sends the portal vocabulary as the upstream keywords" do
       client = HubApiV1::Testing::FakeClient.new
       expect(HubApiV1::V2::Delivery).to receive(:find).with(
@@ -118,6 +140,11 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result).to be_a(Portail::DeliveryList)
       expect(result.deliveries).to be_empty
       expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1)
+      # Mêmes clés, même ordre et même graphie qu'une vraie page : c'est cette liste-ci que
+      # voit l'agent habilité sur aucun flux, et c'est d'elle que viendrait l'ordre des onglets.
+      expect(result.counts_by_state.keys).to eq(
+        %w[transmitted acknowledged in_progress awaiting_documents done refused closed integration_error]
+      )
       expect(result.counts_by_state.values).to all(eq(0))
     end
   end
