@@ -378,7 +378,10 @@ end
 # rend ce rattachement atteignable en navigateur, sans rien changer au socle. Membre plutôt
 # qu'administrateur local, pour que le filtrage par habilitation soit réellement traversé.
 # Sans ce rattachement, l'écran reste vide sans que rien ne l'explique.
-socle_link = OrganizationLink.find_or_create_by!(siret: "22770001000019")
+# Le code INSEE est obligatoire depuis que le lien porte le couple : sans lui, le semis
+# entier échoue. Valeur alignée sur celle que les factories de la gem associent à ce SIRET,
+# soit ce que le socle sert — c'est elle que la gem transmet en `code_insee`.
+socle_link = OrganizationLink.find_or_create_by!(siret: "22770001000019", insee_code: "77372")
 socle_agent = Agent.find_or_create_by!(email: "socle@test.proconnect.gouv.fr") do |a|
   a.first_name = "Camille"
   a.last_name = "Socle"
