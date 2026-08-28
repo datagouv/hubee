@@ -23,7 +23,7 @@ module Portail
       codes = Scope.new(membership, nil).resolve
       return true if codes.nil?
 
-      codes.include?(delivery.data_stream.code)
+      codes.include?(delivery.data_stream_code)
     end
 
     class Scope

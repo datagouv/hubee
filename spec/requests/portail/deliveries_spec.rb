@@ -2,10 +2,10 @@
 
 require "rails_helper"
 
+# Le portail ne connaît que ses propres modèles : ces exemples bouchonnent Portail::HubAPI et
+# construisent des Portail::Delivery. Ce que la gem rend et comment il est traduit est éprouvé
+# dans le spec de la frontière ; que la chaîne entière tienne, dans les scénarios Cucumber.
 RSpec.describe "Portail::Deliveries", type: :request do
-  let(:siret) { ProConnectTestHelper::TEST_SIRET }
-  let(:code_insee) { ProConnectTestHelper::TEST_INSEE_CODE }
-
   # Administrateur local : son périmètre n'est pas filtré, ce qui isole ce que chaque exemple
   # veut éprouver de la question des habilitations, traitée dans le spec de la policy.
   def sign_in_local_administrator
@@ -24,7 +24,9 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     it "lists the deliveries of the agent organisation" do
       sign_in_local_administrator
-      stub_hub_api_v2_deliveries(siret: siret, code_insee: code_insee, deliveries: [build_v2_delivery_summary])
+      expect(Portail::HubAPI::Deliveries).to receive(:list)
+        # Le décor global de spec/support/hub_api.rb sert une page vide ; celui-ci la remplace.
+        .and_return(build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)]))
 
       get "/demarches"
 
@@ -35,31 +37,34 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     it "opens on the transmitted state by default" do
       sign_in_local_administrator
-      stub_hub_api_v2_deliveries(siret: siret, code_insee: code_insee)
+      expect(Portail::HubAPI::Deliveries).to receive(:list)
+        .with(hash_including(state: "transmitted", page: 1))
+        # Le hash complet que reçoit la frontière est éprouvé dans le spec du query object.
+        .and_return(build(:portail_delivery_list))
 
       get "/demarches"
-
-      expect(HubApiV1::V2::Delivery).to have_received(:list)
-        .with(hash_including(state: :transmitted))
     end
 
-    it "honours the state requested as a parameter" do
+    it "honours the state and the page requested as parameters" do
       sign_in_local_administrator
-      stub_hub_api_v2_deliveries(siret: siret, code_insee: code_insee)
+      expect(Portail::HubAPI::Deliveries).to receive(:list)
+        .with(hash_including(state: "acknowledged", page: "2"))
+        .and_return(build(:portail_delivery_list))
 
-      get "/demarches", params: {statut: "acknowledged"}
-
-      expect(HubApiV1::V2::Delivery).to have_received(:list)
-        .with(hash_including(state: :acknowledged))
+      get "/demarches", params: {statut: "acknowledged", page: "2"}
     end
 
-    # Un paramètre trafiqué ne doit produire ni erreur applicative ni page blanche.
-    it "falls back to the default state when the requested one is unknown" do
+    # Décision de produit : un filtre que l'amont refuse donne une erreur affichée. Le
+    # réinitialiser en silence rendrait une liste qui ne dit pas ce qu'elle montre.
+    it "shows the refusal when the upstream rejects the requested filter" do
       sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:list)
+        .and_raise(Portail::HubAPI::InvalidRequest)
 
       get "/demarches", params: {statut: "n-importe-quoi"}
 
-      expect(response).to redirect_to(demarches_path)
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("Ce filtre de démarches n'existe pas")
     end
 
     it "explains the lack of habilitation instead of showing a mute empty table" do
@@ -75,7 +80,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     context "when the upstream API is failing" do
       it "renders the page with an alert rather than a server error" do
         sign_in_local_administrator
-        stub_hub_api_v2_deliveries_error(siret: siret)
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
 
         get "/demarches"
 
@@ -96,13 +101,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     it "shows the delivery metadata, applicant included" do
       sign_in_local_administrator
-      stub_hub_api_v2_delivery_found(delivery_id)
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
 
       get "/demarches/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
-      expect(Capybara.string(response.body)).to have_text("Demandeur")
+      expect(Capybara.string(response.body)).to have_text("George DUBOIS")
     end
 
     # Le trou que ferme la policy : la liste ne montre pas cette démarche, mais son
@@ -111,7 +116,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       agent = create(:agent, provider_sub: "sub-habilite")
       sign_in_via_proconnect(agent: agent)
       create(:process_access, membership: Membership.find_by!(agent: agent), process_code: "AEC")
-      stub_hub_api_v2_delivery_found(delivery_id)
+      expect(Portail::HubAPI::Deliveries).to receive(:find)
+        .and_return(build(:portail_delivery, data_stream_code: "CERTDC"))
 
       get "/demarches/#{delivery_id}"
 
@@ -122,7 +128,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     it "gives the same message when the delivery does not exist" do
       sign_in_local_administrator
-      stub_hub_api_v2_delivery_not_found(delivery_id)
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
 
       get "/demarches/#{delivery_id}"
 

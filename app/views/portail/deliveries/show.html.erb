@@ -7,7 +7,7 @@
   <dd><%= t("portail.deliveries.states.#{@delivery.state}") %></dd>
 
   <dt><%= t("portail.deliveries.index.columns.data_stream") %></dt>
-  <dd><%= @delivery.data_stream.code %></dd>
+  <dd><%= @delivery.data_stream_code %></dd>
 
   <dt><%= t("portail.deliveries.index.columns.transmitted_at") %></dt>
   <dd><%= @delivery.transmitted_at ? l(@delivery.transmitted_at, format: :short) : "—" %></dd>
@@ -16,9 +16,9 @@
   <dd><%= @delivery.updated_at ? l(@delivery.updated_at, format: :short) : "—" %></dd>
 
   <%# Le demandeur est absent de la liste servie en amont, mais présent au détail. %>
-  <% if @delivery.data_package&.applicant %>
+  <% if @delivery.applicant %>
     <dt><%= t(".applicant") %></dt>
-    <dd><%= [@delivery.data_package.applicant.first_name, @delivery.data_package.applicant.last_name].compact.join(" ") %></dd>
+    <dd><%= @delivery.applicant.full_name %></dd>
   <% end %>
 </dl>
 
