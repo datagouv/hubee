@@ -26,9 +26,9 @@
           <tr>
             <td><%= link_to delivery.number, demarche_path(delivery.id) %></td>
             <td><%= delivery.data_stream_code %></td>
-            <td><%= t("portail.deliveries.states.#{delivery.state}") %></td>
-            <td><%= delivery.transmitted_at ? l(delivery.transmitted_at, format: :short) : "—" %></td>
-            <td><%= delivery.updated_at ? l(delivery.updated_at, format: :short) : "—" %></td>
+            <td><%= delivery.display_state %></td>
+            <td><%= delivery.display_transmitted_at %></td>
+            <td><%= delivery.display_updated_at %></td>
           </tr>
         <% end %>
       </tbody>

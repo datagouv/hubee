@@ -8,5 +8,7 @@ module Portail
   # le code, et une indirection qui ne sert qu'à le traverser se paierait à chaque appel.
   DeliverySummary = Data.define(
     :id, :number, :state, :data_stream_code, :transmitted_at, :updated_at
-  )
+  ) do
+    include DeliveryDisplay
+  end
 end

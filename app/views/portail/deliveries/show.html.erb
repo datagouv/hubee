@@ -4,22 +4,20 @@
 
 <dl class="fr-mb-4w">
   <dt><%= t("portail.deliveries.index.columns.state") %></dt>
-  <dd><%= t("portail.deliveries.states.#{@delivery.state}") %></dd>
+  <dd><%= @delivery.display_state %></dd>
 
   <dt><%= t("portail.deliveries.index.columns.data_stream") %></dt>
   <dd><%= @delivery.data_stream_code %></dd>
 
   <dt><%= t("portail.deliveries.index.columns.transmitted_at") %></dt>
-  <dd><%= @delivery.transmitted_at ? l(@delivery.transmitted_at, format: :short) : "—" %></dd>
+  <dd><%= @delivery.display_transmitted_at %></dd>
 
   <dt><%= t("portail.deliveries.index.columns.updated_at") %></dt>
-  <dd><%= @delivery.updated_at ? l(@delivery.updated_at, format: :short) : "—" %></dd>
+  <dd><%= @delivery.display_updated_at %></dd>
 
   <%# Le demandeur est absent de la liste servie en amont, mais présent au détail. %>
-  <% if @delivery.applicant %>
-    <dt><%= t(".applicant") %></dt>
-    <dd><%= @delivery.applicant.full_name %></dd>
-  <% end %>
+  <dt><%= t(".applicant") %></dt>
+  <dd><%= @delivery.display_applicant %></dd>
 </dl>
 
 <%= link_to t(".back"), demarches_path, class: "fr-link fr-icon-arrow-left-line fr-link--icon-left" %>
