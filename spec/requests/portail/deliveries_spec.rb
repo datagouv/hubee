@@ -64,7 +64,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       get "/demarches", params: {statut: "n-importe-quoi"}
 
       expect(response).to have_http_status(:success)
-      expect(Capybara.string(response.body)).to have_text("Ce filtre de démarches n'existe pas")
+      expect(Capybara.string(response.body)).to have_text("L'état ou la page demandés n'existent pas")
     end
 
     it "explains the lack of habilitation instead of showing a mute empty table" do
@@ -108,6 +108,23 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
       expect(Capybara.string(response.body)).to have_text("George DUBOIS")
+    end
+
+    # La ligne reste affichée avec son repli : la masquer ferait disparaître une information
+    # sans dire qu'elle manque. Nokogiri plutôt que Capybara — c'est la valeur rattachée à ce
+    # libellé précis qu'on vérifie, donc une position dans le DOM.
+    it "renders the applicant line with its fallback when there is no applicant" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find)
+        .and_return(build(:portail_delivery, applicant: nil))
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("Demandeur")
+      value = Nokogiri::HTML(response.body)
+        .xpath("//dt[normalize-space()='Demandeur']/following-sibling::dd[1]").text
+      expect(value).to eq("—")
     end
 
     # Le trou que ferme la policy : la liste ne montre pas cette démarche, mais son

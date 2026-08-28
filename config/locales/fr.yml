@@ -93,7 +93,7 @@ fr:
           scope: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
         errors:
           unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
-          invalid_request: Ce filtre de démarches n'existe pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
+          invalid_request: L'état ou la page demandés n'existent pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
       show:
         title: Détail d'une démarche — HubEE
         heading: "Démarche %{number}"

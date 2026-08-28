@@ -39,6 +39,9 @@ module Portail
       # refuser, la traduction confond déjà les autres causes.
       redirect_to demarches_path, alert: t(".not_found")
     rescue HubAPI::Error
+      # `InvalidRequest` est rangé ici avec les pannes, et non montré comme sur la liste : au
+      # détail, un paramètre refusé ne peut venir que du couple qui borne le périmètre — donc de
+      # nos données, pas de l'URL. L'agent n'y peut rien, c'est bien une indisponibilité.
       redirect_to demarches_path, alert: t("portail.deliveries.index.errors.unavailable")
     end
 
