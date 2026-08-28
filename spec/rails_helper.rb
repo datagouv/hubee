@@ -8,7 +8,11 @@ if ENV.fetch("COVERAGE", "false") == "true"
     # API (base_controller, ping) est, lui, actif et couvert.
     # Les filtres spec/, config/, db/ sont déjà fournis par le profil "rails".
     skip "/app/controllers/api/v1/"
-    minimum_coverage 90
+    # Branche en plus des lignes : une ligne exécutée ne dit pas que ses deux issues l'ont été,
+    # et c'est précisément là que se cachent les replis jamais empruntés — un champ que l'amont
+    # ne sert pas, un rescue qui ne se déclenche jamais en spec.
+    enable_coverage :branch
+    minimum_coverage line: 90, branch: 90
   end
 end
 
