@@ -17,27 +17,27 @@ module Portail
 
       @result = DeliveriesQuery.new(current_membership)
         .call(state: @state, page: params[:page], data_stream_codes: codes)
-    rescue HubApiV1::V2::AmbiguousOrganizationError => e
-      # Avant NotFoundError et Error : elle en hérite, et un filet plus général la capterait.
-      render_degraded(e, t(".errors.ambiguous_organization"))
-    rescue HubApiV1::Client::NotFoundError => e
-      render_degraded(e, t(".errors.organization_not_found"))
     rescue HubApiV1::Client::Error => e
       render_degraded(e, t(".errors.unavailable"))
     end
 
     def show
-      # Le détail ne traverse que les téléservices : pas de résolution de périmètre, donc pas
-      # de scope référentiel.
+      # Le périmètre vient du rattachement, jamais de l'URL : la gem ne vérifie rien à notre
+      # place, elle borne la lecture au couple qu'on lui donne. Un périmètre étranger ne se
+      # heurte à aucun refus en amont — il répond 200 avec les démarches de l'autre.
+      #
+      # `code_insee` côté gem, `insee_code` côté colonne : même donnée, deux graphies.
+      link = current_membership.organization_link
       @delivery = HubApiV1::V2::Delivery.find(
-        id: params[:id], teleservices_scope: HubAPIScopes.teleservices
+        id: params[:id], siret: link.siret, code_insee: link.insee_code
       )
-      # L'API amont ne borne que sur l'organisation : sans cette ligne, un identifiant connu
-      # ouvre une démarche hors habilitation que la liste ne montre pas.
+      # La gem borne sur l'organisation, pas sur les flux : sans cette ligne, un identifiant
+      # connu ouvre une démarche hors habilitation que la liste ne montre pas.
       authorize @delivery, policy_class: DeliveryPolicy
-    rescue Pundit::NotAuthorizedError, HubApiV1::Client::NotFoundError, HubApiV1::Client::ForbiddenError
+    rescue Pundit::NotAuthorizedError, HubApiV1::V2::DeliveryNotFoundError
       # Refus et inexistence donnent le même message : les distinguer révélerait l'existence
-      # de démarches hors du périmètre de l'agent.
+      # de démarches hors du périmètre de l'agent. La gem confond déjà les trois causes
+      # derrière DeliveryNotFoundError ; l'habilitation par flux reste la nôtre à refuser.
       redirect_to demarches_path, alert: t(".not_found")
     rescue HubApiV1::Client::Error
       redirect_to demarches_path, alert: t("portail.deliveries.index.errors.unavailable")

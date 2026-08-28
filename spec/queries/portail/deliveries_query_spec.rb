@@ -3,19 +3,21 @@
 require "rails_helper"
 
 RSpec.describe Portail::DeliveriesQuery do
-  let(:siret) { "22770001000019" }
-  let(:membership) { create(:membership, organization_link: create(:organization_link, siret: siret)) }
+  let(:siret) { HubApiV1::Testing::Factories::DEFAULT_SIRET }
+  # Le périmètre est celui des fixtures de la gem, et il doit le rester : le FakeClient rejoue
+  # le filtrage du serveur sur le couple, et un périmètre qui ne correspond pas ne renvoie rien
+  # — ce qui se lirait comme une régression du query object.
+  let(:insee_code) { HubApiV1::Testing::Factories::DEFAULT_CODE_INSEE }
+  let(:organization_link) { create(:organization_link, siret: siret, insee_code: insee_code) }
+  let(:membership) { create(:membership, organization_link: organization_link) }
 
   # Le client bouchonné de la gem : aucun HTTP, et surtout aucun format de fil de l'API
   # amont écrit dans ce dépôt public.
-  def fake_client
-    HubApiV1::Testing::FakeClient.new
-      .add_organization(build_organization_record(siret: siret, type: "SI"))
-  end
+  def fake_client = HubApiV1::Testing::FakeClient.new
 
   describe "#call" do
     it "returns the deliveries within the membership organisation perimeter" do
-      client = fake_client.add_case(build_delivery)
+      client = fake_client.add_case(build_v2_delivery)
 
       result = described_class.new(membership, client: client).call(state: :acknowledged)
 
@@ -34,8 +36,21 @@ RSpec.describe Portail::DeliveriesQuery do
       expect(result.counts_by_state.values).to all(eq(0))
     end
 
+    # Le couple identifie l'organisation à lui seul et la gem ne vérifie rien à notre place :
+    # il doit venir du rattachement. Sans cet exemple, une régression qui le prendrait ailleurs
+    # — un paramètre de requête — ouvrirait le périmètre d'une autre structure. Cet exemple
+    # tient aussi la couture de vocabulaire entre notre colonne et l'argument de la gem.
+    it "takes the organisation perimeter from the membership" do
+      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_v2_delivery_list([]))
+
+      described_class.new(membership, client: fake_client).call(state: :transmitted)
+
+      expect(HubApiV1::V2::Delivery).to have_received(:list)
+        .with(hash_including(siret: siret, code_insee: insee_code))
+    end
+
     it "passes the authorised data stream codes as a filter" do
-      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))
+      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_v2_delivery_list([]))
 
       described_class.new(membership, client: fake_client).call(state: :transmitted, data_stream_codes: ["CERTDC"])
 
@@ -44,7 +59,7 @@ RSpec.describe Portail::DeliveriesQuery do
     end
 
     it "applies no filter when the authorised perimeter carries none" do
-      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))
+      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_v2_delivery_list([]))
 
       described_class.new(membership, client: fake_client).call(state: :transmitted, data_stream_codes: nil)
 
@@ -53,7 +68,7 @@ RSpec.describe Portail::DeliveriesQuery do
     end
 
     it "translates the requested page into an offset" do
-      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))
+      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_v2_delivery_list([]))
 
       described_class.new(membership, client: fake_client).call(state: :transmitted, page: 3)
 
@@ -61,25 +76,9 @@ RSpec.describe Portail::DeliveriesQuery do
         .with(hash_including(offset: 50, per_page: 25))
     end
 
-    # La surcouche traverse deux routes que l'API amont n'ouvre pas aux mêmes scopes, et elle
-    # ne connaît aucune de ces valeurs : c'est à nous de les lui passer. Sans cet exemple, un
-    # oubli ne se verrait qu'en 403 contre une vraie API.
-    it "passes both scopes, the overlay knowing neither" do
-      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))
-
-      described_class.new(membership, client: fake_client).call(state: :transmitted)
-
-      expect(HubApiV1::V2::Delivery).to have_received(:list).with(
-        hash_including(
-          referential_scope: Portail::HubAPIScopes.referential,
-          teleservices_scope: Portail::HubAPIScopes.teleservices
-        )
-      )
-    end
-
     # Un paramètre d'URL trafiqué ne doit pas produire de décalage négatif.
     it "clamps a page below 1 to the first page" do
-      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_delivery_list([]))
+      allow(HubApiV1::V2::Delivery).to receive(:list).and_return(build_v2_delivery_list([]))
 
       described_class.new(membership, client: fake_client).call(state: :transmitted, page: 0)
 

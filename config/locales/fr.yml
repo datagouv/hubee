@@ -93,8 +93,6 @@ fr:
           scope: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
         errors:
           unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
-          ambiguous_organization: "Votre SIRET correspond à plusieurs organisations : le périmètre ne peut pas être déterminé. Contactez le support."
-          organization_not_found: Votre structure est introuvable dans le référentiel. Contactez le support.
       show:
         title: Détail d'une démarche — HubEE
         heading: "Démarche %{number}"

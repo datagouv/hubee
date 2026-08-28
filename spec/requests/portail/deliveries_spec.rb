@@ -4,6 +4,7 @@ require "rails_helper"
 
 RSpec.describe "Portail::Deliveries", type: :request do
   let(:siret) { ProConnectTestHelper::TEST_SIRET }
+  let(:code_insee) { ProConnectTestHelper::TEST_INSEE_CODE }
 
   # Administrateur local : son périmètre n'est pas filtré, ce qui isole ce que chaque exemple
   # veut éprouver de la question des habilitations, traitée dans le spec de la policy.
@@ -23,7 +24,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     it "lists the deliveries of the agent organisation" do
       sign_in_local_administrator
-      stub_hub_api_v2_deliveries(siret, deliveries: [build_delivery_summary])
+      stub_hub_api_v2_deliveries(siret: siret, code_insee: code_insee, deliveries: [build_v2_delivery_summary])
 
       get "/demarches"
 
@@ -34,7 +35,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     it "opens on the transmitted state by default" do
       sign_in_local_administrator
-      stub_hub_api_v2_deliveries(siret)
+      stub_hub_api_v2_deliveries(siret: siret, code_insee: code_insee)
 
       get "/demarches"
 
@@ -44,7 +45,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     it "honours the state requested as a parameter" do
       sign_in_local_administrator
-      stub_hub_api_v2_deliveries(siret)
+      stub_hub_api_v2_deliveries(siret: siret, code_insee: code_insee)
 
       get "/demarches", params: {statut: "acknowledged"}
 
@@ -74,22 +75,12 @@ RSpec.describe "Portail::Deliveries", type: :request do
     context "when the upstream API is failing" do
       it "renders the page with an alert rather than a server error" do
         sign_in_local_administrator
-        stub_hub_api_v2_deliveries_error(siret)
+        stub_hub_api_v2_deliveries_error(siret: siret)
 
         get "/demarches"
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
-      end
-
-      it "names the perimeter ambiguity, which calls for a different action" do
-        sign_in_local_administrator
-        stub_hub_api_v2_organization_ambiguous(siret)
-
-        get "/demarches"
-
-        expect(response).to have_http_status(:success)
-        expect(Capybara.string(response.body)).to have_text("plusieurs organisations")
       end
     end
   end

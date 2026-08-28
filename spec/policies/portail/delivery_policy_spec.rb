@@ -40,7 +40,7 @@ RSpec.describe Portail::DeliveryPolicy do
   describe "#show?" do
     it "allows a local administrator on any data stream of their organisation" do
       membership = create(:membership, :local_administrator)
-      delivery = build_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "AEC"))
+      delivery = build_v2_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "AEC"))
 
       expect(described_class.new(membership, delivery).show?).to be(true)
     end
@@ -48,7 +48,7 @@ RSpec.describe Portail::DeliveryPolicy do
     it "allows a member on a data stream they are habilitated to read" do
       membership = create(:membership)
       create(:process_access, membership: membership, process_code: "CERTDC")
-      delivery = build_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC"))
+      delivery = build_v2_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC"))
 
       expect(described_class.new(membership, delivery).show?).to be(true)
     end
@@ -58,14 +58,14 @@ RSpec.describe Portail::DeliveryPolicy do
     it "refuses a member on a data stream outside their habilitations" do
       membership = create(:membership)
       create(:process_access, membership: membership, process_code: "CERTDC")
-      delivery = build_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "AEC"))
+      delivery = build_v2_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "AEC"))
 
       expect(described_class.new(membership, delivery).show?).to be(false)
     end
 
     it "refuses a member without any habilitation" do
       membership = create(:membership)
-      delivery = build_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC"))
+      delivery = build_v2_delivery(data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC"))
 
       expect(described_class.new(membership, delivery).show?).to be(false)
     end

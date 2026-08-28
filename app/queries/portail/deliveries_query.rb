@@ -31,19 +31,20 @@ module Portail
       # ressemblent et signifient l'inverse. Un tableau vide transmis en aval vaudrait
       # « aucun filtre », donc tout le périmètre de l'organisation — on court-circuite
       # avant l'appel plutôt que de le laisser fuir.
-      return empty_result if data_stream_codes == []
+      return HubApiV1::V2::DeliveryList.empty(per_page: PER_PAGE) if data_stream_codes == []
 
       options = {
-        siret: @membership.organization_link.siret,
+        # Le couple identifie l'organisation à lui seul : la gem ne consulte plus le
+        # référentiel et ne vérifie rien : elle liste ce périmètre-là. Il vient donc du
+        # rattachement de l'agent authentifié, jamais d'un paramètre de requête.
+        #
+        # `code_insee` côté gem, `insee_code` côté colonne : même donnée, deux graphies.
+        siret: link.siret,
+        code_insee: link.insee_code,
         state: state,
         data_stream_codes: data_stream_codes || [],
         offset: offset_for(page),
-        per_page: PER_PAGE,
-        # Deux scopes parce que deux routes : la surcouche résout d'abord le périmètre auprès
-        # du référentiel, puis liste les téléservices, et l'API amont ne les ouvre pas aux
-        # mêmes. Les valeurs sont les nôtres — la gem ne fait que les transmettre.
-        referential_scope: HubAPIScopes.referential,
-        teleservices_scope: HubAPIScopes.teleservices
+        per_page: PER_PAGE
       }
       # `client:` n'est transmis que s'il a été injecté. Le passer inconditionnellement
       # obligerait à résoudre `HubApiV1.client` ici, dans l'expression d'argument — donc
@@ -56,18 +57,10 @@ module Portail
 
     private
 
+    def link = @membership.organization_link
+
     # `to_i` sur un paramètre d'URL absent ou trafiqué donne 0 ; le plancher à 1 évite un
     # décalage négatif, que l'API amont rejetterait en erreur plutôt qu'en première page.
     def offset_for(page) = ([page.to_i, 1].max - 1) * PER_PAGE
-
-    def empty_result
-      HubApiV1::V2::DeliveryList.new(
-        deliveries: [],
-        pagination: HubApiV1::PaginatedResult.new(
-          records: [], total: 0, offset: 0, per_page: PER_PAGE
-        ).metadata,
-        counts_by_state: HubApiV1::V2::Mapping::ORDERED_STATES.to_h { |state| [state, 0] }
-      )
-    end
   end
 end
