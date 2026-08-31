@@ -1,6 +1,16 @@
 # Seeds pour développement
 # Usage : bin/rails db:seed
 
+# Les semis créent des comptes fonctionnels, et depuis qu'ils accordent des habilitations, un
+# agent semé peut lire des démarches. Seul le nettoyage était gardé par environnement ; la
+# création, elle, s'exécutait partout — y compris en production, sur un simple `db:seed`.
+#
+# `local?` et non `development?` : la CI valide ce fichier en environnement test.
+unless Rails.env.local?
+  puts "⏭️  Semis ignorés hors développement et test (#{Rails.env})"
+  return
+end
+
 puts "🌱 Seeding database..."
 
 # Nettoyer les données existantes (développement uniquement)
