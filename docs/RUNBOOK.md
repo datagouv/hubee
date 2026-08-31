@@ -40,3 +40,13 @@ Automatique : un job récurrent quotidien supprime les tokens expirés ou révoq
 
     curl -s -X POST https://<hôte>/api/oauth/token -d "grant_type=client_credentials" -d "client_id=<uid>" -d "client_secret=<secret>"
     curl -s https://<hôte>/api/ping -H "Authorization: Bearer <access_token>"
+
+## Limites de débit
+
+Deux limites, par minute glissante :
+
+- `/api/oauth/token` : 10 requêtes/minute (`API::TokensController::RATE_LIMIT_PER_MINUTE`), par IP.
+- Le reste de l'API : 300 requêtes/minute (`API::BaseController::RATE_LIMIT_PER_MINUTE`), par jeton (ou IP si absent).
+
+Un `429` est réessayable après une minute : le client ne doit jamais l'avaler
+en silence, mais le réémettre après ce délai.

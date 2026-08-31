@@ -2,6 +2,15 @@ module API
   class BaseController < ActionController::API
     include Pagy::Method
 
+    # Généreuse à dessein : la volumétrie légitime ne l'approche jamais, elle ne borne qu'un
+    # client emballé ou un jeton volé.
+    RATE_LIMIT_PER_MINUTE = 300
+
+    # Hashé : la clé part en clair dans solid_cache, un jeton brut y ruinerait hash_token_secrets.
+    rate_limit to: RATE_LIMIT_PER_MINUTE, within: 1.minute,
+      by: -> { Digest::SHA256.hexdigest(request.authorization.presence || request.remote_ip) },
+      with: -> { render json: {error: "rate_limited"}, status: :too_many_requests }
+
     before_action :doorkeeper_authorize!
 
     rescue_from ActiveRecord::RecordNotFound, with: :not_found

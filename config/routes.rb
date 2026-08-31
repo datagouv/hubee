@@ -43,8 +43,10 @@ Rails.application.routes.draw do
   # API V2 — authentification des systèmes clients (client_credentials). Route
   # dessinée à la main : seule la délivrance de token est exposée, pas le reste
   # de la surface use_doorkeeper (revoke, introspect, token/info, écrans).
+  # Contrôleur maison plutôt que doorkeeper/tokens : le frein de débit vit dans
+  # cette sous-classe à nous.
   scope "api/oauth", as: "oauth" do
-    resource :token, path: "token", only: [:create], controller: "doorkeeper/tokens"
+    resource :token, path: "token", only: [:create], controller: "api/tokens"
   end
 
   namespace :api do
