@@ -80,25 +80,27 @@ fr:
         label: Pagination des démarches
         previous: Page précédente
         next: Page suivante
-        position: "Page %{current} sur %{total}"
+        page: "Page %{number}"
+      # Partagés par la liste et le détail : ce sont des noms de champs, pas des en-têtes de
+      # colonnes propres au tableau.
+      fields:
+        number: Numéro
+        data_stream: Flux
+        state: État
+        transmitted_at: Transmise le
+        updated_at: Mise à jour le
+        applicant: Demandeur
       index:
         title: Mes démarches — HubEE
         heading: Les démarches de ma structure
         caption: "Démarches à l'état « %{state} »"
-        columns:
-          number: Numéro
-          data_stream: Flux
-          state: État
-          transmitted_at: Transmise le
-          updated_at: Mise à jour le
         empty:
           state: Aucune démarche dans cet état pour votre structure.
           scope: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
       show:
-        title: Détail d'une démarche — HubEE
+        title: "Démarche %{number} — HubEE"
         heading: "Démarche %{number}"
         back: Retour à la liste
-        applicant: Demandeur
         not_found: Cette démarche est introuvable ou hors de votre périmètre.
     sessions:
       proconnect_button:

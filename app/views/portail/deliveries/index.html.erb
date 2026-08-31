@@ -9,30 +9,38 @@
 <% elsif @result.deliveries.empty? %>
   <p class="fr-text--lead"><%= t(".empty.state") %></p>
 <% else %>
+  <%# Markup DSFR courant : .fr-table > __wrapper > __container > __content > table. C'est cet
+      emboîtement qui porte le défilement horizontal sur petit écran. %>
   <div class="fr-table fr-table--bordered">
-    <table>
-      <caption><%= t(".caption", state: t("portail.deliveries.states.#{@state}")) %></caption>
-      <thead>
-        <tr>
-          <th scope="col"><%= t(".columns.number") %></th>
-          <th scope="col"><%= t(".columns.data_stream") %></th>
-          <th scope="col"><%= t(".columns.state") %></th>
-          <th scope="col"><%= t(".columns.transmitted_at") %></th>
-          <th scope="col"><%= t(".columns.updated_at") %></th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @result.deliveries.each do |delivery| %>
-          <tr>
-            <td><%= link_to delivery.number, demarche_path(delivery.id) %></td>
-            <td><%= delivery.data_stream.code %></td>
-            <td><%= delivery_state(delivery) %></td>
-            <td><%= delivery_transmitted_at(delivery) %></td>
-            <td><%= delivery_updated_at(delivery) %></td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+    <div class="fr-table__wrapper">
+      <div class="fr-table__container">
+        <div class="fr-table__content">
+          <table>
+            <caption><%= t(".caption", state: t("portail.deliveries.states.#{@state}", default: @state)) %></caption>
+            <thead>
+              <tr>
+                <th scope="col"><%= t("portail.deliveries.fields.number") %></th>
+                <th scope="col"><%= t("portail.deliveries.fields.data_stream") %></th>
+                <th scope="col"><%= t("portail.deliveries.fields.state") %></th>
+                <th scope="col"><%= t("portail.deliveries.fields.transmitted_at") %></th>
+                <th scope="col"><%= t("portail.deliveries.fields.updated_at") %></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @result.deliveries.each do |delivery| %>
+                <tr>
+                  <td><%= link_to delivery.number, demarche_path(delivery.id) %></td>
+                  <td><%= delivery.data_stream.code %></td>
+                  <td><%= delivery_state(delivery) %></td>
+                  <td><%= delivery_transmitted_at(delivery) %></td>
+                  <td><%= delivery_updated_at(delivery) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <%= render "pagination", pagination: @result.pagination, state: @state %>

@@ -32,6 +32,44 @@ module Portail
     # dire qu'elle manque.
     def delivery_applicant(delivery) = delivery.applicant&.full_name.presence || MISSING
 
+    # Fenêtre de pagination : les deux extrémités, la page courante et ses voisines immédiates,
+    # une ellipse pour le reste. Rendre toutes les pages ferait un pied de liste plus long que
+    # le tableau dès quelques centaines de démarches.
+    PAGINATION_NEIGHBOURS = 1
+
+    def delivery_pagination_pages(pagination)
+      total = pagination.total_pages
+      current = pagination.current_page
+      shown = [1, total, *(current - PAGINATION_NEIGHBOURS..current + PAGINATION_NEIGHBOURS)]
+        .select { |page| page.between?(1, total) }.uniq.sort
+
+      shown.each_with_object([]) do |page, list|
+        list << :gap if list.last.is_a?(Integer) && page > list.last + 1
+        list << page
+      end
+    end
+
+    # DSFR désactive un contrôle de pagination par l'ABSENCE de `href` — la règle est
+    # `a.fr-pagination__link:not([href])`, pas une classe. Le lien reste donc rendu, annoncé et à
+    # sa place : un contrôle qui disparaît entre deux pages déplace la navigation sous
+    # l'utilisateur, là où un contrôle désactivé reste prévisible. `aria-disabled` double la
+    # règle CSS pour les technologies d'assistance.
+    def delivery_pagination_step(label, modifier, href: nil)
+      classes = "fr-pagination__link fr-pagination__link--#{modifier} fr-pagination__link--lg-label"
+      return link_to(label, href, class: classes) if href
+
+      tag.a(label, class: classes, "aria-disabled": true, role: "link")
+    end
+
+    # La page courante : `aria-current="page"` et pas de `href`. DSFR ne met en évidence et ne
+    # coupe le pointeur que sur cette combinaison précise.
+    def delivery_pagination_page(number, href: nil)
+      title = t("portail.deliveries.pagination.page", number: number)
+      return link_to(number, href, class: "fr-pagination__link", title: title) if href
+
+      tag.a(number, class: "fr-pagination__link", "aria-current": "page", title: title)
+    end
+
     private
 
     def delivery_time(value) = value ? l(value, format: :short) : MISSING

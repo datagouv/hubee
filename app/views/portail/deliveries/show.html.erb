@@ -1,22 +1,22 @@
-<% content_for :title, t(".title") %>
+<% content_for :title, t(".title", number: @delivery.number) %>
 
 <h1><%= t(".heading", number: @delivery.number) %></h1>
 
 <dl class="fr-mb-4w">
-  <dt><%= t("portail.deliveries.index.columns.state") %></dt>
+  <dt><%= t("portail.deliveries.fields.state") %></dt>
   <dd><%= delivery_state(@delivery) %></dd>
 
-  <dt><%= t("portail.deliveries.index.columns.data_stream") %></dt>
+  <dt><%= t("portail.deliveries.fields.data_stream") %></dt>
   <dd><%= @delivery.data_stream.code %></dd>
 
-  <dt><%= t("portail.deliveries.index.columns.transmitted_at") %></dt>
+  <dt><%= t("portail.deliveries.fields.transmitted_at") %></dt>
   <dd><%= delivery_transmitted_at(@delivery) %></dd>
 
-  <dt><%= t("portail.deliveries.index.columns.updated_at") %></dt>
+  <dt><%= t("portail.deliveries.fields.updated_at") %></dt>
   <dd><%= delivery_updated_at(@delivery) %></dd>
 
   <%# Le demandeur est absent de la liste servie en amont, mais présent au détail. %>
-  <dt><%= t(".applicant") %></dt>
+  <dt><%= t("portail.deliveries.fields.applicant") %></dt>
   <dd><%= delivery_applicant(@delivery) %></dd>
 </dl>
 

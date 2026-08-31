@@ -1,25 +1,26 @@
+<%# locals: (pagination:, state:) %>
 <% if pagination.total_pages > 1 %>
-  <nav role="navigation" class="fr-pagination fr-mt-4w" aria-label="<%= t("portail.deliveries.pagination.label") %>">
+  <nav class="fr-pagination fr-mt-4w" role="navigation" aria-label="<%= t("portail.deliveries.pagination.label") %>">
     <ul class="fr-pagination__list">
       <li>
-        <% if pagination.current_page > 1 %>
-          <%= link_to t("portail.deliveries.pagination.previous"),
-                demarches_path(statut: state, page: pagination.current_page - 1),
-                class: "fr-pagination__link fr-pagination__link--prev" %>
-        <% end %>
+        <%= delivery_pagination_step t("portail.deliveries.pagination.previous"), "prev",
+              href: (demarches_path(statut: state, page: pagination.current_page - 1) if pagination.current_page > 1) %>
       </li>
+      <% delivery_pagination_pages(pagination).each do |page| %>
+        <li>
+          <% if page == :gap %>
+            <%# Pas de classe DSFR ici : l'ellipse n'est pas un lien, et emprunter
+                fr-pagination__link pour un élément inerte sortirait du système. %>
+            <span aria-hidden="true">…</span>
+          <% else %>
+            <%= delivery_pagination_page page,
+                  href: (demarches_path(statut: state, page: page) unless page == pagination.current_page) %>
+          <% end %>
+        </li>
+      <% end %>
       <li>
-        <span class="fr-pagination__link">
-          <%= t("portail.deliveries.pagination.position",
-                current: pagination.current_page, total: pagination.total_pages) %>
-        </span>
-      </li>
-      <li>
-        <% if pagination.current_page < pagination.total_pages %>
-          <%= link_to t("portail.deliveries.pagination.next"),
-                demarches_path(statut: state, page: pagination.current_page + 1),
-                class: "fr-pagination__link fr-pagination__link--next" %>
-        <% end %>
+        <%= delivery_pagination_step t("portail.deliveries.pagination.next"), "next",
+              href: (demarches_path(statut: state, page: pagination.current_page + 1) if pagination.current_page < pagination.total_pages) %>
       </li>
     </ul>
   </nav>
