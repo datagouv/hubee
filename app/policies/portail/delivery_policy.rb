@@ -12,6 +12,39 @@ module Portail
   # hors habilitation : l'API amont ne borne que sur l'organisation et fait confiance à
   # l'appelant pour le reste — la liste ne la montrerait pas, l'URL directe si.
   class DeliveryPolicy
+    # Le périmètre de lecture, sous une forme qui ne peut pas s'inverser par accident.
+    #
+    # Les trois situations se disaient auparavant avec `nil`, `[]` et une liste de codes —
+    # deux littéraux voisins dont l'un signifie « aucun filtre » et l'autre « aucun accès ».
+    # Transmis tel quel à l'amont, le tableau vide vaut « aucun filtre », soit l'inverse
+    # exact : le client V1 retire un critère vide de la requête et sert alors TOUTES les
+    # démarches de l'organisation. La seule chose qui séparait ces deux cas était une ligne
+    # de garde, recopiée à deux endroits. Ici, l'appelant interroge des prédicats.
+    class Perimeter
+      # Aucune restriction de flux : rien à filtrer, tout le périmètre de l'organisation.
+      def self.unrestricted = new(nil)
+
+      # Aucun flux habilité. À ne jamais confondre avec `unrestricted` : ce périmètre-ci ne
+      # doit produire aucun appel, et surtout pas un appel sans filtre.
+      def self.none = new([])
+
+      def self.limited_to(codes) = new(codes)
+
+      def initialize(codes)
+        @codes = codes
+      end
+
+      def unrestricted? = @codes.nil?
+
+      def none? = @codes == []
+
+      def covers?(code) = unrestricted? || @codes.include?(code)
+
+      # Ce que l'amont attend : une liste, la liste vide valant « aucun filtre ». N'a donc de
+      # sens que sur un périmètre qui n'est pas `none?` — l'appelant court-circuite avant.
+      def filter = @codes || []
+    end
+
     attr_reader :membership, :delivery
 
     def initialize(membership, delivery)
@@ -19,12 +52,7 @@ module Portail
       @delivery = delivery
     end
 
-    def show?
-      codes = Scope.new(membership, nil).resolve
-      return true if codes.nil?
-
-      codes.include?(delivery.data_stream_code)
-    end
+    def show? = Scope.new(membership).resolve.covers?(delivery.data_stream_code)
 
     class Scope
       attr_reader :membership
@@ -35,16 +63,15 @@ module Portail
         @membership = membership
       end
 
-      # Trois retours, et la distinction entre les deux derniers est l'enjeu de cette
-      # classe : nil vaut « aucun filtre », un tableau de codes borne, et un tableau vide
-      # signifie « aucun accès ». Transmis tel quel à l'API, ce tableau vide vaudrait
-      # « aucun filtre », soit l'inverse exact — c'est à l'appelant de le distinguer.
+      # Une liste d'habilitations renseignée borne tout le monde, administrateur local
+      # compris : le rôle ne tranche que le sens d'une liste VIDE. Pour un administrateur
+      # local elle vaut « aucune restriction » — il administre l'organisation entière —, pour
+      # un membre elle vaut « aucune démarche ». C'est la règle du portail V1.
       def resolve
-        # L'administrateur local administre l'organisation entière : le filtrer le
-        # priverait de sa fonction.
-        return nil if membership.local_administrator?
+        codes = membership.process_accesses.pluck(:process_code)
+        return Perimeter.limited_to(codes) if codes.any?
 
-        membership.process_accesses.pluck(:process_code)
+        membership.local_administrator? ? Perimeter.unrestricted : Perimeter.none
       end
     end
   end

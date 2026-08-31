@@ -4,7 +4,7 @@
 
 <% if @result.nil? %>
   <%# L'alerte est rendue par portail/shared/_flash. %>
-<% elsif @no_habilitation %>
+<% elsif @perimeter.none? %>
   <p class="fr-text--lead"><%= t(".empty.scope") %></p>
 <% elsif @result.deliveries.empty? %>
   <p class="fr-text--lead"><%= t(".empty.state") %></p>

@@ -4,25 +4,39 @@ require "rails_helper"
 
 RSpec.describe Portail::DeliveryPolicy do
   describe "Scope#resolve" do
-    it "returns nil for a local administrator, who sees the whole perimeter" do
+    # Le rôle ne tranche que le sens d'une liste VIDE : pour un administrateur local elle vaut
+    # « aucune restriction », pour un membre « aucune démarche ». C'est la règle du portail V1.
+    it "leaves a local administrator without any habilitation unrestricted" do
+      membership = create(:membership, :local_administrator)
+
+      expect(described_class::Scope.new(membership).resolve).to be_unrestricted
+    end
+
+    # Le cas qui distingue cette règle de « l'administrateur voit tout » : une liste renseignée
+    # borne tout le monde. Sans cet exemple, un administrateur habilité sur un seul flux lirait
+    # tous les autres.
+    it "bounds a local administrator to the codes they are habilitated to" do
       membership = create(:membership, :local_administrator)
       create(:process_access, membership: membership, process_code: "CERTDC")
 
-      expect(described_class::Scope.new(membership).resolve).to be_nil
+      perimeter = described_class::Scope.new(membership).resolve
+
+      expect(perimeter).not_to be_unrestricted
+      expect(perimeter.filter).to contain_exactly("CERTDC")
     end
 
-    it "returns the habilitated codes for a member" do
+    it "bounds a member to the codes they are habilitated to" do
       membership = create(:membership)
       create(:process_access, membership: membership, process_code: "CERTDC")
       create(:process_access, membership: membership, process_code: "AEC")
 
-      expect(described_class::Scope.new(membership).resolve).to contain_exactly("CERTDC", "AEC")
+      expect(described_class::Scope.new(membership).resolve.filter).to contain_exactly("CERTDC", "AEC")
     end
 
-    it "returns an empty array for a member without any habilitation" do
+    it "leaves a member without any habilitation with no access at all" do
       membership = create(:membership)
 
-      expect(described_class::Scope.new(membership).resolve).to eq([])
+      expect(described_class::Scope.new(membership).resolve).to be_none
     end
 
     # Le cas qui fait la valeur de cette classe : deux agents de la même organisation n'ont
@@ -33,16 +47,40 @@ RSpec.describe Portail::DeliveryPolicy do
       autre = create(:membership, organization_link: link)
       create(:process_access, membership: autre, process_code: "AEC")
 
-      expect(described_class::Scope.new(membership).resolve).to eq([])
+      expect(described_class::Scope.new(membership).resolve).to be_none
+    end
+  end
+
+  describe "Perimeter" do
+    # « Aucun filtre » et « aucun accès » se disaient auparavant avec deux littéraux voisins,
+    # `nil` et `[]`, de sens exactement inverse. Le type les sépare : c'est tout son objet.
+    it "never confuses no restriction with no access" do
+      expect(described_class::Perimeter.unrestricted).not_to be_none
+      expect(described_class::Perimeter.none).not_to be_unrestricted
+    end
+
+    # Ce que l'amont attend : une liste, la liste vide valant « aucun filtre ». C'est bien
+    # pour cela qu'un périmètre `none?` ne doit jamais être transmis en aval.
+    it "hands the upstream an empty filter when nothing restricts the reading" do
+      expect(described_class::Perimeter.unrestricted.filter).to eq([])
     end
   end
 
   describe "#show?" do
-    it "allows a local administrator on any data stream of their organisation" do
+    it "allows a local administrator without habilitation on any data stream" do
       membership = create(:membership, :local_administrator)
       delivery = build(:portail_delivery, data_stream_code: "AEC")
 
       expect(described_class.new(membership, delivery).show?).to be(true)
+    end
+
+    # Même règle qu'à la liste : une habilitation nommée borne aussi l'administrateur.
+    it "refuses a local administrator on a data stream outside their habilitations" do
+      membership = create(:membership, :local_administrator)
+      create(:process_access, membership: membership, process_code: "CERTDC")
+      delivery = build(:portail_delivery, data_stream_code: "AEC")
+
+      expect(described_class.new(membership, delivery).show?).to be(false)
     end
 
     it "allows a member on a data stream they are habilitated to read" do

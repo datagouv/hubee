@@ -9,13 +9,13 @@ module Portail
       # rend la décision d'autorisation visible, et le seul endroit où un verify_policy_scoped
       # pourra l'exiger un jour. `policy_scope_class:` est explicite — la démarche n'est pas un
       # modèle ActiveRecord, Pundit ne saurait pas déduire la policy.
-      codes = policy_scope(Delivery, policy_scope_class: DeliveryPolicy::Scope)
+      #
       # Retenu pour la vue : « aucun flux habilité » et « aucune démarche dans cet état » sont
       # deux situations qui appellent des actions différentes, et le tableau vide est le même.
-      @no_habilitation = codes == []
+      @perimeter = policy_scope(Delivery, policy_scope_class: DeliveryPolicy::Scope)
 
       @result = DeliveriesQuery.new(current_membership)
-        .call(state: @state, page: params.fetch(:page, 1), data_stream_codes: codes)
+        .call(state: @state, perimeter: @perimeter, page: params.fetch(:page, 1))
     rescue HubAPI::InvalidRequest => e
       render_refusal(e, t(".errors.invalid_request"))
     rescue HubAPI::Error => e

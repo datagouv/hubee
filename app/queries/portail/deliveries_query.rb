@@ -10,7 +10,9 @@ module Portail
     PER_PAGE = 25
 
     # L'arrivée dans le périmètre de l'agent : ce qu'il n'a pas encore pris en charge.
-    # Ouvrir sur un état terminal ferait d'une page d'accueil une archive.
+    # Ouvrir sur un état terminal ferait d'une page d'accueil une archive. Appliqué par le
+    # contrôleur, qui a besoin de l'état résolu pour la vue — et par lui seul, pour que la
+    # règle n'ait pas deux applications qui puissent diverger.
     DEFAULT_STATE = "transmitted"
 
     # `client:` n'existe que pour l'injection en test — sur le chemin nominal, la gem gère
@@ -20,14 +22,14 @@ module Portail
       @client = client
     end
 
-    # `data_stream_codes` vient de la policy : nil pour aucun filtre, une liste de codes
-    # pour borner, un tableau vide pour aucun accès.
-    def call(state: DEFAULT_STATE, page: 1, data_stream_codes: nil)
-      # Comparaison à [] plutôt qu'un `empty?` : nil et [] sont les deux valeurs qui se
-      # ressemblent et signifient l'inverse. Un tableau vide transmis en aval vaudrait
-      # « aucun filtre », donc tout le périmètre de l'organisation — on court-circuite
-      # avant l'appel plutôt que de le laisser fuir.
-      return HubAPI::Deliveries.empty_list(per_page: PER_PAGE) if data_stream_codes == []
+    # `state:` et `perimeter:` sont requis, sans valeur par défaut : le défaut d'un périmètre
+    # serait forcément le plus large, et un appelant qui l'oublierait obtiendrait toute
+    # l'organisation sans erreur ni trace. Un objet qui transporte une décision
+    # d'autorisation ne doit rien accorder à qui ne dit rien.
+    def call(state:, perimeter:, page: 1)
+      # Un périmètre vide ne doit exiger ni appel, ni credentials — et surtout pas partir en
+      # aval, où une liste de codes vide vaut « aucun filtre », donc tout le périmètre.
+      return HubAPI::Deliveries.empty_list(per_page: PER_PAGE) if perimeter.none?
 
       HubAPI::Deliveries.list(
         # Le couple identifie l'organisation à lui seul et l'amont ne vérifie rien à notre
@@ -36,7 +38,7 @@ module Portail
         siret: link.siret,
         insee_code: link.insee_code,
         state: state,
-        data_stream_codes: data_stream_codes || [],
+        data_stream_codes: perimeter.filter,
         page: page,
         per_page: PER_PAGE,
         client: @client
