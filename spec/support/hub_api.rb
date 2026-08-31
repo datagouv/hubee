@@ -17,14 +17,4 @@ ENV["HUB_API_TELESERVICES_SCOPE"] ||= "test-teleservices-scope"
 RSpec.configure do |config|
   config.include HubApiV1::Testing::Stubs
   config.include HubApiV1::Testing::Factories
-
-  # Depuis que la racine renvoie l'agent connecté sur ses démarches, toute spec de requête qui
-  # suit une redirection après connexion traverse la liste. Ce défaut la neutralise pour celles
-  # qui ne s'y intéressent pas ; une spec qui l'éprouve arme son propre expect, qui prend le pas.
-  #
-  # `allow` et non `expect` : ce décor est posé globalement, et toutes les specs de requête
-  # n'atteignent pas la liste — une redirection de visiteur déconnecté, par exemple.
-  config.before(type: :request) do
-    allow(Portail::HubAPI::Deliveries).to receive(:list).and_return(build(:portail_delivery_list))
-  end
 end

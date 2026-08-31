@@ -65,6 +65,9 @@ FactoryBot.define do
     pagination { build(:portail_pagination) }
     # Emprunté à la page vide plutôt que recopié : les états et leur ordre n'ont qu'une seule
     # source, et une liste de test ne doit pas pouvoir en inventer une seconde.
-    counts_by_state { Portail::HubAPI::Deliveries.empty_list(per_page: 25).counts_by_state }
+    counts_by_state {
+      Portail::HubAPI::Deliveries.empty_list(per_page: Portail::DeliveriesQuery::PER_PAGE)
+        .counts_by_state
+    }
   end
 end

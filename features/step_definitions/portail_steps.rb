@@ -88,3 +88,53 @@ Alors("la page porte le socle DSFR complet") do
   # Hotwire câblé (importmap rendu dans la mise en page)
   expect(page).to have_css("script[type='importmap']", visible: :all)
 end
+
+# --- Démarches ------------------------------------------------------------------------------
+#
+# L'API amont est jouée par le client bouchonné de la gem, posé par features/support/world.rb :
+# aucune de nos classes n'est stubbée, c'est bien toute la chaîne — routes, policy, query object,
+# couche de traduction, gabarits — qui est traversée dans un vrai navigateur.
+
+Étantdonné("il est habilité sur le flux {string}") do |code|
+  create(:process_access, membership: Membership.find_by!(agent: @agent), process_code: code)
+end
+
+Étantdonné("l'API amont sert une démarche pour son organisation") do
+  HubApiV1.client.add_case(build_v2_delivery(state: :transmitted, recipient: e2e_recipient))
+end
+
+Étantdonné("l'API amont sert aussi une démarche sur un flux non habilité") do
+  @unauthorised_id = "0a11c2f4-0000-4000-8000-000000000042"
+  HubApiV1.client.add_case(
+    build_v2_delivery(
+      id: @unauthorised_id, number: "DGS-AEC-0000000000002-01", state: :transmitted,
+      data_stream: HubApiV1::V2::DataStream.new(code: "AEC"), recipient: e2e_recipient
+    )
+  )
+end
+
+Quand("il ouvre la démarche {string}") do |number|
+  click_link number
+end
+
+Quand("il ouvre directement cette démarche") do
+  visit "/demarches/#{@unauthorised_id}"
+end
+
+Alors("il voit la démarche {string} dans la liste") do |number|
+  expect(page).to have_css("table caption", text: "Transmise")
+  expect(page).to have_link(number)
+end
+
+Alors("il voit le détail de la démarche, demandeur compris") do
+  expect(page).to have_css("h1", text: "Démarche DGS-CERTDC-0000000000001-01")
+  expect(page).to have_text("CERTDC")
+  # Le demandeur est absent de la liste servie en amont, présent au détail : c'est ce qui
+  # distingue les deux écrans, et donc ce que ce scénario doit constater.
+  expect(page).to have_text("George DUBOIS")
+end
+
+Alors("il est renvoyé à la liste sans que le dossier lui soit montré") do
+  expect(page).to have_text("introuvable ou hors de votre périmètre")
+  expect(page).to have_no_text("DGS-AEC-0000000000002-01")
+end

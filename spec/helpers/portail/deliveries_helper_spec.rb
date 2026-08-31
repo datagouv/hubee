@@ -46,6 +46,30 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     end
   end
 
+  describe "#delivery_pagination_pages" do
+    it "lists every page while they all fit" do
+      pagination = build(:portail_pagination, current_page: 2, total_pages: 4)
+
+      expect(helper.delivery_pagination_pages(pagination)).to eq([1, 2, 3, 4])
+    end
+
+    # Une liste de plusieurs centaines de pages ferait un pied plus long que le tableau : on
+    # garde les extrémités, la page courante et ses voisines, et on marque les trous.
+    it "keeps the ends and the current neighbourhood, and marks the gaps" do
+      pagination = build(:portail_pagination, current_page: 20, total_pages: 40)
+
+      expect(helper.delivery_pagination_pages(pagination)).to eq([1, :gap, 19, 20, 21, :gap, 40])
+    end
+
+    # Aux extrémités, il n'y a qu'un seul trou : une ellipse de part et d'autre suggérerait des
+    # pages qui n'existent pas.
+    it "opens no gap where the neighbourhood already touches an end" do
+      pagination = build(:portail_pagination, current_page: 2, total_pages: 40)
+
+      expect(helper.delivery_pagination_pages(pagination)).to eq([1, 2, 3, :gap, 40])
+    end
+  end
+
   # La forme liste et la forme détail portent les mêmes champs communs : une seule fonction
   # sert les deux, donc il n'y a plus rien qui puisse diverger. Cet exemple le constate.
   it "serves the list form exactly like the detail form" do

@@ -21,3 +21,11 @@ end
 After do
   HubApiV1.reset_client!
 end
+
+# L'organisation de l'agent E2E, dans le vocabulaire de l'amont : le client bouchonné filtre
+# les dossiers sur ce couple, comme le fait l'API.
+module DeliveryWorld
+  def e2e_recipient = build_v2_recipient(siret: E2E_SIRET, code_insee: "00001")
+end
+
+World(DeliveryWorld)
