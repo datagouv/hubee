@@ -22,8 +22,9 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result).to be_a(Portail::DeliveryList)
       expect(result.deliveries).to all(be_a(Portail::DeliverySummary))
       expect(result.deliveries.first).to have_attributes(
-        number: "DGS-CERTDC-0000000000001-01", state: "acknowledged", data_stream_code: "CERTDC"
+        number: "DGS-CERTDC-0000000000001-01", state: "acknowledged"
       )
+      expect(result.deliveries.first.data_stream.code).to eq("CERTDC")
       expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1)
     end
 
@@ -101,8 +102,9 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
       expect(result).to be_a(Portail::Delivery)
       expect(result).to have_attributes(
-        number: "DGS-CERTDC-0000000000001-01", state: "acknowledged", data_stream_code: "CERTDC"
+        number: "DGS-CERTDC-0000000000001-01", state: "acknowledged"
       )
+      expect(result.data_stream.code).to eq("CERTDC")
       expect(result.applicant).to be_a(Portail::Applicant)
       expect(result.applicant.full_name).to eq("George DUBOIS")
     end

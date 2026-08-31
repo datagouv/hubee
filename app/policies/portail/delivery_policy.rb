@@ -52,7 +52,7 @@ module Portail
       @delivery = delivery
     end
 
-    def show? = Scope.new(membership).resolve.covers?(delivery.data_stream_code)
+    def show? = Scope.new(membership).resolve.covers?(delivery.data_stream.code)
 
     class Scope
       attr_reader :membership

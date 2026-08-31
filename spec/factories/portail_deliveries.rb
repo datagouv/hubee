@@ -12,6 +12,13 @@ FactoryBot.define do
     last_name { "DUBOIS" }
   end
 
+  factory :portail_data_stream, class: "Portail::DataStream" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    code { "CERTDC" }
+  end
+
   factory :portail_pagination, class: "Portail::Pagination" do
     skip_create
     initialize_with { new(**attributes) }
@@ -24,10 +31,13 @@ FactoryBot.define do
     skip_create
     initialize_with { new(**attributes) }
 
+    # Transient : les exemples désignent un flux par son code, la factory construit l'objet.
+    transient { data_stream_code { "CERTDC" } }
+
     id { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
-    data_stream_code { "CERTDC" }
+    data_stream { build(:portail_data_stream, code: data_stream_code) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
   end
@@ -36,10 +46,12 @@ FactoryBot.define do
     skip_create
     initialize_with { new(**attributes) }
 
+    transient { data_stream_code { "CERTDC" } }
+
     id { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
-    data_stream_code { "CERTDC" }
+    data_stream { build(:portail_data_stream, code: data_stream_code) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
     applicant { build(:portail_applicant) }

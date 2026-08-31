@@ -25,10 +25,10 @@
         <% @result.deliveries.each do |delivery| %>
           <tr>
             <td><%= link_to delivery.number, demarche_path(delivery.id) %></td>
-            <td><%= delivery.data_stream_code %></td>
-            <td><%= delivery.display_state %></td>
-            <td><%= delivery.display_transmitted_at %></td>
-            <td><%= delivery.display_updated_at %></td>
+            <td><%= delivery.data_stream.code %></td>
+            <td><%= delivery_state(delivery) %></td>
+            <td><%= delivery_transmitted_at(delivery) %></td>
+            <td><%= delivery_updated_at(delivery) %></td>
           </tr>
         <% end %>
       </tbody>
