@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_133749) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_31_142820) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -80,6 +80,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_133749) do
     t.integer "retention_days", default: 365
     t.datetime "updated_at", null: false
     t.index ["owner_organization_id"], name: "index_data_streams_on_owner_organization_id"
+  end
+
+  create_table "events", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "event_type", null: false
+    t.uuid "eventable_id", null: false
+    t.string "eventable_type", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.index ["created_at"], name: "index_events_on_created_at"
+    t.index ["event_type"], name: "index_events_on_event_type"
+    t.index ["eventable_type", "eventable_id"], name: "index_events_on_eventable_type_and_eventable_id"
   end
 
   create_table "memberships", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|

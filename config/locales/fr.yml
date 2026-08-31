@@ -23,6 +23,12 @@ fr:
         process_code: Code du processus
     errors:
       models:
+        event:
+          attributes:
+            metadata:
+              api_client_missing: doit nommer le système qui écrit la trace
+              subject_missing: doit identifier le sujet de la trace
+              changes_missing: doit détailler ce que la correction a changé
         organization_link:
           attributes:
             siret:
