@@ -45,6 +45,16 @@ module Portail
       )
     end
 
+    # Le détail passe par ici comme la liste, alors qu'il n'a aucune décision à prendre : c'est
+    # ce qui garde UN seul objet qui sait d'où viennent les démarches. Sans cela, la bascule
+    # vers une source ActiveRecord aurait deux interrupteurs, dont un dans un contrôleur.
+    # Accessoirement, le couple qui borne le périmètre cesse d'être résolu à deux endroits.
+    def find(id:)
+      HubAPI::Deliveries.find(
+        id: id, siret: link.siret, insee_code: link.insee_code, client: @client
+      )
+    end
+
     private
 
     def link = @membership.organization_link
