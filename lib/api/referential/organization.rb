@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# La gem n'est pas auto-requise : elle vit dans un groupe Bundler hors `default`,
-# que Bundler.require ne charge pas.
+# Requiert sa propre dépendance (gem hors du groupe `default`) plutôt que de s'en remettre
+# à l'initializer, dont le rôle est le logger — pas de charger la gem pour les autres.
 require "hub_api_v1"
 
 module API
