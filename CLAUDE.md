@@ -6,6 +6,14 @@
 
 Stack : Rails 8.1 · Ruby 4.0 · PostgreSQL 18 · Solid Queue · Active Storage (S3 chiffré)
 
+## Métier — agents du portail V2
+
+Un agent est rattaché à une organisation (*membership*) avec un rôle — **membre** ou **administrateur local** — et des **habilitations par flux** (*process codes*) portées par le rattachement.
+
+**Le cas standard est l'agent membre habilité sur un flux**, puis l'administrateur local habilité. Les autres combinaisons (membre sans habilitation, administrateur sans habilitation) sont des cas secondaires. Conséquence directe pour les specs et les exemples : le décor par défaut est le membre habilité — jamais l'administrateur local, qui masquerait le filtrage par habilitation.
+
+Toute fonctionnalité de lecture des démarches se teste sur la **matrice complète rôle × habilitation**, sur la liste **et** sur le détail — aucune combinaison ne se déduit d'une autre.
+
 ## Gel de l'API V2 — reprise partielle (août 2026)
 
 Le développement de l'API V2 est rouvert **uniquement** pour deux chantiers : le socle d'authentification des systèmes clients (OAuth2 `client_credentials`, `API::BaseController`) et la gestion des utilisateurs nécessaire au portail V2.
