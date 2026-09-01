@@ -5,8 +5,12 @@ module Portail
     # Le garde-fou vit ici et non sur BaseController : `SessionsController#authorize` est une
     # action qui masque la méthode de Pundit, et aucun autre contrôleur du portail ne porte
     # encore de policy. Il remonte le jour où un second en porte une.
-    after_action :verify_policy_scoped, only: :index
-    after_action :verify_authorized, only: :show
+    #
+    # `except:` et non `only:` : une action ajoutée demain est couverte par les deux gardes, et
+    # doit se déclarer collection ou unitaire pour en sortir. Un `only:` la laisserait passer
+    # sans autorisation ni périmètre, en silence.
+    after_action :verify_authorized, except: :index
+    after_action :verify_policy_scoped, except: :show
 
     def index
       @state = requested_state
