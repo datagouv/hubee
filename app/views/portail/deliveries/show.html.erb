@@ -79,7 +79,7 @@
 <section class="fr-p-3w fr-mb-4w fr-border-default--grey">
   <h2 class="fr-h4"><%= t(".deposit_attachments") %></h2>
   <% if @delivery.attachments.any? %>
-    <%= render "attachments", attachments: @delivery.attachments %>
+    <%= render "attachments", attachments: @delivery.attachments, caption: t(".deposit_attachments") %>
   <% else %>
     <p class="fr-mb-0"><%= t(".deposit_attachments_empty") %></p>
   <% end %>
@@ -97,7 +97,10 @@
         <%= delivery_event_time(event) %>
         — <%= event.author.presence || t("portail.deliveries.events.unknown_author") %>
       </p>
-      <%= render "attachments", attachments: event.attachments %>
+      <%# La provenance dans la caption : plusieurs inventaires se suivent dans cette section,
+          un titre identique ne les distinguerait pas pour les technologies d'assistance. %>
+      <%= render "attachments", attachments: event.attachments,
+            caption: "#{t(".added_attachments")} — #{delivery_event_time(event)}" %>
     <% end %>
   <% else %>
     <p class="fr-mb-0"><%= t(".added_attachments_empty") %></p>
