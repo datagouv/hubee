@@ -1,9 +1,8 @@
 # Seeds pour développement
 # Usage : bin/rails db:seed
 
-# Les semis créent des comptes fonctionnels, et depuis qu'ils accordent des habilitations, un
-# agent semé peut lire des démarches. Seul le nettoyage était gardé par environnement ; la
-# création, elle, s'exécutait partout — y compris en production, sur un simple `db:seed`.
+# Les semis créent des comptes fonctionnels habilités, donc capables de lire des démarches :
+# rien de tout cela ne doit pouvoir naître d'un `db:seed` lancé en production.
 #
 # `local?` et non `development?` : la CI valide ce fichier en environnement test.
 unless Rails.env.local?
@@ -383,14 +382,10 @@ portal_agents.each do |email, first_name, last_name, link, role, sensitive|
   ProcessAccess.find_or_create_by!(membership:, process_code: sensitive_code) if sensitive
 end
 
-# Le socle de développement local ne sert de démarches que pour cette organisation et ce
-# flux. Une identité libre de FIA1 permet de saisir le SIRET à la connexion : c'est ce qui
-# rend ce rattachement atteignable en navigateur, sans rien changer au socle. Membre plutôt
+# Le socle de développement local ne sert de démarches que pour cette organisation et ce flux ;
+# sans ce rattachement, l'écran reste vide sans que rien ne l'explique. Membre plutôt
 # qu'administrateur local, pour que le filtrage par habilitation soit réellement traversé.
-# Sans ce rattachement, l'écran reste vide sans que rien ne l'explique.
-# Le code INSEE est obligatoire depuis que le lien porte le couple : sans lui, le semis
-# entier échoue. Valeur alignée sur celle que les factories de la gem associent à ce SIRET,
-# soit ce que le socle sert — c'est elle que la gem transmet en `code_insee`.
+# Le code INSEE est aligné sur celui que les factories de la gem associent à ce SIRET.
 socle_link = OrganizationLink.find_or_create_by!(siret: "22770001000019", insee_code: "77372")
 socle_agent = Agent.find_or_create_by!(email: "socle@test.proconnect.gouv.fr") do |a|
   a.first_name = "Camille"

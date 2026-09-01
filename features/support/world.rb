@@ -1,19 +1,17 @@
 # frozen_string_literal: true
 
 # Bouchons rspec-mocks dans les steps : l'app tourne dans le même process que les
-# scénarios, un stub de classe est donc vu par le serveur Capybara. Ils servent encore à
-# simuler ProConnect ; l'API amont, elle, passe par le client bouchonné de la gem.
+# scénarios, un stub de classe est donc vu par le serveur Capybara. Ils simulent ProConnect ;
+# l'API amont passe par le client bouchonné de la gem.
 require "cucumber/rspec/doubles"
 require "hub_api_v1/testing"
 
 World(FactoryBot::Syntax::Methods)
 World(HubApiV1::Testing::Factories)
 
-# Depuis que la racine renvoie l'agent connecté sur ses démarches, tout scénario qui se
-# connecte traverse la liste, donc l'API amont. Le client bouchonné de la gem la neutralise
-# sans stubber aucune de nos classes : ce qui est éprouvé ici est le parcours en vrai
-# navigateur, pas le contenu de la liste. Reposé à chaque scénario pour qu'aucun cas ajouté
-# par l'un ne fuite vers le suivant.
+# La racine renvoie l'agent connecté sur ses démarches : tout scénario qui se connecte traverse
+# donc l'API amont. Le client bouchonné de la gem la neutralise sans stubber aucune de nos
+# classes. Reposé à chaque scénario pour qu'aucun cas ajouté par l'un ne fuite vers le suivant.
 Before do
   HubApiV1.client = HubApiV1::Testing::FakeClient.new
 end

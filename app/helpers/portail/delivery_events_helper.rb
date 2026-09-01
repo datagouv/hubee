@@ -13,42 +13,32 @@ module Portail
       delivery.events.select { |event| event.attachments.any? }
     end
 
-    # L'historique se lit par mois, du plus RÉCENT au plus ancien. La gem, elle, trie du plus
-    # ancien au plus récent : c'est son contrat, et il ne change pas — l'inversion est une
-    # décision d'affichage, elle vit donc ici. Ce qu'un agent vient chercher en ouvrant un
-    # historique, c'est ce qui s'est passé en dernier.
+    # Du plus RÉCENT au plus ancien, quand la gem trie dans l'autre sens : l'inversion est une
+    # décision d'affichage, elle vit donc ici. `group_by` conserve l'ordre d'arrivée, inverser
+    # les events suffit à faire sortir les mois dans le même ordre.
     #
-    # `group_by` conserve l'ordre d'arrivée : inverser les events suffit à faire sortir les
-    # mois dans le même ordre qu'eux, sans trier les clés séparément.
-    #
-    # Les events sans date restent en QUEUE et ne suivent pas l'inversion : la gem les y range
-    # faute de pouvoir les situer, et les faire remonter en tête au seul motif qu'on renverse
-    # la liste les présenterait comme les plus récents — ce que personne ne sait. Ils forment
-    # un dernier groupe, que le gabarit intitule à part.
+    # Les events sans date restent en QUEUE, hors de l'inversion : les faire remonter en tête
+    # au seul motif qu'on renverse la liste les présenterait comme les plus récents.
     def delivery_events_by_month(delivery)
       dated, undated = delivery.events.partition(&:created_at)
 
       (dated.reverse + undated).group_by { |event| event.created_at&.beginning_of_month }
     end
 
-    # « Janvier 2026 ». Capitalisé ici : le français écrit les mois en minuscule, mais cette
-    # étiquette ouvre un groupe — c'est un titre, pas une date dans une phrase.
+    # Capitalisé : le français écrit les mois en minuscule, mais cette étiquette est un titre
+    # de groupe, pas une date dans une phrase.
     def delivery_event_month(month)
       return t("portail.deliveries.events.undated_month") if month.nil?
 
       l(month, format: :month).capitalize
     end
 
-    # Ce que dit une ligne d'historique, sous forme de phrase et non d'étiquette : « X a
-    # déposé une pièce » se lit d'un trait là où « Pièce déposée » suivi d'un nom oblige à
-    # recomposer qui a fait quoi.
-    #
-    # Le type seul ne suffit pas à choisir la phrase : un téléchargement en masse et un
-    # téléchargement unitaire partagent le même type et ne se distinguent que par leur
+    # Une phrase et non une étiquette : « X a déposé une pièce » se lit d'un trait. Le type
+    # seul ne suffit pas à la choisir — deux téléchargements ne se distinguent que par leur
     # metadata, et un message diffusé n'est pas un commentaire interne.
     #
-    # Clés en `_html` : l'auteur vient de l'amont et doit être échappé, ce que `tag.strong`
-    # fait, là où l'interpolation d'une clé `_html` échappe tout ce qui n'est pas déjà sûr.
+    # Clés en `_html` : l'auteur vient de l'amont, `tag.strong` l'échappe et l'interpolation
+    # d'une clé `_html` échappe tout ce qui n'est pas déjà sûr.
     def delivery_event_sentence(event)
       author = tag.strong(event.author.presence || t("portail.deliveries.events.unknown_author"))
 
@@ -64,8 +54,8 @@ module Portail
         t("portail.deliveries.events.#{event.metadata[:internal] ? "comment_added" : "message_sent"}_html",
           author: author)
       else
-        # Même repli que les états : l'amont peut ajouter un type d'event sans nous prévenir,
-        # et une ligne d'historique datée sans phrase vaut mieux qu'une page qui tombe.
+        # Même repli que les états : une ligne datée sans phrase vaut mieux qu'une page qui
+        # tombe faute d'un type d'event que l'amont a ajouté sans nous prévenir.
         t("portail.deliveries.events.#{event.event_type.tr(".", "_")}_html", author: author,
           default: t("portail.deliveries.events.unknown_html", author: author))
       end
@@ -76,8 +66,8 @@ module Portail
     # — un changement d'état n'a rien promis à personne.
     def delivery_event_broadcast?(event) = event.metadata[:internal] == false
 
-    # « Samedi 10/01 - 16:16 » : le jour de la semaine situe l'événement bien mieux qu'une
-    # date seule quand on relit une instruction étalée sur plusieurs jours.
+    # Le jour de la semaine situe l'événement quand on relit une instruction étalée sur
+    # plusieurs jours.
     def delivery_event_time(event)
       return MISSING if event.created_at.nil?
 

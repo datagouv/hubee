@@ -1,17 +1,11 @@
 # frozen_string_literal: true
 
-# Sans ce logger, les erreurs de lecture des dates renvoyées par l'API — format invalide,
-# champ nul — sont silencieuses.
+# Sans ce logger, les erreurs de lecture des dates renvoyées par l'API sont silencieuses.
 #
-# Le require est explicite et non différé : la gem vit dans un groupe hors `default`, donc
-# Bundler ne la requiert jamais seule, et Zeitwerk n'autocharge pas les constantes de gems.
-# Un `defined?(HubApiV1)` serait faux ici et le logger ne serait jamais posé. Le rescue
-# préserve le démarrage là où le bundle l'exclut — c'est lui, et non l'absence de require,
-# qui tient cette garantie.
-#
-# Le message de l'exception est journalisé : ce rescue attrape aussi bien la gem absente du
-# bundle qu'une de SES dépendances introuvable. Sans lui, une vraie panne de chargement serait
-# rapportée comme une absence volontaire, et le diagnostic partirait dans la mauvaise direction.
+# `require` explicite : la gem vit dans un groupe hors `default`, Bundler ne la requiert jamais
+# seule et Zeitwerk n'autocharge pas les constantes de gems. Le rescue préserve le démarrage là
+# où le bundle l'exclut, et journalise le message : il attrape aussi bien la gem absente qu'une
+# de SES dépendances introuvable, qu'on ne veut pas confondre avec une absence volontaire.
 begin
   require "hub_api_v1"
   HubApiV1.logger = Rails.logger

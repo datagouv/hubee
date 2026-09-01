@@ -3,13 +3,11 @@
 module Portail
   # La couche de traduction avec la gem cliente. Le portail n'appelle jamais la gem
   # directement : il passe par ici, et ne connaît en retour que ses propres modèles et ces
-  # erreurs-ci. Changer de source d'alimentation — l'API V2 native, une autre — se fait en
-  # réécrivant cette couche, sans toucher au reste.
+  # erreurs-ci.
   module HubAPI
     class Error < StandardError; end
 
-    # L'amont n'a pas répondu, ou pas de façon exploitable. Les appelants dégradent : le
-    # portail dépend d'un service externe à chaque affichage.
+    # L'amont n'a pas répondu, ou pas de façon exploitable. Les appelants dégradent.
     class Unavailable < Error; end
 
     # La démarche n'existe pas, ou elle est hors du périmètre d'organisation interrogé. Les

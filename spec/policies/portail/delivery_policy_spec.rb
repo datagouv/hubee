@@ -52,8 +52,8 @@ RSpec.describe Portail::DeliveryPolicy do
   end
 
   describe "Perimeter" do
-    # « Aucun filtre » et « aucun accès » se disaient auparavant avec deux littéraux voisins,
-    # `nil` et `[]`, de sens exactement inverse. Le type les sépare : c'est tout son objet.
+    # « Aucun filtre » et « aucun accès » ne tiennent qu'à deux littéraux voisins, `nil` et
+    # `[]`, de sens exactement inverse. Les séparer est tout l'objet du type.
     it "never confuses no restriction with no access" do
       expect(described_class::Perimeter.unrestricted).not_to be_none
       expect(described_class::Perimeter.none).not_to be_unrestricted
