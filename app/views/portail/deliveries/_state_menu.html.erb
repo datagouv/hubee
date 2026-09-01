@@ -1,0 +1,31 @@
+<%# locals: (counts_by_state:, current_state:) %>
+<%# Un menu latéral et non des onglets : le DSFR écarte explicitement les onglets pour naviguer
+    entre des pages (« préférez un menu latéral »), et chaque état est bien une page — le filtre
+    de statut de l'amont est obligatoire et n'accepte qu'une valeur à la fois. Huit états
+    passeraient de toute façon mal en onglets, où la recommandation est d'en rester sous cinq.
+
+    L'ordre et la complétude des états viennent de `counts_by_state`, jamais d'une liste écrite
+    ici : c'est l'amont qui possède ses états, et un second inventaire finirait par diverger. %>
+<nav class="fr-sidemenu" role="navigation" aria-labelledby="delivery-state-menu-title">
+  <div class="fr-sidemenu__inner">
+    <%# Ce bouton n'apparaît qu'en dessous du point de rupture md, où il replie le menu en
+        accordéon. `aria-controls` doit désigner le conteneur .fr-collapse, que le JS DSFR pilote. %>
+    <button class="fr-sidemenu__btn" aria-controls="delivery-state-menu" aria-expanded="false">
+      <%= t("portail.deliveries.state_menu.title") %>
+    </button>
+
+    <div class="fr-collapse" id="delivery-state-menu">
+      <div class="fr-sidemenu__title" id="delivery-state-menu-title">
+        <%= t("portail.deliveries.state_menu.title") %>
+      </div>
+
+      <ul class="fr-sidemenu__list">
+        <% counts_by_state.each do |state, count| %>
+          <li class="fr-sidemenu__item">
+            <%= delivery_state_menu_link(state, count, current: state == current_state) %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  </div>
+</nav>

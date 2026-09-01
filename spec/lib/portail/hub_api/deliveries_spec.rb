@@ -121,6 +121,81 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result.applicant).to be_nil
     end
 
+    # Les pièces du dépôt. L'état arrive en Symbol de l'amont et doit ressortir en String,
+    # comme l'état de la démarche : le portail ne manipule qu'une graphie, et la conversion
+    # vit dans cette couche seule.
+    it "translates the deposit attachments into portal attachments" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery)
+
+      result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
+
+      expect(result.attachments).to all(be_a(Portail::Attachment))
+      expect(result.attachments.first).to have_attributes(
+        filename: "certificat.pdf", content_type: "application/pdf",
+        byte_size: 1024, kind: "VA_CertificatdeDeces", state: "received"
+      )
+    end
+
+    # Le paquet de données est absent chez certaines démarches : ni demandeur, ni pièces. La
+    # liste vide et non nil — l'écran compte les pièces sans avoir à se demander si le
+    # conteneur existe.
+    it "yields no attachment when the upstream serves no data package" do
+      expect(HubApiV1::V2::Delivery).to receive(:find)
+        .and_return(build_v2_delivery(data_package: nil))
+
+      result = described_class.find(id: "an-id", siret: siret, insee_code: insee_code)
+
+      expect(result.attachments).to eq([])
+    end
+
+    it "translates the events into portal events, their own attachments included" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(events: [
+        build_v2_event(si_comment: "retry #2", attachments: [build_v2_attachment(
+          id: "a2222222-2222-2222-2222-222222222222", filename: "complement.pdf"
+        )])
+      ]))
+
+      result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
+
+      expect(result.events).to all(be_a(Portail::Event))
+      expect(result.events.first).to have_attributes(
+        event_type: "delivery.state_changed", author: "George DUBOIS",
+        content: "Dossier pris en charge", si_comment: "retry #2"
+      )
+      expect(result.events.first.attachments.first)
+        .to have_attributes(filename: "complement.pdf", state: "received")
+    end
+
+    # La metadata porte des états en Symbol côté amont. Ils traversent la même conversion que
+    # partout ailleurs, sinon l'historique irait chercher ses libellés sur une graphie que le
+    # reste du portail n'emploie pas.
+    it "renders the event metadata states in the portal spelling" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(events: [build_v2_event]))
+
+      result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
+
+      expect(result.events.first.metadata)
+        .to eq({from_state: "transmitted", to_state: "acknowledged"})
+    end
+
+    # La metadata n'est pas toujours faite d'états : un booléen doit traverser intact, sans
+    # être transformé en chaîne au passage.
+    it "leaves a non-state metadata value untouched" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(events: [build_v2_event(event_type: :"message.created")]))
+
+      result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
+
+      expect(result.events.first.metadata).to eq({internal: false})
+    end
+
     it "sends the portal vocabulary as the upstream keywords" do
       client = HubApiV1::Testing::FakeClient.new
       expect(HubApiV1::V2::Delivery).to receive(:find).with(

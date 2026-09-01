@@ -1,23 +1,169 @@
 <% content_for :title, t(".title", number: @delivery.number) %>
 
+<%# Le fil d'Ariane porte son propre bouton de repli : sur petit écran le DSFR le réduit à un
+    seul contrôle, et sans ce bouton le fil reste déplié en travers de l'écran. %>
+<nav role="navigation" class="fr-breadcrumb" aria-label="<%= t(".breadcrumb") %>">
+  <button class="fr-breadcrumb__button" aria-expanded="false" aria-controls="delivery-breadcrumb">
+    <%= t(".breadcrumb_open") %>
+  </button>
+  <div class="fr-collapse" id="delivery-breadcrumb">
+    <ol class="fr-breadcrumb__list">
+      <li><%= link_to t(".home"), root_path, class: "fr-breadcrumb__link" %></li>
+      <li><%= link_to t("portail.deliveries.index.heading"), demarches_path, class: "fr-breadcrumb__link" %></li>
+      <%# Sans href : DSFR marque l'étape courante par `aria-current`, et un lien vers la page
+          qu'on lit déjà n'a rien à offrir. %>
+      <li><a class="fr-breadcrumb__link" aria-current="page"><%= @delivery.number %></a></li>
+    </ol>
+  </div>
+</nav>
+
 <h1><%= t(".heading", number: @delivery.number) %></h1>
 
-<dl class="fr-mb-4w">
-  <dt><%= t("portail.deliveries.fields.state") %></dt>
-  <dd><%= delivery_state(@delivery) %></dd>
+<h2 class="fr-h4 fr-mt-4w"><%= t(".summary") %></h2>
+<%# Une fiche, et une fiche HIÉRARCHISÉE, sur deux rangs. Le premier porte ce qu'on vient
+    chercher — l'état, la démarche, la personne ; le second les horodatages, qui situent sans
+    qu'on les cherche. Tout aligner sur un seul rang de cinq revenait à ne rien mettre en avant.
 
-  <dt><%= t("portail.deliveries.fields.data_stream") %></dt>
-  <dd><%= @delivery.data_stream.code %></dd>
+    Les icônes viennent du DSFR et se posent en `::before` par la seule classe, alignement
+    compris : elles ne portent aucun texte, donc rien à masquer aux lecteurs d'écran, et elles
+    prennent la couleur du libellé qu'elles précèdent.
 
-  <dt><%= t("portail.deliveries.fields.transmitted_at") %></dt>
-  <dd><%= delivery_transmitted_at(@delivery) %></dd>
+    Chaque couple est enveloppé dans un div — permis dans un dl depuis HTML 5.2 — pour que la
+    grille ait des cellules à placer. Sans lui, dt et dd deviennent deux cellules indépendantes
+    et le libellé se décroche de sa valeur dès que les hauteurs diffèrent. %>
+<div class="fr-background-alt--grey fr-p-3w fr-mb-4w">
+  <dl class="fr-grid-row fr-grid-row--gutters delivery-summary">
+    <div class="fr-col-12 fr-col-sm-6 fr-col-md-4">
+      <dt class="fr-icon-flag-line fr-icon--sm fr-hint-text fr-mb-1v">
+        <%= t("portail.deliveries.fields.state") %>
+      </dt>
+      <dd><%= delivery_state_badge(@delivery) %></dd>
+    </div>
 
-  <dt><%= t("portail.deliveries.fields.updated_at") %></dt>
-  <dd><%= delivery_updated_at(@delivery) %></dd>
+    <div class="fr-col-12 fr-col-sm-6 fr-col-md-4">
+      <dt class="fr-icon-file-text-line fr-icon--sm fr-hint-text fr-mb-1v">
+        <%= t("portail.deliveries.fields.data_stream") %>
+      </dt>
+      <dd class="fr-text--bold"><%= @delivery.data_stream.code %></dd>
+    </div>
 
-  <%# Le demandeur est absent de la liste servie en amont, mais présent au détail. %>
-  <dt><%= t("portail.deliveries.fields.applicant") %></dt>
-  <dd><%= delivery_applicant(@delivery) %></dd>
-</dl>
+    <%# Le demandeur est absent de la liste servie en amont, mais présent au détail. Il tient le
+        premier rang avec l'état et la démarche : c'est le « qui », il pèse plus qu'un horodatage. %>
+    <div class="fr-col-12 fr-col-sm-6 fr-col-md-4">
+      <dt class="fr-icon-user-line fr-icon--sm fr-hint-text fr-mb-1v">
+        <%= t("portail.deliveries.fields.applicant") %>
+      </dt>
+      <dd class="fr-text--bold"><%= delivery_applicant(@delivery) %></dd>
+    </div>
+
+    <%# Second rang, en demi-largeur : une date écrite en entier ne tient pas dans un quart de
+        bloc, et la tronquer pour la faire entrer irait contre ce qu'on vient de gagner. %>
+    <div class="fr-col-12 fr-col-md-6">
+      <dt class="fr-icon-calendar-line fr-icon--sm fr-hint-text fr-mb-1v">
+        <%= t("portail.deliveries.fields.transmitted_at") %>
+      </dt>
+      <dd class="fr-text-mention--grey"><%= delivery_transmitted_at(@delivery) %></dd>
+    </div>
+
+    <div class="fr-col-12 fr-col-md-6">
+      <dt class="fr-icon-refresh-line fr-icon--sm fr-hint-text fr-mb-1v">
+        <%= t("portail.deliveries.fields.updated_at") %>
+      </dt>
+      <dd class="fr-text-mention--grey"><%= delivery_updated_at(@delivery) %></dd>
+    </div>
+  </dl>
+</div>
+
+<%# Chaque section dans son cadre : sans lui, trois titres de même niveau et leurs tableaux
+    forment une colonne continue où l'œil ne trouve plus où commence l'un et finit l'autre. %>
+<section class="fr-p-3w fr-mb-4w fr-border-default--grey">
+  <h2 class="fr-h4"><%= t(".deposit_attachments") %></h2>
+  <% if @delivery.attachments.any? %>
+    <%= render "attachments", attachments: @delivery.attachments %>
+  <% else %>
+    <p class="fr-mb-0"><%= t(".deposit_attachments_empty") %></p>
+  <% end %>
+</section>
+
+<%# Deux magasins distincts en amont, deux sections ici : une pièce arrivée en cours
+    d'instruction ne dit pas la même chose qu'une pièce déposée d'emblée, et un inventaire
+    fusionné perdrait le quand et le par qui. %>
+<section class="fr-p-3w fr-mb-4w fr-border-default--grey">
+  <h2 class="fr-h4"><%= t(".added_attachments") %></h2>
+  <% events_with_attachments = delivery_events_with_attachments(@delivery) %>
+  <% if events_with_attachments.any? %>
+    <% events_with_attachments.each do |event| %>
+      <p class="fr-text--sm fr-text-mention--grey fr-mb-1w">
+        <%= delivery_event_time(event) %>
+        — <%= event.author.presence || t("portail.deliveries.events.unknown_author") %>
+      </p>
+      <%= render "attachments", attachments: event.attachments %>
+    <% end %>
+  <% else %>
+    <p class="fr-mb-0"><%= t(".added_attachments_empty") %></p>
+  <% end %>
+</section>
+
+<p class="fr-hint-text"><%= t(".attachments_notice") %></p>
+
+<section class="fr-p-3w fr-mb-4w fr-border-default--grey">
+  <h2 class="fr-h4"><%= t(".history") %></h2>
+  <% if @delivery.events.any? %>
+    <%# Une frise groupée par mois. Le mois ouvre le groupe, la date situe l'entrée en petit,
+        et la phrase porte le fait — l'agent lit « qui a fait quoi » d'un trait au lieu de
+        recomposer un libellé, un horodatage et un nom empilés. %>
+    <ol class="delivery-timeline">
+      <% delivery_events_by_month(@delivery).each do |month, events| %>
+        <li>
+          <p class="delivery-timeline__month fr-text--sm fr-mb-2w">
+            <%= delivery_event_month(month) %>
+          </p>
+
+          <ol class="delivery-timeline__entries">
+            <% events.each do |event| %>
+              <li class="delivery-timeline__entry fr-p-2w fr-mb-2w">
+                <p class="fr-text--xs fr-text-mention--grey fr-mb-1v">
+                  <%= delivery_event_time(event) %>
+                </p>
+
+                <p class="fr-mb-0"><%= delivery_event_sentence(event) %></p>
+
+                <% if event.content.present? %>
+                  <p class="fr-mb-0"><%= event.content %></p>
+                <% end %>
+
+                <%# Réservé aux SI par le contrat amont, affiché ici sur décision métier du
+                    2026-09-01 — cf. Portail::Event. C'est la SEULE lecture de ce champ : si la
+                    décision s'inverse, elle se retire d'ici et de nulle part ailleurs. %>
+                <% if event.si_comment.present? %>
+                  <p class="fr-text--sm fr-mb-0">
+                    <strong><%= t(".si_comment") %></strong> — <%= event.si_comment %>
+                  </p>
+                <% end %>
+
+                <% if event.attachments.any? %>
+                  <p class="fr-text--sm fr-mb-0">
+                    <%= t(".event_attachments") %> :
+                    <%= event.attachments.map(&:filename).join(", ") %>
+                  </p>
+                <% end %>
+
+                <%# Ce que l'amont promet à la personne concernée. En note, en bas, en gris :
+                    c'est une conséquence de l'événement, pas l'événement. %>
+                <% if delivery_event_broadcast?(event) %>
+                  <p class="fr-text--xs fr-text-mention--grey fr-mt-1w fr-mb-0">
+                    <em><%= t("portail.deliveries.events.broadcast") %></em>
+                  </p>
+                <% end %>
+              </li>
+            <% end %>
+          </ol>
+        </li>
+      <% end %>
+    </ol>
+  <% else %>
+    <p class="fr-mb-0"><%= t(".history_empty") %></p>
+  <% end %>
+</section>
 
 <%= link_to t(".back"), demarches_path, class: "fr-link fr-icon-arrow-left-line fr-link--icon-left" %>

@@ -54,6 +54,76 @@ RSpec.describe "Portail::Deliveries", type: :request do
       get "/demarches", params: {statut: "acknowledged", page: "2"}
     end
 
+    # Le menu ne connaît aucune liste d'états : il rend ce que l'amont a compté, dans l'ordre
+    # reçu. Un état ajouté en amont apparaîtrait donc sans qu'on touche à un gabarit.
+    it "offers every state the upstream counted, with its total" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
+        build(:portail_delivery_list,
+          counts_by_state: {"transmitted" => 12, "acknowledged" => 3, "done" => 41})
+      )
+
+      get "/demarches"
+
+      menu = Capybara.string(response.body).find("nav.fr-sidemenu")
+      expect(menu).to have_link("Transmise 12", href: "/demarches?statut=transmitted")
+      expect(menu).to have_link("Reçue 3", href: "/demarches?statut=acknowledged")
+      expect(menu).to have_link("Traitée 41", href: "/demarches?statut=done")
+    end
+
+    it "marks the state being shown as the current page in the menu" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:list)
+        .and_return(build(:portail_delivery_list, counts_by_state: {"done" => 41}))
+
+      get "/demarches?statut=done"
+
+      expect(Capybara.string(response.body))
+        .to have_css("nav.fr-sidemenu a[aria-current='page']", text: "Traitée")
+    end
+
+    # Le menu SURVIT à l'état vide : sorti du quadrillage, le message laisserait l'agent
+    # devant une page sans issue, alors que le compteur d'un autre état lui dit où aller.
+    it "keeps the state menu alongside an empty state" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:list)
+        .and_return(build(:portail_delivery_list, deliveries: [],
+          counts_by_state: {"transmitted" => 0, "done" => 41}))
+
+      get "/demarches"
+
+      expect(Capybara.string(response.body)).to have_text("Aucune démarche dans cet état")
+      expect(Capybara.string(response.body))
+        .to have_link("Traitée 41", href: "/demarches?statut=done")
+    end
+
+    # L'amont ne sert qu'un état à la fois : une colonne « État » serait constante sur toute
+    # la hauteur du tableau, et le titre comme le menu le disent déjà.
+    it "does not repeat the filtered state on every row" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:list)
+        .and_return(build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)]))
+
+      get "/demarches"
+
+      headers = Nokogiri::HTML(response.body).css("table thead th").map(&:text)
+      expect(headers).to eq(["Numéro", "Flux", "Transmise le", "Mise à jour le"])
+    end
+
+    # L'échelle avant la lecture : douze dossiers ou sept cents ne se parcourent pas de la
+    # même façon, et ça ne se déduit pas d'un numéro de dernière page.
+    it "announces how many deliveries there are before the first row" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
+        build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)],
+          pagination: build(:portail_pagination, total: 637, total_pages: 26))
+      )
+
+      get "/demarches"
+
+      expect(Capybara.string(response.body)).to have_text("637 démarches")
+    end
+
     # Décision de produit : un filtre que l'amont refuse donne une erreur affichée. Le
     # réinitialiser en silence rendrait une liste qui ne dit pas ce qu'elle montre.
     it "shows the refusal when the upstream rejects the requested filter" do
@@ -192,6 +262,210 @@ RSpec.describe "Portail::Deliveries", type: :request do
       value = Nokogiri::HTML(response.body)
         .xpath("//dt[normalize-space()='Demandeur']/following-sibling::dd[1]").text
       expect(value).to eq("—")
+    end
+
+    it "inventories the pieces that came with the deposit" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, attachments: [build(:portail_attachment,
+          filename: "certificat.pdf", byte_size: 2048, state: "rejected")])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      expect(Capybara.string(response.body)).to have_text("certificat.pdf")
+      expect(Capybara.string(response.body)).to have_text("2 ko")
+      expect(Capybara.string(response.body)).to have_css("p.fr-badge", text: "Rejetée")
+    end
+
+    # L'amont ne sert aucun binaire : la page doit le DIRE, sinon l'agent cherche un lien qui
+    # n'existe pas. Et surtout, aucune ligne de l'inventaire ne doit prétendre en être un.
+    it "promises no download it cannot honour" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+
+      get "/demarches/#{delivery_id}"
+
+      expect(Capybara.string(response.body))
+        .to have_text("Les pièces se consultent depuis votre système d'information")
+      rows = Nokogiri::HTML(response.body).css("table tbody a")
+      expect(rows).to be_empty
+    end
+
+    # Deux magasins en amont, deux sections ici : une pièce arrivée en cours d'instruction ne
+    # dit pas la même chose qu'une pièce déposée d'emblée, et la fusionner perdrait son quand.
+    it "keeps the pieces added later in their own section, with their provenance" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery,
+          attachments: [build(:portail_attachment, filename: "depot.pdf")],
+          events: [build(:portail_event, event_type: "attachment.created",
+            author: "Camille MARTIN", metadata: {},
+            attachments: [build(:portail_attachment, id: "b2", filename: "complement.pdf")])])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      page = Capybara.string(response.body)
+      expect(page).to have_text("Pièces du dépôt")
+      expect(page).to have_text("depot.pdf")
+      expect(page).to have_text("Pièces ajoutées ensuite")
+      expect(page).to have_text("complement.pdf")
+      expect(page).to have_text("Camille MARTIN")
+    end
+
+    it "says so plainly when nothing was attached at all" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find)
+        .and_return(build(:portail_delivery, attachments: [], events: []))
+
+      get "/demarches/#{delivery_id}"
+
+      page = Capybara.string(response.body)
+      expect(page).to have_text("Aucune pièce n'accompagnait le dépôt.")
+      expect(page).to have_text("Aucune pièce n'a été ajoutée depuis le dépôt.")
+      expect(page).to have_text("Aucun événement enregistré pour cette démarche.")
+    end
+
+    it "renders the history with both ends of each state change" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, events: [build(:portail_event,
+          event_type: "delivery.state_changed", content: "Dossier pris en charge",
+          metadata: {from_state: "transmitted", to_state: "acknowledged"})])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      page = Capybara.string(response.body)
+      expect(page).to have_text("George DUBOIS a modifié le statut : Transmise → Reçue")
+      expect(page).to have_text("Dossier pris en charge")
+    end
+
+    # La frise groupe par mois : sans ce repère, une instruction étalée sur un trimestre
+    # devient une colonne d'horodatages où plus rien ne se situe.
+    it "opens a group per month in the history" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, events: [
+          build(:portail_event, id: "jan", created_at: Time.zone.local(2026, 1, 10, 16, 16)),
+          build(:portail_event, id: "feb", created_at: Time.zone.local(2026, 2, 3, 9, 0))
+        ])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      months = Nokogiri::HTML(response.body).css(".delivery-timeline__month").map { |m| m.text.strip }
+      expect(months).to eq(["Février 2026", "Janvier 2026"])
+      expect(Capybara.string(response.body)).to have_text("Samedi 10/01 - 16:16")
+    end
+
+    # Ce que l'amont promet à la personne concernée, et seulement quand il le promet : un
+    # changement d'état n'a rien transmis à personne, l'annoncer serait mentir à l'agent.
+    it "notes what actually reached the applicant, and nothing else" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, events: [
+          build(:portail_event, event_type: "message.created", metadata: {internal: false})
+        ])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      expect(Capybara.string(response.body))
+        .to have_text("Information transmise à la personne concernée.")
+    end
+
+    it "stays silent about a broadcast the upstream never claimed" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, events: [
+          build(:portail_event, event_type: "message.created", metadata: {internal: true})
+        ])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      expect(Capybara.string(response.body))
+        .to have_no_text("Information transmise à la personne concernée.")
+    end
+
+    # Réservé aux SI par le contrat amont, affiché sur décision métier du 2026-09-01. Cet
+    # exemple est le garde-fou de cette décision : si elle s'inverse, c'est lui qui tombe et
+    # qui rappelle où se fait la coupure.
+    it "shows the SI comment, as decided, and labels it for what it is" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, events: [build(:portail_event,
+          si_comment: "retry #2 après timeout passerelle")])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      page = Capybara.string(response.body)
+      expect(page).to have_text("Commentaire à destination des SI")
+      expect(page).to have_text("retry #2 après timeout passerelle")
+    end
+
+    it "situates the delivery with a breadcrumb and states it at a glance" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find)
+        .and_return(build(:portail_delivery, state: "done"))
+
+      get "/demarches/#{delivery_id}"
+
+      page = Capybara.string(response.body)
+      expect(page).to have_css("nav.fr-breadcrumb a[aria-current='page']",
+        text: "DGS-CERTDC-0000000000001-01")
+      # L'état ouvre le récapitulatif et n'en sort pas : le sortir du bloc le ferait flotter
+      # sous le titre, ce dont on vient précisément de le tirer.
+      expect(page).to have_css("dl.delivery-summary p.fr-badge.fr-badge--success", text: "Traitée")
+    end
+
+    # Le récapitulatif se lit en couples libellé/valeur, chacun dans sa cellule de grille. Sans
+    # l'enveloppe, dt et dd deviennent deux cellules indépendantes et le libellé se décroche de
+    # sa valeur — un défaut que seul l'œil attrape, d'où cet exemple sur la structure.
+    it "pairs every summary label with its own value" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+
+      get "/demarches/#{delivery_id}"
+
+      cells = Nokogiri::HTML(response.body).css("dl.delivery-summary > div")
+      expect(cells.map { |cell| cell.css("dt").text.strip })
+        .to eq(["État", "Flux", "Demandeur", "Transmise le", "Mise à jour le"])
+      expect(cells.map { |cell| cell.css("dd").count }).to all(eq(1))
+    end
+
+    # Le quoi et le qui portent le gras, les dates passent en gris discret. Tout mettre au
+    # même niveau typographique revient à ne rien mettre en avant — c'est l'agent qui ferait
+    # le tri à chaque lecture, et c'est précisément ce qu'on lui épargne ici.
+    it "ranks the summary instead of flattening it" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+
+      get "/demarches/#{delivery_id}"
+
+      summary = Nokogiri::HTML(response.body).at_css("dl.delivery-summary")
+      emphasised = summary.css("dd.fr-text--bold").map { |value| value.text.strip }
+      muted = summary.css("dd.fr-text-mention--grey").count
+
+      expect(emphasised).to eq(["CERTDC", "George DUBOIS"])
+      expect(muted).to eq(2)
+    end
+
+    # Deux rangs et non un seul de cinq : ce qu'on vient chercher devant, les horodatages
+    # derrière. C'est aussi ce qui laisse aux dates écrites en entier la largeur de tenir sur
+    # une ligne — les serrer en quart de bloc annulerait le gain du format long.
+    it "splits the summary into what is sought and what merely situates it" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+
+      get "/demarches/#{delivery_id}"
+
+      cells = Nokogiri::HTML(response.body).css("dl.delivery-summary > div").map { |c| c["class"] }
+      expect(cells.count { |classes| classes.include?("fr-col-md-4") }).to eq(3)
+      expect(cells.count { |classes| classes.include?("fr-col-md-6") }).to eq(2)
     end
 
     # Le trou que ferme la policy : la liste ne montre pas cette démarche, mais son

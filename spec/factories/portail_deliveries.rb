@@ -25,6 +25,7 @@ FactoryBot.define do
 
     current_page { 1 }
     total_pages { 1 }
+    total { 1 }
   end
 
   factory :portail_delivery_summary, class: "Portail::DeliverySummary" do
@@ -42,6 +43,32 @@ FactoryBot.define do
     updated_at { 1.hour.ago }
   end
 
+  factory :portail_attachment, class: "Portail::Attachment" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    id { "a1111111-1111-1111-1111-111111111111" }
+    filename { "certificat.pdf" }
+    content_type { "application/pdf" }
+    byte_size { 1024 }
+    kind { "VA_CertificatdeDeces" }
+    state { "received" }
+  end
+
+  factory :portail_event, class: "Portail::Event" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    id { "e1111111-1111-1111-1111-111111111111" }
+    event_type { "delivery.state_changed" }
+    created_at { 1.hour.ago }
+    author { "George DUBOIS" }
+    content { "Dossier pris en charge" }
+    si_comment { nil }
+    metadata { {from_state: "transmitted", to_state: "acknowledged"} }
+    attachments { [] }
+  end
+
   factory :portail_delivery, class: "Portail::Delivery" do
     skip_create
     initialize_with { new(**attributes) }
@@ -55,6 +82,8 @@ FactoryBot.define do
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
     applicant { build(:portail_applicant) }
+    attachments { [build(:portail_attachment)] }
+    events { [build(:portail_event)] }
   end
 
   factory :portail_delivery_list, class: "Portail::DeliveryList" do

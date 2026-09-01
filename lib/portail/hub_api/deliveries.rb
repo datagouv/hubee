@@ -93,8 +93,54 @@ module Portail
             data_stream: data_stream_from(delivery.data_stream),
             transmitted_at: delivery.transmitted_at,
             updated_at: delivery.updated_at,
-            applicant: applicant_from(delivery.data_package&.applicant)
+            applicant: applicant_from(delivery.data_package&.applicant),
+            # Les pièces du dépôt seulement. Celles apportées par un event restent sur lui :
+            # les fusionner ici perdrait la provenance, qui est précisément ce que l'écran
+            # montre — et l'amont tient déjà ces deux magasins séparés.
+            attachments: attachments_from(delivery.data_package&.attachments),
+            events: delivery.events.map { |event| event_from(event) }
           )
+        end
+
+        # `Array()` plutôt qu'un `&.` de plus : le paquet de données peut manquer entièrement,
+        # et l'écran compte des pièces — il n'a pas à distinguer « aucune pièce » de « pas de
+        # paquet ». Une liste vide dit les deux, sans que personne ait à s'en soucier.
+        def attachments_from(attachments)
+          Array(attachments).map { |attachment| attachment_from(attachment) }
+        end
+
+        def attachment_from(attachment)
+          Portail::Attachment.new(
+            id: attachment.id,
+            filename: attachment.filename,
+            content_type: attachment.content_type,
+            byte_size: attachment.byte_size,
+            kind: attachment.kind,
+            # Même couture que l'état d'une démarche : Symbol en amont, String dans le portail.
+            state: attachment.state.to_s
+          )
+        end
+
+        def event_from(event)
+          Portail::Event.new(
+            id: event.id,
+            event_type: event.event_type.to_s,
+            created_at: event.created_at,
+            author: event.author,
+            content: event.content,
+            si_comment: event.si_comment,
+            metadata: metadata_from(event.metadata),
+            attachments: attachments_from(event.attachments)
+          )
+        end
+
+        # La metadata porte des états, en Symbol comme partout en amont. `transform_values` et
+        # non une liste de clés connues : l'amont peut ajouter une metadata sans nous prévenir,
+        # et une clé oubliée laisserait entrer une graphie que le reste du portail n'emploie
+        # pas. Ce qui n'est pas un Symbol — les booléens de `internal` et `bulk` — traverse
+        # intact.
+        def metadata_from(metadata)
+          metadata.transform_values { |value| value.is_a?(Symbol) ? value.to_s : value }
         end
 
         # Le portail ne lit que le code, mais porte l'objet : à terme la démarche sera un
@@ -109,7 +155,8 @@ module Portail
 
         def pagination_from(pagination)
           Portail::Pagination.new(
-            current_page: pagination.current_page, total_pages: pagination.total_pages
+            current_page: pagination.current_page, total_pages: pagination.total_pages,
+            total: pagination.total
           )
         end
 

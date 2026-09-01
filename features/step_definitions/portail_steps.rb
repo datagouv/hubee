@@ -113,6 +113,19 @@ end
   )
 end
 
+Étantdonné("l'API amont sert aussi une démarche traitée pour son organisation") do
+  HubApiV1.client.add_case(
+    build_v2_delivery(
+      id: "0a11c2f4-0000-4000-8000-000000000043", number: "DGS-CERTDC-0000000000003-01",
+      state: :done, recipient: e2e_recipient
+    )
+  )
+end
+
+Quand("il filtre sur l'état {string}") do |label|
+  within("nav.fr-sidemenu") { click_link label }
+end
+
 Quand("il ouvre la démarche {string}") do |number|
   click_link number
 end
@@ -132,6 +145,21 @@ Alors("il voit le détail de la démarche, demandeur compris") do
   # Le demandeur est absent de la liste servie en amont, présent au détail : c'est ce qui
   # distingue les deux écrans, et donc ce que ce scénario doit constater.
   expect(page).to have_text("George DUBOIS")
+end
+
+# Les deux magasins de pièces et l'historique traversent ici toute la chaîne : ce que le client
+# bouchonné sert passe par la gem, la traduction et les gabarits sans qu'aucune de nos classes
+# soit stubbée. C'est le seul endroit qui le prouve.
+Alors("il voit l'inventaire des pièces et l'historique") do
+  expect(page).to have_css("h2", text: "Pièces du dépôt")
+  expect(page).to have_text("certificat.pdf")
+  expect(page).to have_css("h2", text: "Historique")
+  expect(page).to have_text("George DUBOIS a modifié le statut : Transmise → Reçue")
+end
+
+Alors("la liste est celle de l'état {string}") do |label|
+  expect(page).to have_css("table caption", text: label)
+  expect(page).to have_css("nav.fr-sidemenu a[aria-current='page']", text: label)
 end
 
 Alors("il est renvoyé à la liste sans que le dossier lui soit montré") do

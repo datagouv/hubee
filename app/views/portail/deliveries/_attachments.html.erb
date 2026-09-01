@@ -1,0 +1,32 @@
+<%# locals: (attachments:) %>
+<%# Un inventaire, pas un accès : l'amont ne sert aucun binaire, donc aucune ligne n'est un
+    lien. L'état vaut autant que le nom — une pièce rejetée ou corrompue est l'information que
+    l'agent n'a nulle part ailleurs. %>
+<div class="fr-table fr-table--bordered">
+  <div class="fr-table__wrapper">
+    <div class="fr-table__container">
+      <div class="fr-table__content">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col"><%= t("portail.deliveries.attachment_fields.filename") %></th>
+              <th scope="col"><%= t("portail.deliveries.attachment_fields.kind") %></th>
+              <th scope="col"><%= t("portail.deliveries.attachment_fields.byte_size") %></th>
+              <th scope="col"><%= t("portail.deliveries.attachment_fields.state") %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% attachments.each do |attachment| %>
+              <tr>
+                <td><%= attachment.filename %></td>
+                <td><%= attachment.kind %></td>
+                <td><%= delivery_attachment_size(attachment) %></td>
+                <td><%= delivery_attachment_state(attachment) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
