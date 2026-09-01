@@ -33,13 +33,16 @@ module Portail
     rescue Pundit::NotAuthorizedError
       # Un agent qui atteint une démarche hors de son périmètre est un fait de sécurité : il se
       # journalise, mais ne part pas en alerte — c'est un refus qui fonctionne, pas une panne.
-      Rails.logger.warn("Démarche refusée — hors habilitation : #{params[:id]}")
+      # `inspect` : l'identifiant vient de l'URL, des retours à la ligne y forgeraient de
+      # fausses lignes de journal.
+      Rails.logger.warn("Démarche refusée — hors habilitation : #{params[:id].inspect}")
       redirect_to_list_with_not_found
     rescue HubAPI::NotFound
       # Refus et inexistence donnent le même message : les distinguer révélerait l'existence
       # de démarches hors du périmètre de l'agent. Ils restent distincts au journal, où seul
       # l'exploitant les lit.
-      Rails.logger.info("Démarche introuvable en amont : #{params[:id]}")
+      # `inspect` : même précaution de journal que pour le refus d'habilitation.
+      Rails.logger.info("Démarche introuvable en amont : #{params[:id].inspect}")
       redirect_to_list_with_not_found
     rescue HubAPI::Error => e
       # `InvalidRequest` est rangé ici avec les pannes, et non montré comme sur la liste : au
@@ -57,14 +60,18 @@ module Portail
     # Aucune validation ici : c'est l'amont qui tranche, et son refus revient traduit en
     # HubAPI::InvalidRequest. Un état inconnu produit donc une erreur affichée, jamais un
     # filtre réinitialisé en douce sur une liste qui ne dirait pas ce qu'elle montre.
-    def requested_state = params[:statut].presence || DeliveriesQuery::DEFAULT_STATE
+    #
+    # `.to_s` d'abord : `?statut[]=…` fait de la valeur un tableau, qui n'a pas les méthodes
+    # d'une chaîne — sans la sérialisation, c'est un 500 au lieu du refus amont attendu.
+    def requested_state = params[:statut].to_s.presence || DeliveriesQuery::DEFAULT_STATE
 
     # `.presence` et non `fetch` : avec `?page=`, la clé existe et vaut la chaîne vide, dont le
     # `to_i` donne un décalage négatif que l'amont refuse. Une chaîne vide n'est pas un
     # paramètre trafiqué, c'est ce qu'un formulaire soumet avec un champ vide — elle retombe
     # sur la première page comme `statut` retombe sur son défaut. Une valeur réellement
-    # trafiquée, elle, continue d'aller se faire refuser en amont.
-    def requested_page = params[:page].presence || 1
+    # trafiquée — `?page[]=…` compris, d'où le `.to_s` — continue d'aller se faire refuser
+    # en amont.
+    def requested_page = params[:page].to_s.presence || 1
 
     def redirect_to_list_with_not_found
       redirect_to demarches_path, alert: t("portail.deliveries.show.not_found")
@@ -88,7 +95,9 @@ module Portail
     # diagnostic mais ne part pas en alerte — un robot qui balaie des URL suffirait sinon à
     # noyer Sentry sous des refus parfaitement normaux.
     def render_refusal(exception, message)
-      Rails.logger.info("Filtre de démarches refusé — #{exception.message}")
+      # `inspect` : le message amont cite le paramètre refusé, qui vient de l'URL — des
+      # retours à la ligne y forgeraient de fausses lignes de journal.
+      Rails.logger.info("Filtre de démarches refusé — #{exception.message.inspect}")
       render_alert(message)
     end
 
