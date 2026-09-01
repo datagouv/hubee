@@ -12,20 +12,26 @@ RSpec.describe Portail::HubAPI::Deliveries do
   describe ".list" do
     # Le chemin complet, sans mock sur la surface de la gem : ce que le FakeClient sert
     # traverse la gem puis la traduction, et ressort en modèles du portail.
+    # Deux démarches aux valeurs distinctes : chaque ligne doit ressortir avec les siennes —
+    # une traduction qui recopierait la première passerait un test à une seule démarche.
     it "translates an upstream page into portal models" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_case(build_v2_delivery)
+      client.add_case(build_v2_delivery(
+        id: "0a11c2f4-0000-4000-8000-000000000044", number: "DGS-CERTDC-0000000000002-01"
+      ))
 
       result = described_class.list(siret: siret, insee_code: insee_code, state: "acknowledged",
         data_stream_codes: [], page: 1, per_page: 25, client: client)
 
       expect(result).to be_a(Portail::DeliveryList)
       expect(result.deliveries).to all(be_a(Portail::DeliverySummary))
-      expect(result.deliveries.first).to have_attributes(
-        number: "DGS-CERTDC-0000000000001-01", state: "acknowledged"
+      expect(result.deliveries.map(&:number)).to contain_exactly(
+        "DGS-CERTDC-0000000000001-01", "DGS-CERTDC-0000000000002-01"
       )
+      expect(result.deliveries.first).to have_attributes(state: "acknowledged")
       expect(result.deliveries.first.data_stream.code).to eq("CERTDC")
-      expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1)
+      expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1, total: 2)
     end
 
     # Le canal des entrées : le portail parle en `insee_code` et en pages, l'amont attend
