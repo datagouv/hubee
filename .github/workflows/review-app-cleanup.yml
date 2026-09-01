@@ -1,0 +1,74 @@
+name: Review App Cleanup
+
+on:
+  pull_request:
+    types: [unlabeled, closed]
+
+jobs:
+  labels:
+    name: Select review labels
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      list: ${{ steps.select.outputs.list }}
+    env:
+      EVENT_ACTION: ${{ github.event.action }}
+      REMOVED_LABEL: ${{ github.event.label.name }}
+      PR_LABELS_JSON: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+    steps:
+      - name: Select review labels
+        id: select
+        run: |
+          set -euo pipefail
+
+          add_candidate() {
+            local candidate="$1"
+            local name="${candidate#review:}"
+            if [ "$name" != "$candidate" ] && grep -Eqx '[a-z0-9]([a-z0-9-]{0,28}[a-z0-9])?' <<<"$name"; then
+              list=$(jq -c --arg l "$name" '. + [$l] | unique' <<<"$list")
+            fi
+          }
+
+          list="[]"
+
+          if [ "$EVENT_ACTION" = "unlabeled" ]; then
+            add_candidate "$REMOVED_LABEL"
+          else
+            while IFS= read -r candidate; do
+              add_candidate "$candidate"
+            done < <(jq -r '.[]' <<<"$PR_LABELS_JSON")
+          fi
+
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+
+  destroy:
+    name: Destroy review app
+    needs: labels
+    if: needs.labels.outputs.list != '' && needs.labels.outputs.list != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        label: ${{ fromJSON(needs.labels.outputs.list) }}
+    concurrency:
+      group: review-app-${{ matrix.label }}
+    env:
+      SSH_DOKKU: "ssh -p 50022 dokku@${{ secrets.DOKKU_HOST }}"
+      DOKKU_APP: ${{ matrix.label }}
+    steps:
+      - name: Destroy Dokku app
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DOKKU_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p 50022 -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
+
+          echo "=== Destroying app $DOKKU_APP ==="
+          if $SSH_DOKKU -- apps:exists "$DOKKU_APP" 2>/dev/null; then
+            $SSH_DOKKU -- apps:destroy "$DOKKU_APP" --force
+          fi
+          if $SSH_DOKKU -- postgres:exists "$DOKKU_APP" 2>/dev/null; then
+            $SSH_DOKKU -- postgres:destroy "$DOKKU_APP" --force
+          fi
