@@ -38,6 +38,21 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
     end
   end
 
+  describe "#delivery_pagination_step" do
+    # Le DSFR exige un `title` sur les segments de pagination : sous le point de rupture LG, le
+    # libellé est rogné par le CSS et l'infobulle est ce qui reste au pointeur. Éprouvé sur les
+    # deux états — un segment désactivé reste rendu, il doit rester explicite lui aussi.
+    it "titles the step whether it leads somewhere or not" do
+      reachable = helper.delivery_pagination_step("Page suivante", "next", href: "/demarches?page=2")
+      disabled = helper.delivery_pagination_step("Page précédente", "prev")
+
+      expect(Capybara.string(reachable))
+        .to have_css("a.fr-pagination__link--next[title='Page suivante'][href='/demarches?page=2']")
+      expect(Capybara.string(disabled))
+        .to have_css("a.fr-pagination__link--prev[title='Page précédente'][aria-disabled='true']:not([href])")
+    end
+  end
+
   describe "#delivery_pagination_pages" do
     it "lists every page while they all fit" do
       pagination = build(:portail_pagination, current_page: 2, total_pages: 4)

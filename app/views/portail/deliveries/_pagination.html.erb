@@ -9,9 +9,9 @@
       <% delivery_pagination_pages(pagination).each do |page| %>
         <li>
           <% if page == :gap %>
-            <%# Pas de classe DSFR ici : l'ellipse n'est pas un lien, et emprunter
-                fr-pagination__link pour un élément inerte sortirait du système. %>
-            <span aria-hidden="true">…</span>
+            <%# `fr-pagination__link` sur un span inerte : c'est le markup de référence DSFR,
+                et c'est lui qui aligne l'ellipse sur les segments voisins. %>
+            <span class="fr-pagination__link" aria-hidden="true">…</span>
           <% else %>
             <%= delivery_pagination_page page,
                   href: (demarches_path(statut: state, page: page) unless page == pagination.current_page) %>

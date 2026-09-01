@@ -55,7 +55,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "honours the state and the page requested as parameters" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
-        .with(hash_including(state: "acknowledged", page: "2"))
+        # Le hash complet que reçoit la frontière est éprouvé dans le spec du query object.
+        .with(hash_including(state: "acknowledged", page: 2))
         .and_return(build(:portail_delivery_list))
 
       get "/demarches", params: {statut: "acknowledged", page: "2"}
@@ -72,6 +73,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches"
 
+      expect(response).to have_http_status(:success)
+
       menu = Capybara.string(response.body).find("nav.fr-sidemenu")
       expect(menu).to have_link("Transmise 12", href: "/demarches?statut=transmitted")
       expect(menu).to have_link("Reçue 3", href: "/demarches?statut=acknowledged")
@@ -84,6 +87,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .and_return(build(:portail_delivery_list, counts_by_state: {"done" => 41}))
 
       get "/demarches?statut=done"
+
+      expect(response).to have_http_status(:success)
 
       expect(Capybara.string(response.body))
         .to have_css("nav.fr-sidemenu a[aria-current='page']", text: "Traitée")
@@ -99,6 +104,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches"
 
+      expect(response).to have_http_status(:success)
+
       expect(Capybara.string(response.body)).to have_text("Aucune démarche dans cet état")
       expect(Capybara.string(response.body))
         .to have_link("Traitée 41", href: "/demarches?statut=done")
@@ -112,6 +119,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .and_return(build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)]))
 
       get "/demarches"
+
+      expect(response).to have_http_status(:success)
 
       headers = Nokogiri::HTML(response.body).css("table thead th").map(&:text)
       expect(headers).to eq(["Numéro", "Flux", "Transmise le", "Mise à jour le"])
@@ -127,6 +136,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       )
 
       get "/demarches"
+
+      expect(response).to have_http_status(:success)
 
       expect(Capybara.string(response.body)).to have_text("637 démarches")
     end
@@ -215,15 +226,16 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "falls back to the first page when the page parameter is empty" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
+        # Seule la page est l'objet de cet exemple ; le reste du hash est éprouvé plus haut.
         .with(hash_including(page: 1))
         .and_return(build(:portail_delivery_list))
 
       get "/demarches", params: {page: ""}
     end
 
-    # Le pied de liste n'était rendu par aucun exemple : la factory fixe `total_pages` à 1, donc
-    # tout le partial restait un chemin mort — que la couverture de branche ne signale pas, elle
-    # n'instrumente pas les gabarits.
+    # La factory fixe `total_pages` à 1 : sans un résultat multi-pages, tout le partial reste un
+    # chemin mort, que la couverture de branche ne signale pas — elle n'instrumente pas les
+    # gabarits.
     it "renders the pagination when the result spans several pages" do
       sign_in_member
       pagination = build(:portail_pagination, current_page: 2, total_pages: 5)
@@ -234,11 +246,29 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches", params: {page: "2"}
 
+      expect(response).to have_http_status(:success)
+
       page = Capybara.string(response.body)
       expect(page).to have_link("Page précédente", href: demarches_path(statut: "transmitted", page: 1))
       expect(page).to have_link("Page suivante", href: demarches_path(statut: "transmitted", page: 3))
       # La page courante est marquée et n'est pas un lien : c'est ce que DSFR met en évidence.
       expect(page).to have_css("a.fr-pagination__link[aria-current='page']", text: "2")
+    end
+
+    # L'ellipse porte la classe DSFR du segment : c'est elle qui l'aligne sur ses voisins.
+    it "marks the elided pages with the DSFR segment" do
+      sign_in_member
+      pagination = build(:portail_pagination, current_page: 20, total_pages: 40)
+      expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
+        build(:portail_delivery_list, pagination: pagination,
+          deliveries: [build(:portail_delivery_summary)])
+      )
+
+      get "/demarches", params: {page: "20"}
+
+      expect(response).to have_http_status(:success)
+      elided = Nokogiri::HTML(response.body).css("nav.fr-pagination span.fr-pagination__link")
+      expect(elided.map { |span| span.text.strip }).to eq(["…", "…"])
     end
 
     # Les contrôles restent rendus et désactivés plutôt que de disparaître : un contrôle qui
@@ -252,6 +282,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       )
 
       get "/demarches"
+
+      expect(response).to have_http_status(:success)
 
       expect(Capybara.string(response.body))
         .to have_css("a.fr-pagination__link--prev[aria-disabled='true']:not([href])")
@@ -278,6 +310,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "filters the list of a local administrator with named habilitations too" do
         sign_in_local_administrator(process_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list)
+          # Le reste du hash est éprouvé dans le spec du query object.
           .with(hash_including(data_stream_codes: ["CERTDC"]))
           .and_return(build(:portail_delivery_list))
 
@@ -289,6 +322,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "leaves a local administrator without habilitation unfiltered" do
         sign_in_local_administrator
         expect(Portail::HubAPI::Deliveries).to receive(:list)
+          # Le reste du hash est éprouvé dans le spec du query object.
           .with(hash_including(data_stream_codes: []))
           .and_return(build(:portail_delivery_list))
 
@@ -345,6 +379,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches/#{delivery_id}"
 
+      expect(response).to have_http_status(:success)
+
       expect(Capybara.string(response.body)).to have_text("certificat.pdf")
       expect(Capybara.string(response.body)).to have_text("2 ko")
       expect(Capybara.string(response.body)).to have_css("p.fr-badge", text: "Rejetée")
@@ -357,6 +393,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
 
       get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
 
       expect(Capybara.string(response.body))
         .to have_text("Les pièces se consultent depuis votre système d'information")
@@ -377,6 +415,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       )
 
       get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
       expect(page).to have_text("Pièces du dépôt")
@@ -400,6 +440,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches/#{delivery_id}"
 
+      expect(response).to have_http_status(:success)
+
       captions = Nokogiri::HTML(response.body).css("table caption").map { |c| c.text.strip }
       expect(captions).to contain_exactly(
         "Pièces du dépôt", "Pièces ajoutées ensuite — Samedi 10/01 - 16:16"
@@ -412,6 +454,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .and_return(build(:portail_delivery, attachments: [], events: []))
 
       get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
       expect(page).to have_text("Aucune pièce n'accompagnait le dépôt.")
@@ -428,6 +472,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       )
 
       get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
       expect(page).to have_text("George DUBOIS a modifié le statut : Transmise → Reçue")
@@ -447,6 +493,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches/#{delivery_id}"
 
+      expect(response).to have_http_status(:success)
+
       months = Nokogiri::HTML(response.body).css(".delivery-timeline__month").map { |m| m.text.strip }
       expect(months).to eq(["Février 2026", "Janvier 2026"])
       expect(Capybara.string(response.body)).to have_text("Samedi 10/01 - 16:16")
@@ -464,6 +512,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches/#{delivery_id}"
 
+      expect(response).to have_http_status(:success)
+
       expect(Capybara.string(response.body))
         .to have_text("Information transmise à la personne concernée.")
     end
@@ -478,6 +528,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches/#{delivery_id}"
 
+      expect(response).to have_http_status(:success)
+
+      # Assertion négative seule : la note absente est tout l'objet de l'exemple, et la page
+      # rendue autour d'elle est déjà éprouvée par l'exemple précédent.
       expect(Capybara.string(response.body))
         .to have_no_text("Information transmise à la personne concernée.")
     end
@@ -494,6 +548,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches/#{delivery_id}"
 
+      expect(response).to have_http_status(:success)
+
       page = Capybara.string(response.body)
       expect(page).to have_text("Commentaire à destination des SI")
       expect(page).to have_text("retry #2 après timeout passerelle")
@@ -505,6 +561,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .and_return(build(:portail_delivery, state: "done"))
 
       get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
       expect(page).to have_css("nav.fr-breadcrumb a[aria-current='page']",
@@ -523,6 +581,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches/#{delivery_id}"
 
+      expect(response).to have_http_status(:success)
+
       cells = Nokogiri::HTML(response.body).css("dl.delivery-summary > div")
       expect(cells.map { |cell| cell.css("dt").text.strip })
         .to eq(["État", "Flux", "Demandeur", "Transmise le", "Mise à jour le"])
@@ -537,6 +597,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
 
       get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
 
       summary = Nokogiri::HTML(response.body).at_css("dl.delivery-summary")
       emphasised = summary.css("dd.fr-text--bold").map { |value| value.text.strip }
@@ -555,6 +617,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       get "/demarches/#{delivery_id}"
 
+      expect(response).to have_http_status(:success)
+
       cells = Nokogiri::HTML(response.body).css("dl.delivery-summary > div").map { |c| c["class"] }
       expect(cells.count { |classes| classes.include?("fr-col-md-4") }).to eq(3)
       expect(cells.count { |classes| classes.include?("fr-col-md-6") }).to eq(2)
@@ -570,6 +634,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       expect(response).to redirect_to(demarches_path)
       follow_redirect!
+
+      expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
     end
 
@@ -607,6 +673,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
         expect(response).to redirect_to(demarches_path)
         follow_redirect!
+
+        expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
       end
 

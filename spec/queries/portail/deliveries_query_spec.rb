@@ -6,9 +6,10 @@ require "rails_helper"
 # d'où vient le couple qui identifie l'organisation. Le dialogue avec l'amont est éprouvé une
 # seule fois, dans le spec de Portail::HubAPI.
 RSpec.describe Portail::DeliveriesQuery do
-  let(:organization_link) { create(:organization_link, siret: "22770001000019", insee_code: "77372") }
-  let(:membership) { create(:membership, organization_link: organization_link) }
-  let(:unrestricted) { Portail::DeliveryPolicy::Perimeter.unrestricted }
+  let(:membership) do
+    create(:membership,
+      organization_link: create(:organization_link, siret: "22770001000019", insee_code: "77372"))
+  end
 
   describe "#call" do
     # Le couple identifie l'organisation à lui seul et l'amont ne vérifie rien à notre place :
@@ -20,7 +21,8 @@ RSpec.describe Portail::DeliveriesQuery do
         data_stream_codes: [], page: 1, per_page: described_class::PER_PAGE, client: nil
       ).and_return(build(:portail_delivery_list))
 
-      described_class.new(membership).call(state: "transmitted", perimeter: unrestricted)
+      described_class.new(membership)
+        .call(state: "transmitted", perimeter: Portail::DeliveryPolicy::Perimeter.unrestricted)
     end
 
     it "passes the authorised data stream codes as a filter" do
@@ -61,7 +63,8 @@ RSpec.describe Portail::DeliveriesQuery do
         # L'injection est le seul objet de cet exemple ; le reste du hash est éprouvé plus haut.
         .and_return(build(:portail_delivery_list))
 
-      described_class.new(membership, client: client).call(state: "transmitted", perimeter: unrestricted)
+      described_class.new(membership, client: client)
+        .call(state: "transmitted", perimeter: Portail::DeliveryPolicy::Perimeter.unrestricted)
     end
   end
 end

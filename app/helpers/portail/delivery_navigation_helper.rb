@@ -6,19 +6,18 @@ module Portail
   module DeliveryNavigationHelper
     include Portail::DeliveriesHelper
 
-    # Le lien d'un état dans le menu latéral. DSFR marque l'entrée active par `aria-current`
-    # et non par une classe : `aria-current: nil` ne rend aucun attribut, donc un seul chemin
-    # ici plutôt qu'une branche par état.
+    # DSFR marque l'entrée active par `aria-current` et non par une classe : `aria-current: nil`
+    # ne rend aucun attribut, donc un seul chemin ici plutôt qu'une branche par état.
     #
-    # Le compteur est un badge et non du texte libre : il reste dans le système, et il est lu
-    # par les lecteurs d'écran à la suite du libellé — le masquer priverait de l'information
-    # qui fait tout l'intérêt du menu.
+    # Le compteur est du texte et non un badge : le DSFR réserve le badge à un usage informatif
+    # et non cliquable, ce qu'il cesse d'être à l'intérieur d'un lien. Il reste dans le nom
+    # accessible du lien, qui est tout l'intérêt du menu.
     def delivery_state_menu_link(state, count, current:)
       link_to(demarches_path(statut: state), class: "fr-sidemenu__link",
         "aria-current": ("page" if current)) do
         safe_join([
           delivery_state_label(state),
-          tag.span(count, class: "fr-badge fr-badge--sm fr-badge--no-icon")
+          tag.span(count, class: "fr-text--sm fr-text-mention--grey")
         ], " ")
       end
     end
@@ -43,13 +42,15 @@ module Portail
     # DSFR désactive un contrôle de pagination par l'ABSENCE de `href` — la règle est
     # `a.fr-pagination__link:not([href])`, pas une classe. Le lien reste donc rendu, annoncé et à
     # sa place : un contrôle qui disparaît entre deux pages déplace la navigation sous
-    # l'utilisateur, là où un contrôle désactivé reste prévisible. `aria-disabled` double la
-    # règle CSS pour les technologies d'assistance.
+    # l'utilisateur. `aria-disabled` double la règle CSS pour les technologies d'assistance.
+    #
+    # `title` sur tous les segments, comme l'exige le DSFR : sous le point de rupture LG, le
+    # libellé est rogné par le CSS et l'infobulle est ce qui reste au pointeur.
     def delivery_pagination_step(label, modifier, href: nil)
       classes = "fr-pagination__link fr-pagination__link--#{modifier} fr-pagination__link--lg-label"
-      return link_to(label, href, class: classes) if href
+      return link_to(label, href, class: classes, title: label) if href
 
-      tag.a(label, class: classes, "aria-disabled": true, role: "link")
+      tag.a(label, class: classes, title: label, "aria-disabled": true, role: "link")
     end
 
     # La page courante : `aria-current="page"` et pas de `href`. DSFR ne met en évidence et ne

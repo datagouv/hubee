@@ -2,11 +2,13 @@
 
 <h1><%= t(".heading") %></h1>
 
-<% if @result.nil? %>
-  <%# L'alerte est rendue par portail/shared/_flash. %>
-<% elsif @perimeter.none? %>
+<%# L'état de la page est résolu par le contrôleur : la vue ne déduit rien d'un `nil`.
+    :degraded — refus ou panne amont — n'a pas de branche ici, son alerte est rendue par
+    portail/shared/_flash. %>
+<% case @page_state %>
+<% when :no_habilitation %>
   <p class="fr-text--lead"><%= t(".empty.scope") %></p>
-<% else %>
+<% when :empty, :results %>
   <div class="fr-grid-row fr-grid-row--gutters">
     <div class="fr-col-12 fr-col-md-4 fr-col-lg-3">
       <%= render "state_menu", counts_by_state: @result.counts_by_state, current_state: @state %>
@@ -16,21 +18,20 @@
       <%# Le message d'état vide vit DANS la colonne, à côté du menu maintenu : sorti du
           quadrillage, il laisserait l'agent devant une page sans issue, alors que le compteur
           d'un autre état lui dit justement où aller. %>
-      <% if @result.deliveries.empty? %>
+      <% if @page_state == :empty %>
         <p class="fr-text--lead"><%= t(".empty.state") %></p>
       <% else %>
-        <%# Markup DSFR courant : .fr-table > __wrapper > __container > __content > table. C'est
-            cet emboîtement qui porte le défilement horizontal sur petit écran.
-
-            Pas de colonne « État » : l'amont ne sert qu'un état à la fois, la colonne serait
-            constante sur toute la hauteur. Le titre du tableau et l'entrée active du menu le
-            disent déjà, chacun une fois. %>
         <%# Le volume avant la première ligne : douze dossiers ou sept cents ne se lisent pas
             de la même façon, et ça ne se déduit pas d'un numéro de dernière page. %>
         <p class="fr-text--sm fr-text-mention--grey">
           <%= t(".total", count: @result.pagination.total) %>
         </p>
 
+        <%# Markup DSFR courant : .fr-table > __wrapper > __container > __content > table. C'est
+            cet emboîtement qui porte le défilement horizontal sur petit écran.
+
+            Pas de colonne « État » : l'amont ne sert qu'un état à la fois, la colonne serait
+            constante sur toute la hauteur. %>
         <div class="fr-table fr-table--bordered">
           <div class="fr-table__wrapper">
             <div class="fr-table__container">
