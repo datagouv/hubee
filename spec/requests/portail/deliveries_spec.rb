@@ -43,7 +43,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .with(hash_including(state: "transmitted", page: 1))
-        # Le hash complet est éprouvé dans le spec du query object.
+        # Le hash complet est éprouvé dans le spec de l'étape FetchList.
         .and_return(build(:portail_delivery_list))
 
       get "/demarches"
@@ -52,7 +52,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "honours the state and the page requested as parameters" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
-        # Le hash complet est éprouvé dans le spec du query object.
+        # Le hash complet est éprouvé dans le spec de l'étape FetchList.
         .with(hash_including(state: "acknowledged", page: 2))
         .and_return(build(:portail_delivery_list))
 
@@ -267,7 +267,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "filters the list on the codes a member is habilitated to" do
         sign_in_member(process_codes: ["CERTDC", "AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list)
-          # Le reste du hash est éprouvé dans le spec du query object.
+          # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: match_array(["CERTDC", "AEC"])))
           .and_return(build(:portail_delivery_list))
 
@@ -279,7 +279,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "filters the list of a local administrator with named habilitations too" do
         sign_in_local_administrator(process_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list)
-          # Le reste du hash est éprouvé dans le spec du query object.
+          # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: ["CERTDC"]))
           .and_return(build(:portail_delivery_list))
 
@@ -291,7 +291,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "leaves a local administrator without habilitation unfiltered" do
         sign_in_local_administrator
         expect(Portail::HubAPI::Deliveries).to receive(:list)
-          # Le reste du hash est éprouvé dans le spec du query object.
+          # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: []))
           .and_return(build(:portail_delivery_list))
 
@@ -583,6 +583,18 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       expect(response).to have_http_status(:not_found)
       expect(Capybara.string(response.body)).to have_text("Page introuvable")
+    end
+
+    # Une panne au détail est un incident : l'agent est renvoyé avec l'alerte, quelqu'un est réveillé.
+    it "sends the agent back with an alert and reports the outage" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::Unavailable)
+      expect(Sentry).to receive(:capture_exception)
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to include("momentanément indisponible")
     end
 
     # L'identifiant vient de l'URL et finit au journal : des retours à la ligne y forgeraient
