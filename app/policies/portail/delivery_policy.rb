@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 module Portail
-  # Applique le périmètre de lecture du rattachement : `Scope#resolve` borne la liste, `#show?`
-  # borne le détail. Sans le second, un identifiant connu ouvrirait une démarche hors
-  # habilitation : l'amont ne borne que sur l'organisation. La règle vit dans ReadingPerimeter.
+  # `Scope#resolve` borne la liste, `#show?` le détail. Sans le second, un identifiant connu
+  # ouvrirait une démarche hors habilitation : l'amont ne borne que sur l'organisation.
   class DeliveryPolicy
     attr_reader :membership, :delivery
 
