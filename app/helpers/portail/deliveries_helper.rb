@@ -17,15 +17,6 @@ module Portail
     # blanche se lit comme une colonne cassée.
     MISSING = "—"
 
-    # `default:` : la liste des états appartient à l'amont, qui peut en ajouter un sans nous
-    # prévenir — sans repli, l'agent lirait « translation missing » dans le tableau.
-    #
-    # Le libellé est porté par l'ÉTAT et non par la démarche : le menu de navigation n'a que
-    # les clés des compteurs, sans démarche sous la main.
-    def delivery_state_label(state) = t("portail.deliveries.states.#{state}", default: MISSING)
-
-    def delivery_state(delivery) = delivery_state_label(delivery.state)
-
     # Les couleurs DSFR par état. Table fermée, repli NEUTRE et non une erreur : faire tomber
     # le détail entier faute d'une couleur serait hors de proportion. `closed` est neutre à
     # dessein — une démarche clôturée n'est ni un succès ni un échec.
@@ -40,6 +31,25 @@ module Portail
       "integration_error" => "fr-badge--error"
     }.freeze
 
+    # Les états DSFR d'une pièce, même politique que ceux d'une démarche : table fermée,
+    # repli neutre. `deleted` n'est pas une erreur — la pièce a été retirée, pas refusée.
+    ATTACHMENT_BADGES = {
+      "pending" => "fr-badge--info",
+      "received" => "fr-badge--success",
+      "corrupted" => "fr-badge--error",
+      "rejected" => "fr-badge--error",
+      "deleted" => nil
+    }.freeze
+
+    # `default:` : la liste des états appartient à l'amont, qui peut en ajouter un sans nous
+    # prévenir — sans repli, l'agent lirait « translation missing » dans le tableau.
+    #
+    # Le libellé est porté par l'ÉTAT et non par la démarche : le menu de navigation n'a que
+    # les clés des compteurs, sans démarche sous la main.
+    def delivery_state_label(state) = t("portail.deliveries.states.#{state}", default: MISSING)
+
+    def delivery_state(delivery) = delivery_state_label(delivery.state)
+
     def delivery_state_badge(delivery)
       tag.p(delivery_state(delivery),
         class: ["fr-badge", STATE_BADGES[delivery.state]].compact)
@@ -52,16 +62,6 @@ module Portail
     # La ligne s'affiche toujours, avec son repli : la masquer ferait disparaître une
     # information sans dire qu'elle manque.
     def delivery_applicant(delivery) = delivery.applicant&.full_name.presence || MISSING
-
-    # Les états DSFR d'une pièce, même politique que ceux d'une démarche : table fermée,
-    # repli neutre. `deleted` n'est pas une erreur — la pièce a été retirée, pas refusée.
-    ATTACHMENT_BADGES = {
-      "pending" => "fr-badge--info",
-      "received" => "fr-badge--success",
-      "corrupted" => "fr-badge--error",
-      "rejected" => "fr-badge--error",
-      "deleted" => nil
-    }.freeze
 
     def delivery_attachment_state(attachment)
       tag.p(t("portail.deliveries.attachment_states.#{attachment.state}", default: MISSING),
