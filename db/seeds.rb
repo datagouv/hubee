@@ -387,19 +387,13 @@ portal_agents.each do |email, first_name, last_name, link, role, sensitive|
   ProcessAccess.find_or_create_by!(membership:, process_code: sensitive_code) if sensitive
 end
 
-# L'amont ne sert de démarches que pour un couple organisation × flux précis ; sans un
-# rattachement qui tombe juste, l'écran reste vide sans que rien ne l'explique. Or ce couple
-# n'est pas le même selon l'amont interrogé : le socle de développement local et la recette
-# que consultent les review apps ne portent pas les mêmes données. D'où ces deux jeux.
-#
-# Membre plutôt qu'administrateur local dans les deux cas, pour que le filtrage par
-# habilitation soit réellement traversé.
+# Un couple organisation × flux connu de l'amont interrogé, sans quoi l'écran reste vide.
+# Membre et non administrateur local, pour que le filtrage par habilitation soit traversé.
 socle_siret, socle_insee, socle_process =
   if ENV["REVIEW_APP"] == "true"
-    # Couple relevé en recette : le seul qui rende des démarches sur cet amont.
     ["21260274200018", "26274", "EtatCivil"]
   else
-    # Le code INSEE est aligné sur celui que les factories de la gem associent à ce SIRET.
+    # Code INSEE aligné sur celui que les factories de la gem associent à ce SIRET.
     ["22770001000019", "77372", "CERTDC"]
   end
 
