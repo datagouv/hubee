@@ -5,8 +5,13 @@
 # rien de tout cela ne doit pouvoir naître d'un `db:seed` lancé en production.
 #
 # `local?` et non `development?` : la CI valide ce fichier en environnement test.
-unless Rails.env.local?
-  puts "⏭️  Semis ignorés hors développement et test (#{Rails.env})"
+#
+# REVIEW_APP rouvre la porte, et elle seule : une review app tourne en production — même image,
+# même configuration — mais n'a pas d'autre source de données que ces semis, donc pas un seul
+# compte connectable sans eux. La variable n'est posée que par le workflow de déploiement des
+# review apps ; l'absence de défaut la rend inopérante partout ailleurs.
+unless Rails.env.local? || ENV["REVIEW_APP"] == "true"
+  puts "⏭️  Semis ignorés hors développement, test et review app (#{Rails.env})"
   return
 end
 
@@ -382,18 +387,30 @@ portal_agents.each do |email, first_name, last_name, link, role, sensitive|
   ProcessAccess.find_or_create_by!(membership:, process_code: sensitive_code) if sensitive
 end
 
-# Le socle de développement local ne sert de démarches que pour cette organisation et ce flux ;
-# sans ce rattachement, l'écran reste vide sans que rien ne l'explique. Membre plutôt
-# qu'administrateur local, pour que le filtrage par habilitation soit réellement traversé.
-# Le code INSEE est aligné sur celui que les factories de la gem associent à ce SIRET.
-socle_link = OrganizationLink.find_or_create_by!(siret: "22770001000019", insee_code: "77372")
+# L'amont ne sert de démarches que pour un couple organisation × flux précis ; sans un
+# rattachement qui tombe juste, l'écran reste vide sans que rien ne l'explique. Or ce couple
+# n'est pas le même selon l'amont interrogé : le socle de développement local et la recette
+# que consultent les review apps ne portent pas les mêmes données. D'où ces deux jeux.
+#
+# Membre plutôt qu'administrateur local dans les deux cas, pour que le filtrage par
+# habilitation soit réellement traversé.
+socle_siret, socle_insee, socle_process =
+  if ENV["REVIEW_APP"] == "true"
+    # Couple relevé en recette : le seul qui rende des démarches sur cet amont.
+    ["21260274200018", "26274", "EtatCivil"]
+  else
+    # Le code INSEE est aligné sur celui que les factories de la gem associent à ce SIRET.
+    ["22770001000019", "77372", "CERTDC"]
+  end
+
+socle_link = OrganizationLink.find_or_create_by!(siret: socle_siret, insee_code: socle_insee)
 socle_agent = Agent.find_or_create_by!(email: "socle@test.proconnect.gouv.fr") do |a|
   a.first_name = "Camille"
   a.last_name = "Socle"
 end
 socle_membership = Membership.find_or_create_by!(agent: socle_agent, organization_link: socle_link)
 socle_membership.update!(role: "member")
-ProcessAccess.find_or_create_by!(membership: socle_membership, process_code: "CERTDC")
+ProcessAccess.find_or_create_by!(membership: socle_membership, process_code: socle_process)
 
 puts "  ✅ Created #{Agent.count} agents"
 if Portail::SensitiveProcesses::CODES.empty?
