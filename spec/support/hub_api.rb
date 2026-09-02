@@ -6,13 +6,6 @@
 # à la gem, et ce dépôt est public.
 require "hub_api_v1/testing"
 
-# Les scopes sont de la configuration de déploiement, lue par la gem à la construction de son
-# client. Des noms neutres suffisent en spec, et évitent d'inscrire ceux du realm dans ce dépôt
-# public. HUB_API_SCOPE est le repli des deux autres et reste obligatoire.
-ENV["HUB_API_SCOPE"] ||= "test-scope"
-ENV["HUB_API_REFERENTIAL_SCOPE"] ||= "test-referential-scope"
-ENV["HUB_API_TELESERVICES_SCOPE"] ||= "test-teleservices-scope"
-
 RSpec.configure do |config|
   config.include HubApiV1::Testing::Stubs
   config.include HubApiV1::Testing::Factories
