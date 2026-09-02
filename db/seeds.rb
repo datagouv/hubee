@@ -356,7 +356,7 @@ sardine_link = OrganizationLink.find_or_create_by!(siret: "84087593400027", inse
 
 # Aligné sur SENSITIVE_PROCESS_CODES pour que l'habilitation semée déclenche bien
 # l'élévation ; repli documenté si la liste est vide.
-sensitive_code = Portail::SensitiveProcesses::CODES.first || "DEMO_SENSIBLE"
+sensitive_code = Portail::Access::SensitiveProcesses::CODES.first || "DEMO_SENSIBLE"
 
 portal_agents = [
   # [email, prénom, nom, lien, rôle, habilitation sensible]
@@ -401,7 +401,7 @@ socle_membership.update!(role: "member")
 ProcessAccess.find_or_create_by!(membership: socle_membership, process_code: socle_process)
 
 puts "  ✅ Created #{Agent.count} agents"
-if Portail::SensitiveProcesses::CODES.empty?
+if Portail::Access::SensitiveProcesses::CODES.empty?
   puts "  ⚠️  SENSITIVE_PROCESS_CODES vide : l'habilitation #{sensitive_code} ne déclenchera pas d'élévation"
 end
 

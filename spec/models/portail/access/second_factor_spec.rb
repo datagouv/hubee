@@ -2,10 +2,10 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::SecondFactor do
+RSpec.describe Portail::Access::SecondFactor do
   # Code inventé : la vraie liste vient de l'outillage de déploiement et ne descend pas dans
   # ce dépôt, qui est public. La règle testée ne dépend d'aucune valeur en particulier.
-  before { stub_const("Portail::SensitiveProcesses::CODES", %w[DEMO_SENSIBLE]) }
+  before { stub_const("Portail::Access::SensitiveProcesses::CODES", %w[DEMO_SENSIBLE]) }
 
   def membership_with(process_code, *traits)
     create(:membership, *traits).tap do |membership|
