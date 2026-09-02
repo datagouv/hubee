@@ -9,7 +9,9 @@ module Portail
     # sorties en modèles du portail, erreurs en erreurs de Portail::HubAPI.
     module Deliveries
       class << self
-        def list(siret:, insee_code:, state:, data_stream_codes:, page:, per_page:, client: nil)
+        # `client:` : le client partagé de la gem par défaut, un client bouchonné en spec.
+        def list(siret:, insee_code:, state:, data_stream_codes:, page:, per_page:,
+          client: HubApiV1.client)
           page_of(
             HubApiV1::V2::Delivery.list(
               siret: siret,
@@ -19,27 +21,22 @@ module Portail
               data_stream_codes: data_stream_codes,
               offset: offset_for(page, per_page),
               per_page: per_page,
-              **injected(client)
+              client: client
             )
           )
         rescue HubApiV1::Error => e
           raise translated(e)
         end
 
-        def find(id:, siret:, insee_code:, client: nil)
+        def find(id:, siret:, insee_code:, client: HubApiV1.client)
           delivery_from(
-            HubApiV1::V2::Delivery.find(
-              id: id, siret: siret, code_insee: insee_code, **injected(client)
-            )
+            HubApiV1::V2::Delivery.find(id: id, siret: siret, code_insee: insee_code, client: client)
           )
         rescue HubApiV1::Error => e
           raise translated(e)
         end
 
         private
-
-        # Passer `nil` à la gem remplacerait son client par rien.
-        def injected(client) = client ? {client: client} : {}
 
         # `to_i` : la page peut arriver en String. Trafiquée, elle donne 0, donc un décalage
         # négatif que l'amont refuse.
