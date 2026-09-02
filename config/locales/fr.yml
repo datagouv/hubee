@@ -107,6 +107,7 @@ fr:
         broadcast: Information transmise à la personne concernée.
         undated_month: Sans date
       errors:
+        not_found: Cette démarche est introuvable ou hors de votre périmètre.
         unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
         invalid_request: L'état ou la page demandés n'existent pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
       pagination:
@@ -136,7 +137,6 @@ fr:
         title: "Démarche %{number} — HubEE"
         heading: "Démarche %{number}"
         back: Retour à la liste
-        not_found: Cette démarche est introuvable ou hors de votre périmètre.
         breadcrumb: Fil d'Ariane
         breadcrumb_open: Voir le fil d'Ariane
         home: Accueil

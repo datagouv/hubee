@@ -2,6 +2,8 @@
 
 module Portail
   class DeliveriesController < Portail::BaseController
+    rescue_from Pundit::NotAuthorizedError, with: :refuse_out_of_perimeter
+
     def index
       @state = requested_state
       # Pundit déduit la policy du nom de la classe : un modèle ActiveRecord n'est pas requis.
@@ -11,17 +13,17 @@ module Portail
     end
 
     def show
-      @delivery = fetch_delivery
-      return if performed?
+      result = Deliveries::Show.call(membership: current_membership, id: params[:id])
 
-      # L'amont borne sur l'organisation, pas sur les flux : sans cette ligne, un identifiant
-      # connu ouvrirait une démarche hors habilitation.
-      authorize @delivery
-    rescue Pundit::NotAuthorizedError
-      # Journalisé sans alerte : un refus qui fonctionne n'est pas une panne. `inspect` :
-      # l'identifiant vient de l'URL, des retours à la ligne y forgeraient de fausses lignes.
-      Rails.logger.warn("Démarche refusée — hors habilitation : #{params[:id].inspect}")
-      redirect_to_list_with_not_found
+      if result.success?
+        # L'amont borne sur l'organisation, pas sur les flux : sans cette ligne, un identifiant
+        # connu ouvrirait une démarche hors habilitation.
+        @delivery = authorize(result.delivery)
+      else
+        # Rien à autoriser : aucune démarche n'a été trouvée.
+        skip_authorization
+        redirect_to demarches_path, alert: t("portail.deliveries.errors.#{result.error}")
+      end
     end
 
     private
@@ -37,23 +39,6 @@ module Portail
     rescue HubAPI::Error => e
       report_outage(e)
       degrade(t("portail.deliveries.errors.unavailable"))
-    end
-
-    # Redirige lui-même ; l'action s'arrête sur `performed?`. `skip_authorization` : sans
-    # démarche il n'y a rien à autoriser, et le garde lèverait.
-    def fetch_delivery
-      DeliveriesQuery.new(current_membership).find(id: params[:id])
-    rescue HubAPI::NotFound
-      # Même message qu'un refus : distinguer révélerait l'existence d'une démarche hors périmètre.
-      Rails.logger.info("Démarche introuvable en amont : #{params[:id].inspect}")
-      skip_authorization
-      redirect_to_list_with_not_found
-    rescue HubAPI::Error => e
-      # `InvalidRequest` rangé avec les pannes : au détail, un paramètre refusé ne peut venir
-      # que de nos données, pas de l'URL.
-      report_outage(e)
-      skip_authorization
-      redirect_to demarches_path, alert: t("portail.deliveries.errors.unavailable")
     end
 
     # Résolu ici et non déduit d'un `nil` dans le gabarit : « aucun flux habilité » et « aucune
@@ -73,8 +58,12 @@ module Portail
     # donc un décalage négatif que l'amont refuse.
     def requested_page = params[:page].to_s.presence&.to_i || 1
 
-    def redirect_to_list_with_not_found
-      redirect_to demarches_path, alert: t("portail.deliveries.show.not_found")
+    # Même message qu'une démarche inexistante : distinguer révélerait l'existence d'une
+    # démarche hors périmètre. Journalisé sans alerte : un refus qui fonctionne n'est pas une
+    # panne. `inspect` : l'identifiant vient de l'URL.
+    def refuse_out_of_perimeter
+      Rails.logger.warn("Démarche refusée — hors habilitation : #{params[:id].inspect}")
+      redirect_to demarches_path, alert: t("portail.deliveries.errors.not_found")
     end
 
     # Journalisée en plus de Sentry : sans DSN, en développement, l'exception partirait au néant.
