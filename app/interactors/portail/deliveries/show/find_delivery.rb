@@ -18,8 +18,7 @@ module Portail
           context.fail!(error: :not_found)
         rescue HubAPI::Error => e
           # `InvalidRequest` rangé avec les pannes : au détail, un paramètre refusé ne peut venir
-          # que de nos données. Journalisé en plus de Sentry : sans DSN, l'exception partirait
-          # au néant.
+          # que de nos données. Journalisé en plus de Sentry : sans DSN, rien ne sortirait.
           Rails.logger.error("Démarches indisponibles — #{e.class} : #{e.message}")
           Sentry.capture_exception(e)
           context.fail!(error: :unavailable)
