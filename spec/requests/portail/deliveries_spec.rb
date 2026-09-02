@@ -332,7 +332,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
               data_stream_code: "AEC")
           ])
         )
-        expect(Sentry).to receive(:capture_message)
+        expect(Sentry).to receive(:capture_message).with(
+          a_string_including("Périmètre non respecté par l'amont sur /demarches : 1 élément"),
+          level: :warning, extra: hash_including(dropped_ids: ["hors-perimetre"])
+        )
 
         events = capture_semantic_logger_events { get "/demarches" }
 
@@ -342,8 +345,9 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(events).to include(be_a_semantic_logger_event(
           level: :info, message: "Décision d'accès",
           payload_includes: {
-            event: "portail.access.upstream_mismatch", delivery_ids: ["hors-perimetre"],
-            membership_id: Membership.find_by!(agent: agent).id, ip_address: "127.0.0.1"
+            event: "Portail::Access::Decision", outcome: :upstream_mismatch, path: "/demarches",
+            dropped_ids: ["hors-perimetre"], membership_id: Membership.find_by!(agent: agent).id,
+            ip_address: "127.0.0.1"
           }
         ))
       end
@@ -727,7 +731,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(events).to include(be_a_semantic_logger_event(
           level: :info, message: "Décision d'accès",
           payload_includes: {
-            event: "portail.access.refused", path: "/demarches/#{delivery_id}",
+            event: "Portail::Access::Decision", outcome: :refused, path: "/demarches/#{delivery_id}",
             agent_id: agent.id, membership_id: membership.id, ip_address: "127.0.0.1"
           }
         ))

@@ -35,7 +35,7 @@ RSpec.describe Portail::BaseController, type: :controller do
     delete :destroy, params: {id: "1"}
 
     expect(response).to have_http_status(:not_found)
-    expect(events).to include(["portail.access.refused",
-      {path: "/portail/base/1", agent_id: membership.agent_id, membership_id: membership.id}])
+    expect(events).to include([Portail::Access::Decision.new(outcome: :refused,
+      path: "/portail/base/1", agent_id: membership.agent_id, membership_id: membership.id)])
   end
 end
