@@ -56,6 +56,7 @@ module Portail
             number: summary.number,
             state: summary.state.to_s,
             data_stream: data_stream_from(summary.data_stream),
+            recipient: recipient_from(summary.recipient),
             transmitted_at: summary.transmitted_at,
             updated_at: summary.updated_at
           )
@@ -67,6 +68,7 @@ module Portail
             number: delivery.number,
             state: delivery.state.to_s,
             data_stream: data_stream_from(delivery.data_stream),
+            recipient: recipient_from(delivery.recipient),
             transmitted_at: delivery.transmitted_at,
             updated_at: delivery.updated_at,
             applicant: applicant_from(delivery.data_package&.applicant),
@@ -113,6 +115,10 @@ module Portail
         end
 
         def data_stream_from(data_stream) = Portail::DataStream.new(code: data_stream.code)
+
+        def recipient_from(recipient)
+          Portail::Delivery::Recipient.new(siret: recipient.siret, insee_code: recipient.code_insee)
+        end
 
         def applicant_from(applicant)
           return if applicant.nil?

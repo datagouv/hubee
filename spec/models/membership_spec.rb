@@ -131,4 +131,18 @@ RSpec.describe Membership, type: :model do
         .to eq("Administrateur local")
     end
   end
+
+  describe "#process_codes" do
+    it "lists the codes of the habilitated data streams" do
+      membership = create(:membership)
+      create(:process_access, membership: membership, process_code: "CERTDC")
+      create(:process_access, membership: membership, process_code: "AEC")
+
+      expect(membership.process_codes).to contain_exactly("CERTDC", "AEC")
+    end
+
+    it "is empty without habilitation" do
+      expect(create(:membership).process_codes).to eq([])
+    end
+  end
 end
