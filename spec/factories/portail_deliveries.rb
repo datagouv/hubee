@@ -10,13 +10,21 @@ FactoryBot.define do
     last_name { "DUBOIS" }
   end
 
-  # L'organisation de l'agent des request specs : ce que l'amont sert doit lui appartenir.
+  # Par défaut l'organisation de l'agent des request specs : ce que l'amont sert doit lui
+  # appartenir. `membership:` prend l'organisation d'un rattachement donné.
   factory :portail_recipient, class: "Portail::Delivery::Recipient" do
     skip_create
     initialize_with { new(**attributes) }
 
-    siret { ProConnectTestHelper::TEST_SIRET }
-    insee_code { ProConnectTestHelper::TEST_INSEE_CODE }
+    transient { membership { nil } }
+
+    siret { membership ? membership.organization_link.siret : ProConnectTestHelper::TEST_SIRET }
+    insee_code { membership ? membership.organization_link.insee_code : ProConnectTestHelper::TEST_INSEE_CODE }
+
+    trait :of_another_organisation do
+      siret { "13002526500013" }
+      insee_code { "75056" }
+    end
   end
 
   factory :portail_data_stream, class: "Portail::DataStream" do
@@ -39,15 +47,22 @@ FactoryBot.define do
     skip_create
     initialize_with { new(**attributes) }
 
-    transient { data_stream_code { "CERTDC" } }
+    transient do
+      data_stream_code { "CERTDC" }
+      membership { nil }
+    end
 
     id { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
     data_stream { build(:portail_data_stream, code: data_stream_code) }
-    recipient { build(:portail_recipient) }
+    recipient { build(:portail_recipient, membership: membership) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
+
+    trait :of_another_organisation do
+      recipient { build(:portail_recipient, :of_another_organisation) }
+    end
   end
 
   factory :portail_attachment, class: "Portail::Delivery::Attachment" do
@@ -80,18 +95,25 @@ FactoryBot.define do
     skip_create
     initialize_with { new(**attributes) }
 
-    transient { data_stream_code { "CERTDC" } }
+    transient do
+      data_stream_code { "CERTDC" }
+      membership { nil }
+    end
 
     id { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
     data_stream { build(:portail_data_stream, code: data_stream_code) }
-    recipient { build(:portail_recipient) }
+    recipient { build(:portail_recipient, membership: membership) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
     applicant { build(:portail_applicant) }
     attachments { [build(:portail_attachment)] }
     events { [build(:portail_event)] }
+
+    trait :of_another_organisation do
+      recipient { build(:portail_recipient, :of_another_organisation) }
+    end
   end
 
   factory :portail_delivery_list, class: "Portail::Delivery::List" do
