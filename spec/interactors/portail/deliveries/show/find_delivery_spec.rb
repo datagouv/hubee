@@ -25,13 +25,18 @@ RSpec.describe Portail::Deliveries::Show::FindDelivery do
   # fausses lignes. Une inexistence n'est pas un incident, Sentry n'est pas réveillé.
   it "fails as not found, logged under an inspected identifier, when the upstream serves none" do
     expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
-    expect(Rails.logger).to receive(:info).with('Démarche introuvable en amont : "evil\nforged"')
     expect(Sentry).not_to receive(:capture_exception)
 
-    result = described_class.call(membership: membership, id: "evil\nforged")
+    result = nil
+    events = capture_semantic_logger_events do
+      result = described_class.call(membership: membership, id: "evil\nforged")
+    end
 
     expect(result).to be_failure
     expect(result.error).to eq(:not_found)
+    expect(events).to include(be_a_semantic_logger_event(
+      level: :info, message: 'Démarche introuvable en amont : "evil\nforged"'
+    ))
   end
 
   # Une panne est un incident : quelqu'un est réveillé.
@@ -49,12 +54,17 @@ RSpec.describe Portail::Deliveries::Show::FindDelivery do
   it "treats a refused argument as not found, logged and without alert" do
     expect(Portail::HubAPI::Deliveries).to receive(:find)
       .and_raise(Portail::HubAPI::InvalidRequest, "id is required")
-    expect(Rails.logger).to receive(:info).with('Démarche introuvable en amont : " "')
     expect(Sentry).not_to receive(:capture_exception)
 
-    result = described_class.call(membership: membership, id: " ")
+    result = nil
+    events = capture_semantic_logger_events do
+      result = described_class.call(membership: membership, id: " ")
+    end
 
     expect(result).to be_failure
     expect(result.error).to eq(:not_found)
+    expect(events).to include(be_a_semantic_logger_event(
+      level: :info, message: 'Démarche introuvable en amont : " "'
+    ))
   end
 end
