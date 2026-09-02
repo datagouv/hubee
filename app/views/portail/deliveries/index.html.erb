@@ -7,7 +7,7 @@
 
   <div class="fr-col-12 fr-col-md-8 fr-col-lg-9">
     <%# Le message vide reste à côté du menu : le compteur d'un autre état dit où aller. %>
-    <% if @list.deliveries.empty? %>
+    <% if @deliveries.empty? %>
       <p class="fr-text--lead"><%= t(".empty") %></p>
     <% else %>
       <p class="fr-text--sm fr-text-mention--grey">
@@ -31,7 +31,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <% @list.deliveries.each do |delivery| %>
+                  <% @deliveries.each do |delivery| %>
                     <tr>
                       <td><%= link_to delivery.number, demarche_path(delivery.id) %></td>
                       <td><%= delivery.data_stream.code %></td>
