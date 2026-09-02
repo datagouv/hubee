@@ -9,6 +9,25 @@ E2E_SIRET = "99999999911111"
   create(:membership, agent: @agent, organization_link: link)
 end
 
+# L'agent naît par la vraie surface HTTP, pas par les factories : c'est l'objet du scénario.
+# Le driver par défaut n'a pas de serveur — la session d'intégration joue la requête en process.
+Étantdonné("un agent créé par l'API avec son rattachement") do
+  OrganizationLink.find_or_create_by!(siret: E2E_SIRET, insee_code: "00001")
+  token = create(:oauth_access_token, application: create(:oauth_application, name: "hub-api"))
+
+  api = ActionDispatch::Integration::Session.new(Rails.application)
+  api.post "/api/v1/agents",
+    params: {agent: {
+      email: "agent@example.gouv.fr", first_name: "Alex", last_name: "Martin",
+      memberships: [{siret: E2E_SIRET, insee_code: "00001", role: "member"}]
+    }},
+    headers: {"Authorization" => "Bearer #{token.plaintext_token}"},
+    as: :json
+  raise "création API échouée : #{api.response.status} #{api.response.body}" unless api.response.status == 201
+
+  @agent = Agent.find_by!(email: "agent@example.gouv.fr")
+end
+
 # ProConnect simulé : l'URL d'autorisation boucle sur notre propre callback avec le state
 # attendu — le navigateur joue toute la chaîne de redirections, sans réseau.
 Étantdonné("ProConnect est prêt à l'authentifier") do
