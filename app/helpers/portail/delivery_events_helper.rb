@@ -11,12 +11,13 @@ module Portail
       delivery.events.select { |event| event.attachments.any? }
     end
 
-    # Du plus récent au plus ancien, à l'inverse de la gem : décision d'affichage. Les events
-    # sans date restent en queue, hors de l'inversion, pour ne pas passer pour les plus récents.
+    # Du plus récent au plus ancien, trié ici et non confié à l'amont ; à date égale, le rang
+    # d'arrivée départage. Les events sans date restent en queue, hors du tri.
     def delivery_events_by_month(delivery)
       dated, undated = delivery.events.partition(&:created_at)
+      newest_first = dated.sort_by.with_index { |event, rank| [event.created_at, rank] }.reverse
 
-      (dated.reverse + undated).group_by { |event| event.created_at&.beginning_of_month }
+      (newest_first + undated).group_by { |event| event.created_at&.beginning_of_month }
     end
 
     # Capitalisé : un titre de groupe, pas une date dans une phrase.
