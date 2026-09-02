@@ -52,7 +52,7 @@ module Portail
         def offset_for(page, per_page) = (page.to_i - 1) * per_page
 
         def page_of(list)
-          Portail::DeliveryList.new(
+          Portail::Delivery::List.new(
             deliveries: list.deliveries.map { |summary| summary_from(summary) },
             pagination: pagination_from(list.pagination),
             # `transform_keys` préserve l'ordre des états.
@@ -61,7 +61,7 @@ module Portail
         end
 
         def summary_from(summary)
-          Portail::DeliverySummary.new(
+          Portail::Delivery::Summary.new(
             id: summary.id,
             number: summary.number,
             state: summary.state.to_s,
@@ -93,7 +93,7 @@ module Portail
         end
 
         def attachment_from(attachment)
-          Portail::Attachment.new(
+          Portail::Delivery::Attachment.new(
             id: attachment.id,
             filename: attachment.filename,
             content_type: attachment.content_type,
@@ -104,7 +104,7 @@ module Portail
         end
 
         def event_from(event)
-          Portail::Event.new(
+          Portail::Delivery::Event.new(
             id: event.id,
             event_type: event.event_type.to_s,
             created_at: event.created_at,
@@ -127,7 +127,7 @@ module Portail
         def applicant_from(applicant)
           return if applicant.nil?
 
-          Portail::Applicant.new(first_name: applicant.first_name, last_name: applicant.last_name)
+          Portail::Delivery::Applicant.new(first_name: applicant.first_name, last_name: applicant.last_name)
         end
 
         def pagination_from(pagination)

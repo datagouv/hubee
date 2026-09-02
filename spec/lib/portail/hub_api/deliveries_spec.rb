@@ -21,8 +21,8 @@ RSpec.describe Portail::HubAPI::Deliveries do
       result = described_class.list(siret: siret, insee_code: insee_code, state: "acknowledged",
         data_stream_codes: [], page: 1, per_page: 25, client: client)
 
-      expect(result).to be_a(Portail::DeliveryList)
-      expect(result.deliveries).to all(be_a(Portail::DeliverySummary))
+      expect(result).to be_a(Portail::Delivery::List)
+      expect(result.deliveries).to all(be_a(Portail::Delivery::Summary))
       expect(result.deliveries.map(&:number)).to contain_exactly(
         "DGS-CERTDC-0000000000001-01", "DGS-CERTDC-0000000000002-01"
       )
@@ -100,7 +100,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
         number: "DGS-CERTDC-0000000000001-01", state: "acknowledged"
       )
       expect(result.data_stream.code).to eq("CERTDC")
-      expect(result.applicant).to be_a(Portail::Applicant)
+      expect(result.applicant).to be_a(Portail::Delivery::Applicant)
       expect(result.applicant.full_name).to eq("George DUBOIS")
     end
 
@@ -122,7 +122,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
         siret: siret, insee_code: insee_code, client: client)
 
-      expect(result.attachments).to all(be_a(Portail::Attachment))
+      expect(result.attachments).to all(be_a(Portail::Delivery::Attachment))
       expect(result.attachments.first).to have_attributes(
         filename: "certificat.pdf", content_type: "application/pdf",
         byte_size: 1024, kind: "VA_CertificatdeDeces", state: "received"
@@ -150,7 +150,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
         siret: siret, insee_code: insee_code, client: client)
 
-      expect(result.events).to all(be_a(Portail::Event))
+      expect(result.events).to all(be_a(Portail::Delivery::Event))
       expect(result.events.first).to have_attributes(
         event_type: "delivery.state_changed", author: "George DUBOIS",
         content: "Dossier pris en charge", si_comment: "retry #2"
@@ -199,7 +199,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
       result = described_class.empty_list(per_page: 25)
 
-      expect(result).to be_a(Portail::DeliveryList)
+      expect(result).to be_a(Portail::Delivery::List)
       expect(result.deliveries).to be_empty
       expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1)
       expect(result.counts_by_state.keys).to eq(
