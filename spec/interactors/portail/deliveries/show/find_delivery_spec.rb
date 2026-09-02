@@ -45,14 +45,16 @@ RSpec.describe Portail::Deliveries::Show::FindDelivery do
     expect(result.error).to eq(:unavailable)
   end
 
-  # Au détail, un paramètre refusé ne peut venir que de nos données : rangé avec les pannes.
-  it "treats a refused argument as an outage" do
-    expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::InvalidRequest)
-    expect(Sentry).to receive(:capture_exception)
+  # L'identifiant vient de l'URL : un robot qui balaie `/demarches/%20` noierait Sentry.
+  it "treats a refused argument as not found, logged and without alert" do
+    expect(Portail::HubAPI::Deliveries).to receive(:find)
+      .and_raise(Portail::HubAPI::InvalidRequest, "id is required")
+    expect(Rails.logger).to receive(:info).with('Démarche introuvable en amont : " "')
+    expect(Sentry).not_to receive(:capture_exception)
 
-    result = described_class.call(membership: membership, id: "an-id")
+    result = described_class.call(membership: membership, id: " ")
 
     expect(result).to be_failure
-    expect(result.error).to eq(:unavailable)
+    expect(result.error).to eq(:not_found)
   end
 end
