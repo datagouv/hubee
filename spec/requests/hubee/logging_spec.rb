@@ -35,4 +35,23 @@ RSpec.describe "Request logging", type: :request do
     expect(completed).to include(%(level="info"))
     expect(completed).to include(%(request_id="#{response.headers["X-Request-Id"]}"))
   end
+
+  # Les champs d'une décision d'accès sont des champs de la ligne, pas une chaîne échappée dans
+  # le message : un filtre sur `outcome=` ou `ip_address=` les voit. Le request_id, porté par le
+  # contexte de l'événement et par le tag nommé, ne sort qu'une fois.
+  it "writes an access decision with its fields at the first level of the line" do
+    log = Rails.root.join("log/test.log")
+    SemanticLogger.flush
+    offset = log.size
+
+    sign_in_via_proconnect(agent: create(:agent, provider_sub: "sub-logged"))
+
+    SemanticLogger.flush
+    decision = log.read(nil, offset).lines.grep(/message="Décision d'accès"/).first
+
+    expect(decision).to be_present
+    expect(decision).to include(%(event="Portail::Auth::Decision"), %(outcome="granted"),
+      %(ip_address="127.0.0.1"))
+    expect(decision.scan("request_id=").size).to eq(1)
+  end
 end
