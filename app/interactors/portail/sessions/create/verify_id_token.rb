@@ -5,6 +5,7 @@ module Portail
     class Create
       class VerifyIdToken
         include Interactor
+        include SemanticLogger::Loggable
 
         def call
           context.claims = Portail::ProConnect::TokenVerifier.call(
@@ -21,7 +22,7 @@ module Portail
         rescue Portail::ProConnect::Client::Unavailable => e
           # Vérifier la signature suppose d'aller chercher les clés publiques. ProConnect
           # muet, on ne peut ni accepter ni imputer quoi que ce soit à l'agent.
-          Rails.logger.error("[ProConnect] discovery unavailable: #{e.message}")
+          logger.error("Découverte ProConnect indisponible", e)
           context.fail!(error: :provider_unavailable)
         end
       end
