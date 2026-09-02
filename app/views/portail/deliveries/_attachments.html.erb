@@ -1,10 +1,6 @@
 <%# locals: (attachments:, caption:) %>
-<%# Un inventaire, pas un accès : l'amont ne sert aucun binaire, donc aucune ligne n'est un
-    lien. L'état vaut autant que le nom — une pièce rejetée ou corrompue est l'information que
-    l'agent n'a nulle part ailleurs.
-
-    La caption est exigée par le RGAA mais masquée par `fr-table--no-caption` : la section qui
-    appelle ce partial porte déjà le même titre à l'écran, le répéter le doublerait. %>
+<%# Un inventaire, pas un accès : l'amont ne sert aucun binaire, aucune ligne n'est un lien.
+    La caption, exigée par le RGAA, est masquée : la section qui appelle porte déjà le titre. %>
 <div class="fr-table fr-table--bordered fr-table--no-caption">
   <div class="fr-table__wrapper">
     <div class="fr-table__container">

@@ -10,21 +10,13 @@
  */
 
 /* delivery-summary : le récapitulatif d'une démarche (portail/deliveries/show).
-
-   La mise en page est celle du DSFR — c'est sa grille (fr-grid-row / fr-col-*) qui range les
-   couples, et ses classes utilitaires qui portent couleurs, graisses et espacements. Il ne
-   reste ici que la remise à plat du retrait par défaut du navigateur sur dd, que le DSFR ne
-   normalise pas : sans elle, chaque valeur se décale de sa propre étiquette. C'est un reset,
-   pas une décision de style — rien d'autre ne doit venir s'ajouter dans ce bloc. */
+   Un reset et rien d'autre : le DSFR ne normalise pas le retrait du navigateur sur dd. */
 .delivery-summary dd {
   margin-left: 0;
 }
 
 /* delivery-timeline : la frise de l'historique d'une démarche (portail/deliveries/show).
-
-   Le DSFR n'a pas de composant frise, donc la mise en page est à nous — mais AUCUNE couleur
-   ne l'est. Pastille, trait de liaison et fond d'entrée lisent les variables du système : le
-   bloc suit donc les thèmes clair, sombre et contrasté sans qu'on ait rien à y maintenir. */
+   Le DSFR n'a pas de composant frise ; la mise en page est à nous, aucune couleur ne l'est. */
 .delivery-timeline,
 .delivery-timeline__entries {
   list-style: none;
@@ -41,9 +33,7 @@
   color: var(--text-inverted-blue-france);
 }
 
-/* Le trait de liaison porté par la LISTE et non par un pseudo-élément sur chaque entrée : il
-   s'arrête ainsi de lui-même à la fin du groupe, sans qu'on ait à compter les enfants ni à
-   traiter le dernier à part. */
+/* Le trait porté par la liste et non par chaque entrée : il s'arrête de lui-même au dernier. */
 .delivery-timeline__entries {
   margin-left: 1rem;
   padding-left: 1.5rem;

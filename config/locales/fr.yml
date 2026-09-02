@@ -2,9 +2,8 @@ fr:
   app_name: HubEE
   tagline: Plateforme d'échange sécurisé de fichiers entre administrations
 
-  # Formats propres à la frise d'historique. Le jour de la semaine situe un événement bien
-  # mieux qu'une date seule quand on relit une instruction étalée sur plusieurs jours ; le
-  # format « mois » n'ouvre que les groupes de la frise.
+  # Formats de la frise d'historique : le jour de la semaine situe un événement dans une
+  # instruction étalée sur plusieurs jours.
   time:
     formats:
       timeline: "%A %d/%m - %H:%M"
@@ -94,8 +93,7 @@ fr:
         corrupted: Corrompue
         rejected: Rejetée
         deleted: Supprimée
-      # Ce que dit une ligne d'historique. Les libellés décrivent un FAIT déjà survenu — c'est
-      # un journal, pas une liste d'actions possibles.
+      # Un journal : chaque libellé décrit un fait survenu, pas une action possible.
       events:
         state_changed_html: "%{author} a modifié le statut : %{from} → %{to}"
         attachment_created_html: "%{author} a déposé une pièce"
@@ -105,8 +103,7 @@ fr:
         comment_added_html: "%{author} a ajouté un commentaire interne"
         unknown_html: "%{author} est intervenu sur la démarche"
         unknown_author: Un auteur inconnu
-        # Dit la CONSÉQUENCE et non le mécanisme : ce qui importe à l'agent n'est pas qu'un
-        # message soit sorti du hub, c'est que la personne concernée l'ait reçu.
+        # La conséquence et non le mécanisme : ce qui compte est que la personne l'ait reçu.
         broadcast: Information transmise à la personne concernée.
         undated_month: Sans date
       errors:
@@ -117,8 +114,7 @@ fr:
         previous: Page précédente
         next: Page suivante
         page: "Page %{number}"
-      # Partagés par la liste et le détail : ce sont des noms de champs, pas des en-têtes de
-      # colonnes propres au tableau.
+      # Partagés par la liste et le détail.
       fields:
         number: Numéro
         data_stream: Flux
@@ -149,8 +145,7 @@ fr:
         deposit_attachments_empty: Aucune pièce n'accompagnait le dépôt.
         added_attachments: Pièces ajoutées ensuite
         added_attachments_empty: Aucune pièce n'a été ajoutée depuis le dépôt.
-        # Dit franchement ce que HubEE peut et ne peut pas : l'amont ne sert pas les fichiers,
-        # et laisser croire le contraire ferait chercher un lien qui n'existe pas.
+        # L'amont ne sert pas les fichiers : le dire évite de chercher un lien qui n'existe pas.
         attachments_notice: Les pièces se consultent depuis votre système d'information. HubEE en présente l'inventaire.
         history: Historique
         history_empty: Aucun événement enregistré pour cette démarche.

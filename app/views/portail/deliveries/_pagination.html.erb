@@ -9,8 +9,7 @@
       <% delivery_pagination_pages(pagination).each do |page| %>
         <li>
           <% if page == :gap %>
-            <%# `fr-pagination__link` sur un span inerte : c'est le markup de référence DSFR,
-                et c'est lui qui aligne l'ellipse sur les segments voisins. %>
+            <%# Markup de référence DSFR : c'est cette classe qui aligne l'ellipse sur ses voisins. %>
             <span class="fr-pagination__link" aria-hidden="true">…</span>
           <% else %>
             <%= delivery_pagination_page page,
