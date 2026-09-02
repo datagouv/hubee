@@ -36,12 +36,6 @@ module Portail
           raise translated(e)
         end
 
-        # Construite par la gem : l'ordre et la complétude des compteurs d'états viennent du
-        # même endroit que ceux d'une vraie page.
-        def empty_list(per_page:)
-          page_of(HubApiV1::V2::DeliveryList.empty(per_page: per_page))
-        end
-
         private
 
         # Passer `nil` à la gem remplacerait son client par rien.

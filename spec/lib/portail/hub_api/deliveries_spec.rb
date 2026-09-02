@@ -191,24 +191,6 @@ RSpec.describe Portail::HubAPI::Deliveries do
     end
   end
 
-  describe ".empty_list" do
-    # Mêmes clés, même ordre et même graphie qu'une vraie page : c'est d'elle que vient
-    # l'ordre des états pour l'agent habilité sur aucun flux.
-    it "builds a complete empty page without calling the upstream" do
-      expect(HubApiV1::V2::Delivery).not_to receive(:list)
-
-      result = described_class.empty_list(per_page: 25)
-
-      expect(result).to be_a(Portail::Delivery::List)
-      expect(result.deliveries).to be_empty
-      expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1)
-      expect(result.counts_by_state.keys).to eq(
-        %w[transmitted acknowledged in_progress awaiting_documents done refused closed integration_error]
-      )
-      expect(result.counts_by_state.values).to all(eq(0))
-    end
-  end
-
   # Aucune exception de la gem ne doit survivre à cette couche.
   describe "error translation" do
     upstream_errors = {

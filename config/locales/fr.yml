@@ -130,9 +130,9 @@ fr:
         total:
           one: 1 démarche
           other: "%{count} démarches"
-        empty:
-          state: Aucune démarche dans cet état pour votre structure.
-          scope: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
+        empty: Aucune démarche dans cet état pour votre structure.
+      no_habilitation:
+        text: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
       show:
         title: "Démarche %{number} — HubEE"
         heading: "Démarche %{number}"
