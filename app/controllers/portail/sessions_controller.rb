@@ -113,7 +113,7 @@ module Portail
 
       redirect_to authorization.url, allow_other_host: true
     rescue Portail::ProConnect::Client::Unavailable => e
-      Rails.logger.error("[ProConnect] #{e.message}")
+      Rails.logger.error("ProConnect indisponible", e)
       redirect_to auth_failure_path
     end
 
