@@ -33,10 +33,10 @@ module Portail
     private
 
     # Une décision d'accès, pour le CSIRT : même canal que l'authentification, qui y joint le
-    # contexte de requête. Sans alerte : un refus qui fonctionne n'est pas une panne.
+    # contexte de requête.
     def refuse_access
-      Rails.event.notify("portail.access.refused", path: request.path,
-        agent_id: current_agent.id, membership_id: current_membership.id)
+      Rails.event.notify(Access::Decision.new(outcome: :refused, path: request.path,
+        agent_id: current_agent.id, membership_id: current_membership.id))
       not_found
     end
 
