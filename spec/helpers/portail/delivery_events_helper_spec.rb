@@ -14,8 +14,6 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
   end
 
   describe "#delivery_events_by_month" do
-    # Du plus récent au plus ancien, alors que la gem trie dans l'autre sens : ce qu'on vient
-    # chercher en ouvrant un historique, c'est ce qui s'est passé en dernier.
     it "opens on the most recent month and works backwards" do
       january = build(:portail_event, id: "jan", created_at: Time.zone.local(2026, 1, 10, 16, 16))
       february = build(:portail_event, id: "feb", created_at: Time.zone.local(2026, 2, 3, 9, 0))
@@ -36,11 +34,8 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
       expect(groups.values.first.map(&:id)).to eq(["last", "first"])
     end
 
-    # La gem range les events sans date en fin de liste : ils forment un dernier groupe, que le
-    # gabarit intitule à part. Les jeter serait perdre une ligne d'historique.
-    #
-    # Et ils ne suivent PAS l'inversion : les faire remonter en tête au seul motif qu'on
-    # renverse la liste les présenterait comme les plus récents, ce que personne ne sait.
+    # Les events sans date forment un dernier groupe et ne suivent pas l'inversion : remontés
+    # en tête, ils passeraient pour les plus récents.
     it "keeps the undated events last, out of the reversal" do
       dated = build(:portail_event, id: "dated", created_at: Time.zone.local(2026, 1, 10))
       undated = build(:portail_event, id: "undated", created_at: nil)
@@ -52,8 +47,7 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
       expect(groups.keys.last).to be_nil
     end
 
-    # Les deux frontières d'un mois tombent dans le même groupe : c'est le mois qui groupe,
-    # pas une fenêtre glissante autour de chaque event.
+    # C'est le mois qui groupe, pas une fenêtre glissante autour de chaque event.
     it "groups both ends of a month together" do
       opening = build(:portail_event, id: "first-day", created_at: Time.zone.local(2026, 1, 1, 0, 0))
       closing = build(:portail_event, id: "last-day", created_at: Time.zone.local(2026, 1, 31, 23, 59))
@@ -67,7 +61,7 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
   end
 
   describe "#delivery_event_month" do
-    # Deux mois, dont un accentué : la capitale doit tenir aussi sur une initiale non ASCII.
+    # Un mois accentué : la capitale doit tenir sur une initiale non ASCII.
     it "titles the group with its own month, capitalised" do
       expect(helper.delivery_event_month(Time.zone.local(2026, 1, 1))).to eq("Janvier 2026")
       expect(helper.delivery_event_month(Time.zone.local(2026, 8, 1))).to eq("Août 2026")
@@ -87,8 +81,7 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
         .to eq("George DUBOIS a modifié le statut : Transmise → Traitée")
     end
 
-    # L'auteur vient de l'amont : il est mis en gras, donc interpolé dans une clé `_html`, et
-    # doit ressortir échappé. Sans quoi un nom porteur de balises s'exécuterait dans la page.
+    # L'auteur vient de l'amont et est interpolé dans une clé `_html`.
     it "escapes the author rather than trusting the upstream" do
       event = build(:portail_event, author: "<script>alert(1)</script>")
 
@@ -102,8 +95,7 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
         .to start_with("Un auteur inconnu")
     end
 
-    # Le type seul ne distingue pas un téléchargement unitaire d'un téléchargement en masse :
-    # seule la metadata le dit, et l'agent n'a pas à confondre les deux.
+    # Seule la metadata distingue un téléchargement unitaire d'un téléchargement en masse.
     it "tells a bulk download from a single one" do
       single = build(:portail_event, event_type: "attachment.downloaded", metadata: {})
       bulk = build(:portail_event, event_type: "attachment.downloaded", metadata: {bulk: true})
@@ -131,9 +123,7 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
         .to end_with("a déposé une pièce")
     end
 
-    # L'amont peut ajouter un type sans nous prévenir, et il sert déjà `unknown` de lui-même
-    # quand il ne sait pas qualifier une ligne. Une ligne datée sans phrase précise vaut mieux
-    # qu'une page qui tombe.
+    # L'amont sert déjà `unknown` quand il ne sait pas qualifier une ligne.
     it "keeps an event the upstream could not qualify" do
       event = build(:portail_event, event_type: "unknown", metadata: {})
 
@@ -143,8 +133,7 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
   end
 
   describe "#delivery_event_broadcast?" do
-    # `== false` et non `!` : une clé absente ne veut pas dire « diffusé ». Un changement
-    # d'état n'a rien promis à personne, et l'annoncer serait un mensonge à l'agent.
+    # Une clé absente ne veut pas dire « diffusé ».
     it "only marks what the upstream says left the hub" do
       sent = build(:portail_event, metadata: {internal: false})
       internal = build(:portail_event, metadata: {internal: true})
@@ -157,9 +146,7 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
   end
 
   describe "#delivery_event_time" do
-    # Le jour de la semaine situe l'événement bien mieux qu'une date seule quand on relit une
-    # instruction étalée sur plusieurs jours. Deux jours distincts : la capitale et le jour
-    # doivent venir de la date, pas d'un libellé figé.
+    # Deux jours distincts : la capitale et le jour doivent venir de la date.
     it "situates each event with its own weekday" do
       saturday = build(:portail_event, created_at: Time.zone.local(2026, 1, 10, 16, 16))
       monday = build(:portail_event, created_at: Time.zone.local(2026, 1, 12, 8, 5))

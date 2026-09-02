@@ -8,15 +8,12 @@ RSpec.describe Portail::Applicant do
       expect(build(:portail_applicant).full_name).to eq("George DUBOIS")
     end
 
-    # Les deux moitiés sont facultatives en amont : sans ce nettoyage, un demandeur sans
-    # prénom s'afficherait avec une espace en tête.
     it "leaves no stray space when a half is missing" do
       expect(build(:portail_applicant, first_name: nil).full_name).to eq("DUBOIS")
       expect(build(:portail_applicant, last_name: "").full_name).to eq("George")
     end
 
-    # Le cas limite : un demandeur servi sans aucune moitié. La chaîne vide laisse l'appelant
-    # décider de son repli — c'est ce que fait delivery_applicant avec son tiret.
+    # La chaîne vide laisse l'appelant décider de son repli.
     it "returns an empty string when both halves are missing" do
       expect(build(:portail_applicant, first_name: nil, last_name: "").full_name).to eq("")
     end

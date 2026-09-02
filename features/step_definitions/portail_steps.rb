@@ -91,9 +91,8 @@ end
 
 # --- Démarches ------------------------------------------------------------------------------
 #
-# L'API amont est jouée par le client bouchonné de la gem, posé par features/support/world.rb :
-# aucune de nos classes n'est stubbée, c'est bien toute la chaîne — routes, policy, query object,
-# couche de traduction, gabarits — qui est traversée dans un vrai navigateur.
+# L'API amont est jouée par le client bouchonné de la gem (features/support/world.rb) : aucune
+# de nos classes n'est stubbée, toute la chaîne est traversée dans un vrai navigateur.
 
 Étantdonné("il est habilité sur le flux {string}") do |code|
   create(:process_access, membership: Membership.find_by!(agent: @agent), process_code: code)
@@ -142,14 +141,10 @@ end
 Alors("il voit le détail de la démarche, demandeur compris") do
   expect(page).to have_css("h1", text: "Démarche DGS-CERTDC-0000000000001-01")
   expect(page).to have_text("CERTDC")
-  # Le demandeur est absent de la liste servie en amont, présent au détail : c'est ce qui
-  # distingue les deux écrans, et donc ce que ce scénario doit constater.
+  # Le demandeur est absent de la liste, présent au détail : ce qui distingue les deux écrans.
   expect(page).to have_text("George DUBOIS")
 end
 
-# Les deux magasins de pièces et l'historique traversent ici toute la chaîne : ce que le client
-# bouchonné sert passe par la gem, la traduction et les gabarits sans qu'aucune de nos classes
-# soit stubbée. C'est le seul endroit qui le prouve.
 Alors("il voit l'inventaire des pièces et l'historique") do
   expect(page).to have_css("h2", text: "Pièces du dépôt")
   expect(page).to have_text("certificat.pdf")

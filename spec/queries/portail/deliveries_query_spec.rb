@@ -2,9 +2,9 @@
 
 require "rails_helper"
 
-# Ce que le query object décide — la taille de page, le court-circuit d'un périmètre vide, et
-# d'où vient le couple qui identifie l'organisation. Le dialogue avec l'amont est éprouvé une
-# seule fois, dans le spec de Portail::HubAPI.
+# Ce que le query object décide : la taille de page, le court-circuit d'un périmètre vide et
+# l'origine du couple qui identifie l'organisation. Le dialogue avec l'amont est éprouvé dans
+# le spec de Portail::HubAPI.
 RSpec.describe Portail::DeliveriesQuery do
   let(:membership) do
     create(:membership,
@@ -12,9 +12,7 @@ RSpec.describe Portail::DeliveriesQuery do
   end
 
   describe "#call" do
-    # Le couple identifie l'organisation à lui seul et l'amont ne vérifie rien à notre place :
-    # il doit venir du rattachement. Sans cet exemple, une régression qui le prendrait ailleurs
-    # — un paramètre de requête — ouvrirait le périmètre d'une autre structure.
+    # Le couple doit venir du rattachement : pris ailleurs, il ouvrirait une autre structure.
     it "takes the organisation perimeter and the page size from the membership" do
       expect(Portail::HubAPI::Deliveries).to receive(:list).with(
         siret: "22770001000019", insee_code: "77372", state: "transmitted",
@@ -35,8 +33,7 @@ RSpec.describe Portail::DeliveriesQuery do
       described_class.new(membership).call(state: "acknowledged", perimeter: perimeter, page: 2)
     end
 
-    # Un périmètre vide ne doit exiger ni appel, ni credentials — et surtout pas partir en aval,
-    # où une liste de codes vide vaut « aucun filtre », donc tout le périmètre de l'organisation.
+    # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut « aucun filtre ».
     it "serves a complete empty page without calling the upstream" do
       expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
@@ -48,15 +45,13 @@ RSpec.describe Portail::DeliveriesQuery do
       expect(result.counts_by_state.values).to all(eq(0))
     end
 
-    # Rien ne doit être accordé à qui ne dit rien : le défaut d'un périmètre serait forcément
-    # le plus large, et l'oubli passerait sans erreur ni trace.
+    # Le défaut d'un périmètre serait forcément le plus large.
     it "refuses to run without an explicit perimeter" do
       expect { described_class.new(membership).call(state: "transmitted") }
         .to raise_error(ArgumentError)
     end
 
     it "hands the injected client through to the boundary" do
-      # Un jeton opaque : ce que le query object en fait est de le transmettre, rien de plus.
       client = double("upstream client")
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .with(hash_including(client: client))

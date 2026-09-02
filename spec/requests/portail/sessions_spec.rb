@@ -12,7 +12,7 @@ RSpec.describe "Portail::Sessions", type: :request do
 
         expect(response).to redirect_to(root_path)
         follow_redirect!
-        # La racine renvoie l'agent connecté sur ses démarches : une redirection de plus.
+        # La racine renvoie l'agent connecté sur ses démarches.
         expect(response).to redirect_to(demarches_path)
         follow_redirect!
         expect(response).to have_http_status(:success)
@@ -285,8 +285,7 @@ RSpec.describe "Portail::Sessions", type: :request do
 
       expect(response).to redirect_to(root_path)
       follow_redirect!
-      # La session est toujours ouverte : la racine renvoie donc sur les démarches. L'alerte,
-      # pas encore rendue, survit à cette redirection supplémentaire.
+      # Session toujours ouverte : la racine renvoie sur les démarches, l'alerte survit.
       follow_redirect!
       expect(Capybara.string(response.body)).to have_text("Cette page n'était plus à jour")
     ensure
@@ -317,8 +316,7 @@ RSpec.describe "Portail::Sessions", type: :request do
     end
   end
 
-  # Plus « le tableau de bord » : un agent connecté est renvoyé sur ses démarches, et c'est
-  # la mise en page — commune aux deux — qui porte ce qu'on vérifie ici.
+  # La mise en page, commune à toutes les pages connectées, porte ce qu'on vérifie ici.
   describe "the signed-in portal" do
     # La déconnexion redirige vers ProConnect (cross-origin). Turbo ne sait pas rendre
     # une telle redirection et laisse la page inchangée : la session est bien détruite
@@ -329,8 +327,6 @@ RSpec.describe "Portail::Sessions", type: :request do
       sign_in_via_proconnect(agent:)
 
       get root_path
-      # La racine renvoie l'agent connecté sur ses démarches, où la même mise en page rend
-      # le formulaire de déconnexion.
       follow_redirect!
 
       expect(Capybara.string(response.body)).to have_css("form[action='/logout'][data-turbo='false']")

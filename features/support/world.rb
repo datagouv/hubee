@@ -9,9 +9,8 @@ require "hub_api_v1/testing"
 World(FactoryBot::Syntax::Methods)
 World(HubApiV1::Testing::Factories)
 
-# La racine renvoie l'agent connecté sur ses démarches : tout scénario qui se connecte traverse
-# donc l'API amont. Le client bouchonné de la gem la neutralise sans stubber aucune de nos
-# classes. Reposé à chaque scénario pour qu'aucun cas ajouté par l'un ne fuite vers le suivant.
+# Tout scénario connecté traverse l'API amont. Reposé à chaque scénario pour qu'aucun cas
+# ajouté par l'un ne fuite vers le suivant.
 Before do
   HubApiV1.client = HubApiV1::Testing::FakeClient.new
 end
@@ -20,8 +19,8 @@ After do
   HubApiV1.reset_client!
 end
 
-# L'organisation de l'agent E2E, dans le vocabulaire de l'amont : le client bouchonné filtre
-# les dossiers sur ce couple, comme le fait l'API.
+# L'organisation de l'agent E2E dans le vocabulaire de l'amont : le client bouchonné filtre
+# sur ce couple, comme l'API.
 module DeliveryWorld
   def e2e_recipient = build_v2_recipient(siret: E2E_SIRET, code_insee: "00001")
 end

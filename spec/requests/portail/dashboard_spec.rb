@@ -19,8 +19,7 @@ RSpec.describe "Portail::Dashboard", type: :request do
       expect(response).to redirect_to(demarches_path)
     end
 
-    # Le rôle ne change pas la porte d'entrée : l'administrateur local arrive sur les
-    # démarches comme le membre — son rôle ne joue que sur le périmètre de la liste.
+    # Le rôle ne change pas la porte d'entrée, seulement le périmètre de la liste.
     it "sends a signed-in local administrator to the same deliveries entrance" do
       agent = create(:agent, provider_sub: "sub-admin-local")
       sign_in_via_proconnect(agent: agent)

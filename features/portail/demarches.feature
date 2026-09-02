@@ -24,16 +24,14 @@ Fonctionnalité: Les démarches de l'organisation
     Quand il ouvre la démarche "DGS-CERTDC-0000000000001-01"
     Alors il voit l'inventaire des pièces et l'historique
 
-  # Le filtre de statut de l'amont n'accepte qu'une valeur : chaque état est une page, et
-  # c'est bien une navigation — pas un basculement d'onglet dans la page.
+  # Chaque état est une page : une navigation, pas un onglet.
   Scénario: L'agent passe d'un état à l'autre par le menu latéral
     Étant donné l'API amont sert aussi une démarche traitée pour son organisation
     Et il s'est connecté
     Quand il filtre sur l'état "Traitée"
     Alors la liste est celle de l'état "Traitée"
 
-  # L'habilitation par flux est la nôtre à refuser : l'API amont ne borne que sur
-  # l'organisation, elle servirait ce dossier sans broncher.
+  # L'amont ne borne que sur l'organisation : le refus par flux est le nôtre.
   Scénario: Une démarche hors habilitation reste fermée
     Étant donné l'API amont sert aussi une démarche sur un flux non habilité
     Et il s'est connecté

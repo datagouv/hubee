@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-# Les modèles du portail, ceux que voient les contrôleurs, les vues et les policies. Les
-# factories de la gem (`build_v2_*`) ne servent plus qu'à la frontière — le spec de
-# Portail::HubAPI et l'intégration Cucumber.
+# Les modèles du portail. Les factories de la gem (`build_v2_*`) ne servent qu'à la frontière.
 FactoryBot.define do
   factory :portail_applicant, class: "Portail::Applicant" do
     skip_create
@@ -32,7 +30,6 @@ FactoryBot.define do
     skip_create
     initialize_with { new(**attributes) }
 
-    # Transient : les exemples désignent un flux par son code, la factory construit l'objet.
     transient { data_stream_code { "CERTDC" } }
 
     id { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
@@ -92,8 +89,7 @@ FactoryBot.define do
 
     deliveries { [] }
     pagination { build(:portail_pagination) }
-    # Emprunté à la page vide plutôt que recopié : les états et leur ordre n'ont qu'une seule
-    # source, et une liste de test ne doit pas pouvoir en inventer une seconde.
+    # Emprunté à la page vide plutôt que recopié : les états n'ont qu'une source.
     counts_by_state {
       Portail::HubAPI::Deliveries.empty_list(per_page: Portail::DeliveriesQuery::PER_PAGE)
         .counts_by_state

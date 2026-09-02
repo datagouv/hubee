@@ -4,8 +4,7 @@ require "rails_helper"
 
 RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
   describe "#delivery_state_menu_link" do
-    # Deux états, deux liens : le libellé, la cible et le compteur doivent venir de l'état et
-    # du compte reçus, pas d'un rendu figé.
+    # Deux états : le libellé, la cible et le compteur doivent venir des valeurs reçues.
     it "links each state to its page and carries its count" do
       acknowledged = helper.delivery_state_menu_link("acknowledged", 12, current: false)
       done = helper.delivery_state_menu_link("done", 3, current: false)
@@ -15,16 +14,13 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
       expect(Capybara.string(done)).to have_link("Traitée 3", href: "/demarches?statut=done")
     end
 
-    # Un état sans démarche reste une entrée du menu : son zéro est une information — c'est
-    # lui qui dit à l'agent qu'il n'y a rien à traiter là.
+    # Le zéro est une information : il dit qu'il n'y a rien à traiter là.
     it "keeps an empty state in the menu with its zero" do
       link = helper.delivery_state_menu_link("refused", 0, current: false)
 
       expect(Capybara.string(link)).to have_link("Refusée 0", href: "/demarches?statut=refused")
     end
 
-    # DSFR marque l'entrée active par `aria-current`, pas par une classe : c'est cet attribut
-    # qui porte à la fois le rendu et l'annonce aux technologies d'assistance.
     it "marks the active state as the current page" do
       link = helper.delivery_state_menu_link("acknowledged", 12, current: true)
 
@@ -39,9 +35,7 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
   end
 
   describe "#delivery_pagination_step" do
-    # Le DSFR exige un `title` sur les segments de pagination : sous le point de rupture LG, le
-    # libellé est rogné par le CSS et l'infobulle est ce qui reste au pointeur. Éprouvé sur les
-    # deux états — un segment désactivé reste rendu, il doit rester explicite lui aussi.
+    # Un segment désactivé reste rendu : il doit rester explicite lui aussi.
     it "titles the step whether it leads somewhere or not" do
       reachable = helper.delivery_pagination_step("Page suivante", "next", href: "/demarches?page=2")
       disabled = helper.delivery_pagination_step("Page précédente", "prev")
@@ -60,17 +54,13 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
       expect(helper.delivery_pagination_pages(pagination)).to eq([1, 2, 3, 4])
     end
 
-    # Une liste de plusieurs centaines de pages ferait un pied plus long que le tableau : on
-    # garde les extrémités, la page courante et ses voisines, et on marque les trous.
     it "keeps the ends and the current neighbourhood, and marks the gaps" do
       pagination = build(:portail_pagination, current_page: 20, total_pages: 40)
 
       expect(helper.delivery_pagination_pages(pagination)).to eq([1, :gap, 19, 20, 21, :gap, 40])
     end
 
-    # Aux extrémités, il n'y a qu'un seul trou : une ellipse de part et d'autre suggérerait des
-    # pages qui n'existent pas. Éprouvé aux deux bouts — un fenêtrage qui ne saurait compter
-    # que vers la droite passerait un test à sens unique.
+    # Éprouvé aux deux bouts : un fenêtrage à sens unique passerait un test à sens unique.
     it "opens no gap where the neighbourhood already touches an end" do
       low = build(:portail_pagination, current_page: 2, total_pages: 40)
       high = build(:portail_pagination, current_page: 39, total_pages: 40)
@@ -79,8 +69,6 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
       expect(helper.delivery_pagination_pages(high)).to eq([1, :gap, 38, 39, 40])
     end
 
-    # Les positions extrêmes de la page courante : la fenêtre ne doit ni déborder sous 1, ni
-    # au-delà de la dernière page.
     it "stays within bounds when the current page is an end itself" do
       first = build(:portail_pagination, current_page: 1, total_pages: 40)
       last = build(:portail_pagination, current_page: 40, total_pages: 40)
@@ -89,8 +77,6 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
       expect(helper.delivery_pagination_pages(last)).to eq([1, :gap, 39, 40])
     end
 
-    # Le gabarit ne rend pas de pagination à une page, mais le helper reste défini dessus :
-    # personne n'a à connaître cette convention pour l'appeler sans risque.
     it "serves the single page when there is only one" do
       pagination = build(:portail_pagination, current_page: 1, total_pages: 1)
 

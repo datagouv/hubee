@@ -2,13 +2,10 @@
 
 require "rails_helper"
 
-# Le portail ne connaît que ses propres modèles : ces exemples bouchonnent Portail::HubAPI et
-# construisent des Portail::Delivery. Ce que la gem rend et comment il est traduit est éprouvé
-# dans le spec de la frontière ; que la chaîne entière tienne, dans les scénarios Cucumber.
+# Ces exemples bouchonnent Portail::HubAPI et construisent des Portail::Delivery. La traduction
+# de la gem est éprouvée dans le spec de la frontière, la chaîne entière dans Cucumber.
 RSpec.describe "Portail::Deliveries", type: :request do
-  # Le cas standard du portail : un agent membre, habilité sur le flux des démarches servies.
-  # Les exemples d'affichage se jouent dans cette situation ; les autres combinaisons rôle ×
-  # habilitation vivent dans les contextes « reading perimeter ».
+  # Le cas standard du portail : un membre habilité sur le flux des démarches servies.
   def sign_in_member(process_codes: ["CERTDC"])
     agent = create(:agent, provider_sub: "sub-membre")
     sign_in_via_proconnect(agent: agent)
@@ -46,7 +43,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .with(hash_including(state: "transmitted", page: 1))
-        # Le hash complet que reçoit la frontière est éprouvé dans le spec du query object.
+        # Le hash complet est éprouvé dans le spec du query object.
         .and_return(build(:portail_delivery_list))
 
       get "/demarches"
@@ -55,15 +52,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "honours the state and the page requested as parameters" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
-        # Le hash complet que reçoit la frontière est éprouvé dans le spec du query object.
+        # Le hash complet est éprouvé dans le spec du query object.
         .with(hash_including(state: "acknowledged", page: 2))
         .and_return(build(:portail_delivery_list))
 
       get "/demarches", params: {statut: "acknowledged", page: "2"}
     end
 
-    # Le menu ne connaît aucune liste d'états : il rend ce que l'amont a compté, dans l'ordre
-    # reçu. Un état ajouté en amont apparaîtrait donc sans qu'on touche à un gabarit.
+    # Le menu rend ce que l'amont a compté, dans l'ordre reçu : aucune liste d'états ici.
     it "offers every state the upstream counted, with its total" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
@@ -94,8 +90,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .to have_css("nav.fr-sidemenu a[aria-current='page']", text: "Traitée")
     end
 
-    # Le menu SURVIT à l'état vide : sorti du quadrillage, le message laisserait l'agent
-    # devant une page sans issue, alors que le compteur d'un autre état lui dit où aller.
+    # Le menu survit à l'état vide : le compteur d'un autre état dit à l'agent où aller.
     it "keeps the state menu alongside an empty state" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
@@ -111,8 +106,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .to have_link("Traitée 41", href: "/demarches?statut=done")
     end
 
-    # L'amont ne sert qu'un état à la fois : une colonne « État » serait constante sur toute
-    # la hauteur du tableau, et le titre comme le menu le disent déjà.
+    # L'amont ne sert qu'un état à la fois : une colonne « État » serait constante.
     it "does not repeat the filtered state on every row" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
@@ -126,8 +120,6 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(headers).to eq(["Numéro", "Flux", "Transmise le", "Mise à jour le"])
     end
 
-    # L'échelle avant la lecture : douze dossiers ou sept cents ne se parcourent pas de la
-    # même façon, et ça ne se déduit pas d'un numéro de dernière page.
     it "announces how many deliveries there are before the first row" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
@@ -142,8 +134,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("637 démarches")
     end
 
-    # Décision de produit : un filtre que l'amont refuse donne une erreur affichée. Le
-    # réinitialiser en silence rendrait une liste qui ne dit pas ce qu'elle montre.
+    # Un filtre refusé donne une erreur affichée, jamais un filtre réinitialisé en silence.
     it "shows the refusal when the upstream rejects the requested filter" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
@@ -155,9 +146,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("L'état ou la page demandés n'existent pas")
     end
 
-    # Un paramètre non scalaire — `?statut[]=…`, forgé à la main — suit le même chemin qu'une
-    # valeur inconnue : sérialisé en chaîne, refusé par l'amont, montré à l'agent. Rien n'est
-    # bouchonné en deçà de la frontière : c'est le vrai refus de la gem qui doit se produire.
+    # Rien n'est bouchonné en deçà de la frontière : c'est le vrai refus de la gem qui se produit.
     it "shows the refusal for a non-scalar state parameter" do
       sign_in_member
       use_hub_api_fake_client
@@ -180,7 +169,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     it "explains the lack of habilitation instead of showing a mute empty table" do
       sign_in_member(process_codes: [])
-      # Un périmètre vide ne part jamais en aval — il y vaudrait « aucun filtre ».
+      # Un périmètre vide ne part jamais en aval : il y vaudrait « aucun filtre ».
       expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
       get "/demarches"
@@ -201,9 +190,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
     end
 
-    # Le pendant du précédent, et la moitié qui compte : un robot qui balaie des URL suffirait
-    # à noyer Sentry sous des refus parfaitement normaux. La distinction ne tient qu'à ces deux
-    # exemples — le code, lui, ne dit pas tout seul qu'il ne faut pas alerter.
+    # Un robot qui balaie des URL noierait Sentry sous des refus normaux.
     it "does not report a filter the upstream refuses" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::InvalidRequest)
@@ -212,21 +199,17 @@ RSpec.describe "Portail::Deliveries", type: :request do
       get "/demarches", params: {statut: "n-importe-quoi"}
     end
 
-    # `?page=` vide est ce qu'un formulaire soumet avec un champ vide, pas un paramètre
-    # trafiqué : il retombe sur la première page au lieu de produire une page d'erreur.
+    # `?page=` vide est ce qu'un formulaire soumet avec un champ vide, pas un paramètre trafiqué.
     it "falls back to the first page when the page parameter is empty" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
-        # Seule la page est l'objet de cet exemple ; le reste du hash est éprouvé plus haut.
         .with(hash_including(page: 1))
         .and_return(build(:portail_delivery_list))
 
       get "/demarches", params: {page: ""}
     end
 
-    # La factory fixe `total_pages` à 1 : sans un résultat multi-pages, tout le partial reste un
-    # chemin mort, que la couverture de branche ne signale pas — elle n'instrumente pas les
-    # gabarits.
+    # La couverture n'instrumente pas les gabarits : sans cet exemple, le partial est un chemin mort.
     it "renders the pagination when the result spans several pages" do
       sign_in_member
       pagination = build(:portail_pagination, current_page: 2, total_pages: 5)
@@ -242,11 +225,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
       page = Capybara.string(response.body)
       expect(page).to have_link("Page précédente", href: demarches_path(statut: "transmitted", page: 1))
       expect(page).to have_link("Page suivante", href: demarches_path(statut: "transmitted", page: 3))
-      # La page courante est marquée et n'est pas un lien : c'est ce que DSFR met en évidence.
+      # La page courante est marquée et n'est pas un lien.
       expect(page).to have_css("a.fr-pagination__link[aria-current='page']", text: "2")
     end
 
-    # L'ellipse porte la classe DSFR du segment : c'est elle qui l'aligne sur ses voisins.
     it "marks the elided pages with the DSFR segment" do
       sign_in_member
       pagination = build(:portail_pagination, current_page: 20, total_pages: 40)
@@ -262,8 +244,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(elided.map { |span| span.text.strip }).to eq(["…", "…"])
     end
 
-    # Les contrôles restent rendus et désactivés plutôt que de disparaître : un contrôle qui
-    # s'évanouit entre deux pages déplace la navigation sous l'utilisateur.
+    # Un contrôle qui disparaît entre deux pages déplace la navigation sous l'utilisateur.
     it "keeps the previous control in place, disabled, on the first page" do
       sign_in_member
       pagination = build(:portail_pagination, current_page: 1, total_pages: 3)
@@ -280,11 +261,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .to have_css("a.fr-pagination__link--prev[aria-disabled='true']:not([href])")
     end
 
-    # La matrice rôle × habilitation, côté liste. Une liste d'habilitations renseignée borne
-    # tout le monde, administrateur local compris ; le rôle ne tranche que le sens d'une liste
-    # vide. La règle est éprouvée dans le spec de la policy — ici, on constate ce qui part
-    # réellement à la frontière pour chaque combinaison. Le cas « membre sans habilitation »
-    # vit plus haut, avec le message qui l'explique.
+    # La matrice rôle × habilitation côté liste : ce qui part réellement à la frontière. La
+    # règle elle-même est éprouvée dans le spec de la policy.
     context "reading perimeter" do
       it "filters the list on the codes a member is habilitated to" do
         sign_in_member(process_codes: ["CERTDC", "AEC"])
@@ -344,9 +322,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("George DUBOIS")
     end
 
-    # La ligne reste affichée avec son repli : la masquer ferait disparaître une information
-    # sans dire qu'elle manque. Nokogiri plutôt que Capybara — c'est la valeur rattachée à ce
-    # libellé précis qu'on vérifie, donc une position dans le DOM.
+    # Nokogiri : c'est la valeur rattachée à ce libellé précis qu'on vérifie, donc une position.
     it "renders the applicant line with its fallback when there is no applicant" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find)
@@ -377,8 +353,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_css("p.fr-badge", text: "Rejetée")
     end
 
-    # L'amont ne sert aucun binaire : la page doit le DIRE, sinon l'agent cherche un lien qui
-    # n'existe pas. Et surtout, aucune ligne de l'inventaire ne doit prétendre en être un.
+    # L'amont ne sert aucun binaire : la page le dit, et aucune ligne ne prétend être un lien.
     it "promises no download it cannot honour" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
@@ -393,8 +368,6 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(rows).to be_empty
     end
 
-    # Deux magasins en amont, deux sections ici : une pièce arrivée en cours d'instruction ne
-    # dit pas la même chose qu'une pièce déposée d'emblée, et la fusionner perdrait son quand.
     it "keeps the pieces added later in their own section, with their provenance" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
@@ -417,8 +390,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_text("Camille MARTIN")
     end
 
-    # RGAA : chaque tableau porte un titre. En `<caption>` masqué visuellement — les sections
-    # ont déjà leur titre à l'écran, et celui d'un inventaire d'event dit aussi sa provenance.
+    # RGAA : chaque tableau porte un titre, et celui d'un inventaire d'event dit sa provenance.
     it "titles each attachments table for assistive technologies" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
@@ -471,8 +443,6 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_text("Dossier pris en charge")
     end
 
-    # La frise groupe par mois : sans ce repère, une instruction étalée sur un trimestre
-    # devient une colonne d'horodatages où plus rien ne se situe.
     it "opens a group per month in the history" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
@@ -491,8 +461,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("Samedi 10/01 - 16:16")
     end
 
-    # Ce que l'amont promet à la personne concernée, et seulement quand il le promet : un
-    # changement d'état n'a rien transmis à personne, l'annoncer serait mentir à l'agent.
+    # Seulement quand l'amont le promet : un changement d'état n'a rien transmis à personne.
     it "notes what actually reached the applicant, and nothing else" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
@@ -521,15 +490,12 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       expect(response).to have_http_status(:success)
 
-      # Assertion négative seule : la note absente est tout l'objet de l'exemple, et la page
-      # rendue autour d'elle est déjà éprouvée par l'exemple précédent.
+      # Assertion négative seule : la note absente est tout l'objet de l'exemple.
       expect(Capybara.string(response.body))
         .to have_no_text("Information transmise à la personne concernée.")
     end
 
-    # Réservé aux SI par le contrat amont, affiché sur décision métier du 2026-09-01. Cet
-    # exemple est le garde-fou de cette décision : si elle s'inverse, c'est lui qui tombe et
-    # qui rappelle où se fait la coupure.
+    # Le garde-fou de la décision d'afficher `si_comment` : si elle s'inverse, c'est lui qui tombe.
     it "shows the SI comment, as decided, and labels it for what it is" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
@@ -558,14 +524,12 @@ RSpec.describe "Portail::Deliveries", type: :request do
       page = Capybara.string(response.body)
       expect(page).to have_css("nav.fr-breadcrumb a[aria-current='page']",
         text: "DGS-CERTDC-0000000000001-01")
-      # L'état ouvre le récapitulatif et n'en sort pas : le sortir du bloc le ferait flotter
-      # sous le titre, ce dont on vient précisément de le tirer.
+      # L'état ouvre le récapitulatif et n'en sort pas.
       expect(page).to have_css("dl.delivery-summary p.fr-badge.fr-badge--success", text: "Traitée")
     end
 
-    # Le récapitulatif se lit en couples libellé/valeur, chacun dans sa cellule de grille. Sans
-    # l'enveloppe, dt et dd deviennent deux cellules indépendantes et le libellé se décroche de
-    # sa valeur — un défaut que seul l'œil attrape, d'où cet exemple sur la structure.
+    # Sans l'enveloppe, dt et dd deviennent deux cellules indépendantes et le libellé se
+    # décroche de sa valeur : un défaut que seul l'œil attrape.
     it "pairs every summary label with its own value" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
@@ -580,9 +544,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(cells.map { |cell| cell.css("dd").count }).to all(eq(1))
     end
 
-    # Le quoi et le qui portent le gras, les dates passent en gris discret. Tout mettre au
-    # même niveau typographique revient à ne rien mettre en avant — c'est l'agent qui ferait
-    # le tri à chaque lecture, et c'est précisément ce qu'on lui épargne ici.
+    # Le quoi et le qui en gras, les dates en gris : tout au même niveau ne mettrait rien en avant.
     it "ranks the summary instead of flattening it" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
@@ -599,9 +561,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(muted).to eq(2)
     end
 
-    # Deux rangs et non un seul de cinq : ce qu'on vient chercher devant, les horodatages
-    # derrière. C'est aussi ce qui laisse aux dates écrites en entier la largeur de tenir sur
-    # une ligne — les serrer en quart de bloc annulerait le gain du format long.
+    # Deux rangs : les dates écrites en entier ont besoin d'une demi-largeur.
     it "splits the summary into what is sought and what merely situates it" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
@@ -630,15 +590,15 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
     end
 
-    # L'identifiant vient de l'URL et finit au journal : des retours à la ligne passés en
-    # douce y forgeraient de fausses lignes. Il est donc journalisé sous forme inspectée.
+    # L'identifiant vient de l'URL et finit au journal : des retours à la ligne y forgeraient
+    # de fausses lignes.
     it "logs the unknown identifier without letting it forge log lines" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
       lines = []
       expect(Rails.logger).to receive(:info).at_least(:once) { |line| lines << line }
 
-      # La redirection vers la liste n'est pas suivie : seul le journal est l'objet ici.
+      # La redirection n'est pas suivie : seul le journal est l'objet ici.
       get "/demarches/evil%0Aforged"
 
       line = lines.grep(/introuvable/).first
@@ -646,15 +606,12 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(line).not_to include("\n")
     end
 
-    # La matrice rôle × habilitation, côté détail — le trou que ferme la policy : la liste ne
-    # montre pas une démarche hors habilitation, mais son identifiant suffirait à l'ouvrir si
-    # personne ne vérifiait à l'entrée. Même règle qu'à la liste : une habilitation nommée
-    # borne aussi l'administrateur local, le rôle ne joue qu'à habilitations vides.
+    # La matrice rôle × habilitation côté détail, le trou que ferme la policy : la liste ne
+    # montre pas une démarche hors habilitation, mais son identifiant suffirait à l'ouvrir.
     context "reading perimeter" do
       def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
 
-      # La redirection retraverse la liste ; son contenu n'est pas l'objet de ces exemples.
-      # Sauf périmètre vide — qui n'appelle jamais l'amont —, l'exemple pose ce bouchon.
+      # La redirection retraverse la liste ; sauf périmètre vide, qui n'appelle jamais l'amont.
       def expect_the_list_to_be_retraversed
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(build(:portail_delivery_list))
       end

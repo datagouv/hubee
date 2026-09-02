@@ -2,18 +2,15 @@
 
 require "rails_helper"
 
-# La frontière avec la gem : c'est le SEUL spec du portail qui a le droit de nommer
-# `HubApiV1`, et le seul qui utilise ses factories et son client bouchonné. Partout ailleurs
-# le portail ne connaît que ses propres modèles — c'est ce que cette couche achète.
+# La frontière avec la gem : le seul spec du portail qui nomme `HubApiV1` et utilise ses
+# factories et son client bouchonné.
 RSpec.describe Portail::HubAPI::Deliveries do
   let(:siret) { HubApiV1::Testing::Factories::DEFAULT_SIRET }
   let(:insee_code) { HubApiV1::Testing::Factories::DEFAULT_CODE_INSEE }
 
   describe ".list" do
-    # Le chemin complet, sans mock sur la surface de la gem : ce que le FakeClient sert
-    # traverse la gem puis la traduction, et ressort en modèles du portail.
-    # Deux démarches aux valeurs distinctes : chaque ligne doit ressortir avec les siennes —
-    # une traduction qui recopierait la première passerait un test à une seule démarche.
+    # Deux démarches aux valeurs distinctes : une traduction qui recopierait la première
+    # passerait un test à une seule démarche.
     it "translates an upstream page into portal models" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_case(build_v2_delivery)
@@ -34,8 +31,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1, total: 2)
     end
 
-    # Le canal des entrées : le portail parle en `insee_code` et en pages, l'amont attend
-    # `code_insee` et un décalage. Hash complet — un paramètre inattendu doit se voir.
+    # Hash complet : un paramètre inattendu doit se voir.
     it "sends the portal vocabulary as the upstream keywords" do
       client = HubApiV1::Testing::FakeClient.new
       expect(HubApiV1::V2::Delivery).to receive(:list).with(
@@ -47,8 +43,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
         data_stream_codes: ["CERTDC"], page: 3, per_page: 25, client: client)
     end
 
-    # Sans client injecté, la gem résout le sien à l'intérieur : le lui passer à nil le
-    # remplacerait par rien et couperait le chemin nominal.
+    # Passer `nil` à la gem remplacerait son client par rien.
     it "leaves the upstream client out when none is injected" do
       expect(HubApiV1::V2::Delivery).to receive(:list).with(
         siret: siret, code_insee: insee_code, state: :transmitted,
@@ -59,10 +54,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
         data_stream_codes: [], page: 1, per_page: 25)
     end
 
-    # Ces deux exemples ne bouchonnent RIEN : c'est le vrai refus de l'amont qui doit se
-    # produire, sinon ils ne prouvent que notre traduction d'un refus imaginaire. Ils tombent
-    # donc aussi bien si l'amont cesse de valider avant réseau que si le portail réintroduit
-    # une garde qui rattrape le paramètre avant lui.
+    # Rien n'est bouchonné : c'est le vrai refus de l'amont qui doit se produire.
     it "lets an unknown state reach the upstream refusal" do
       client = HubApiV1::Testing::FakeClient.new
 
@@ -72,8 +64,6 @@ RSpec.describe Portail::HubAPI::Deliveries do
       }.to raise_error(Portail::HubAPI::InvalidRequest)
     end
 
-    # Une page trafiquée produit un décalage négatif, que l'amont refuse : le refus remonte à
-    # l'agent plutôt que de réinitialiser son filtre en silence.
     it "lets an unusable page reach the upstream refusal" do
       client = HubApiV1::Testing::FakeClient.new
 
@@ -83,8 +73,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       }.to raise_error(Portail::HubAPI::InvalidRequest)
     end
 
-    # Les compteurs donnent au portail l'ordre des états, et lui seul : cet ordre doit donc
-    # survivre à la traduction, en même temps que la graphie.
+    # Les compteurs donnent au portail l'ordre des états : il doit survivre à la traduction.
     it "carries the state counts complete, ordered and in the portal spelling" do
       client = HubApiV1::Testing::FakeClient.new
 
@@ -115,8 +104,6 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result.applicant.full_name).to eq("George DUBOIS")
     end
 
-    # Le demandeur vient du paquet de données, et l'amont peut le servir sans. Sans cet
-    # exemple, la branche qui rend `applicant` nul n'est jamais empruntée.
     it "renders no applicant when the upstream serves none" do
       expect(HubApiV1::V2::Delivery).to receive(:find)
         .and_return(build_v2_delivery(data_package: nil))
@@ -127,9 +114,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result.applicant).to be_nil
     end
 
-    # Les pièces du dépôt. L'état arrive en Symbol de l'amont et doit ressortir en String,
-    # comme l'état de la démarche : le portail ne manipule qu'une graphie, et la conversion
-    # vit dans cette couche seule.
+    # L'état arrive en Symbol et doit ressortir en String, comme celui de la démarche.
     it "translates the deposit attachments into portal attachments" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_case(build_v2_delivery)
@@ -144,9 +129,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       )
     end
 
-    # Le paquet de données est absent chez certaines démarches : ni demandeur, ni pièces. La
-    # liste vide et non nil — l'écran compte les pièces sans avoir à se demander si le
-    # conteneur existe.
+    # Liste vide et non nil : l'écran compte les pièces sans se demander si le conteneur existe.
     it "yields no attachment when the upstream serves no data package" do
       expect(HubApiV1::V2::Delivery).to receive(:find)
         .and_return(build_v2_delivery(data_package: nil))
@@ -176,9 +159,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
         .to have_attributes(filename: "complement.pdf", state: "received")
     end
 
-    # La metadata porte des états en Symbol côté amont. Ils traversent la même conversion que
-    # partout ailleurs, sinon l'historique irait chercher ses libellés sur une graphie que le
-    # reste du portail n'emploie pas.
+    # Les états de la metadata suivent la même conversion que partout ailleurs.
     it "renders the event metadata states in the portal spelling" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_case(build_v2_delivery(events: [build_v2_event]))
@@ -190,8 +171,6 @@ RSpec.describe Portail::HubAPI::Deliveries do
         .to eq({from_state: "transmitted", to_state: "acknowledged"})
     end
 
-    # La metadata n'est pas toujours faite d'états : un booléen doit traverser intact, sans
-    # être transformé en chaîne au passage.
     it "leaves a non-state metadata value untouched" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_case(build_v2_delivery(events: [build_v2_event(event_type: :"message.created")]))
@@ -213,8 +192,8 @@ RSpec.describe Portail::HubAPI::Deliveries do
   end
 
   describe ".empty_list" do
-    # Le portail court-circuite l'appel quand l'agent n'est habilité sur aucun flux ; la liste
-    # vide reste construite ici pour que l'ordre des états vienne toujours du même endroit.
+    # Mêmes clés, même ordre et même graphie qu'une vraie page : c'est d'elle que vient
+    # l'ordre des états pour l'agent habilité sur aucun flux.
     it "builds a complete empty page without calling the upstream" do
       expect(HubApiV1::V2::Delivery).not_to receive(:list)
 
@@ -223,8 +202,6 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result).to be_a(Portail::DeliveryList)
       expect(result.deliveries).to be_empty
       expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1)
-      # Mêmes clés, même ordre et même graphie qu'une vraie page : c'est cette liste-ci que
-      # voit l'agent habilité sur aucun flux, et c'est d'elle que viendrait l'ordre des onglets.
       expect(result.counts_by_state.keys).to eq(
         %w[transmitted acknowledged in_progress awaiting_documents done refused closed integration_error]
       )
@@ -232,7 +209,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
     end
   end
 
-  # Le canal des erreurs : aucune exception de la gem ne doit survivre à cette couche.
+  # Aucune exception de la gem ne doit survivre à cette couche.
   describe "error translation" do
     upstream_errors = {
       "a delivery the upstream does not serve" => {
