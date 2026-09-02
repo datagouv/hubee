@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::SensitiveProcesses do
+RSpec.describe Portail::Access::SensitiveProcesses do
   describe ".parse" do
     it "reads a comma separated list, whatever the spacing and the case" do
       expect(described_class.parse("SGR,dsg , Gro")).to eq(%w[SGR DSG GRO])

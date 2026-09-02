@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::AuthenticationLevels do
+RSpec.describe Portail::Access::AuthenticationLevels do
   # C'est la raison d'être de ce module : les trois listes vivaient séparément et rien
   # n'exprimait qu'elles devaient rester d'accord. Ajouter un niveau MFA doit désormais
   # suffire à le rendre acceptable, sans seconde modification.

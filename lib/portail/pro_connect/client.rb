@@ -112,7 +112,7 @@ module Portail
 
         def requested_acr_values(step_up) = demanded(step_up).join(" ")
 
-        def demanded(step_up) = Portail::AuthenticationLevels.demanded(step_up:)
+        def demanded(step_up) = Portail::Access::AuthenticationLevels.demanded(step_up:)
 
         def client
           discovered = config

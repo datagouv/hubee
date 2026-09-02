@@ -2,8 +2,8 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::SecondFactor do
-  before { stub_const("Portail::SensitiveProcesses::CODES", %w[SGR]) }
+RSpec.describe Portail::Access::SecondFactor do
+  before { stub_const("Portail::Access::SensitiveProcesses::CODES", %w[SGR]) }
 
   def membership_with(process_code, *traits)
     create(:membership, *traits).tap do |membership|
