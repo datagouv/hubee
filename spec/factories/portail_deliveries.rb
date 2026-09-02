@@ -2,7 +2,7 @@
 
 # Les modèles du portail. Les factories de la gem (`build_v2_*`) ne servent qu'à la frontière.
 FactoryBot.define do
-  factory :portail_applicant, class: "Portail::Applicant" do
+  factory :portail_applicant, class: "Portail::Delivery::Applicant" do
     skip_create
     initialize_with { new(**attributes) }
 
@@ -26,7 +26,7 @@ FactoryBot.define do
     total { 1 }
   end
 
-  factory :portail_delivery_summary, class: "Portail::DeliverySummary" do
+  factory :portail_delivery_summary, class: "Portail::Delivery::Summary" do
     skip_create
     initialize_with { new(**attributes) }
 
@@ -40,7 +40,7 @@ FactoryBot.define do
     updated_at { 1.hour.ago }
   end
 
-  factory :portail_attachment, class: "Portail::Attachment" do
+  factory :portail_attachment, class: "Portail::Delivery::Attachment" do
     skip_create
     initialize_with { new(**attributes) }
 
@@ -52,7 +52,7 @@ FactoryBot.define do
     state { "received" }
   end
 
-  factory :portail_event, class: "Portail::Event" do
+  factory :portail_event, class: "Portail::Delivery::Event" do
     skip_create
     initialize_with { new(**attributes) }
 
@@ -83,7 +83,7 @@ FactoryBot.define do
     events { [build(:portail_event)] }
   end
 
-  factory :portail_delivery_list, class: "Portail::DeliveryList" do
+  factory :portail_delivery_list, class: "Portail::Delivery::List" do
     skip_create
     initialize_with { new(**attributes) }
 
