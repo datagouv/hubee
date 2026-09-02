@@ -1,37 +1,30 @@
 # frozen_string_literal: true
 
 module Portail
-  # Traduit un rattachement et un périmètre déjà autorisé en demande de liste. La décision
-  # d'autorisation appartient à Portail::DeliveryPolicy::Scope, que le contrôleur applique via
-  # policy_scope ; le dialogue avec l'amont appartient à Portail::HubAPI. Ce query object porte
-  # l'un et appelle l'autre, et reste le seul objet à savoir d'où viennent les démarches.
+  # Traduit un rattachement et un périmètre déjà autorisé en demande de liste. L'autorisation
+  # appartient à la policy, le dialogue avec l'amont à Portail::HubAPI.
   class DeliveriesQuery
     PER_PAGE = 25
 
-    # L'arrivée dans le périmètre de l'agent : ce qu'il n'a pas encore pris en charge. Ouvrir
-    # sur un état terminal ferait d'une page d'accueil une archive. Appliqué par le contrôleur,
-    # qui a besoin de l'état résolu pour la vue — et par lui seul.
+    # Ce que l'agent n'a pas encore pris en charge : ouvrir sur un état terminal ferait d'une
+    # page d'accueil une archive.
     DEFAULT_STATE = "transmitted"
 
-    # `client:` n'existe que pour l'injection en test — sur le chemin nominal, la gem gère
-    # elle-même son jeton et son cache.
+    # `client:` n'existe que pour l'injection en test.
     def initialize(membership, client: nil)
       @membership = membership
       @client = client
     end
 
-    # `state:` et `perimeter:` sont requis, sans valeur par défaut : le défaut d'un périmètre
-    # serait forcément le plus large, et un appelant qui l'oublierait obtiendrait toute
-    # l'organisation sans erreur ni trace.
+    # `perimeter:` sans défaut : le défaut serait forcément le plus large, et un oubli
+    # ouvrirait toute l'organisation sans erreur ni trace.
     def call(state:, perimeter:, page: 1)
-      # Un périmètre vide ne doit exiger ni appel, ni credentials — et surtout pas partir en
-      # aval, où une liste de codes vide vaut « aucun filtre », donc tout le périmètre.
+      # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut « aucun filtre ».
       return HubAPI::Deliveries.empty_list(per_page: PER_PAGE) if perimeter.none?
 
       HubAPI::Deliveries.list(
-        # Le couple identifie l'organisation à lui seul et l'amont ne vérifie rien à notre
-        # place : il vient du rattachement de l'agent authentifié, jamais d'un paramètre de
-        # requête.
+        # Le couple vient du rattachement authentifié, jamais d'un paramètre de requête :
+        # l'amont ne vérifie rien à notre place.
         siret: link.siret,
         insee_code: link.insee_code,
         state: state,

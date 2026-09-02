@@ -2,43 +2,32 @@
 
 module Portail
   # L'historique d'une démarche : la frise groupée par mois et la phrase de chaque event.
-  # Le socle des champs (replis, libellés d'état) vit dans DeliveriesHelper, inclus ici.
   module DeliveryEventsHelper
     include Portail::DeliveriesHelper
 
-    # Les events qui ont apporté une pièce. La section « ajoutées ensuite » s'organise par
-    # event et non par pièce : c'est la provenance — qui, quand — qui justifie de tenir ces
-    # pièces à part de celles du dépôt.
+    # Par event et non par pièce : c'est la provenance, qui et quand, qui distingue ces pièces
+    # de celles du dépôt.
     def delivery_events_with_attachments(delivery)
       delivery.events.select { |event| event.attachments.any? }
     end
 
-    # Du plus RÉCENT au plus ancien, quand la gem trie dans l'autre sens : l'inversion est une
-    # décision d'affichage, elle vit donc ici. `group_by` conserve l'ordre d'arrivée, inverser
-    # les events suffit à faire sortir les mois dans le même ordre.
-    #
-    # Les events sans date restent en QUEUE, hors de l'inversion : les faire remonter en tête
-    # au seul motif qu'on renverse la liste les présenterait comme les plus récents.
+    # Du plus récent au plus ancien, à l'inverse de la gem : décision d'affichage. Les events
+    # sans date restent en queue, hors de l'inversion, pour ne pas passer pour les plus récents.
     def delivery_events_by_month(delivery)
       dated, undated = delivery.events.partition(&:created_at)
 
       (dated.reverse + undated).group_by { |event| event.created_at&.beginning_of_month }
     end
 
-    # Capitalisé : le français écrit les mois en minuscule, mais cette étiquette est un titre
-    # de groupe, pas une date dans une phrase.
+    # Capitalisé : un titre de groupe, pas une date dans une phrase.
     def delivery_event_month(month)
       return t("portail.deliveries.events.undated_month") if month.nil?
 
       l(month, format: :month).capitalize
     end
 
-    # Une phrase et non une étiquette : « X a déposé une pièce » se lit d'un trait. Le type
-    # seul ne suffit pas à la choisir — deux téléchargements ne se distinguent que par leur
-    # metadata, et un message diffusé n'est pas un commentaire interne.
-    #
-    # Clés en `_html` : l'auteur vient de l'amont, `tag.strong` l'échappe et l'interpolation
-    # d'une clé `_html` échappe tout ce qui n'est pas déjà sûr.
+    # Une phrase, choisie par le type et la metadata : deux téléchargements ne se distinguent
+    # que par elle. Clés `_html` : `tag.strong` échappe l'auteur, qui vient de l'amont.
     def delivery_event_sentence(event)
       author = tag.strong(event.author.presence || t("portail.deliveries.events.unknown_author"))
 
@@ -54,20 +43,17 @@ module Portail
         t("portail.deliveries.events.#{event.metadata[:internal] ? "comment_added" : "message_sent"}_html",
           author: author)
       else
-        # Même repli que les états : une ligne datée sans phrase vaut mieux qu'une page qui
-        # tombe faute d'un type d'event que l'amont a ajouté sans nous prévenir.
+        # Même repli que les états : un type ajouté en amont ne fait pas tomber la page.
         t("portail.deliveries.events.#{event.event_type.tr(".", "_")}_html", author: author,
           default: t("portail.deliveries.events.unknown_html", author: author))
       end
     end
 
-    # Ce que l'amont dit d'un message SORTI du hub. `== false` et non `!`: la metadata ne
-    # porte `internal` que sur les messages, et une clé absente ne veut pas dire « diffusé »
-    # — un changement d'état n'a rien promis à personne.
+    # `== false` et non `!` : la clé n'existe que sur les messages, absente ne veut pas dire
+    # « diffusé ».
     def delivery_event_broadcast?(event) = event.metadata[:internal] == false
 
-    # Le jour de la semaine situe l'événement quand on relit une instruction étalée sur
-    # plusieurs jours.
+    # Le jour de la semaine situe l'événement dans une instruction étalée sur plusieurs jours.
     def delivery_event_time(event)
       return MISSING if event.created_at.nil?
 

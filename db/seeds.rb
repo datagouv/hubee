@@ -1,15 +1,9 @@
 # Seeds pour développement
 # Usage : bin/rails db:seed
 
-# Les semis créent des comptes fonctionnels habilités, donc capables de lire des démarches :
-# rien de tout cela ne doit pouvoir naître d'un `db:seed` lancé en production.
-#
-# `local?` et non `development?` : la CI valide ce fichier en environnement test.
-#
-# REVIEW_APP rouvre la porte, et elle seule : une review app tourne en production — même image,
-# même configuration — mais n'a pas d'autre source de données que ces semis, donc pas un seul
-# compte connectable sans eux. La variable n'est posée que par le workflow de déploiement des
-# review apps ; l'absence de défaut la rend inopérante partout ailleurs.
+# Les semis créent des comptes habilités : rien de tout cela ne doit naître en production.
+# `local?` et non `development?` : la CI valide ce fichier en test. REVIEW_APP rouvre la porte
+# pour les review apps, qui tournent en production sans autre source de données.
 unless Rails.env.local? || ENV["REVIEW_APP"] == "true"
   puts "⏭️  Semis ignorés hors développement, test et review app (#{Rails.env})"
   return

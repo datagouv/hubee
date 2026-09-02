@@ -1,27 +1,22 @@
 # frozen_string_literal: true
 
-# La gem vit dans un groupe hors `default` : Bundler ne l'auto-requiert jamais, il faut la
-# demander là où on la consomme. Ce fichier est le seul endroit du portail qui la consomme.
+# La gem vit dans un groupe hors `default` : Bundler ne l'auto-requiert pas.
 require "hub_api_v1"
 
 module Portail
   module HubAPI
-    # Les démarches, traduites dans les deux sens. Trois canaux, et rien ne doit fuir sur aucun
-    # des trois : les entrées partent du vocabulaire du portail vers les mots-clés de la gem,
-    # les sorties reviennent en modèles du portail, les erreurs en erreurs de Portail::HubAPI.
+    # Les démarches, traduites dans les deux sens : entrées vers les mots-clés de la gem,
+    # sorties en modèles du portail, erreurs en erreurs de Portail::HubAPI.
     module Deliveries
       class << self
         def list(siret:, insee_code:, state:, data_stream_codes:, page:, per_page:, client: nil)
           page_of(
             HubApiV1::V2::Delivery.list(
               siret: siret,
-              # Même donnée, deux graphies : la couture vit ici et nulle part ailleurs.
               code_insee: insee_code,
-              # L'état est une String dans le portail, un Symbol en amont. La conversion vit
-              # ici, dans les deux sens, et nulle part ailleurs.
+              # String dans le portail, Symbol en amont : la conversion vit ici seulement.
               state: state.to_sym,
               data_stream_codes: data_stream_codes,
-              # Le portail compte en pages, l'amont en décalage.
               offset: offset_for(page, per_page),
               per_page: per_page,
               **injected(client)
@@ -41,28 +36,26 @@ module Portail
           raise translated(e)
         end
 
-        # La page vide d'un refus décidé avant l'appel — l'agent habilité sur aucun flux.
-        # Construite par la gem : l'ordre et la complétude des compteurs d'états viennent ainsi
-        # du même endroit que ceux d'une vraie page.
+        # Construite par la gem : l'ordre et la complétude des compteurs d'états viennent du
+        # même endroit que ceux d'une vraie page.
         def empty_list(per_page:)
           page_of(HubApiV1::V2::DeliveryList.empty(per_page: per_page))
         end
 
         private
 
-        # Transmis seulement s'il a été injecté : absent, c'est la gem qui résout le sien.
-        # Le lui passer à nil le remplacerait par rien et couperait le chemin nominal.
+        # Passer `nil` à la gem remplacerait son client par rien.
         def injected(client) = client ? {client: client} : {}
 
-        # `to_i` : la page peut arriver en String par cette frontière publique. Trafiquée,
-        # elle donne 0, donc un décalage négatif — c'est l'amont qui refuse.
+        # `to_i` : la page peut arriver en String. Trafiquée, elle donne 0, donc un décalage
+        # négatif que l'amont refuse.
         def offset_for(page, per_page) = (page.to_i - 1) * per_page
 
         def page_of(list)
           Portail::DeliveryList.new(
             deliveries: list.deliveries.map { |summary| summary_from(summary) },
             pagination: pagination_from(list.pagination),
-            # `transform_keys` préserve l'ordre d'insertion : celui des états survit.
+            # `transform_keys` préserve l'ordre des états.
             counts_by_state: list.counts_by_state.transform_keys(&:to_s)
           )
         end
@@ -87,15 +80,14 @@ module Portail
             transmitted_at: delivery.transmitted_at,
             updated_at: delivery.updated_at,
             applicant: applicant_from(delivery.data_package&.applicant),
-            # Les pièces du dépôt seulement : celles apportées par un event restent sur lui,
-            # les fusionner perdrait la provenance que l'écran montre.
+            # Les pièces du dépôt seulement : celles d'un event restent sur lui, l'écran montre
+            # leur provenance.
             attachments: attachments_from(delivery.data_package&.attachments),
             events: delivery.events.map { |event| event_from(event) }
           )
         end
 
-        # `Array()` : le paquet de données peut manquer entièrement, et l'écran n'a pas à
-        # distinguer « aucune pièce » de « pas de paquet ».
+        # `Array()` : le paquet de données peut manquer entièrement.
         def attachments_from(attachments)
           Array(attachments).map { |attachment| attachment_from(attachment) }
         end
@@ -107,7 +99,6 @@ module Portail
             content_type: attachment.content_type,
             byte_size: attachment.byte_size,
             kind: attachment.kind,
-            # Même couture que l'état d'une démarche.
             state: attachment.state.to_s
           )
         end
@@ -125,14 +116,12 @@ module Portail
           )
         end
 
-        # `transform_values` et non une liste de clés connues : l'amont peut ajouter une
-        # metadata sans nous prévenir, et une clé oubliée laisserait entrer une graphie que le
-        # portail n'emploie pas. Ce qui n'est pas un Symbol traverse intact.
+        # `transform_values` et non une liste de clés : l'amont peut ajouter une metadata sans
+        # nous prévenir. Ce qui n'est pas un Symbol traverse intact.
         def metadata_from(metadata)
           metadata.transform_values { |value| value.is_a?(Symbol) ? value.to_s : value }
         end
 
-        # Le portail ne lit que le code, mais porte l'objet — cf. Portail::DataStream.
         def data_stream_from(data_stream) = Portail::DataStream.new(code: data_stream.code)
 
         def applicant_from(applicant)
@@ -148,8 +137,8 @@ module Portail
           )
         end
 
-        # La classe d'origine est conservée dans le message : l'appelant journalise l'erreur
-        # traduite, et sans elle le diagnostic perdrait ce qui distingue une panne d'un refus.
+        # La classe d'origine reste dans le message : c'est elle qui distingue une panne d'un
+        # refus au journal.
         def translated(error)
           case error
           when HubApiV1::V2::DeliveryNotFoundError then NotFound.new(error.message)
