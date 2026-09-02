@@ -2,11 +2,6 @@
 
 module Portail
   class DeliveriesController < Portail::BaseController
-    # Ici et non sur BaseController : `SessionsController#authorize` masque la méthode de Pundit.
-    # `except:` et non `only:` : une action ajoutée demain reste couverte par les deux gardes.
-    after_action :verify_authorized, except: :index
-    after_action :verify_policy_scoped, except: :show
-
     def index
       @state = requested_state
       # Pundit déduit la policy du nom de la classe : un modèle ActiveRecord n'est pas requis.
