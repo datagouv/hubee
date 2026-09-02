@@ -11,14 +11,13 @@ module Portail
           context.delivery = HubAPI::Deliveries.find(
             id: context.id, siret: link.siret, insee_code: link.insee_code
           )
-        rescue HubAPI::NotFound
-          # `inspect` : l'identifiant vient de l'URL, des retours à la ligne y forgeraient de
-          # fausses lignes de journal.
+        rescue HubAPI::NotFound, HubAPI::InvalidRequest
+          # `InvalidRequest` vaut introuvable : seul l'identifiant vient de l'URL, et un robot qui
+          # balaie `/demarches/%20` noierait Sentry. `inspect` : contre les faux retours à la ligne.
           Rails.logger.info("Démarche introuvable en amont : #{context.id.inspect}")
           context.fail!(error: :not_found)
         rescue HubAPI::Error => e
-          # `InvalidRequest` rangé avec les pannes : au détail, un paramètre refusé ne peut venir
-          # que de nos données. Journalisé en plus de Sentry : sans DSN, rien ne sortirait.
+          # Journalisé en plus de Sentry : sans DSN, rien ne sortirait.
           Rails.logger.error("Démarches indisponibles — #{e.class} : #{e.message}")
           Sentry.capture_exception(e)
           context.fail!(error: :unavailable)
