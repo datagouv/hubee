@@ -107,7 +107,6 @@ fr:
         broadcast: Information transmise à la personne concernée.
         undated_month: Sans date
       errors:
-        not_found: Cette démarche est introuvable ou hors de votre périmètre.
         unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
         invalid_request: L'état ou la page demandés n'existent pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
       pagination:
@@ -198,6 +197,7 @@ fr:
     errors:
       back_home: Retour à l'accueil
       stale_page: Cette page n'était plus à jour, elle a été rechargée.
+      unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
       not_found:
         title: Page introuvable — HubEE
         heading: Page introuvable

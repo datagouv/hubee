@@ -575,19 +575,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(cells.count { |classes| classes.include?("fr-col-md-6") }).to eq(2)
     end
 
-    it "gives the same message when the delivery does not exist" do
+    it "renders a not found page when the delivery does not exist" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
-      # La redirection retraverse la liste : son contenu n'est pas l'objet de cet exemple.
-      expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(build(:portail_delivery_list))
 
       get "/demarches/#{delivery_id}"
 
-      expect(response).to redirect_to(demarches_path)
-      follow_redirect!
-
-      expect(response).to have_http_status(:success)
-      expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
+      expect(response).to have_http_status(:not_found)
+      expect(Capybara.string(response.body)).to have_text("Page introuvable")
     end
 
     # L'identifiant vient de l'URL et finit au journal : des retours à la ligne y forgeraient
@@ -598,7 +593,6 @@ RSpec.describe "Portail::Deliveries", type: :request do
       lines = []
       expect(Rails.logger).to receive(:info).at_least(:once) { |line| lines << line }
 
-      # La redirection n'est pas suivie : seul le journal est l'objet ici.
       get "/demarches/evil%0Aforged"
 
       line = lines.grep(/introuvable/).first
@@ -611,19 +605,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
     context "reading perimeter" do
       def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
 
-      # La redirection retraverse la liste ; sauf périmètre vide, qui n'appelle jamais l'amont.
-      def expect_the_list_to_be_retraversed
-        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(build(:portail_delivery_list))
-      end
-
-      def expect_refusal_and_return_to_the_list
+      # La même page qu'une démarche inexistante : distinguer les deux révélerait l'existence
+      # d'une démarche hors périmètre.
+      def expect_a_not_found_page
         get "/demarches/#{delivery_id}"
 
-        expect(response).to redirect_to(demarches_path)
-        follow_redirect!
-
-        expect(response).to have_http_status(:success)
-        expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
+        expect(response).to have_http_status(:not_found)
+        expect(Capybara.string(response.body)).to have_text("Page introuvable")
+        expect(Capybara.string(response.body)).to have_no_text("DGS-CERTDC-0000000000001-01")
       end
 
       def expect_the_delivery_to_open
@@ -640,19 +629,31 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect_the_delivery_to_open
       end
 
-      it "refuses a member on a delivery outside their habilitations" do
-        sign_in_member(process_codes: ["AEC"])
+      # Seul le journal distingue un refus d'une inexistence : c'est lui qui laisse voir un
+      # agent qui balaie des identifiants hors de son habilitation. Sur le canal des décisions
+      # d'accès, celui que lit le CSIRT, de bout en bout jusqu'à l'appel au logger.
+      it "refuses a member on a delivery outside their habilitations, and logs the refusal" do
+        agent = sign_in_member(process_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
-        expect_the_list_to_be_retraversed
+        decisions = []
+        expect(Rails.logger).to receive(:info).at_least(:once) do |message, fields|
+          decisions << fields if message == "Décision d'accès"
+        end
 
-        expect_refusal_and_return_to_the_list
+        expect_a_not_found_page
+
+        membership = Membership.find_by!(agent: agent)
+        expect(decisions).to include(a_hash_including(
+          event: "portail.access.refused", path: "/demarches/#{delivery_id}",
+          agent_id: agent.id, membership_id: membership.id, ip_address: "127.0.0.1"
+        ))
       end
 
       it "refuses a member without any habilitation" do
         sign_in_member(process_codes: [])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
-        expect_refusal_and_return_to_the_list
+        expect_a_not_found_page
       end
 
       it "opens any delivery to a local administrator without habilitation" do
@@ -672,9 +673,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "refuses a local administrator on a delivery outside their habilitations" do
         sign_in_local_administrator(process_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
-        expect_the_list_to_be_retraversed
 
-        expect_refusal_and_return_to_the_list
+        expect_a_not_found_page
       end
     end
   end
