@@ -94,7 +94,7 @@ module Portail
       terminate_session
 
       session[:proconnect_step_up] = true
-      # Relus par SessionsController#authorize, pour suggérer l'adresse et l'organisation.
+      # Relus par SessionsController#start, pour suggérer l'adresse et l'organisation.
       session[:proconnect_step_up_email] = email
       session[:proconnect_step_up_siret] = siret
       # Vers l'élévation, pas vers un accueil qui ne dirait pas quoi faire.

@@ -9,7 +9,6 @@ module Portail
     # sorties en modèles du portail, erreurs en erreurs de Portail::HubAPI.
     module Deliveries
       class << self
-        # `client:` : le client partagé de la gem par défaut, un client bouchonné en spec.
         def list(siret:, insee_code:, state:, data_stream_codes:, page:, per_page:,
           client: HubApiV1.client)
           page_of(
