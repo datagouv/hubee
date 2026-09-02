@@ -320,6 +320,33 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
         expect(response).to have_http_status(:success)
       end
+
+      # L'amont est un tiers : s'il ignore le filtre, la ligne hors habilitation ne s'affiche
+      # pas, la page reste servie, et l'anomalie part en alerte et sur le canal CSIRT.
+      it "hides and reports a delivery the upstream served outside the habilitations" do
+        agent = sign_in_member(process_codes: ["CERTDC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
+          build(:portail_delivery_list, deliveries: [
+            build(:portail_delivery_summary, number: "DGS-CERTDC-0000000000001-01"),
+            build(:portail_delivery_summary, id: "hors-perimetre", number: "DGS-AEC-0000000000002-01",
+              data_stream_code: "AEC")
+          ])
+        )
+        expect(Sentry).to receive(:capture_message)
+
+        events = capture_semantic_logger_events { get "/demarches" }
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
+        expect(Capybara.string(response.body)).to have_no_text("DGS-AEC-0000000000002-01")
+        expect(events).to include(be_a_semantic_logger_event(
+          level: :info, message: "Décision d'accès",
+          payload_includes: {
+            event: "portail.access.upstream_mismatch", delivery_ids: ["hors-perimetre"],
+            membership_id: Membership.find_by!(agent: agent).id, ip_address: "127.0.0.1"
+          }
+        ))
+      end
     end
   end
 
@@ -709,6 +736,16 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "refuses a member without any habilitation" do
         sign_in_member(process_codes: [])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
+
+        expect_a_not_found_page
+      end
+
+      # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.
+      it "refuses a delivery the upstream served for another organisation" do
+        sign_in_member(process_codes: ["CERTDC"])
+        foreign = build(:portail_delivery, data_stream_code: "CERTDC",
+          recipient: build(:portail_recipient, siret: "13002526500013", insee_code: "75056"))
+        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(foreign)
 
         expect_a_not_found_page
       end

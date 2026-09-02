@@ -14,8 +14,9 @@ end
 # il n'y a pas de chaîne pointée à préfixer.
 decision = ->(event) { event[:payload].is_a?(Portail::Auth::Decision) }
 
-# Le refus d'habilitation n'a qu'un consommateur, le journal : pas de Recorder.
-refusal = ->(event) { event[:name] == "portail.access.refused" }
+# Les décisions d'accès en cours de session, refus et anomalie amont, n'ont qu'un consommateur,
+# le journal : pas de Recorder.
+access = ->(event) { event[:name].to_s.start_with?("portail.access.") }
 
-Rails.event.subscribe(lazy.new("Portail::Auth::DecisionLogger")) { |event| decision.call(event) || refusal.call(event) }
+Rails.event.subscribe(lazy.new("Portail::Auth::DecisionLogger")) { |event| decision.call(event) || access.call(event) }
 Rails.event.subscribe(lazy.new("Portail::Auth::Recorder"), &decision)

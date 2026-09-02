@@ -4,7 +4,7 @@ require "rails_helper"
 
 RSpec.describe Portail::Deliveries::Index::FetchList do
   let(:membership) do
-    create(:membership,
+    create(:membership, :local_administrator,
       organization_link: create(:organization_link, siret: "22770001000019", insee_code: "77372"))
   end
 
@@ -17,31 +17,30 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
       data_stream_codes: [], page: 1, per_page: described_class::PER_PAGE
     ).and_return(list)
 
-    result = described_class.call(membership: membership,
-      perimeter: Portail::ReadingPerimeter.unrestricted, state: "transmitted", page: 1)
+    result = described_class.call(membership: membership, state: "transmitted", page: 1)
 
     expect(result).to be_success
     expect(result.list).to eq(list)
   end
 
   it "passes the habilitated data streams as a filter" do
+    create(:process_access, membership: membership, process_code: "CERTDC")
     expect(Portail::HubAPI::Deliveries).to receive(:list).with(
       siret: "22770001000019", insee_code: "77372", state: "acknowledged",
       data_stream_codes: ["CERTDC"], page: 2, per_page: described_class::PER_PAGE
     ).and_return(build(:portail_delivery_list))
 
-    result = described_class.call(membership: membership,
-      perimeter: Portail::ReadingPerimeter.limited_to(["CERTDC"]), state: "acknowledged", page: 2)
+    result = described_class.call(membership: membership, state: "acknowledged", page: 2)
 
     expect(result).to be_success
   end
 
   # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut « aucun filtre ».
   it "fails without calling the upstream when the membership has no access" do
+    member = create(:membership)
     expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
-    result = described_class.call(membership: membership,
-      perimeter: Portail::ReadingPerimeter.none, state: "transmitted", page: 1)
+    result = described_class.call(membership: member, state: "transmitted", page: 1)
 
     expect(result).to be_failure
     expect(result.error).to eq(:no_habilitation)
@@ -56,8 +55,7 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
 
     result = nil
     events = capture_semantic_logger_events do
-      result = described_class.call(membership: membership,
-        perimeter: Portail::ReadingPerimeter.unrestricted, state: "n-importe-quoi", page: 1)
+      result = described_class.call(membership: membership, state: "n-importe-quoi", page: 1)
     end
 
     expect(result).to be_failure
@@ -72,8 +70,7 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
     expect(Sentry).to receive(:capture_exception).with(Portail::HubAPI::Unavailable)
 
-    result = described_class.call(membership: membership,
-      perimeter: Portail::ReadingPerimeter.unrestricted, state: "transmitted", page: 1)
+    result = described_class.call(membership: membership, state: "transmitted", page: 1)
 
     expect(result).to be_failure
     expect(result.error).to eq(:unavailable)
