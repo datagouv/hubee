@@ -20,11 +20,11 @@ RSpec.describe Portail::DeliveriesQuery do
       ).and_return(build(:portail_delivery_list))
 
       described_class.new(membership)
-        .call(state: "transmitted", perimeter: Portail::DeliveryPolicy::Perimeter.unrestricted)
+        .call(state: "transmitted", perimeter: Portail::ReadingPerimeter.unrestricted)
     end
 
     it "passes the authorised data stream codes as a filter" do
-      perimeter = Portail::DeliveryPolicy::Perimeter.limited_to(["CERTDC"])
+      perimeter = Portail::ReadingPerimeter.limited_to(["CERTDC"])
       expect(Portail::HubAPI::Deliveries).to receive(:list).with(
         siret: "22770001000019", insee_code: "77372", state: "acknowledged",
         data_stream_codes: ["CERTDC"], page: 2, per_page: described_class::PER_PAGE, client: nil
@@ -38,7 +38,7 @@ RSpec.describe Portail::DeliveriesQuery do
       expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
       result = described_class.new(membership)
-        .call(state: "transmitted", perimeter: Portail::DeliveryPolicy::Perimeter.none)
+        .call(state: "transmitted", perimeter: Portail::ReadingPerimeter.none)
 
       expect(result.deliveries).to be_empty
       expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1)
@@ -59,7 +59,7 @@ RSpec.describe Portail::DeliveriesQuery do
         .and_return(build(:portail_delivery_list))
 
       described_class.new(membership, client: client)
-        .call(state: "transmitted", perimeter: Portail::DeliveryPolicy::Perimeter.unrestricted)
+        .call(state: "transmitted", perimeter: Portail::ReadingPerimeter.unrestricted)
     end
   end
 end

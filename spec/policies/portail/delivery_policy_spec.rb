@@ -2,59 +2,18 @@
 
 require "rails_helper"
 
+# La règle rôle × habilitation est éprouvée dans le spec de Portail::ReadingPerimeter. Ici, on
+# constate que la policy l'applique, sur la liste et sur le détail.
 RSpec.describe Portail::DeliveryPolicy do
   describe "Scope#resolve" do
-    it "leaves a local administrator without any habilitation unrestricted" do
-      membership = create(:membership, :local_administrator)
-
-      expect(described_class::Scope.new(membership).resolve).to be_unrestricted
-    end
-
-    # Le cas qui distingue cette règle de « l'administrateur voit tout ».
-    it "bounds a local administrator to the codes they are habilitated to" do
-      membership = create(:membership, :local_administrator)
+    it "resolves the reading perimeter of the membership" do
+      membership = create(:membership)
       create(:process_access, membership: membership, process_code: "CERTDC")
 
       perimeter = described_class::Scope.new(membership).resolve
 
-      expect(perimeter).not_to be_unrestricted
+      expect(perimeter).to be_a(Portail::ReadingPerimeter)
       expect(perimeter.filter).to contain_exactly("CERTDC")
-    end
-
-    it "bounds a member to the codes they are habilitated to" do
-      membership = create(:membership)
-      create(:process_access, membership: membership, process_code: "CERTDC")
-      create(:process_access, membership: membership, process_code: "AEC")
-
-      expect(described_class::Scope.new(membership).resolve.filter).to contain_exactly("CERTDC", "AEC")
-    end
-
-    it "leaves a member without any habilitation with no access at all" do
-      membership = create(:membership)
-
-      expect(described_class::Scope.new(membership).resolve).to be_none
-    end
-
-    # Deux agents de la même organisation n'ont pas le même périmètre.
-    it "ignores the habilitations of other memberships" do
-      link = create(:organization_link)
-      membership = create(:membership, organization_link: link)
-      autre = create(:membership, organization_link: link)
-      create(:process_access, membership: autre, process_code: "AEC")
-
-      expect(described_class::Scope.new(membership).resolve).to be_none
-    end
-  end
-
-  describe "Perimeter" do
-    # « Aucun filtre » et « aucun accès » ne tiennent qu'à `nil` et `[]`, de sens inverse.
-    it "never confuses no restriction with no access" do
-      expect(described_class::Perimeter.unrestricted).not_to be_none
-      expect(described_class::Perimeter.none).not_to be_unrestricted
-    end
-
-    it "hands the upstream an empty filter when nothing restricts the reading" do
-      expect(described_class::Perimeter.unrestricted.filter).to eq([])
     end
   end
 
