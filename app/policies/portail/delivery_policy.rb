@@ -1,9 +1,18 @@
 # frozen_string_literal: true
 
 module Portail
-  # `Scope#resolve` borne la liste, `#show?` le détail. Sans le second, un identifiant connu
-  # ouvrirait une démarche hors habilitation : l'amont ne borne que sur l'organisation.
+  # Ce que le rattachement a le droit de lire, appliqué à ce que l'amont a servi : la requête
+  # amont est déjà bornée, ici on vérifie qu'il a tenu ce contrat, sur le flux et l'organisation.
   class DeliveryPolicy
+    class << self
+      # La règle, écrite une fois : pour un détail par `show?`, pour chaque ligne d'une page par
+      # le scope.
+      def readable?(membership, delivery)
+        delivery.recipient.matches?(membership.organization_link) &&
+          ReadingPerimeter.covers?(membership, delivery.data_stream.code)
+      end
+    end
+
     attr_reader :membership, :delivery
 
     def initialize(membership, delivery)
@@ -11,18 +20,17 @@ module Portail
       @delivery = delivery
     end
 
-    def show? = ReadingPerimeter.for(membership).covers?(delivery.data_stream.code)
+    def show? = DeliveryPolicy.readable?(membership, delivery)
 
     class Scope
-      attr_reader :membership
+      attr_reader :membership, :scope
 
-      # Le second paramètre est le contrat de Pundit. La source étant distante, `resolve` rend
-      # une description du périmètre et non une relation.
-      def initialize(membership, _scope = nil)
+      def initialize(membership, scope)
         @membership = membership
+        @scope = scope
       end
 
-      def resolve = ReadingPerimeter.for(membership)
+      def resolve = scope.select { |delivery| DeliveryPolicy.readable?(membership, delivery) }
     end
   end
 end

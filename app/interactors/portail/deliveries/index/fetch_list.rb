@@ -11,18 +11,21 @@ module Portail
         def call
           # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut
           # « aucun filtre », donc toute l'organisation.
-          context.fail!(error: :no_habilitation) if context.perimeter.none?
+          context.fail!(error: :no_habilitation) if ReadingPerimeter.none?(context.membership)
 
           context.list = fetch
         end
 
         private
 
+        # La requête est bornée par le rattachement ; ce que l'amont renvoie est ensuite borné
+        # par la policy, qui ne lui fait pas confiance.
         def fetch
           link = context.membership.organization_link
           HubAPI::Deliveries.list(
             siret: link.siret, insee_code: link.insee_code, state: context.state,
-            data_stream_codes: context.perimeter.filter, page: context.page, per_page: PER_PAGE
+            data_stream_codes: ReadingPerimeter.filter(context.membership),
+            page: context.page, per_page: PER_PAGE
           )
         rescue HubAPI::InvalidRequest => e
           # Sans alerte : un robot qui balaie des URL noierait Sentry sous des refus normaux.

@@ -10,6 +10,15 @@ FactoryBot.define do
     last_name { "DUBOIS" }
   end
 
+  # L'organisation de l'agent des request specs : ce que l'amont sert doit lui appartenir.
+  factory :portail_recipient, class: "Portail::Delivery::Recipient" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    siret { ProConnectTestHelper::TEST_SIRET }
+    insee_code { ProConnectTestHelper::TEST_INSEE_CODE }
+  end
+
   factory :portail_data_stream, class: "Portail::DataStream" do
     skip_create
     initialize_with { new(**attributes) }
@@ -36,6 +45,7 @@ FactoryBot.define do
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
     data_stream { build(:portail_data_stream, code: data_stream_code) }
+    recipient { build(:portail_recipient) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
   end
@@ -76,6 +86,7 @@ FactoryBot.define do
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
     data_stream { build(:portail_data_stream, code: data_stream_code) }
+    recipient { build(:portail_recipient) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
     applicant { build(:portail_applicant) }
