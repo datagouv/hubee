@@ -43,11 +43,11 @@ RSpec.describe Portail::HubAPI::Deliveries do
         data_stream_codes: ["CERTDC"], page: 3, per_page: 25, client: client)
     end
 
-    # Passer `nil` à la gem remplacerait son client par rien.
-    it "leaves the upstream client out when none is injected" do
+    it "hands the gem its shared client when none is injected" do
+      shared = use_hub_api_fake_client
       expect(HubApiV1::V2::Delivery).to receive(:list).with(
         siret: siret, code_insee: insee_code, state: :transmitted,
-        data_stream_codes: [], offset: 0, per_page: 25
+        data_stream_codes: [], offset: 0, per_page: 25, client: shared
       ).and_return(build_v2_delivery_list([]))
 
       described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
@@ -105,6 +105,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
     end
 
     it "renders no applicant when the upstream serves none" do
+      use_hub_api_fake_client
       expect(HubApiV1::V2::Delivery).to receive(:find)
         .and_return(build_v2_delivery(data_package: nil))
 
@@ -131,6 +132,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
     # Liste vide et non nil : l'écran compte les pièces sans se demander si le conteneur existe.
     it "yields no attachment when the upstream serves no data package" do
+      use_hub_api_fake_client
       expect(HubApiV1::V2::Delivery).to receive(:find)
         .and_return(build_v2_delivery(data_package: nil))
 
@@ -210,6 +212,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
     upstream_errors.each do |situation, error|
       it "raises #{error[:translated].name.demodulize} on list for #{situation}" do
+        use_hub_api_fake_client
         expect(HubApiV1::V2::Delivery).to receive(:list).and_raise(error[:raised])
 
         expect {
@@ -219,6 +222,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       end
 
       it "raises #{error[:translated].name.demodulize} on find for #{situation}" do
+        use_hub_api_fake_client
         expect(HubApiV1::V2::Delivery).to receive(:find).and_raise(error[:raised])
 
         expect {
