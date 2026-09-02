@@ -449,7 +449,11 @@ RSpec.describe "Portail::Sessions", type: :request do
       # Rails journalise beaucoup pendant une requête : on laisse passer le reste et on
       # n'exige que notre ligne.
       allow(Rails.logger).to receive(:info)
-      expect(Rails.logger).to receive(:info).with(/event="Portail::Auth::Decision".*outcome=:granted/).at_least(:once)
+      # Seul l'abonnement est l'objet ici ; les champs complets sont éprouvés dans le spec du
+      # logger, et la ligne réellement écrite dans spec/requests/hubee/logging_spec.rb.
+      expect(Rails.logger).to receive(:info)
+        .with("Décision d'accès", hash_including(event: "Portail::Auth::Decision", outcome: :granted))
+        .at_least(:once)
 
       sign_in_via_proconnect(agent: create(:agent))
     end
