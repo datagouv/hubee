@@ -3,47 +3,57 @@
 require "rails_helper"
 
 RSpec.describe Portail::ReadingPerimeter do
+  # Le rôle ne tranche que la liste vide : tout pour l'administrateur local, rien pour le membre.
   describe ".for" do
-    # Le rôle ne tranche que la liste vide : tout pour l'administrateur local, rien pour le membre.
-    it "leaves a local administrator without any habilitation unrestricted" do
-      membership = create(:membership, :local_administrator)
+    context "for a member without habilitation" do
+      let(:membership) { create(:membership) }
 
-      expect(described_class.for(membership)).to be_unrestricted
+      it "gives no access at all" do
+        expect(described_class.for(membership)).to be_none
+      end
+
+      # Deux agents de la même organisation n'ont pas le même périmètre.
+      it "ignores the habilitations of other memberships" do
+        other = create(:membership, organization_link: membership.organization_link)
+        create(:process_access, membership: other, process_code: "AEC")
+
+        expect(described_class.for(membership)).to be_none
+      end
+    end
+
+    context "for a member habilitated on CERTDC and AEC" do
+      let(:membership) { create(:membership) }
+
+      before do
+        create(:process_access, membership: membership, process_code: "CERTDC")
+        create(:process_access, membership: membership, process_code: "AEC")
+      end
+
+      it "limits the reading to those data streams" do
+        expect(described_class.for(membership).filter).to contain_exactly("CERTDC", "AEC")
+      end
+    end
+
+    context "for a local administrator without habilitation" do
+      let(:membership) { create(:membership, :local_administrator) }
+
+      it "leaves the reading unrestricted" do
+        expect(described_class.for(membership)).to be_unrestricted
+      end
     end
 
     # Le cas qui distingue cette règle de « l'administrateur voit tout ».
-    it "bounds a local administrator to the codes they are habilitated to" do
-      membership = create(:membership, :local_administrator)
-      create(:process_access, membership: membership, process_code: "CERTDC")
+    context "for a local administrator habilitated on CERTDC" do
+      let(:membership) { create(:membership, :local_administrator) }
 
-      perimeter = described_class.for(membership)
+      before { create(:process_access, membership: membership, process_code: "CERTDC") }
 
-      expect(perimeter).not_to be_unrestricted
-      expect(perimeter.filter).to contain_exactly("CERTDC")
-    end
+      it "limits the reading to that data stream" do
+        perimeter = described_class.for(membership)
 
-    it "bounds a member to the codes they are habilitated to" do
-      membership = create(:membership)
-      create(:process_access, membership: membership, process_code: "CERTDC")
-      create(:process_access, membership: membership, process_code: "AEC")
-
-      expect(described_class.for(membership).filter).to contain_exactly("CERTDC", "AEC")
-    end
-
-    it "leaves a member without any habilitation with no access at all" do
-      membership = create(:membership)
-
-      expect(described_class.for(membership)).to be_none
-    end
-
-    # Deux agents de la même organisation n'ont pas le même périmètre.
-    it "ignores the habilitations of other memberships" do
-      link = create(:organization_link)
-      membership = create(:membership, organization_link: link)
-      other = create(:membership, organization_link: link)
-      create(:process_access, membership: other, process_code: "AEC")
-
-      expect(described_class.for(membership)).to be_none
+        expect(perimeter).not_to be_unrestricted
+        expect(perimeter.filter).to contain_exactly("CERTDC")
+      end
     end
   end
 
