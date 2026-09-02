@@ -11,6 +11,8 @@ RSpec.describe Portail::BaseController, type: :controller do
     def index = head(:ok)
 
     def show = head(:ok)
+
+    def destroy = raise(Pundit::NotAuthorizedError)
   end
 
   it "refuses a collection action that scoped no policy" do
@@ -19,5 +21,21 @@ RSpec.describe Portail::BaseController, type: :controller do
 
   it "refuses a member action that authorized nothing" do
     expect { get :show, params: {id: "1"} }.to raise_error(Pundit::AuthorizationNotPerformedError)
+  end
+
+  # Un refus rend la même page qu'une ressource inexistante : distinguer les deux révélerait
+  # l'existence de ce que l'agent n'a pas à voir. Seule la décision d'accès émise les sépare.
+  it "renders a not found page on a refusal, and emits the access decision" do
+    membership = create(:membership)
+    session[:provider_session_id] = create(:provider_session, membership: membership).id
+    # Rails émet ses propres événements pendant la requête : on capture tout, on cherche le nôtre.
+    events = []
+    expect(Rails.event).to receive(:notify).at_least(:once) { |*args| events << args }
+
+    delete :destroy, params: {id: "1"}
+
+    expect(response).to have_http_status(:not_found)
+    expect(events).to include(["portail.access.refused",
+      {path: "/portail/base/1", agent_id: membership.agent_id, membership_id: membership.id}])
   end
 end

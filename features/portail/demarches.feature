@@ -36,4 +36,4 @@ Fonctionnalité: Les démarches de l'organisation
     Étant donné l'API amont sert aussi une démarche sur un flux non habilité
     Et il s'est connecté
     Quand il ouvre directement cette démarche
-    Alors il est renvoyé à la liste sans que le dossier lui soit montré
+    Alors il obtient une page introuvable, sans que le dossier lui soit montré
