@@ -189,25 +189,16 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("aucun flux")
     end
 
-    context "when the upstream API is failing" do
-      it "renders the page with an alert rather than a server error" do
-        sign_in_member
-        expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
+    # Une panne est un incident : la page se rend quand même, et quelqu'un est réveillé.
+    it "renders the page with an alert and reports the outage" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
+      expect(Sentry).to receive(:capture_exception)
 
-        get "/demarches"
+      get "/demarches"
 
-        expect(response).to have_http_status(:success)
-        expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
-      end
-
-      # Une panne est un incident : elle réveille quelqu'un.
-      it "reports the outage" do
-        sign_in_member
-        expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
-        expect(Sentry).to receive(:capture_exception)
-
-        get "/demarches"
-      end
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
     end
 
     # Le pendant du précédent, et la moitié qui compte : un robot qui balaie des URL suffirait
