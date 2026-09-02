@@ -6,6 +6,10 @@ module Portail
     # travail du jour ; ouvrir sur « traitée » ou « clôturée » montrerait d'abord l'archive.
     DEFAULT_STATE = "transmitted"
 
+    # L'amont n'a pas tenu son contrat : signalé, pas refusé en bloc. Un filtre non respecté
+    # est une anomalie amont, pas une raison de priver l'agent de sa page.
+    after_action :report_upstream_mismatch, only: :index, if: -> { @deliveries }
+
     def index
       result = Deliveries::Index.call(
         membership: current_membership, state: current_state, page: requested_page
@@ -22,7 +26,6 @@ module Portail
       # déduirait pas d'un tableau.
       @list = result.list
       @deliveries = policy_scope(@list.deliveries, policy_scope_class: DeliveryPolicy::Scope)
-      report_upstream_mismatch(@list.deliveries - @deliveries)
     end
 
     def show
@@ -41,15 +44,12 @@ module Portail
 
     private
 
-    # L'amont n'a pas tenu son contrat : signalé, Sentry et canal CSIRT, mais pas refusé en
-    # bloc. Un filtre non respecté est une anomalie amont, pas une raison de priver l'agent de
-    # sa page.
-    def report_upstream_mismatch(dropped)
+    def report_upstream_mismatch
+      dropped = @list.deliveries - @deliveries
       return if dropped.empty?
 
-      Rails.event.notify("portail.access.upstream_mismatch",
-        membership_id: current_membership.id, delivery_ids: dropped.map(&:id))
-      Sentry.capture_message("L'amont a servi des démarches hors du périmètre demandé", level: :warning)
+      Rails.event.notify(Access::Decision.new(outcome: :upstream_mismatch, path: request.path,
+        membership_id: current_membership.id, dropped_ids: dropped.map(&:id)))
     end
 
     def render_failure(error)
