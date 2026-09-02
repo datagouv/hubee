@@ -629,9 +629,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect_the_delivery_to_open
       end
 
-      # Seul le journal distingue un refus d'une inexistence : c'est lui qui laisse voir un
-      # agent qui balaie des identifiants hors de son habilitation. Sur le canal des décisions
-      # d'accès, celui que lit le CSIRT, de bout en bout jusqu'à l'appel au logger.
+      # Seul le journal distingue un refus d'une inexistence, et c'est lui qui laisse voir un
+      # agent qui balaie des identifiants. Éprouvé jusqu'à l'appel au logger, sur le canal CSIRT.
       it "refuses a member on a delivery outside their habilitations, and logs the refusal" do
         agent = sign_in_member(process_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
