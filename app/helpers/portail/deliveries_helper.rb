@@ -30,9 +30,13 @@ module Portail
       "deleted" => nil
     }.freeze
 
-    # `default:` : l'amont peut ajouter un état sans nous prévenir. Porté par l'état et non
-    # par la démarche : le menu n'a que les clés des compteurs.
-    def delivery_state_label(state) = t("portail.deliveries.states.#{state}", default: MISSING)
+    # `default:` : l'amont peut ajouter un état sans nous prévenir. `blank?` à part : I18n
+    # résoudrait la clé tronquée vers son parent, le Hash entier des libellés.
+    def delivery_state_label(state)
+      return MISSING if state.blank?
+
+      t("portail.deliveries.states.#{state}", default: MISSING)
+    end
 
     def delivery_state(delivery) = delivery_state_label(delivery.state)
 
