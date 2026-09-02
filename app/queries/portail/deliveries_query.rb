@@ -35,12 +35,6 @@ module Portail
       )
     end
 
-    def find(id:)
-      HubAPI::Deliveries.find(
-        id: id, siret: link.siret, insee_code: link.insee_code, client: @client
-      )
-    end
-
     private
 
     def link = @membership.organization_link
