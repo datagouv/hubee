@@ -45,8 +45,15 @@ module Hubee
     # DSFR comme form builder par défaut (toutes les formes utilisent les helpers DSFR)
     config.action_view.default_form_builder = "Dsfr::FormBuilder"
 
-    # Pages d'erreur rendues par l'application (layout DSFR) plutôt que les pages statiques
-    config.exceptions_app = routes
+    # Les erreurs du portail ont leurs pages DSFR ; celles de l'API gardent la réponse JSON
+    # standard de Rails — un client d'API ne reçoit jamais de HTML.
+    config.exceptions_app = lambda do |env|
+      if env["action_dispatch.original_path"].to_s.start_with?("/api")
+        ActionDispatch::PublicExceptions.new(Rails.public_path).call(env)
+      else
+        Rails.application.routes.call(env)
+      end
+    end
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Don't generate system test files.

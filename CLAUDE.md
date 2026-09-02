@@ -12,6 +12,8 @@ Le développement de l'API V2 est rouvert **uniquement** pour deux chantiers : l
 
 Le reste de l'ébauche d'API V2 (routes `api/v1` commentées, 6 modèles, interactors — data streams, subscriptions, data packages…) reste **gelé** — ne pas décommenter ces routes ni élargir le périmètre sans décision explicite de l'équipe.
 
+**Dégel du 2026-08-31 (décision explicite)** : la ressource **`agents`** est dégelée — `POST /api/v1/agents` est le premier endpoint effectif, et les verrous du gel (`.rspec`, SimpleCov) énumèrent désormais les fichiers gelés au lieu d'exclure le répertoire. La table `events` du modèle cible est également ouverte (traçabilité des habilitations). Tout le reste du périmètre gelé demeure.
+
 Le portail V2 ([datagouv/hubee](https://github.com/datagouv/hubee)) consomme l'API **V1** via une gem cliente privée.
 
 ## Frontière de confidentialité V1

@@ -38,6 +38,22 @@ fr:
             organization_link:
               siret_already_attached: désigne un SIRET auquel l'agent est déjà rattaché
 
+  activemodel:
+    errors:
+      models:
+        api/agent_payload:
+          attributes:
+            memberships:
+              blank: doit compter au moins un rattachement
+              duplicated_siret: ne peut pas porter deux fois le même SIRET
+
+  api:
+    agents:
+      errors:
+        organization_unknown: ne correspond à aucune organisation connue du référentiel
+        email_taken: est déjà utilisée par un autre agent
+        referential_unavailable: le référentiel des organisations est indisponible, réessayez plus tard
+
   portail:
     shared:
       skip_links:

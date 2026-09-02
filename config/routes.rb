@@ -49,6 +49,12 @@ Rails.application.routes.draw do
 
   namespace :api do
     get "ping", to: "pings#show"
+
+    # Dégel partiel : seule la ressource agents sort du gel ci-dessus — on
+    # versionne les ressources métier, pas la tuyauterie d'accès (token, ping).
+    namespace :v1 do
+      resources :agents, only: [:create]
+    end
   end
 
   # Authentification ProConnect
