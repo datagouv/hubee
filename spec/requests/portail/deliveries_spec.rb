@@ -747,9 +747,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.
       it "refuses a delivery the upstream served for another organisation" do
         sign_in_member(process_codes: ["CERTDC"])
-        foreign = build(:portail_delivery, data_stream_code: "CERTDC",
-          recipient: build(:portail_recipient, siret: "13002526500013", insee_code: "75056"))
-        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(foreign)
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, :of_another_organisation))
 
         expect_a_not_found_page
       end
