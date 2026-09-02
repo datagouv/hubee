@@ -89,10 +89,10 @@ FactoryBot.define do
 
     deliveries { [] }
     pagination { build(:portail_pagination) }
-    # Emprunté à la page vide plutôt que recopié : les états n'ont qu'une source.
+    # Les états de l'amont, dans son ordre.
     counts_by_state {
-      Portail::HubAPI::Deliveries.empty_list(per_page: Portail::DeliveriesQuery::PER_PAGE)
-        .counts_by_state
+      %w[transmitted acknowledged in_progress awaiting_documents done refused closed integration_error]
+        .index_with(0)
     }
   end
 end
