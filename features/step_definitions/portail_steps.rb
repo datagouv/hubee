@@ -157,7 +157,7 @@ Alors("la liste est celle de l'état {string}") do |label|
   expect(page).to have_css("nav.fr-sidemenu a[aria-current='page']", text: label)
 end
 
-Alors("il est renvoyé à la liste sans que le dossier lui soit montré") do
-  expect(page).to have_text("introuvable ou hors de votre périmètre")
+Alors("il obtient une page introuvable, sans que le dossier lui soit montré") do
+  expect(page).to have_text("Page introuvable")
   expect(page).to have_no_text("DGS-AEC-0000000000002-01")
 end

@@ -2,8 +2,6 @@
 
 module Portail
   class DeliveriesController < Portail::BaseController
-    rescue_from Pundit::NotAuthorizedError, with: :refuse_out_of_perimeter
-
     def index
       # Pundit déduit la policy du nom de la classe : un modèle ActiveRecord n'est pas requis.
       @perimeter = policy_scope(Delivery)
@@ -39,18 +37,8 @@ module Portail
       else
         # Rien à autoriser : aucune démarche n'a été trouvée.
         skip_authorization
-        redirect_to demarches_path, alert: t("portail.deliveries.errors.#{result.error}")
+        (result.error == :not_found) ? not_found : unavailable
       end
-    end
-
-    private
-
-    # Même message qu'une démarche inexistante : distinguer révélerait l'existence d'une
-    # démarche hors périmètre. Journalisé sans alerte : un refus qui fonctionne n'est pas une
-    # panne. `inspect` : l'identifiant vient de l'URL.
-    def refuse_out_of_perimeter
-      Rails.logger.warn("Démarche refusée — hors habilitation : #{params[:id].inspect}")
-      redirect_to demarches_path, alert: t("portail.deliveries.errors.not_found")
     end
   end
 end
