@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::SensitiveProcesses do
+RSpec.describe Portail::Access::SensitiveProcesses do
   describe ".parse" do
     # Codes inventés : le découpage ne dépend d'aucune valeur, et la vraie liste ne descend
     # pas dans ce dépôt, qui est public.
