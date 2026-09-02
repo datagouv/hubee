@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Applicant do
+RSpec.describe Portail::Delivery::Applicant do
   describe "#full_name" do
     it "joins both halves of the name" do
       expect(build(:portail_applicant).full_name).to eq("George DUBOIS")
