@@ -20,11 +20,32 @@ RSpec.describe "Portail::Deliveries", type: :request do
     agent
   end
 
+  # L'organisation de l'agent connecté, dans le vocabulaire de la gem : son client bouchonné
+  # filtre sur ce couple, comme l'API.
+  def upstream_recipient
+    build_v2_recipient(siret: ProConnectTestHelper::TEST_SIRET,
+      code_insee: ProConnectTestHelper::TEST_INSEE_CODE)
+  end
+
   describe "GET /demarches" do
     it "redirects a signed-out visitor to the home page" do
       get "/demarches"
 
       expect(response).to redirect_to(root_path)
+    end
+
+    # Rien n'est bouchonné en deçà de la frontière : la démarche traverse la gem entière.
+    it "lists a delivery the upstream serves for the organisation" do
+      sign_in_member
+      use_hub_api_fake_client.add_case(
+        build_v2_delivery(state: :transmitted, recipient: upstream_recipient)
+      )
+
+      get "/demarches"
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body))
+        .to have_link("DGS-CERTDC-0000000000001-01", href: "/demarches/94b1b09d-b47f-4480-9b48-93b8b36108f2")
     end
 
     it "lists the deliveries of the agent organisation" do
@@ -309,6 +330,34 @@ RSpec.describe "Portail::Deliveries", type: :request do
       get "/demarches/#{delivery_id}"
 
       expect(response).to redirect_to(root_path)
+    end
+
+    # Rien n'est bouchonné en deçà de la frontière, et l'amont sert ses champs bancals : une
+    # transition à une seule extrémité, un event sans date, une pièce sans taille, pas de
+    # demandeur. Chacun a son repli, aucun ne fait tomber la page.
+    it "renders a delivery the upstream serves, awkward fields included" do
+      sign_in_member
+      use_hub_api_fake_client.add_case(build_v2_delivery(
+        recipient: upstream_recipient,
+        data_package: build_v2_data_package(applicant: nil,
+          attachments: [build_v2_attachment(byte_size: nil)]),
+        events: [
+          build_v2_event(metadata: {to_state: :done}),
+          build_v2_event(id: "e2222222-2222-2222-2222-222222222222", created_at: nil)
+        ]
+      ))
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+
+      page = Capybara.string(response.body)
+      expect(page).to have_text("George DUBOIS a modifié le statut : — → Traitée")
+      expect(page).to have_text("Sans date")
+      expect(Nokogiri::HTML(response.body)
+        .xpath("//dt[normalize-space()='Demandeur']/following-sibling::dd[1]").text).to eq("—")
+      expect(Nokogiri::HTML(response.body)
+        .css("table tbody tr td:nth-child(3)").map { |cell| cell.text.strip }).to eq(["—"])
     end
 
     it "shows the delivery metadata, applicant included" do
@@ -602,12 +651,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "logs the unknown identifier without letting it forge log lines" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
-      lines = []
-      expect(Rails.logger).to receive(:info).at_least(:once) { |line| lines << line }
 
-      get "/demarches/evil%0Aforged"
+      events = capture_semantic_logger_events { get "/demarches/evil%0Aforged" }
 
-      line = lines.grep(/introuvable/).first
+      line = events.map(&:message).grep(/introuvable/).first
       expect(line).to include('"evil\nforged"')
       expect(line).not_to include("\n")
     end
@@ -646,17 +693,16 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "refuses a member on a delivery outside their habilitations, and logs the refusal" do
         agent = sign_in_member(process_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
-        decisions = []
-        expect(Rails.logger).to receive(:info).at_least(:once) do |message, fields|
-          decisions << fields if message == "Décision d'accès"
-        end
 
-        expect_a_not_found_page
+        events = capture_semantic_logger_events { expect_a_not_found_page }
 
         membership = Membership.find_by!(agent: agent)
-        expect(decisions).to include(a_hash_including(
-          event: "portail.access.refused", path: "/demarches/#{delivery_id}",
-          agent_id: agent.id, membership_id: membership.id, ip_address: "127.0.0.1"
+        expect(events).to include(be_a_semantic_logger_event(
+          level: :info, message: "Décision d'accès",
+          payload_includes: {
+            event: "portail.access.refused", path: "/demarches/#{delivery_id}",
+            agent_id: agent.id, membership_id: membership.id, ip_address: "127.0.0.1"
+          }
         ))
       end
 
