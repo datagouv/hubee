@@ -34,6 +34,30 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
       expect(groups.values.first.map(&:id)).to eq(["last", "first"])
     end
 
+    # L'ordre est le nôtre, pas celui de l'amont : servis dans le désordre, les events se
+    # replacent quand même.
+    it "orders by date rather than trusting the upstream order" do
+      newest = build(:portail_event, id: "newest", created_at: Time.zone.local(2026, 2, 3, 9, 0))
+      oldest = build(:portail_event, id: "oldest", created_at: Time.zone.local(2026, 1, 10, 9, 0))
+      middle = build(:portail_event, id: "middle", created_at: Time.zone.local(2026, 1, 10, 16, 16))
+      delivery = build(:portail_delivery, events: [newest, oldest, middle])
+
+      groups = helper.delivery_events_by_month(delivery)
+
+      expect(groups.values.flatten.map(&:id)).to eq(["newest", "middle", "oldest"])
+    end
+
+    # Même seconde : l'ordre d'arrivée départage, comme la gem le fait avant nous.
+    it "keeps the upstream order between events of the same instant" do
+      instant = Time.zone.local(2026, 1, 10, 9, 0)
+      events = %w[first second third fourth].map { |id| build(:portail_event, id: id, created_at: instant) }
+      delivery = build(:portail_delivery, events: events)
+
+      groups = helper.delivery_events_by_month(delivery)
+
+      expect(groups.values.flatten.map(&:id)).to eq(["fourth", "third", "second", "first"])
+    end
+
     # Les events sans date forment un dernier groupe et ne suivent pas l'inversion : remontés
     # en tête, ils passeraient pour les plus récents.
     it "keeps the undated events last, out of the reversal" do
@@ -79,6 +103,15 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
 
       expect(Capybara.string(helper.delivery_event_sentence(event)).text)
         .to eq("George DUBOIS a modifié le statut : Transmise → Traitée")
+    end
+
+    # La gem omet une extrémité quand le statut V1 est nul ou inconnu.
+    it "falls back to a dash for the missing end of a transition" do
+      event = build(:portail_event, event_type: "delivery.state_changed", author: "George DUBOIS",
+        metadata: {to_state: "done"})
+
+      expect(Capybara.string(helper.delivery_event_sentence(event)).text)
+        .to eq("George DUBOIS a modifié le statut : — → Traitée")
     end
 
     # L'auteur vient de l'amont et est interpolé dans une clé `_html`.
