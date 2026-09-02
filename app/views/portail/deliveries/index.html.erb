@@ -2,7 +2,7 @@
 
 <div class="fr-grid-row fr-grid-row--gutters">
   <div class="fr-col-12 fr-col-md-4 fr-col-lg-3">
-    <%= render "state_menu", counts_by_state: @list.counts_by_state, current_state: @state %>
+    <%= render "state_menu", counts_by_state: @list.counts_by_state, current_state: @current_state %>
   </div>
 
   <div class="fr-col-12 fr-col-md-8 fr-col-lg-9">
@@ -21,7 +21,7 @@
           <div class="fr-table__container">
             <div class="fr-table__content">
               <table>
-                <caption><%= t(".caption", state: delivery_state_label(@state)) %></caption>
+                <caption><%= t(".caption", state: delivery_state_label(@current_state)) %></caption>
                 <thead>
                   <tr>
                     <th scope="col"><%= t("portail.deliveries.fields.number") %></th>
@@ -46,7 +46,7 @@
         </div>
       </div>
 
-      <%= render "pagination", pagination: @list.pagination, state: @state %>
+      <%= render "pagination", pagination: @list.pagination, state: @current_state %>
     <% end %>
   </div>
 </div>

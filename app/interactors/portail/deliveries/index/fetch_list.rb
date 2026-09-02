@@ -8,13 +8,7 @@ module Portail
 
         PER_PAGE = 25
 
-        # Ce que l'agent n'a pas encore pris en charge : ouvrir sur un état terminal ferait
-        # d'une page d'accueil une archive.
-        DEFAULT_STATE = "transmitted"
-
         def call
-          context.state ||= DEFAULT_STATE
-          context.page ||= 1
           # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut
           # « aucun filtre », donc toute l'organisation.
           context.fail!(error: :no_habilitation) if context.perimeter.none?
