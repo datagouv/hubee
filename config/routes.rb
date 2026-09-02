@@ -59,7 +59,7 @@ Rails.application.routes.draw do
 
   # Authentification ProConnect
   # En POST : le départ est couvert par le jeton CSRF de Rails.
-  post "connexion/proconnect", to: "portail/sessions#authorize", as: :proconnect_authorization
+  post "connexion/proconnect", to: "portail/sessions#start", as: :proconnect_authorization
   # Doit correspondre au redirect_uri déclaré auprès de ProConnect (env + espace
   # partenaires) : les deux se changent ensemble.
   get "connexion/proconnect/retour", to: "portail/sessions#create", as: :proconnect_callback

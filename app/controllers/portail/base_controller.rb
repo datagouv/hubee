@@ -21,6 +21,11 @@ module Portail
     # rechargement.
     rescue_from ActionController::InvalidAuthenticityToken, with: :reload_stale_page
 
+    # Fermé par défaut : une action qui n'a ni autorisé ni borné explose. Un contrôleur sans
+    # policy s'en exempte par `skip_after_action`, comme il le fait pour l'authentification.
+    after_action :verify_authorized, except: :index
+    after_action :verify_policy_scoped, only: :index
+
     private
 
     # Le sujet des policies est le rattachement, pas l'agent : le rôle et les habilitations
