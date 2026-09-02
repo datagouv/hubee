@@ -7,7 +7,6 @@ module Portail
     skip_after_action :verify_authorized, :verify_policy_scoped
 
     def index
-      # L'agent connecté n'a rien à faire sur une page d'accueil de visiteur.
       redirect_to demarches_path if agent_signed_in?
     end
   end
