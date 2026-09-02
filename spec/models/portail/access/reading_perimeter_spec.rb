@@ -3,7 +3,7 @@
 require "rails_helper"
 
 # Le rôle ne tranche que la liste vide : tout pour l'administrateur local, rien pour le membre.
-RSpec.describe Portail::ReadingPerimeter do
+RSpec.describe Portail::Access::ReadingPerimeter do
   context "for a member without habilitation" do
     let(:membership) { create(:membership) }
 
