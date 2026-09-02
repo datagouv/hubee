@@ -17,6 +17,14 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     end
   end
 
+  describe "#delivery_state_label" do
+    # Sans ce repli, I18n résout la clé tronquée vers son parent : le Hash entier des libellés.
+    it "falls back to a dash for a missing state" do
+      expect(helper.delivery_state_label(nil)).to eq("—")
+      expect(helper.delivery_state_label("")).to eq("—")
+    end
+  end
+
   describe "#delivery_transmitted_at and #delivery_updated_at" do
     # Deux dates distinctes : chaque champ doit rendre la sienne.
     it "writes each date in full" do
