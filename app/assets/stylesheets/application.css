@@ -8,3 +8,38 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+/* delivery-summary : le récapitulatif d'une démarche (portail/deliveries/show).
+   Un reset et rien d'autre : le DSFR ne normalise pas le retrait du navigateur sur dd. */
+.delivery-summary dd {
+  margin-left: 0;
+}
+
+/* delivery-timeline : la frise de l'historique d'une démarche (portail/deliveries/show).
+   Le DSFR n'a pas de composant frise ; la mise en page est à nous, aucune couleur ne l'est. */
+.delivery-timeline,
+.delivery-timeline__entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* La pastille ouvre le groupe du mois. */
+.delivery-timeline__month {
+  display: inline-block;
+  padding: 0.25rem 1rem;
+  border-radius: 1rem;
+  background-color: var(--background-action-high-blue-france);
+  color: var(--text-inverted-blue-france);
+}
+
+/* Le trait porté par la liste et non par chaque entrée : il s'arrête de lui-même au dernier. */
+.delivery-timeline__entries {
+  margin-left: 1rem;
+  padding-left: 1.5rem;
+  border-left: 1px solid var(--border-default-grey);
+}
+
+.delivery-timeline__entry {
+  background-color: var(--background-alt-grey);
+}

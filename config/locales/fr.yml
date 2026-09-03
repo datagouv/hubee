@@ -2,6 +2,13 @@ fr:
   app_name: HubEE
   tagline: Plateforme d'échange sécurisé de fichiers entre administrations
 
+  # Formats de la frise d'historique : le jour de la semaine situe un événement dans une
+  # instruction étalée sur plusieurs jours.
+  time:
+    formats:
+      timeline: "%A %d/%m - %H:%M"
+      month: "%B %Y"
+
   activerecord:
     attributes:
       agent:
@@ -63,6 +70,87 @@ fr:
         title: Portail HubEE
         heading: Portail HubEE
         lead: Espace de gestion réservé aux administrations.
+    deliveries:
+      states:
+        transmitted: Transmise
+        acknowledged: Reçue
+        in_progress: En cours
+        awaiting_documents: Pièces attendues
+        done: Traitée
+        refused: Refusée
+        closed: Clôturée
+        integration_error: Erreur d'intégration
+      state_menu:
+        title: Filtrer par état
+      attachment_fields:
+        filename: Nom du fichier
+        kind: Type de pièce
+        byte_size: Taille
+        state: État
+      attachment_states:
+        pending: En attente
+        received: Reçue
+        corrupted: Corrompue
+        rejected: Rejetée
+        deleted: Supprimée
+      # Un journal : chaque libellé décrit un fait survenu, pas une action possible.
+      events:
+        state_changed_html: "%{author} a modifié le statut : %{from} → %{to}"
+        attachment_created_html: "%{author} a déposé une pièce"
+        downloaded_html: "%{author} a téléchargé une pièce"
+        downloaded_all_html: "%{author} a téléchargé toutes les pièces"
+        message_sent_html: "%{author} a envoyé un message"
+        comment_added_html: "%{author} a ajouté un commentaire interne"
+        unknown_html: "%{author} est intervenu sur la démarche"
+        unknown_author: Un auteur inconnu
+        # La conséquence et non le mécanisme : ce qui compte est que la personne l'ait reçu.
+        broadcast: Information transmise à la personne concernée.
+        undated_month: Sans date
+      errors:
+        unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
+        invalid_request: L'état ou la page demandés n'existent pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
+      pagination:
+        label: Pagination des démarches
+        previous: Page précédente
+        next: Page suivante
+        page: "Page %{number}"
+      # Partagés par la liste et le détail.
+      fields:
+        number: Numéro
+        data_stream: Flux
+        state: État
+        transmitted_at: Transmise le
+        updated_at: Mise à jour le
+        applicant: Demandeur
+      index:
+        title: Mes démarches — HubEE
+        heading: Les démarches de ma structure
+        caption: "Démarches à l'état « %{state} »"
+        total:
+          one: 1 démarche
+          other: "%{count} démarches"
+        empty:
+          state: Aucune démarche dans cet état pour votre structure.
+          scope: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
+      show:
+        title: "Démarche %{number} — HubEE"
+        heading: "Démarche %{number}"
+        back: Retour à la liste
+        not_found: Cette démarche est introuvable ou hors de votre périmètre.
+        breadcrumb: Fil d'Ariane
+        breadcrumb_open: Voir le fil d'Ariane
+        home: Accueil
+        summary: Récapitulatif
+        deposit_attachments: Pièces du dépôt
+        deposit_attachments_empty: Aucune pièce n'accompagnait le dépôt.
+        added_attachments: Pièces ajoutées ensuite
+        added_attachments_empty: Aucune pièce n'a été ajoutée depuis le dépôt.
+        # L'amont ne sert pas les fichiers : le dire évite de chercher un lien qui n'existe pas.
+        attachments_notice: Les pièces se consultent depuis votre système d'information. HubEE en présente l'inventaire.
+        history: Historique
+        history_empty: Aucun événement enregistré pour cette démarche.
+        si_comment: Commentaire à destination des SI
+        event_attachments: Pièces apportées
     sessions:
       proconnect_button:
         label: S'identifier avec ProConnect

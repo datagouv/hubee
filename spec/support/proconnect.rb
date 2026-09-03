@@ -7,6 +7,9 @@ module ProConnectTestHelper
   # Jamais le SIRET des seeds (13002526500013) : collision connue avec des specs de l'API.
   TEST_SIRET = "99999999911111"
 
+  # Seconde moitié de l'identité de l'organisation, que la gem nomme `code_insee`.
+  TEST_INSEE_CODE = "00001"
+
   STATE = "test-state"
   NONCE = "test-nonce"
 
@@ -53,7 +56,7 @@ module ProConnectTestHelper
   # Garantit le rattachement correspondant au SIRET simulé : un spec qui veut un refus
   # construit sa situation lui-même.
   def sign_in_via_proconnect(agent:, amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET, idp_id: nil)
-    link = OrganizationLink.find_or_create_by!(siret: siret, insee_code: "00001")
+    link = OrganizationLink.find_or_create_by!(siret: siret, insee_code: TEST_INSEE_CODE)
     Membership.find_or_create_by!(agent: agent, organization_link: link)
     mock_proconnect(sub: agent.provider_sub, email: agent.email, amr:, acr:, siret:, idp_id:)
     proconnect_callback
