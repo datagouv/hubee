@@ -43,7 +43,7 @@ gem "jbuilder"
 # gem "bcrypt"
 
 # Authorization with Pundit [https://github.com/varvet/pundit]
-# gem "pundit"
+gem "pundit"
 
 # Pagination for API [https://github.com/ddnexus/pagy]
 gem "pagy"

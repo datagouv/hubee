@@ -1,6 +1,14 @@
 # Seeds pour développement
 # Usage : bin/rails db:seed
 
+# Les semis créent des comptes habilités : rien de tout cela ne doit naître en production.
+# `local?` et non `development?` : la CI valide ce fichier en test. REVIEW_APP rouvre la porte
+# pour les review apps, qui tournent en production sans autre source de données.
+unless Rails.env.local? || ENV["REVIEW_APP"] == "true"
+  puts "⏭️  Semis ignorés hors développement, test et review app (#{Rails.env})"
+  return
+end
+
 puts "🌱 Seeding database..."
 
 # Nettoyer les données existantes (développement uniquement)
@@ -372,6 +380,25 @@ portal_agents.each do |email, first_name, last_name, link, role, sensitive|
   membership.update!(role:)
   ProcessAccess.find_or_create_by!(membership:, process_code: sensitive_code) if sensitive
 end
+
+# Un couple organisation × flux connu de l'amont interrogé, sans quoi l'écran reste vide.
+# Membre et non administrateur local, pour que le filtrage par habilitation soit traversé.
+socle_siret, socle_insee, socle_process =
+  if ENV["REVIEW_APP"] == "true"
+    ["21260274200018", "26274", "EtatCivil"]
+  else
+    # Code INSEE aligné sur celui que les factories de la gem associent à ce SIRET.
+    ["22770001000019", "77372", "CERTDC"]
+  end
+
+socle_link = OrganizationLink.find_or_create_by!(siret: socle_siret, insee_code: socle_insee)
+socle_agent = Agent.find_or_create_by!(email: "socle@test.proconnect.gouv.fr") do |a|
+  a.first_name = "Camille"
+  a.last_name = "Socle"
+end
+socle_membership = Membership.find_or_create_by!(agent: socle_agent, organization_link: socle_link)
+socle_membership.update!(role: "member")
+ProcessAccess.find_or_create_by!(membership: socle_membership, process_code: socle_process)
 
 puts "  ✅ Created #{Agent.count} agents"
 if Portail::SensitiveProcesses::CODES.empty?

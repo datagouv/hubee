@@ -1,0 +1,60 @@
+<% content_for :title, t(".title") %>
+
+<h1><%= t(".heading") %></h1>
+
+<%# État résolu par le contrôleur. :degraded n'a pas de branche : son alerte est rendue par le flash. %>
+<% case @page_state %>
+<% when :no_habilitation %>
+  <p class="fr-text--lead"><%= t(".empty.scope") %></p>
+<% when :empty, :results %>
+  <div class="fr-grid-row fr-grid-row--gutters">
+    <div class="fr-col-12 fr-col-md-4 fr-col-lg-3">
+      <%= render "state_menu", counts_by_state: @result.counts_by_state, current_state: @state %>
+    </div>
+
+    <div class="fr-col-12 fr-col-md-8 fr-col-lg-9">
+      <%# Le message vide reste à côté du menu : le compteur d'un autre état dit où aller. %>
+      <% if @page_state == :empty %>
+        <p class="fr-text--lead"><%= t(".empty.state") %></p>
+      <% else %>
+        <p class="fr-text--sm fr-text-mention--grey">
+          <%= t(".total", count: @result.pagination.total) %>
+        </p>
+
+        <%# Emboîtement DSFR qui porte le défilement horizontal. Pas de colonne « État » :
+            l'amont ne sert qu'un état à la fois. %>
+        <div class="fr-table fr-table--bordered">
+          <div class="fr-table__wrapper">
+            <div class="fr-table__container">
+              <div class="fr-table__content">
+                <table>
+                  <caption><%= t(".caption", state: delivery_state_label(@state)) %></caption>
+                  <thead>
+                    <tr>
+                      <th scope="col"><%= t("portail.deliveries.fields.number") %></th>
+                      <th scope="col"><%= t("portail.deliveries.fields.data_stream") %></th>
+                      <th scope="col"><%= t("portail.deliveries.fields.transmitted_at") %></th>
+                      <th scope="col"><%= t("portail.deliveries.fields.updated_at") %></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% @result.deliveries.each do |delivery| %>
+                      <tr>
+                        <td><%= link_to delivery.number, demarche_path(delivery.id) %></td>
+                        <td><%= delivery.data_stream.code %></td>
+                        <td><%= delivery_transmitted_at(delivery) %></td>
+                        <td><%= delivery_updated_at(delivery) %></td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <%= render "pagination", pagination: @result.pagination, state: @state %>
+      <% end %>
+    </div>
+  </div>
+<% end %>

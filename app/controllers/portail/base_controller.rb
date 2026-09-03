@@ -3,6 +3,7 @@
 module Portail
   class BaseController < ApplicationController
     include Portail::Authentication
+    include Pundit::Authorization
 
     layout "portail"
 
@@ -21,6 +22,10 @@ module Portail
     rescue_from ActionController::InvalidAuthenticityToken, with: :reload_stale_page
 
     private
+
+    # Le sujet des policies est le rattachement, pas l'agent : le rôle et les habilitations
+    # vivent sur lui, et un même agent peut être membre ici et administrateur local ailleurs.
+    def pundit_user = current_membership
 
     def do_not_cache
       response.headers["Cache-Control"] = "no-store"

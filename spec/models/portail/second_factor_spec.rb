@@ -3,7 +3,9 @@
 require "rails_helper"
 
 RSpec.describe Portail::SecondFactor do
-  before { stub_const("Portail::SensitiveProcesses::CODES", %w[SGR]) }
+  # Code inventé : la vraie liste vient de l'outillage de déploiement et ne descend pas dans
+  # ce dépôt, qui est public. La règle testée ne dépend d'aucune valeur en particulier.
+  before { stub_const("Portail::SensitiveProcesses::CODES", %w[DEMO_SENSIBLE]) }
 
   def membership_with(process_code, *traits)
     create(:membership, *traits).tap do |membership|
@@ -14,7 +16,7 @@ RSpec.describe Portail::SecondFactor do
   describe ".required_for?" do
     it "spares an ordinary agent who touches no sensitive process" do
       expect(described_class.required_for?(membership_with(nil))).to be(false)
-      expect(described_class.required_for?(membership_with("AEC"))).to be(false)
+      expect(described_class.required_for?(membership_with("DEMO_ORDINAIRE"))).to be(false)
     end
 
     it "requires it of a local administrator, whatever their processes" do
@@ -23,13 +25,13 @@ RSpec.describe Portail::SecondFactor do
     end
 
     it "requires it of an ordinary agent holding a sensitive process" do
-      expect(described_class.required_for?(membership_with("SGR"))).to be(true)
+      expect(described_class.required_for?(membership_with("DEMO_SENSIBLE"))).to be(true)
     end
 
     # Les codes sont stockés verbatim : sans comparaison insensible à la casse, cet agent
     # échapperait au second facteur sans qu'aucune erreur ne le signale.
     it "requires it however the sensitive code is spelled" do
-      expect(described_class.required_for?(membership_with("sgr"))).to be(true)
+      expect(described_class.required_for?(membership_with("demo_sensible"))).to be(true)
     end
   end
 
