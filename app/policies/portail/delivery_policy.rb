@@ -9,7 +9,7 @@ module Portail
       # le scope.
       def readable?(membership, delivery)
         delivery.recipient.matches?(membership.organization_link) &&
-          Access::ReadingPerimeter.covers?(membership, delivery.data_stream.code)
+          Access::ProcessPerimeter.covers?(membership, delivery.data_stream.code)
       end
     end
 

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Portail
-  module Auth
+  module Access
     # Écrit la décision pour le CSIRT. Les champs partent en payload et non composés dans le
     # message : c'est le formateur logfmt de l'appender qui sérialise, et chaque champ ressort
     # au premier niveau de la ligne. L'adresse et l'identifiant pseudonyme sont masqués ici et

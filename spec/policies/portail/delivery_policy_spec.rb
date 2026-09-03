@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-# La règle rôle × habilitation est éprouvée dans le spec de Portail::Access::ReadingPerimeter. Ici, on
+# La règle rôle × habilitation est éprouvée dans le spec de Portail::Access::ProcessPerimeter. Ici, on
 # constate que la policy l'applique à ce que l'amont a servi, liste et détail, et qu'elle vérifie
 # aussi l'organisation : l'amont est un tiers, son filtre n'est pas tenu pour acquis.
 RSpec.describe Portail::DeliveryPolicy do

@@ -6,13 +6,13 @@ module Portail
     # travail du jour ; ouvrir sur « traitée » ou « clôturée » montrerait d'abord l'archive.
     DEFAULT_STATE = "transmitted"
 
-    # L'amont n'a pas tenu son contrat : signalé, pas refusé en bloc. Un filtre non respecté
-    # est une anomalie amont, pas une raison de priver l'agent de sa page.
-    after_action :report_upstream_mismatch, only: :index, if: -> { @deliveries }
-
     def index
+      # L'état affiché, relu par la vue. `.to_s` : `?statut[]=…` fait de la valeur un tableau.
+      # Aucune validation : l'amont tranche, et son refus est affiché plutôt que corrigé en douce.
+      @current_state = params[:statut].to_s.presence || DEFAULT_STATE
+
       result = Deliveries::Index.call(
-        membership: current_membership, state: current_state, page: requested_page
+        membership: current_membership, state: @current_state, page: requested_page
       )
 
       unless result.success?
@@ -26,6 +26,10 @@ module Portail
       # déduirait pas d'un tableau.
       @list = result.list
       @deliveries = policy_scope(@list.deliveries, policy_scope_class: DeliveryPolicy::Scope)
+
+      # L'amont n'a pas tenu son contrat : signalé, pas refusé en bloc. Un filtre non respecté
+      # est une anomalie amont, pas une raison de priver l'agent de sa page.
+      report_upstream_mismatch
     end
 
     def show
@@ -59,10 +63,6 @@ module Portail
       flash.now[:alert] = t("portail.deliveries.errors.#{error}")
       render :degraded
     end
-
-    # L'état affiché, relu par la vue. `.to_s` : `?statut[]=…` fait de la valeur un tableau.
-    # Aucune validation : l'amont tranche, et son refus est affiché plutôt que corrigé en douce.
-    def current_state = @current_state ||= params[:statut].to_s.presence || DEFAULT_STATE
 
     # `.presence` : `?page=` vide retombe sur la première page. Une valeur trafiquée donne 0,
     # donc un décalage négatif que l'amont refuse.
