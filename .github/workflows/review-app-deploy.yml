@@ -81,7 +81,7 @@ jobs:
             PROCONNECT_CLIENT_SECRET="${{ secrets.DOKKU_PROCONNECT_CLIENT_SECRET }}" \
             PROCONNECT_REDIRECT_URI="https://$REVIEW_SUFFIX.${REVIEW_DOMAIN}/connexion/proconnect/retour" \
             PROCONNECT_POST_LOGOUT_REDIRECT_URI="https://$REVIEW_SUFFIX.${REVIEW_DOMAIN}/" \
-            SENSITIVE_PROCESS_CODES="SGR,DSG,GRO,SNATED" \
+            SENSITIVE_PROCESS_CODES="${{ secrets.DOKKU_SENSITIVE_PROCESS_CODES }}" \
             REVIEW_APP="true" \
             HUB_API_BASE_URL="${{ secrets.DOKKU_HUB_API_BASE_URL }}" \
             KEYCLOAK_BASE_URL="${{ secrets.DOKKU_KEYCLOAK_BASE_URL }}" \
