@@ -2,9 +2,9 @@
 
 module Portail
   module Access
-    # Ce qu'un rattachement a le droit de lire. Des habilitations renseignées bornent tout le
-    # monde, administrateur local compris ; le rôle ne tranche que la liste vide.
-    module ReadingPerimeter
+    # Les flux qu'un rattachement a le droit d'atteindre. Des habilitations renseignées bornent
+    # tout le monde, administrateur local compris ; le rôle ne tranche que la liste vide.
+    module ProcessPerimeter
       # Levée par `filter` sur un périmètre sans accès : transmis à l'amont, un filtre vide vaut
       # « aucun filtre », soit toute l'organisation.
       class NoAccess < StandardError; end
