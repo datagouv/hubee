@@ -21,10 +21,17 @@ module Portail
     # rechargement.
     rescue_from ActionController::InvalidAuthenticityToken, with: :reload_stale_page
 
-    # Fermé par défaut : une action qui n'a ni autorisé ni borné explose. Un contrôleur sans
-    # policy s'en exempte par `skip_after_action`, comme il le fait pour l'authentification.
+    # Fermé par défaut : une action qui n'a ni autorisé ni borné explose. Un contrôleur ouvert
+    # aux visiteurs s'en exempte par la déclaration qui l'ouvre, ci-dessous.
     after_action :verify_authorized, except: :index
     after_action :verify_policy_scoped, only: :index
+
+    # Un contrôleur ouvert aux visiteurs n'a pas de sujet à autoriser : les deux gardes tombent
+    # avec l'authentification, en une seule déclaration qu'on ne peut pas oublier à moitié.
+    def self.allow_unauthenticated_access(**options)
+      super
+      skip_after_action :verify_authorized, :verify_policy_scoped, **options
+    end
 
     # Un refus rend la même 404 qu'une ressource inexistante : distinguer les deux révélerait
     # l'existence de ce que l'agent n'a pas à voir. Seul le journal les sépare.

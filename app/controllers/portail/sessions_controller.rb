@@ -9,9 +9,6 @@ module Portail
     # sa session ProConnect avec.
     skip_before_action :enforce_second_factor!
 
-    # L'authentification n'autorise aucune ressource : elle décide qui entre.
-    skip_after_action :verify_authorized, :verify_policy_scoped
-
     # Chaque appel déclenche deux requêtes sortantes vers ProConnect : sans limite, on se
     # laisse transformer en amplificateur.
     rate_limit to: 10, within: 1.minute, only: :create, with: -> { head :too_many_requests }
