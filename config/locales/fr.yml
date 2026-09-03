@@ -132,6 +132,8 @@ fr:
         empty: Aucune démarche dans cet état pour votre structure.
       no_habilitation:
         text: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
+      degraded:
+        text: Les démarches de votre structure n'ont pas pu être affichées.
       show:
         title: "Démarche %{number} — HubEE"
         heading: "Démarche %{number}"
