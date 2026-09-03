@@ -11,7 +11,7 @@ module Portail
         def call
           # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut
           # « aucun filtre », donc toute l'organisation.
-          context.fail!(error: :no_habilitation) if Access::ReadingPerimeter.none?(context.membership)
+          context.fail!(error: :no_habilitation) if Access::ProcessPerimeter.none?(context.membership)
 
           context.list = fetch
         end
@@ -24,7 +24,7 @@ module Portail
           link = context.membership.organization_link
           HubAPI::Deliveries.list(
             siret: link.siret, insee_code: link.insee_code, state: context.state,
-            data_stream_codes: Access::ReadingPerimeter.filter(context.membership),
+            data_stream_codes: Access::ProcessPerimeter.filter(context.membership),
             page: context.page, per_page: PER_PAGE
           )
         rescue HubAPI::InvalidRequest => e

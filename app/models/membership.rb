@@ -31,7 +31,7 @@ class Membership < ApplicationRecord
 
   # === Méthodes d'instance ===
   # Les codes des flux habilités. `map` et non `pluck` : lit l'association si elle est
-  # préchargée, ce que fait l'authentification du portail à chaque requête.
+  # préchargée.
   def process_codes = process_accesses.map(&:process_code)
 
   private

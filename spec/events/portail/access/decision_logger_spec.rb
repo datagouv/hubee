@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Auth::DecisionLogger do
+RSpec.describe Portail::Access::DecisionLogger do
   # Deux abonnés, deux politiques opposées sur la même décision : le journal masque ce que
   # la table conserve. C'est ce que l'objet d'événement rend possible.
   it "hands the decision to the logger as fields, masking what a log must not carry" do
