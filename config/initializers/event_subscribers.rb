@@ -18,6 +18,6 @@ decision = ->(event) { event[:payload].is_a?(Portail::Auth::Decision) }
 # amont réveille quelqu'un en plus.
 access = ->(event) { event[:payload].is_a?(Portail::Access::Decision) }
 
-Rails.event.subscribe(lazy.new("Portail::Auth::DecisionLogger")) { |event| decision.call(event) || access.call(event) }
+Rails.event.subscribe(lazy.new("Portail::Access::DecisionLogger")) { |event| decision.call(event) || access.call(event) }
 Rails.event.subscribe(lazy.new("Portail::Auth::Recorder"), &decision)
 Rails.event.subscribe(lazy.new("Portail::Access::Alerter"), &access)
