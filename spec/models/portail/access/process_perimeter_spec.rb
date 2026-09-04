@@ -35,9 +35,11 @@ RSpec.describe Portail::Access::ProcessPerimeter do
       create(:process_access, membership: membership, process_code: "AEC")
     end
 
+    # Code inventé : la règle ne dépend d'aucune valeur, et les vrais codes de flux sensibles
+    # ne descendent pas dans ce dépôt, qui est public.
     it "covers those data streams only, and hands them as the filter" do
       expect(described_class.covers?(membership, "CERTDC")).to be(true)
-      expect(described_class.covers?(membership, "DSG")).to be(false)
+      expect(described_class.covers?(membership, "DEMO_AUTRE")).to be(false)
       expect(described_class.filter(membership)).to contain_exactly("CERTDC", "AEC")
       expect(described_class.none?(membership)).to be(false)
     end
