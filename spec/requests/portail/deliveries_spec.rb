@@ -20,11 +20,32 @@ RSpec.describe "Portail::Deliveries", type: :request do
     agent
   end
 
+  # L'organisation de l'agent connecté, dans le vocabulaire de la gem : son client bouchonné
+  # filtre sur ce couple, comme l'API.
+  def upstream_recipient
+    build_v2_recipient(siret: ProConnectTestHelper::TEST_SIRET,
+      code_insee: ProConnectTestHelper::TEST_INSEE_CODE)
+  end
+
   describe "GET /demarches" do
     it "redirects a signed-out visitor to the home page" do
       get "/demarches"
 
       expect(response).to redirect_to(root_path)
+    end
+
+    # Rien n'est bouchonné en deçà de la frontière : la démarche traverse la gem entière.
+    it "lists a delivery the upstream serves for the organisation" do
+      sign_in_member
+      use_hub_api_fake_client.add_case(
+        build_v2_delivery(state: :transmitted, recipient: upstream_recipient)
+      )
+
+      get "/demarches"
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body))
+        .to have_link("DGS-CERTDC-0000000000001-01", href: "/demarches/94b1b09d-b47f-4480-9b48-93b8b36108f2")
     end
 
     it "lists the deliveries of the agent organisation" do
@@ -43,7 +64,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .with(hash_including(state: "transmitted", page: 1))
-        # Le hash complet est éprouvé dans le spec du query object.
+        # Le hash complet est éprouvé dans le spec de l'étape FetchList.
         .and_return(build(:portail_delivery_list))
 
       get "/demarches"
@@ -52,7 +73,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "honours the state and the page requested as parameters" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
-        # Le hash complet est éprouvé dans le spec du query object.
+        # Le hash complet est éprouvé dans le spec de l'étape FetchList.
         .with(hash_including(state: "acknowledged", page: 2))
         .and_return(build(:portail_delivery_list))
 
@@ -267,7 +288,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "filters the list on the codes a member is habilitated to" do
         sign_in_member(process_codes: ["CERTDC", "AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list)
-          # Le reste du hash est éprouvé dans le spec du query object.
+          # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: match_array(["CERTDC", "AEC"])))
           .and_return(build(:portail_delivery_list))
 
@@ -279,7 +300,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "filters the list of a local administrator with named habilitations too" do
         sign_in_local_administrator(process_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list)
-          # Le reste du hash est éprouvé dans le spec du query object.
+          # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: ["CERTDC"]))
           .and_return(build(:portail_delivery_list))
 
@@ -291,13 +312,44 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "leaves a local administrator without habilitation unfiltered" do
         sign_in_local_administrator
         expect(Portail::HubAPI::Deliveries).to receive(:list)
-          # Le reste du hash est éprouvé dans le spec du query object.
+          # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: []))
           .and_return(build(:portail_delivery_list))
 
         get "/demarches"
 
         expect(response).to have_http_status(:success)
+      end
+
+      # L'amont est un tiers : s'il ignore le filtre, la ligne hors habilitation ne s'affiche
+      # pas, la page reste servie, et l'anomalie part en alerte et sur le canal CSIRT.
+      it "hides and reports a delivery the upstream served outside the habilitations" do
+        agent = sign_in_member(process_codes: ["CERTDC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
+          build(:portail_delivery_list, deliveries: [
+            build(:portail_delivery_summary, number: "DGS-CERTDC-0000000000001-01"),
+            build(:portail_delivery_summary, id: "hors-perimetre", number: "DGS-AEC-0000000000002-01",
+              data_stream_code: "AEC")
+          ])
+        )
+        expect(Sentry).to receive(:capture_message).with(
+          a_string_including("Périmètre non respecté par l'amont sur /demarches : 1 élément"),
+          level: :warning, extra: hash_including(dropped_ids: ["hors-perimetre"])
+        )
+
+        events = capture_semantic_logger_events { get "/demarches" }
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
+        expect(Capybara.string(response.body)).to have_no_text("DGS-AEC-0000000000002-01")
+        expect(events).to include(be_a_semantic_logger_event(
+          level: :info, message: "Décision d'accès",
+          payload_includes: {
+            event: "Portail::Access::Decision", outcome: :upstream_mismatch, path: "/demarches",
+            dropped_ids: ["hors-perimetre"], membership_id: Membership.find_by!(agent: agent).id,
+            ip_address: "127.0.0.1"
+          }
+        ))
       end
     end
   end
@@ -309,6 +361,34 @@ RSpec.describe "Portail::Deliveries", type: :request do
       get "/demarches/#{delivery_id}"
 
       expect(response).to redirect_to(root_path)
+    end
+
+    # Rien n'est bouchonné en deçà de la frontière, et l'amont sert ses champs bancals : une
+    # transition à une seule extrémité, un event sans date, une pièce sans taille, pas de
+    # demandeur. Chacun a son repli, aucun ne fait tomber la page.
+    it "renders a delivery the upstream serves, awkward fields included" do
+      sign_in_member
+      use_hub_api_fake_client.add_case(build_v2_delivery(
+        recipient: upstream_recipient,
+        data_package: build_v2_data_package(applicant: nil,
+          attachments: [build_v2_attachment(byte_size: nil)]),
+        events: [
+          build_v2_event(metadata: {to_state: :done}),
+          build_v2_event(id: "e2222222-2222-2222-2222-222222222222", created_at: nil)
+        ]
+      ))
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+
+      page = Capybara.string(response.body)
+      expect(page).to have_text("George DUBOIS a modifié le statut : — → Traitée")
+      expect(page).to have_text("Sans date")
+      expect(Nokogiri::HTML(response.body)
+        .xpath("//dt[normalize-space()='Demandeur']/following-sibling::dd[1]").text).to eq("—")
+      expect(Nokogiri::HTML(response.body)
+        .css("table tbody tr td:nth-child(3)").map { |cell| cell.text.strip }).to eq(["—"])
     end
 
     it "shows the delivery metadata, applicant included" do
@@ -575,19 +655,26 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(cells.count { |classes| classes.include?("fr-col-md-6") }).to eq(2)
     end
 
-    it "gives the same message when the delivery does not exist" do
+    it "renders a not found page when the delivery does not exist" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
-      # La redirection retraverse la liste : son contenu n'est pas l'objet de cet exemple.
-      expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(build(:portail_delivery_list))
 
       get "/demarches/#{delivery_id}"
 
-      expect(response).to redirect_to(demarches_path)
-      follow_redirect!
+      expect(response).to have_http_status(:not_found)
+      expect(Capybara.string(response.body)).to have_text("Page introuvable")
+    end
 
-      expect(response).to have_http_status(:success)
-      expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
+    # Une panne au détail est un incident : l'agent est renvoyé avec l'alerte, quelqu'un est réveillé.
+    it "sends the agent back with an alert and reports the outage" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::Unavailable)
+      expect(Sentry).to receive(:capture_exception)
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to include("momentanément indisponible")
     end
 
     # L'identifiant vient de l'URL et finit au journal : des retours à la ligne y forgeraient
@@ -595,13 +682,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "logs the unknown identifier without letting it forge log lines" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
-      lines = []
-      expect(Rails.logger).to receive(:info).at_least(:once) { |line| lines << line }
 
-      # La redirection n'est pas suivie : seul le journal est l'objet ici.
-      get "/demarches/evil%0Aforged"
+      events = capture_semantic_logger_events { get "/demarches/evil%0Aforged" }
 
-      line = lines.grep(/introuvable/).first
+      line = events.map(&:message).grep(/introuvable/).first
       expect(line).to include('"evil\nforged"')
       expect(line).not_to include("\n")
     end
@@ -611,19 +695,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
     context "reading perimeter" do
       def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
 
-      # La redirection retraverse la liste ; sauf périmètre vide, qui n'appelle jamais l'amont.
-      def expect_the_list_to_be_retraversed
-        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(build(:portail_delivery_list))
-      end
-
-      def expect_refusal_and_return_to_the_list
+      # La même page qu'une démarche inexistante : distinguer les deux révélerait l'existence
+      # d'une démarche hors périmètre.
+      def expect_a_not_found_page
         get "/demarches/#{delivery_id}"
 
-        expect(response).to redirect_to(demarches_path)
-        follow_redirect!
-
-        expect(response).to have_http_status(:success)
-        expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
+        expect(response).to have_http_status(:not_found)
+        expect(Capybara.string(response.body)).to have_text("Page introuvable")
+        expect(Capybara.string(response.body)).to have_no_text("DGS-CERTDC-0000000000001-01")
       end
 
       def expect_the_delivery_to_open
@@ -640,19 +719,38 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect_the_delivery_to_open
       end
 
-      it "refuses a member on a delivery outside their habilitations" do
-        sign_in_member(process_codes: ["AEC"])
+      # Seul le journal distingue un refus d'une inexistence, et c'est lui qui laisse voir un
+      # agent qui balaie des identifiants. Éprouvé jusqu'à l'appel au logger, sur le canal CSIRT.
+      it "refuses a member on a delivery outside their habilitations, and logs the refusal" do
+        agent = sign_in_member(process_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
-        expect_the_list_to_be_retraversed
 
-        expect_refusal_and_return_to_the_list
+        events = capture_semantic_logger_events { expect_a_not_found_page }
+
+        membership = Membership.find_by!(agent: agent)
+        expect(events).to include(be_a_semantic_logger_event(
+          level: :info, message: "Décision d'accès",
+          payload_includes: {
+            event: "Portail::Access::Decision", outcome: :refused, path: "/demarches/#{delivery_id}",
+            agent_id: agent.id, membership_id: membership.id, ip_address: "127.0.0.1"
+          }
+        ))
       end
 
       it "refuses a member without any habilitation" do
         sign_in_member(process_codes: [])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
-        expect_refusal_and_return_to_the_list
+        expect_a_not_found_page
+      end
+
+      # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.
+      it "refuses a delivery the upstream served for another organisation" do
+        sign_in_member(process_codes: ["CERTDC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, :of_another_organisation))
+
+        expect_a_not_found_page
       end
 
       it "opens any delivery to a local administrator without habilitation" do
@@ -672,9 +770,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "refuses a local administrator on a delivery outside their habilitations" do
         sign_in_local_administrator(process_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
-        expect_the_list_to_be_retraversed
 
-        expect_refusal_and_return_to_the_list
+        expect_a_not_found_page
       end
     end
   end

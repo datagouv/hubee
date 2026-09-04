@@ -21,13 +21,16 @@ RSpec.describe Portail::HubAPI::Deliveries do
       result = described_class.list(siret: siret, insee_code: insee_code, state: "acknowledged",
         data_stream_codes: [], page: 1, per_page: 25, client: client)
 
-      expect(result).to be_a(Portail::DeliveryList)
-      expect(result.deliveries).to all(be_a(Portail::DeliverySummary))
+      expect(result).to be_a(Portail::Delivery::List)
+      expect(result.deliveries).to all(be_a(Portail::Delivery::Summary))
       expect(result.deliveries.map(&:number)).to contain_exactly(
         "DGS-CERTDC-0000000000001-01", "DGS-CERTDC-0000000000002-01"
       )
       expect(result.deliveries.first).to have_attributes(state: "acknowledged")
       expect(result.deliveries.first.data_stream.code).to eq("CERTDC")
+      # `code_insee` en amont, `insee_code` ici : la couture vit à la frontière.
+      expect(result.deliveries.first.recipient)
+        .to eq(Portail::Delivery::Recipient.new(siret: siret, insee_code: insee_code))
       expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1, total: 2)
     end
 
@@ -43,11 +46,11 @@ RSpec.describe Portail::HubAPI::Deliveries do
         data_stream_codes: ["CERTDC"], page: 3, per_page: 25, client: client)
     end
 
-    # Passer `nil` à la gem remplacerait son client par rien.
-    it "leaves the upstream client out when none is injected" do
+    it "hands the gem its shared client when none is injected" do
+      shared = use_hub_api_fake_client
       expect(HubApiV1::V2::Delivery).to receive(:list).with(
         siret: siret, code_insee: insee_code, state: :transmitted,
-        data_stream_codes: [], offset: 0, per_page: 25
+        data_stream_codes: [], offset: 0, per_page: 25, client: shared
       ).and_return(build_v2_delivery_list([]))
 
       described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
@@ -100,15 +103,17 @@ RSpec.describe Portail::HubAPI::Deliveries do
         number: "DGS-CERTDC-0000000000001-01", state: "acknowledged"
       )
       expect(result.data_stream.code).to eq("CERTDC")
-      expect(result.applicant).to be_a(Portail::Applicant)
+      expect(result.recipient).to eq(Portail::Delivery::Recipient.new(siret: siret, insee_code: insee_code))
+      expect(result.applicant).to be_a(Portail::Delivery::Applicant)
       expect(result.applicant.full_name).to eq("George DUBOIS")
     end
 
     it "renders no applicant when the upstream serves none" do
-      expect(HubApiV1::V2::Delivery).to receive(:find)
-        .and_return(build_v2_delivery(data_package: nil))
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(data_package: nil))
 
-      result = described_class.find(id: "an-id", siret: siret, insee_code: insee_code)
+      result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
 
       expect(result).to be_a(Portail::Delivery)
       expect(result.applicant).to be_nil
@@ -122,7 +127,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
         siret: siret, insee_code: insee_code, client: client)
 
-      expect(result.attachments).to all(be_a(Portail::Attachment))
+      expect(result.attachments).to all(be_a(Portail::Delivery::Attachment))
       expect(result.attachments.first).to have_attributes(
         filename: "certificat.pdf", content_type: "application/pdf",
         byte_size: 1024, kind: "VA_CertificatdeDeces", state: "received"
@@ -131,10 +136,11 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
     # Liste vide et non nil : l'écran compte les pièces sans se demander si le conteneur existe.
     it "yields no attachment when the upstream serves no data package" do
-      expect(HubApiV1::V2::Delivery).to receive(:find)
-        .and_return(build_v2_delivery(data_package: nil))
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(data_package: nil))
 
-      result = described_class.find(id: "an-id", siret: siret, insee_code: insee_code)
+      result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
 
       expect(result.attachments).to eq([])
     end
@@ -150,7 +156,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
         siret: siret, insee_code: insee_code, client: client)
 
-      expect(result.events).to all(be_a(Portail::Event))
+      expect(result.events).to all(be_a(Portail::Delivery::Event))
       expect(result.events.first).to have_attributes(
         event_type: "delivery.state_changed", author: "George DUBOIS",
         content: "Dossier pris en charge", si_comment: "retry #2"
@@ -184,28 +190,31 @@ RSpec.describe Portail::HubAPI::Deliveries do
     it "sends the portal vocabulary as the upstream keywords" do
       client = HubApiV1::Testing::FakeClient.new
       expect(HubApiV1::V2::Delivery).to receive(:find).with(
-        id: "an-id", siret: siret, code_insee: insee_code, client: client
+        id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", siret: siret, code_insee: insee_code, client: client
       ).and_return(build_v2_delivery)
 
-      described_class.find(id: "an-id", siret: siret, insee_code: insee_code, client: client)
+      described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
     end
-  end
 
-  describe ".empty_list" do
-    # Mêmes clés, même ordre et même graphie qu'une vraie page : c'est d'elle que vient
-    # l'ordre des états pour l'agent habilité sur aucun flux.
-    it "builds a complete empty page without calling the upstream" do
-      expect(HubApiV1::V2::Delivery).not_to receive(:list)
+    # Rien n'est bouchonné : c'est la garde de la gem qui doit refuser, avant tout appel réseau.
+    # L'identifiant vient de l'URL : `/demarches/%20` ne doit pas passer pour une panne.
+    it "lets a blank identifier reach the upstream refusal before any call" do
+      client = HubApiV1::Testing::FakeClient.new
 
-      result = described_class.empty_list(per_page: 25)
+      expect {
+        described_class.find(id: "", siret: siret, insee_code: insee_code, client: client)
+      }.to raise_error(Portail::HubAPI::InvalidRequest)
+      expect(client.requests).to be_empty
+    end
 
-      expect(result).to be_a(Portail::DeliveryList)
-      expect(result.deliveries).to be_empty
-      expect(result.pagination).to have_attributes(current_page: 1, total_pages: 1)
-      expect(result.counts_by_state.keys).to eq(
-        %w[transmitted acknowledged in_progress awaiting_documents done refused closed integration_error]
-      )
-      expect(result.counts_by_state.values).to all(eq(0))
+    it "lets an identifier that is not a UUID reach the upstream refusal before any call" do
+      client = HubApiV1::Testing::FakeClient.new
+
+      expect {
+        described_class.find(id: "foo", siret: siret, insee_code: insee_code, client: client)
+      }.to raise_error(Portail::HubAPI::InvalidRequest)
+      expect(client.requests).to be_empty
     end
   end
 
@@ -228,6 +237,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
     upstream_errors.each do |situation, error|
       it "raises #{error[:translated].name.demodulize} on list for #{situation}" do
+        use_hub_api_fake_client
         expect(HubApiV1::V2::Delivery).to receive(:list).and_raise(error[:raised])
 
         expect {
@@ -237,10 +247,11 @@ RSpec.describe Portail::HubAPI::Deliveries do
       end
 
       it "raises #{error[:translated].name.demodulize} on find for #{situation}" do
+        use_hub_api_fake_client
         expect(HubApiV1::V2::Delivery).to receive(:find).and_raise(error[:raised])
 
         expect {
-          described_class.find(id: "an-id", siret: siret, insee_code: insee_code)
+          described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", siret: siret, insee_code: insee_code)
         }.to raise_error(error[:translated])
       end
     end

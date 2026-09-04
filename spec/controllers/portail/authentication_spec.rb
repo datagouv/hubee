@@ -7,6 +7,9 @@ require "rails_helper"
 # contenter de regarder la chaîne de rappels.
 RSpec.describe Portail::BaseController, type: :controller do
   controller do
+    # Seule l'authentification est l'objet ici ; l'autorisation a son propre spec.
+    skip_after_action :verify_authorized, :verify_policy_scoped
+
     def index
       head :ok
     end

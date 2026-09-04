@@ -84,7 +84,7 @@ RSpec.describe Portail::ProConnect::Client do
 
       expect(params["claims"]).to eq(
         {id_token: {amr: {essential: true},
-                    acr: {essential: true, values: Portail::AuthenticationLevels::SECOND_FACTOR}}}.to_json
+                    acr: {essential: true, values: Portail::Access::AuthenticationLevels::SECOND_FACTOR}}}.to_json
       )
       # Laisser acr_values au plancher enverrait la consigne inverse dans la même requête.
       expect(params["acr_values"]).to eq("eidas1-mfa eidas2 eidas3")

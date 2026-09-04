@@ -16,8 +16,9 @@ module Portail
     # Motifs qui ne disent rien du compte de l'agent : la page d'échec générique suffit.
     TECHNICAL_FAILURES = %i[invalid_token provider_unavailable sign_in_conflict].freeze
 
-    # Départ vers ProConnect. En POST : couvert par le jeton CSRF de Rails.
-    def authorize
+    # Départ vers ProConnect. En POST : couvert par le jeton CSRF de Rails. Pas `authorize` :
+    # ce nom est celui de la méthode de Pundit, incluse dans BaseController.
+    def start
       # Les suggestions viennent d'une éjection en cours de session (cf.
       # Authentication#enforce_second_factor!) ; consommées pour ne pas survivre sur un
       # poste partagé.

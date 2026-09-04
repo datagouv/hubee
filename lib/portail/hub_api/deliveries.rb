@@ -9,7 +9,8 @@ module Portail
     # sorties en modèles du portail, erreurs en erreurs de Portail::HubAPI.
     module Deliveries
       class << self
-        def list(siret:, insee_code:, state:, data_stream_codes:, page:, per_page:, client: nil)
+        def list(siret:, insee_code:, state:, data_stream_codes:, page:, per_page:,
+          client: HubApiV1.client)
           page_of(
             HubApiV1::V2::Delivery.list(
               siret: siret,
@@ -19,40 +20,29 @@ module Portail
               data_stream_codes: data_stream_codes,
               offset: offset_for(page, per_page),
               per_page: per_page,
-              **injected(client)
+              client: client
             )
           )
         rescue HubApiV1::Error => e
           raise translated(e)
         end
 
-        def find(id:, siret:, insee_code:, client: nil)
+        def find(id:, siret:, insee_code:, client: HubApiV1.client)
           delivery_from(
-            HubApiV1::V2::Delivery.find(
-              id: id, siret: siret, code_insee: insee_code, **injected(client)
-            )
+            HubApiV1::V2::Delivery.find(id: id, siret: siret, code_insee: insee_code, client: client)
           )
         rescue HubApiV1::Error => e
           raise translated(e)
-        end
-
-        # Construite par la gem : l'ordre et la complétude des compteurs d'états viennent du
-        # même endroit que ceux d'une vraie page.
-        def empty_list(per_page:)
-          page_of(HubApiV1::V2::DeliveryList.empty(per_page: per_page))
         end
 
         private
-
-        # Passer `nil` à la gem remplacerait son client par rien.
-        def injected(client) = client ? {client: client} : {}
 
         # `to_i` : la page peut arriver en String. Trafiquée, elle donne 0, donc un décalage
         # négatif que l'amont refuse.
         def offset_for(page, per_page) = (page.to_i - 1) * per_page
 
         def page_of(list)
-          Portail::DeliveryList.new(
+          Portail::Delivery::List.new(
             deliveries: list.deliveries.map { |summary| summary_from(summary) },
             pagination: pagination_from(list.pagination),
             # `transform_keys` préserve l'ordre des états.
@@ -61,11 +51,12 @@ module Portail
         end
 
         def summary_from(summary)
-          Portail::DeliverySummary.new(
+          Portail::Delivery::Summary.new(
             id: summary.id,
             number: summary.number,
             state: summary.state.to_s,
             data_stream: data_stream_from(summary.data_stream),
+            recipient: recipient_from(summary.recipient),
             transmitted_at: summary.transmitted_at,
             updated_at: summary.updated_at
           )
@@ -77,6 +68,7 @@ module Portail
             number: delivery.number,
             state: delivery.state.to_s,
             data_stream: data_stream_from(delivery.data_stream),
+            recipient: recipient_from(delivery.recipient),
             transmitted_at: delivery.transmitted_at,
             updated_at: delivery.updated_at,
             applicant: applicant_from(delivery.data_package&.applicant),
@@ -93,7 +85,7 @@ module Portail
         end
 
         def attachment_from(attachment)
-          Portail::Attachment.new(
+          Portail::Delivery::Attachment.new(
             id: attachment.id,
             filename: attachment.filename,
             content_type: attachment.content_type,
@@ -104,7 +96,7 @@ module Portail
         end
 
         def event_from(event)
-          Portail::Event.new(
+          Portail::Delivery::Event.new(
             id: event.id,
             event_type: event.event_type.to_s,
             created_at: event.created_at,
@@ -124,10 +116,14 @@ module Portail
 
         def data_stream_from(data_stream) = Portail::DataStream.new(code: data_stream.code)
 
+        def recipient_from(recipient)
+          Portail::Delivery::Recipient.new(siret: recipient.siret, insee_code: recipient.code_insee)
+        end
+
         def applicant_from(applicant)
           return if applicant.nil?
 
-          Portail::Applicant.new(first_name: applicant.first_name, last_name: applicant.last_name)
+          Portail::Delivery::Applicant.new(first_name: applicant.first_name, last_name: applicant.last_name)
         end
 
         def pagination_from(pagination)

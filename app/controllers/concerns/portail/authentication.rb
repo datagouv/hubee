@@ -77,7 +77,7 @@ module Portail
     def enforce_second_factor!
       record = find_session_by_cookie
       return unless record&.granted?
-      return if Portail::SecondFactor.satisfied?(record.membership,
+      return if Portail::Access::SecondFactor.satisfied?(record.membership,
         acr: record.acr, amr: record.amr)
 
       Rails.event.notify(Portail::Auth::Decision.new(
@@ -94,7 +94,7 @@ module Portail
       terminate_session
 
       session[:proconnect_step_up] = true
-      # Relus par SessionsController#authorize, pour suggérer l'adresse et l'organisation.
+      # Relus par SessionsController#start, pour suggérer l'adresse et l'organisation.
       session[:proconnect_step_up_email] = email
       session[:proconnect_step_up_siret] = siret
       # Vers l'élévation, pas vers un accueil qui ne dirait pas quoi faire.

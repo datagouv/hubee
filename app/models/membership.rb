@@ -29,6 +29,11 @@ class Membership < ApplicationRecord
   # fenêtre de course assumée tant que l'écriture des rattachements est séquentielle.
   validate :one_membership_per_siret
 
+  # === Méthodes d'instance ===
+  # Les codes des flux habilités. `map` et non `pluck` : lit l'association si elle est
+  # préchargée.
+  def process_codes = process_accesses.map(&:process_code)
+
   private
 
   # ProConnect n'atteste que le SIRET : deux rattachements le partageant seraient

@@ -21,7 +21,36 @@ module Portail
     # rechargement.
     rescue_from ActionController::InvalidAuthenticityToken, with: :reload_stale_page
 
+    # Fermé par défaut : une action qui n'a ni autorisé ni borné explose. Un contrôleur ouvert
+    # aux visiteurs s'en exempte par la déclaration qui l'ouvre, ci-dessous.
+    after_action :verify_authorized, except: :index
+    after_action :verify_policy_scoped, only: :index
+
+    # Un contrôleur ouvert aux visiteurs n'a pas de sujet à autoriser : les deux gardes tombent
+    # avec l'authentification, en une seule déclaration qu'on ne peut pas oublier à moitié.
+    def self.allow_unauthenticated_access(**options)
+      super
+      skip_after_action :verify_authorized, :verify_policy_scoped, **options
+    end
+
+    # Un refus rend la même 404 qu'une ressource inexistante : distinguer les deux révélerait
+    # l'existence de ce que l'agent n'a pas à voir. Seul le journal les sépare.
+    rescue_from Pundit::NotAuthorizedError, with: :refuse_access
+
     private
+
+    # Une décision d'accès, pour le CSIRT : même canal que l'authentification, qui y joint le
+    # contexte de requête.
+    def refuse_access
+      Rails.event.notify(Access::Decision.new(outcome: :refused, path: request.path,
+        agent_id: current_agent.id, membership_id: current_membership.id))
+      not_found
+    end
+
+    def not_found = render("portail/errors/not_found", status: :not_found)
+
+    # Un service tiers manque : l'agent revient d'où il vient, avec l'alerte.
+    def unavailable = redirect_back_or_to(root_path, alert: t("portail.errors.unavailable"))
 
     # Le sujet des policies est le rattachement, pas l'agent : le rôle et les habilitations
     # vivent sur lui, et un même agent peut être membre ici et administrateur local ailleurs.

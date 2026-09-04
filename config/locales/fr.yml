@@ -129,14 +129,15 @@ fr:
         total:
           one: 1 démarche
           other: "%{count} démarches"
-        empty:
-          state: Aucune démarche dans cet état pour votre structure.
-          scope: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
+        empty: Aucune démarche dans cet état pour votre structure.
+      no_habilitation:
+        text: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
+      degraded:
+        text: Les démarches de votre structure n'ont pas pu être affichées.
       show:
         title: "Démarche %{number} — HubEE"
         heading: "Démarche %{number}"
         back: Retour à la liste
-        not_found: Cette démarche est introuvable ou hors de votre périmètre.
         breadcrumb: Fil d'Ariane
         breadcrumb_open: Voir le fil d'Ariane
         home: Accueil
@@ -198,6 +199,7 @@ fr:
     errors:
       back_home: Retour à l'accueil
       stale_page: Cette page n'était plus à jour, elle a été rechargée.
+      unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
       not_found:
         title: Page introuvable — HubEE
         heading: Page introuvable
