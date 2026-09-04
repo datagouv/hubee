@@ -109,11 +109,11 @@ RSpec.describe Portail::HubAPI::Deliveries do
     end
 
     it "renders no applicant when the upstream serves none" do
-      use_hub_api_fake_client
-      expect(HubApiV1::V2::Delivery).to receive(:find)
-        .and_return(build_v2_delivery(data_package: nil))
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(data_package: nil))
 
-      result = described_class.find(id: "an-id", siret: siret, insee_code: insee_code)
+      result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
 
       expect(result).to be_a(Portail::Delivery)
       expect(result.applicant).to be_nil
@@ -136,11 +136,11 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
     # Liste vide et non nil : l'écran compte les pièces sans se demander si le conteneur existe.
     it "yields no attachment when the upstream serves no data package" do
-      use_hub_api_fake_client
-      expect(HubApiV1::V2::Delivery).to receive(:find)
-        .and_return(build_v2_delivery(data_package: nil))
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(data_package: nil))
 
-      result = described_class.find(id: "an-id", siret: siret, insee_code: insee_code)
+      result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
 
       expect(result.attachments).to eq([])
     end
@@ -190,10 +190,31 @@ RSpec.describe Portail::HubAPI::Deliveries do
     it "sends the portal vocabulary as the upstream keywords" do
       client = HubApiV1::Testing::FakeClient.new
       expect(HubApiV1::V2::Delivery).to receive(:find).with(
-        id: "an-id", siret: siret, code_insee: insee_code, client: client
+        id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", siret: siret, code_insee: insee_code, client: client
       ).and_return(build_v2_delivery)
 
-      described_class.find(id: "an-id", siret: siret, insee_code: insee_code, client: client)
+      described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
+    end
+
+    # Rien n'est bouchonné : c'est la garde de la gem qui doit refuser, avant tout appel réseau.
+    # L'identifiant vient de l'URL : `/demarches/%20` ne doit pas passer pour une panne.
+    it "lets a blank identifier reach the upstream refusal before any call" do
+      client = HubApiV1::Testing::FakeClient.new
+
+      expect {
+        described_class.find(id: "", siret: siret, insee_code: insee_code, client: client)
+      }.to raise_error(Portail::HubAPI::InvalidRequest)
+      expect(client.requests).to be_empty
+    end
+
+    it "lets an identifier that is not a UUID reach the upstream refusal before any call" do
+      client = HubApiV1::Testing::FakeClient.new
+
+      expect {
+        described_class.find(id: "foo", siret: siret, insee_code: insee_code, client: client)
+      }.to raise_error(Portail::HubAPI::InvalidRequest)
+      expect(client.requests).to be_empty
     end
   end
 
@@ -230,7 +251,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
         expect(HubApiV1::V2::Delivery).to receive(:find).and_raise(error[:raised])
 
         expect {
-          described_class.find(id: "an-id", siret: siret, insee_code: insee_code)
+          described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", siret: siret, insee_code: insee_code)
         }.to raise_error(error[:translated])
       end
     end

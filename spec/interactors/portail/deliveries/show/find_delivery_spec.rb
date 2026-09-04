@@ -50,10 +50,10 @@ RSpec.describe Portail::Deliveries::Show::FindDelivery do
     expect(result.error).to eq(:unavailable)
   end
 
-  # L'identifiant vient de l'URL : un robot qui balaie `/demarches/%20` noierait Sentry.
+  # L'identifiant vient de l'URL : un robot qui balaie `/demarches/%20` noierait Sentry. Sans
+  # bouchon de la couche de traduction : c'est le refus réel de la gem qui doit arriver ici.
   it "treats a refused argument as not found, logged and without alert" do
-    expect(Portail::HubAPI::Deliveries).to receive(:find)
-      .and_raise(Portail::HubAPI::InvalidRequest, "id is required")
+    use_hub_api_fake_client
     expect(Sentry).not_to receive(:capture_exception)
 
     result = nil
