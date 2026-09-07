@@ -18,22 +18,22 @@ RSpec.describe Portail::HubAPI::Deliveries do
         id: "0a11c2f4-0000-4000-8000-000000000044", number: "DGS-CERTDC-0000000000002-01"
       ))
 
-      # Les démarches à part de la page : ce que l'amont a servi ne voyage pas avec ce qui le
-      # situe, et ne peut donc pas atteindre une vue sans passer par la policy.
-      deliveries, page = described_class.list(siret: siret, insee_code: insee_code,
-        state: "acknowledged", data_stream_codes: [], page: 1, per_page: 25, client: client)
+      list = described_class.list(siret: siret, insee_code: insee_code, state: "acknowledged",
+        data_stream_codes: [], page: 1, per_page: 25, client: client)
 
-      expect(deliveries).to all(be_a(Portail::Delivery::Summary))
-      expect(deliveries.map(&:number)).to contain_exactly(
+      expect(list).to be_a(Portail::Delivery::List)
+      expect(list.deliveries).to all(be_a(Portail::Delivery::Summary))
+      expect(list.deliveries.map(&:number)).to contain_exactly(
         "DGS-CERTDC-0000000000001-01", "DGS-CERTDC-0000000000002-01"
       )
-      expect(deliveries.first).to have_attributes(state: "acknowledged")
-      expect(deliveries.first.data_stream.code).to eq("CERTDC")
+      expect(list.deliveries.first).to have_attributes(state: "acknowledged")
+      expect(list.deliveries.first.data_stream.code).to eq("CERTDC")
       # `code_insee` en amont, `insee_code` ici : la couture vit à la frontière.
-      expect(deliveries.first.recipient)
+      expect(list.deliveries.first.recipient)
         .to eq(Portail::Delivery::Recipient.new(siret: siret, insee_code: insee_code))
-      expect(page).to be_a(Portail::Delivery::Page)
-      expect(page.pagination).to have_attributes(current_page: 1, total_pages: 1, total: 2)
+      # La page à part des démarches : ce qui situe la liste ne transporte pas ce qu'elle contient.
+      expect(list.page).to be_a(Portail::Delivery::Page)
+      expect(list.page.pagination).to have_attributes(current_page: 1, total_pages: 1, total: 2)
     end
 
     # Hash complet : un paramètre inattendu doit se voir.
@@ -82,13 +82,13 @@ RSpec.describe Portail::HubAPI::Deliveries do
     it "carries the state counts complete, ordered and in the portal spelling" do
       client = HubApiV1::Testing::FakeClient.new
 
-      _deliveries, page = described_class.list(siret: siret, insee_code: insee_code,
-        state: "transmitted", data_stream_codes: [], page: 1, per_page: 25, client: client)
+      list = described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
+        data_stream_codes: [], page: 1, per_page: 25, client: client)
 
-      expect(page.counts_by_state.keys).to eq(
+      expect(list.page.counts_by_state.keys).to eq(
         %w[transmitted acknowledged in_progress awaiting_documents done refused closed integration_error]
       )
-      expect(page.counts_by_state.values).to all(be_a(Integer))
+      expect(list.page.counts_by_state.values).to all(be_a(Integer))
     end
   end
 
