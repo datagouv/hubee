@@ -134,11 +134,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("637 démarches")
     end
 
-    # Un filtre refusé donne une erreur affichée, jamais un filtre réinitialisé en silence.
-    it "shows the refusal when the upstream rejects the requested filter" do
+    # Un filtre refusé donne une erreur affichée, jamais un filtre réinitialisé en silence. Et un
+    # robot qui balaie des URL noierait Sentry sous des refus normaux : le silence de l'alerte
+    # fait partie du cas.
+    it "shows the refusal when the upstream rejects the requested filter, and reports no incident" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .and_raise(Portail::HubAPI::InvalidRequest)
+      expect(Sentry).not_to receive(:capture_exception)
 
       get "/demarches", params: {statut: "n-importe-quoi"}
 
@@ -188,15 +191,6 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
-    end
-
-    # Un robot qui balaie des URL noierait Sentry sous des refus normaux.
-    it "does not report a filter the upstream refuses" do
-      sign_in_member
-      expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::InvalidRequest)
-      expect(Sentry).not_to receive(:capture_exception)
-
-      get "/demarches", params: {statut: "n-importe-quoi"}
     end
 
     # `?page=` vide est ce qu'un formulaire soumet avec un champ vide, pas un paramètre trafiqué.
@@ -625,10 +619,12 @@ RSpec.describe "Portail::Deliveries", type: :request do
     end
 
     # Un identifiant qui n'est pas un UUID ne peut désigner aucune démarche : même réponse qu'un
-    # identifiant inconnu, pour ne rien dire de plus à qui balaie des URL.
-    it "gives the same message when the identifier of the URL is not one" do
+    # identifiant inconnu, pour ne rien dire de plus à qui balaie des URL. Et un robot qui en
+    # balaie noierait Sentry sous des refus normaux : le silence de l'alerte fait partie du cas.
+    it "gives the same message for a malformed identifier, and reports no incident" do
       sign_in_member
       use_hub_api_fake_client
+      expect(Sentry).not_to receive(:capture_exception)
 
       get "/demarches/pas-un-identifiant"
 
@@ -637,15 +633,6 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
-    end
-
-    # Un robot qui balaie des URL noierait Sentry sous des refus normaux.
-    it "does not report an identifier the upstream refuses" do
-      sign_in_member
-      use_hub_api_fake_client
-      expect(Sentry).not_to receive(:capture_exception)
-
-      get "/demarches/pas-un-identifiant"
     end
 
     # La matrice rôle × habilitation côté détail, le trou que ferme la policy : la liste ne
