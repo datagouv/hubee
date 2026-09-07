@@ -8,7 +8,7 @@ module Portail
       # La règle, écrite une fois : pour un détail par `show?`, pour chaque ligne d'une page par
       # le scope.
       def readable?(membership, delivery)
-        delivery.recipient.matches?(membership.organization_link) &&
+        Access::OrganizationPerimeter.covers?(membership, delivery.recipient) &&
           Access::ProcessPerimeter.covers?(membership, delivery.data_stream.code)
       end
     end
