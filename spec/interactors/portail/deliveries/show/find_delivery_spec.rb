@@ -21,40 +21,42 @@ RSpec.describe Portail::Deliveries::Show::FindDelivery do
     expect(result.delivery).to eq(delivery)
   end
 
-  # L'identifiant vient de l'URL et finit au journal : des retours à la ligne y forgeraient de
-  # fausses lignes. Une inexistence n'est pas un incident, Sentry n'est pas réveillé.
-  it "fails as not found, logged under an inspected identifier, when the upstream serves none" do
+  # L'identifiant en champ, pas dans le message : il se filtre au journal, et `reason` sépare
+  # l'UUID que l'amont ne connaît pas du bruit des identifiants malformés.
+  it "fails as not found, logged under a searchable identifier, when the upstream serves none" do
     expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
-    expect(Sentry).not_to receive(:capture_exception)
 
     result = nil
     events = capture_semantic_logger_events do
-      result = described_class.call(membership: membership, id: "evil\nforged")
+      result = described_class.call(membership: membership, id: "94b1b09d-b47f-4480-9b48-93b8b36108f2")
     end
 
     expect(result).to be_failure
     expect(result.error).to eq(:not_found)
     expect(events).to include(be_a_semantic_logger_event(
-      level: :info, message: 'Démarche introuvable en amont : "evil\nforged"'
+      level: :info, message: "Démarche introuvable en amont",
+      payload_includes: {id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", reason: :unknown}
     ))
   end
 
-  # Une panne est un incident : quelqu'un est réveillé.
-  it "fails as unavailable and reports the outage when the upstream is failing" do
+  # La panne est signalée par la couche de traduction : ici, seulement le journal et l'échec.
+  it "fails as unavailable, logged, when the upstream is failing" do
     expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::Unavailable)
-    expect(Sentry).to receive(:capture_exception).with(Portail::HubAPI::Unavailable)
 
-    result = described_class.call(membership: membership, id: "an-id")
+    result = nil
+    events = capture_semantic_logger_events do
+      result = described_class.call(membership: membership, id: "an-id")
+    end
 
     expect(result).to be_failure
     expect(result.error).to eq(:unavailable)
+    expect(events).to include(be_a_semantic_logger_event(level: :error, message_includes: "Démarches indisponibles"))
   end
 
-  # L'identifiant vient de l'URL : un robot qui balaie `/demarches/%20` noierait Sentry. Sans
-  # bouchon de la couche de traduction : c'est le refus réel de la gem qui doit arriver ici.
-  it "treats a refused argument as not found, logged and without alert" do
+  # L'identifiant vient de l'URL : sans bouchon de la couche de traduction, c'est le refus réel
+  # de la gem qui doit arriver ici.
+  it "treats a refused argument as not found, logged under its own reason" do
     use_hub_api_fake_client
-    expect(Sentry).not_to receive(:capture_exception)
 
     result = nil
     events = capture_semantic_logger_events do
@@ -64,7 +66,7 @@ RSpec.describe Portail::Deliveries::Show::FindDelivery do
     expect(result).to be_failure
     expect(result.error).to eq(:not_found)
     expect(events).to include(be_a_semantic_logger_event(
-      level: :info, message: 'Démarche introuvable en amont : " "'
+      level: :info, message: "Démarche introuvable en amont", payload_includes: {id: " ", reason: :invalid_id}
     ))
   end
 end

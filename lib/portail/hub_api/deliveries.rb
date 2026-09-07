@@ -140,7 +140,11 @@ module Portail
           case error
           when HubApiV1::V2::DeliveryNotFoundError then NotFound.new(error.message)
           when HubApiV1::V2::InvalidArgumentError then InvalidRequest.new(error.message)
-          else Unavailable.new("#{error.class} : #{error.message}")
+          else
+            # Une panne est un incident, signalé ici et non par chaque appelant : un seul point,
+            # avec l'exception d'origine. Le portail ne nomme pas Sentry, abonné au rapporteur.
+            Rails.error.report(error, handled: true)
+            Unavailable.new("#{error.class} : #{error.message}")
           end
         end
       end

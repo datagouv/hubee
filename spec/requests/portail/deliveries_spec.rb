@@ -204,11 +204,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("aucun flux")
     end
 
-    # Une panne est un incident : la page se rend quand même, et quelqu'un est réveillé.
-    it "renders the page with an alert and reports the outage" do
+    # Une panne est un incident, signalé à la frontière : la page se rend quand même.
+    it "renders the page with an alert when the upstream is failing" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
-      expect(Sentry).to receive(:capture_exception)
 
       get "/demarches"
 
@@ -661,11 +660,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("Page introuvable")
     end
 
-    # Une panne au détail est un incident : l'agent est renvoyé avec l'alerte, quelqu'un est réveillé.
-    it "sends the agent back with an alert and reports the outage" do
+    # Une panne au détail est un incident, signalé à la frontière : l'agent est renvoyé avec l'alerte.
+    it "sends the agent back with an alert when the upstream is failing" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::Unavailable)
-      expect(Sentry).to receive(:capture_exception)
 
       get "/demarches/#{delivery_id}"
 
@@ -673,17 +671,17 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(flash[:alert]).to include("momentanément indisponible")
     end
 
-    # L'identifiant vient de l'URL et finit au journal : des retours à la ligne y forgeraient
-    # de fausses lignes.
-    it "logs the unknown identifier without letting it forge log lines" do
+    # L'identifiant vient de l'URL et finit au journal, en champ : le formateur logfmt cite les
+    # valeurs, un retour à la ligne n'y forge aucune ligne.
+    it "logs the unknown identifier as a field" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
 
       events = capture_semantic_logger_events { get "/demarches/evil%0Aforged" }
 
-      line = events.map(&:message).grep(/introuvable/).first
-      expect(line).to include('"evil\nforged"')
-      expect(line).not_to include("\n")
+      expect(events).to include(be_a_semantic_logger_event(
+        level: :info, message: "Démarche introuvable en amont", payload_includes: {id: "evil\nforged"}
+      ))
     end
 
     # Les deux exemples qui suivent forment une paire : bien formé mais inconnu, puis mal formé.
@@ -752,9 +750,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       # Seul le journal distingue un refus d'une inexistence, et c'est lui qui laisse voir un
       # agent qui balaie des identifiants. Éprouvé jusqu'à l'appel au logger, sur le canal CSIRT.
-      it "refuses a member on a delivery outside their habilitations, and logs the refusal" do
+      it "refuses a member on a delivery outside their habilitations, logs and alerts" do
         agent = sign_in_member(process_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
+        expect(Sentry).to receive(:capture_message).with(
+          "Accès refusé hors périmètre sur /demarches/#{delivery_id}",
+          level: :warning, extra: hash_including(agent_id: agent.id)
+        )
 
         events = capture_semantic_logger_events { expect_a_not_found_page }
 
