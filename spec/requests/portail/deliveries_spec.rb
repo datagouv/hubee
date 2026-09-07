@@ -606,6 +606,48 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(line).not_to include("\n")
     end
 
+    # Les deux exemples qui suivent forment une paire : bien formé mais inconnu, puis mal formé.
+    # Rien n'y est bouchonné en deçà de la frontière — ce sont les vrais refus de la gem qui se
+    # produisent — et ils s'assertent à l'identique. C'est cette indiscernabilité qui est
+    # l'invariant : la réponse ne doit rien apprendre sur ce que l'identifiant demandé désigne.
+    it "gives the same message for a well-formed identifier the upstream does not serve" do
+      sign_in_member
+      # Aucune démarche n'est servie : l'amont ne connaît pas cet identifiant.
+      use_hub_api_fake_client
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to redirect_to(demarches_path)
+      follow_redirect!
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
+    end
+
+    # Un identifiant qui n'est pas un UUID ne peut désigner aucune démarche : même réponse qu'un
+    # identifiant inconnu, pour ne rien dire de plus à qui balaie des URL.
+    it "gives the same message when the identifier of the URL is not one" do
+      sign_in_member
+      use_hub_api_fake_client
+
+      get "/demarches/pas-un-identifiant"
+
+      expect(response).to redirect_to(demarches_path)
+      follow_redirect!
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
+    end
+
+    # Un robot qui balaie des URL noierait Sentry sous des refus normaux.
+    it "does not report an identifier the upstream refuses" do
+      sign_in_member
+      use_hub_api_fake_client
+      expect(Sentry).not_to receive(:capture_exception)
+
+      get "/demarches/pas-un-identifiant"
+    end
+
     # La matrice rôle × habilitation côté détail, le trou que ferme la policy : la liste ne
     # montre pas une démarche hors habilitation, mais son identifiant suffirait à l'ouvrir.
     context "reading perimeter" do
