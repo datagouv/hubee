@@ -5,10 +5,6 @@ module Portail
     # La surface d'authentification elle-même : s'y authentifier ne peut être un prérequis.
     allow_unauthenticated_access
 
-    # Un agent dont le rattachement vient de changer doit encore pouvoir sortir, et fermer
-    # sa session ProConnect avec.
-    skip_before_action :enforce_second_factor!
-
     # Chaque appel déclenche deux requêtes sortantes vers ProConnect : sans limite, on se
     # laisse transformer en amplificateur.
     rate_limit to: 10, within: 1.minute, only: :create, with: -> { head :too_many_requests }

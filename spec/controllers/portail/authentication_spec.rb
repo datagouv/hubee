@@ -141,28 +141,30 @@ RSpec.describe Portail::BaseController, type: :controller do
   end
 
   describe ".allow_unauthenticated_access" do
-    def authentication_required?(controller_class)
-      controller_class._process_action_callbacks.any? { |callback| callback.filter == :require_authentication }
+    def callback_declared?(controller_class, filter)
+      controller_class._process_action_callbacks.any? { |callback| callback.filter == filter }
     end
 
     # Ces trois-là doivent rester joignables sans session, sous peine de boucle sur
     # l'accueil ou de page d'erreur transformée en redirection.
     it "is declared by every controller that must stay reachable" do
-      expect(authentication_required?(Portail::DashboardController)).to be(false)
-      expect(authentication_required?(Portail::ErrorsController)).to be(false)
-      expect(authentication_required?(Portail::SessionsController)).to be(false)
+      expect(callback_declared?(Portail::DashboardController, :require_authentication)).to be(false)
+      expect(callback_declared?(Portail::ErrorsController, :require_authentication)).to be(false)
+      expect(callback_declared?(Portail::SessionsController, :require_authentication)).to be(false)
     end
 
-    def second_factor_enforced?(controller_class)
-      controller_class._process_action_callbacks.any? { |callback| callback.filter == :enforce_second_factor! }
+    # Le second facteur conditionne l'accès authentifié, pas l'accès tout court : un agent dont
+    # les droits viennent de changer doit encore pouvoir se déconnecter, et sa session
+    # ProConnect avec.
+    it "lifts the second factor with the authentication" do
+      expect(callback_declared?(Portail::DashboardController, :enforce_second_factor!)).to be(false)
+      expect(callback_declared?(Portail::ErrorsController, :enforce_second_factor!)).to be(false)
+      expect(callback_declared?(Portail::SessionsController, :enforce_second_factor!)).to be(false)
     end
 
-    # Entrer et sortir doit rester possible : un agent dont les droits viennent de changer
-    # se ferait sinon éjecter au moment où il essaie de se déconnecter, et sa session
-    # ProConnect resterait ouverte.
-    it "never gets between an agent and the sign-out path" do
-      expect(second_factor_enforced?(Portail::SessionsController)).to be(false)
-      expect(second_factor_enforced?(Portail::DashboardController)).to be(true)
+    it "leaves both guards on a controller reserved to agents" do
+      expect(callback_declared?(Portail::DeliveriesController, :require_authentication)).to be(true)
+      expect(callback_declared?(Portail::DeliveriesController, :enforce_second_factor!)).to be(true)
     end
   end
 end

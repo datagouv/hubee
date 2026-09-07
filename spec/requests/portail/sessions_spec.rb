@@ -626,7 +626,8 @@ RSpec.describe "Portail::Sessions", type: :request do
       sign_in_via_proconnect(agent:, amr: ["pwd"])
       Membership.last.update!(role: "local_administrator")
 
-      get root_path
+      # Une page réservée : l'accueil, ouvert aux visiteurs, n'exige pas le second facteur.
+      get demarches_path
       follow_redirect!
 
       expect(Capybara.string(response.body))
@@ -638,7 +639,7 @@ RSpec.describe "Portail::Sessions", type: :request do
       agent = create(:agent)
       sign_in_via_proconnect(agent:, amr: ["pwd"])
       Membership.last.update!(role: "local_administrator")
-      get root_path
+      get demarches_path
 
       expect(Portail::ProConnect::Client).to receive(:authorization)
         .with(step_up: true, login_hint: agent.email,
