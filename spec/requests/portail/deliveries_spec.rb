@@ -660,15 +660,17 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("Page introuvable")
     end
 
-    # Une panne au détail est un incident, signalé à la frontière : l'agent est renvoyé avec l'alerte.
-    it "sends the agent back with an alert when the upstream is failing" do
+    # Une panne au détail est un incident, signalé à la frontière. Sans la démarche, le portail
+    # n'a rien à montrer : une page d'erreur, pas une redirection dont le message s'évapore.
+    it "renders a service unavailable page when the upstream is failing" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::Unavailable)
 
       get "/demarches/#{delivery_id}"
 
-      expect(response).to redirect_to(root_path)
-      expect(flash[:alert]).to include("momentanément indisponible")
+      expect(response).to have_http_status(:service_unavailable)
+      expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
+      expect(Capybara.string(response.body)).to have_link("Retour à l'accueil", href: root_path)
     end
 
     # L'identifiant vient de l'URL et finit au journal, en champ : le formateur logfmt cite les
