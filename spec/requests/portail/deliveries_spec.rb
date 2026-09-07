@@ -134,11 +134,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("637 démarches")
     end
 
-    # Un filtre refusé donne une erreur affichée, jamais un filtre réinitialisé en silence.
-    it "shows the refusal when the upstream rejects the requested filter" do
+    # Un filtre refusé donne une erreur affichée, jamais un filtre réinitialisé en silence. Et un
+    # robot qui balaie des URL noierait Sentry sous des refus normaux : le silence de l'alerte
+    # fait partie du cas.
+    it "shows the refusal when the upstream rejects the requested filter, and reports no incident" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .and_raise(Portail::HubAPI::InvalidRequest)
+      expect(Sentry).not_to receive(:capture_exception)
 
       get "/demarches", params: {statut: "n-importe-quoi"}
 
@@ -188,15 +191,6 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
-    end
-
-    # Un robot qui balaie des URL noierait Sentry sous des refus normaux.
-    it "does not report a filter the upstream refuses" do
-      sign_in_member
-      expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::InvalidRequest)
-      expect(Sentry).not_to receive(:capture_exception)
-
-      get "/demarches", params: {statut: "n-importe-quoi"}
     end
 
     # `?page=` vide est ce qu'un formulaire soumet avec un champ vide, pas un paramètre trafiqué.
@@ -604,6 +598,41 @@ RSpec.describe "Portail::Deliveries", type: :request do
       line = lines.grep(/introuvable/).first
       expect(line).to include('"evil\nforged"')
       expect(line).not_to include("\n")
+    end
+
+    # Les deux exemples qui suivent forment une paire : bien formé mais inconnu, puis mal formé.
+    # Rien n'y est bouchonné en deçà de la frontière — ce sont les vrais refus de la gem qui se
+    # produisent — et ils s'assertent à l'identique. C'est cette indiscernabilité qui est
+    # l'invariant : la réponse ne doit rien apprendre sur ce que l'identifiant demandé désigne.
+    it "gives the same message for a well-formed identifier the upstream does not serve" do
+      sign_in_member
+      # Aucune démarche n'est servie : l'amont ne connaît pas cet identifiant.
+      use_hub_api_fake_client
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to redirect_to(demarches_path)
+      follow_redirect!
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
+    end
+
+    # Un identifiant qui n'est pas un UUID ne peut désigner aucune démarche : même réponse qu'un
+    # identifiant inconnu, pour ne rien dire de plus à qui balaie des URL. Et un robot qui en
+    # balaie noierait Sentry sous des refus normaux : le silence de l'alerte fait partie du cas.
+    it "gives the same message for a malformed identifier, and reports no incident" do
+      sign_in_member
+      use_hub_api_fake_client
+      expect(Sentry).not_to receive(:capture_exception)
+
+      get "/demarches/pas-un-identifiant"
+
+      expect(response).to redirect_to(demarches_path)
+      follow_redirect!
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("introuvable ou hors de votre périmètre")
     end
 
     # La matrice rôle × habilitation côté détail, le trou que ferme la policy : la liste ne

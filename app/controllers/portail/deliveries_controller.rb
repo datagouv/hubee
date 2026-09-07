@@ -48,14 +48,16 @@ module Portail
     # démarche il n'y a rien à autoriser, et le garde lèverait.
     def fetch_delivery
       DeliveriesQuery.new(current_membership).find(id: params[:id])
-    rescue HubAPI::NotFound
+    rescue HubAPI::NotFound, HubAPI::InvalidRequest
       # Même message qu'un refus : distinguer révélerait l'existence d'une démarche hors périmètre.
+      # `InvalidRequest` rangé ici et non avec les pannes : au détail, le seul argument qui vienne
+      # de l'extérieur est l'identifiant de l'URL — le couple d'organisation, lui, est validé au
+      # modèle. Un identifiant mal formé ne désigne aucune démarche : c'est un introuvable, pas un
+      # incident, et un robot qui balaie des URL ne doit pas noyer Sentry.
       Rails.logger.info("Démarche introuvable en amont : #{params[:id].inspect}")
       skip_authorization
       redirect_to_list_with_not_found
     rescue HubAPI::Error => e
-      # `InvalidRequest` rangé avec les pannes : au détail, un paramètre refusé ne peut venir
-      # que de nos données, pas de l'URL.
       report_outage(e)
       skip_authorization
       redirect_to demarches_path, alert: t("portail.deliveries.errors.unavailable")
