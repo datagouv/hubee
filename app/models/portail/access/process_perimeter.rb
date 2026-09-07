@@ -11,11 +11,13 @@ module Portail
 
       module_function
 
+      # Le rôle d'abord : une colonne, avant de parcourir les habilitations.
       def covers?(membership, code)
-        membership.process_codes.include?(code) || unrestricted?(membership)
+        unrestricted?(membership) || membership.process_codes.include?(code)
       end
 
-      # Ce que l'amont attend : une liste de flux, vide quand rien ne restreint la lecture.
+      # Ce que l'amont attend : une liste de flux, vide quand rien ne restreint la lecture. La
+      # gem omet alors le paramètre, et l'amont sert toute l'organisation.
       def filter(membership)
         raise NoAccess if none?(membership)
 

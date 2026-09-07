@@ -17,14 +17,6 @@ RSpec.describe Portail::Access::ProcessPerimeter do
     it "refuses to hand any filter" do
       expect { described_class.filter(membership) }.to raise_error(described_class::NoAccess)
     end
-
-    # Deux agents de la même organisation n'ont pas le même périmètre.
-    it "ignores the habilitations of other memberships" do
-      other = create(:membership, organization_link: membership.organization_link)
-      create(:process_access, membership: other, process_code: "AEC")
-
-      expect(described_class.none?(membership)).to be(true)
-    end
   end
 
   context "for a member habilitated on CERTDC and AEC" do
@@ -42,6 +34,16 @@ RSpec.describe Portail::Access::ProcessPerimeter do
       expect(described_class.covers?(membership, "DEMO_AUTRE")).to be(false)
       expect(described_class.filter(membership)).to contain_exactly("CERTDC", "AEC")
       expect(described_class.none?(membership)).to be(false)
+    end
+
+    # Deux agents de la même organisation, chacun ses flux : le périmètre est celui du
+    # rattachement, pas de l'organisation.
+    it "ignores the habilitations of another membership of the organisation" do
+      other = create(:membership, organization_link: membership.organization_link)
+      create(:process_access, membership: other, process_code: "DEMO_AUTRE")
+
+      expect(described_class.covers?(membership, "DEMO_AUTRE")).to be(false)
+      expect(described_class.filter(membership)).to contain_exactly("CERTDC", "AEC")
     end
   end
 
