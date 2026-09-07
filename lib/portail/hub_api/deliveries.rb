@@ -11,18 +11,20 @@ module Portail
       class << self
         def list(siret:, insee_code:, state:, data_stream_codes:, page:, per_page:,
           client: HubApiV1.client)
-          page_of(
-            HubApiV1::V2::Delivery.list(
-              siret: siret,
-              code_insee: insee_code,
-              # String dans le portail, Symbol en amont : la conversion vit ici seulement.
-              state: state.to_sym,
-              data_stream_codes: data_stream_codes,
-              offset: offset_for(page, per_page),
-              per_page: per_page,
-              client: client
-            )
+          list = HubApiV1::V2::Delivery.list(
+            siret: siret,
+            code_insee: insee_code,
+            # String dans le portail, Symbol en amont : la conversion vit ici seulement.
+            state: state.to_sym,
+            data_stream_codes: data_stream_codes,
+            offset: offset_for(page, per_page),
+            per_page: per_page,
+            client: client
           )
+
+          # Les démarches à part de la page : ce que l'amont a servi ne voyage pas avec ce qui
+          # le situe, et ne peut donc pas atteindre une vue sans passer par la policy.
+          [list.deliveries.map { |summary| summary_from(summary) }, page_of(list)]
         rescue HubApiV1::Error => e
           raise translated(e)
         end
@@ -42,8 +44,7 @@ module Portail
         def offset_for(page, per_page) = (page.to_i - 1) * per_page
 
         def page_of(list)
-          Portail::Delivery::List.new(
-            deliveries: list.deliveries.map { |summary| summary_from(summary) },
+          Portail::Delivery::Page.new(
             pagination: pagination_from(list.pagination),
             # `transform_keys` préserve l'ordre des états.
             counts_by_state: list.counts_by_state.transform_keys(&:to_s)

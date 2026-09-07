@@ -1,8 +1,12 @@
 <%= render "heading" %>
 
+<%# Refus ou panne : rien à lister ni à compter, la page ne dit que la conséquence. %>
+<% if @failure %>
+  <p class="fr-text--lead"><%= t(".failures.#{@failure}") %></p>
+<% else %>
 <div class="fr-grid-row fr-grid-row--gutters">
   <div class="fr-col-12 fr-col-md-4 fr-col-lg-3">
-    <%= render "state_menu", counts_by_state: @list.counts_by_state, current_state: @current_state %>
+    <%= render "state_menu", counts_by_state: @page.counts_by_state, current_state: @current_state %>
   </div>
 
   <div class="fr-col-12 fr-col-md-8 fr-col-lg-9">
@@ -10,8 +14,10 @@
     <% if @deliveries.empty? %>
       <p class="fr-text--lead"><%= t(".empty") %></p>
     <% else %>
+      <%# Le total est celui de l'amont, compté avant la policy : une page servie hors périmètre
+          montre moins de lignes qu'annoncé. L'écart est alerté, pas masqué. %>
       <p class="fr-text--sm fr-text-mention--grey">
-        <%= t(".total", count: @list.pagination.total) %>
+        <%= t(".total", count: @page.pagination.total) %>
       </p>
 
       <%# Emboîtement DSFR qui porte le défilement horizontal. Pas de colonne « État » :
@@ -46,7 +52,8 @@
         </div>
       </div>
 
-      <%= render "pagination", pagination: @list.pagination, state: @current_state %>
+      <%= render "pagination", pagination: @page.pagination, state: @current_state %>
     <% end %>
   </div>
 </div>
+<% end %>

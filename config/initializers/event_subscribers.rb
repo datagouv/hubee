@@ -14,9 +14,9 @@ end
 # il n'y a pas de chaîne pointée à préfixer.
 decision = ->(event) { event[:payload].is_a?(Portail::Auth::Decision) }
 
-# Les décisions d'accès en cours de session vont au journal, jamais en table ; l'anomalie
-# amont réveille quelqu'un en plus.
-access = ->(event) { event[:payload].is_a?(Portail::Access::Decision) }
+# Les refus d'accès en cours de session vont au journal, jamais en table ; l'anomalie amont
+# réveille quelqu'un en plus.
+access = ->(event) { event[:payload].is_a?(Portail::Access::Refusal) }
 
 Rails.event.subscribe(lazy.new("Portail::Access::DecisionLogger")) { |event| decision.call(event) || access.call(event) }
 Rails.event.subscribe(lazy.new("Portail::Auth::Recorder"), &decision)

@@ -13,7 +13,7 @@ module Portail
           # « aucun filtre », donc toute l'organisation.
           context.fail!(error: :no_habilitation) if Access::ProcessPerimeter.none?(context.membership)
 
-          context.list = fetch
+          context.deliveries, context.page = fetch
         end
 
         private

@@ -27,8 +27,8 @@ RSpec.describe Portail::BaseController, type: :controller do
     end
 
     # Un refus rend la même page qu'une ressource inexistante : distinguer les deux révélerait
-    # l'existence de ce que l'agent n'a pas à voir. Seule la décision d'accès émise les sépare.
-    it "renders a not found page on a refusal, and emits the access decision" do
+    # l'existence de ce que l'agent n'a pas à voir. Seul le refus émis les sépare.
+    it "renders a not found page on a refusal, and emits the refusal" do
       # Rails émet ses propres événements pendant la requête : on capture tout, on cherche le nôtre.
       events = []
       expect(Rails.event).to receive(:notify).at_least(:once) { |*args| events << args }
@@ -36,7 +36,7 @@ RSpec.describe Portail::BaseController, type: :controller do
       delete :destroy, params: {id: "1"}
 
       expect(response).to have_http_status(:not_found)
-      expect(events).to include([Portail::Access::Decision.new(outcome: :refused,
+      expect(events).to include([Portail::Access::Refusal.new(reason: :out_of_perimeter,
         path: "/portail/base/1", agent_id: membership.agent_id, membership_id: membership.id)])
     end
   end
