@@ -199,7 +199,6 @@ fr:
     errors:
       back_home: Retour à l'accueil
       stale_page: Cette page n'était plus à jour, elle a été rechargée.
-      unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
       not_found:
         title: Page introuvable — HubEE
         heading: Page introuvable
@@ -212,3 +211,7 @@ fr:
         title: Erreur serveur — HubEE
         heading: Une erreur est survenue
         lead: Le service rencontre un problème technique. Merci de réessayer ultérieurement.
+      service_unavailable:
+        title: Service indisponible — HubEE
+        heading: Service momentanément indisponible
+        lead: Un service dont dépend cette page ne répond pas. Réessayez dans quelques instants.

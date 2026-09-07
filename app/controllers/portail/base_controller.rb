@@ -50,8 +50,9 @@ module Portail
 
     def not_found = render("portail/errors/not_found", status: :not_found)
 
-    # Un service tiers manque : l'agent revient d'où il vient, avec l'alerte.
-    def unavailable = redirect_back_or_to(root_path, alert: t("portail.errors.unavailable"))
+    # Un service tiers manque et la page n'a rien à montrer sans lui : une page d'erreur, pas une
+    # redirection dont le message s'évapore.
+    def unavailable = render("portail/errors/service_unavailable", status: :service_unavailable)
 
     # Le sujet des policies est le rattachement, pas l'agent : le rôle et les habilitations
     # vivent sur lui, et un même agent peut être membre ici et administrateur local ailleurs.
