@@ -28,14 +28,13 @@ module Portail
             page: context.page, per_page: PER_PAGE
           )
         rescue HubAPI::InvalidRequest => e
-          # Sans alerte : un robot qui balaie des URL noierait Sentry sous des refus normaux.
           # `inspect` : le message amont cite le paramètre refusé, qui vient de l'URL.
           Rails.logger.info("Filtre de démarches refusé — #{e.message.inspect}")
           context.fail!(error: :invalid_request)
         rescue HubAPI::Error => e
-          # Journalisé en plus de Sentry : sans DSN, l'exception partirait au néant.
+          # L'incident est déjà signalé par Portail::HubAPI, qui a traduit la panne : il ne
+          # reste qu'à la journaliser et à échouer.
           Rails.logger.error("Démarches indisponibles — #{e.class} : #{e.message}")
-          Sentry.capture_exception(e)
           context.fail!(error: :unavailable)
         end
       end

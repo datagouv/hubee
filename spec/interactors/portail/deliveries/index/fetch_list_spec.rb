@@ -48,12 +48,10 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     expect(result.error).to eq(:no_habilitation)
   end
 
-  # Un robot qui balaie des URL noierait Sentry sous des refus normaux. `inspect` : le message
-  # amont cite le paramètre refusé, qui vient de l'URL.
-  it "fails as an invalid request, logged and without alert, when the upstream refuses a parameter" do
+  # `inspect` : le message amont cite le paramètre refusé, qui vient de l'URL.
+  it "fails as an invalid request, logged, when the upstream refuses a parameter" do
     expect(Portail::HubAPI::Deliveries).to receive(:list)
       .and_raise(Portail::HubAPI::InvalidRequest, "status: n-importe-quoi")
-    expect(Sentry).not_to receive(:capture_exception)
 
     result = nil
     events = capture_semantic_logger_events do
@@ -67,14 +65,17 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     ))
   end
 
-  # Une panne est un incident : quelqu'un est réveillé.
-  it "fails as unavailable and reports the outage when the upstream is failing" do
+  # La panne est signalée par la couche de traduction : ici, seulement le journal et l'échec.
+  it "fails as unavailable, logged, when the upstream is failing" do
     expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
-    expect(Sentry).to receive(:capture_exception).with(Portail::HubAPI::Unavailable)
 
-    result = described_class.call(membership: membership, state: "transmitted", page: 1)
+    result = nil
+    events = capture_semantic_logger_events do
+      result = described_class.call(membership: membership, state: "transmitted", page: 1)
+    end
 
     expect(result).to be_failure
     expect(result.error).to eq(:unavailable)
+    expect(events).to include(be_a_semantic_logger_event(level: :error, message_includes: "Démarches indisponibles"))
   end
 end

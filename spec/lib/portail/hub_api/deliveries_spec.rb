@@ -222,25 +222,37 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
   # Aucune exception de la gem ne doit survivre à cette couche.
   describe "error translation" do
+    # Une panne est un incident, signalé au rapporteur d'erreurs de Rails avec l'exception
+    # d'origine ; une inexistence ou un refus n'en est pas un, et un robot qui balaie des URL
+    # noierait Sentry.
     upstream_errors = {
       "a delivery the upstream does not serve" => {
-        raised: HubApiV1::V2::DeliveryNotFoundError, translated: Portail::HubAPI::NotFound
+        raised: HubApiV1::V2::DeliveryNotFoundError, translated: Portail::HubAPI::NotFound, reported: false
       },
       "an argument the upstream refuses" => {
-        raised: HubApiV1::V2::InvalidArgumentError, translated: Portail::HubAPI::InvalidRequest
+        raised: HubApiV1::V2::InvalidArgumentError, translated: Portail::HubAPI::InvalidRequest, reported: false
       },
       "a transport failure" => {
-        raised: HubApiV1::Client::ServerError, translated: Portail::HubAPI::Unavailable
+        raised: HubApiV1::Client::ServerError, translated: Portail::HubAPI::Unavailable, reported: true
       },
       "an upstream error of any other family" => {
-        raised: HubApiV1::Error, translated: Portail::HubAPI::Unavailable
+        raised: HubApiV1::Error, translated: Portail::HubAPI::Unavailable, reported: true
       }
     }
 
+    def expect_report(error)
+      if error[:reported]
+        expect(Rails.error).to receive(:report).with(instance_of(error[:raised]), handled: true)
+      else
+        expect(Rails.error).not_to receive(:report)
+      end
+    end
+
     upstream_errors.each do |situation, error|
-      it "raises #{error[:translated].name.demodulize} on list for #{situation}" do
+      it "raises #{error[:translated].name.demodulize} on list for #{situation}, reported: #{error[:reported]}" do
         use_hub_api_fake_client
         expect(HubApiV1::V2::Delivery).to receive(:list).and_raise(error[:raised])
+        expect_report(error)
 
         expect {
           described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
@@ -248,9 +260,10 @@ RSpec.describe Portail::HubAPI::Deliveries do
         }.to raise_error(error[:translated])
       end
 
-      it "raises #{error[:translated].name.demodulize} on find for #{situation}" do
+      it "raises #{error[:translated].name.demodulize} on find for #{situation}, reported: #{error[:reported]}" do
         use_hub_api_fake_client
         expect(HubApiV1::V2::Delivery).to receive(:find).and_raise(error[:raised])
+        expect_report(error)
 
         expect {
           described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", siret: siret, insee_code: insee_code)

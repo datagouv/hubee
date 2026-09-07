@@ -26,10 +26,14 @@ RSpec.describe Portail::Access::Alerter do
     described_class.new.emit(event_for(refusal))
   end
 
-  # Un refus qui fonctionne n'est pas une panne.
-  it "stays silent on a policy refusal" do
-    refusal = Portail::Access::Refusal.new(reason: :out_of_perimeter, path: "/demarches/x")
-    expect(Sentry).not_to receive(:capture_message)
+  # Une tentative d'accès hors périmètre ne reste pas au seul journal.
+  it "alerts on a policy refusal, naming the page and who asked" do
+    refusal = Portail::Access::Refusal.new(reason: :out_of_perimeter, path: "/demarches/x",
+      agent_id: "a-1", membership_id: "m-1")
+    expect(Sentry).to receive(:capture_message).with(
+      "Accès refusé hors périmètre sur /demarches/x",
+      level: :warning, extra: {agent_id: "a-1", membership_id: "m-1"}
+    )
 
     described_class.new.emit(event_for(refusal))
   end
