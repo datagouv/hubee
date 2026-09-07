@@ -11,16 +11,9 @@ module Portail
     included do
       helper_method :current_agent, :agent_signed_in?, :current_membership
       before_action :set_event_context
-      before_action :expire_stale_session!
-      before_action :enforce_second_factor!
+      before_action :resume_session
       before_action :require_authentication
-    end
-
-    class_methods do
-      # Fermé par défaut : un contrôleur ajouté demain l'est aussi, sauf déclaration ici.
-      def allow_unauthenticated_access(**options)
-        skip_before_action :require_authentication, **options
-      end
+      before_action :enforce_second_factor!
     end
 
     private
@@ -74,22 +67,22 @@ module Portail
     # Relu à chaque requête plutôt que porté par le cookie : un rattachement peut devenir
     # à privilèges pendant la session. On éjecte sans élever — détourner une requête
     # quelconque vers ProConnect donnerait un retour qui ne sait plus où renvoyer l'agent.
+    # Après `require_authentication` : il n'y a de second facteur à exiger que d'un agent.
     def enforce_second_factor!
-      record = find_session_by_cookie
-      return unless record&.granted?
-      return if Portail::Access::SecondFactor.satisfied?(record.membership,
+      record = Current.provider_session
+      return if Portail::Access::SecondFactor.satisfied?(current_membership,
         acr: record.acr, amr: record.amr)
 
       Rails.event.notify(Portail::Auth::Decision.new(
         outcome: :denied, reason: :second_factor_required,
         email: record.email, acr: record.acr, amr: record.amr,
-        agent_id: record.membership.agent_id, membership_id: record.membership_id
+        agent_id: current_agent.id, membership_id: current_membership.id
       ))
 
       # `terminate_session` détruit l'enregistrement et réinitialise la session : tout se
       # lit avant, tout se réécrit après.
       email = record.email
-      siret = record.membership.organization_link.siret
+      siret = current_membership.organization_link.siret
 
       terminate_session
 
@@ -101,7 +94,9 @@ module Portail
       redirect_to step_up_path, alert: t("portail.sessions.second_factor_required")
     end
 
-    def expire_stale_session!
+    # Ce que ce navigateur détient devient la session de la requête, si elle tient encore :
+    # expirée, elle est fermée ; valide, sa fenêtre d'inactivité glisse.
+    def resume_session
       record = find_session_by_cookie
       # Un refus n'est pas une session ouverte : ni la borne d'inactivité ni le message
       # d'expiration ne le concernent.

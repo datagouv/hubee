@@ -26,11 +26,12 @@ module Portail
     after_action :verify_authorized, except: :index
     after_action :verify_policy_scoped, only: :index
 
-    # Un contrôleur ouvert aux visiteurs n'a pas de sujet à autoriser : les deux gardes tombent
-    # avec l'authentification, en une seule déclaration qu'on ne peut pas oublier à moitié.
-    def self.allow_unauthenticated_access(**options)
-      super
-      skip_after_action :verify_authorized, :verify_policy_scoped, **options
+    # Fermé par défaut : un contrôleur ajouté demain l'est aussi, sauf déclaration ici. Elle
+    # vaut pour le contrôleur entier, et lève tout ce qui suppose un agent : le second facteur
+    # conditionne l'accès authentifié, et un visiteur n'a pas de sujet à autoriser.
+    def self.allow_unauthenticated_access
+      skip_before_action :require_authentication, :enforce_second_factor!
+      skip_after_action :verify_authorized, :verify_policy_scoped
     end
 
     # Un refus rend la même 404 qu'une ressource inexistante : distinguer les deux révélerait
