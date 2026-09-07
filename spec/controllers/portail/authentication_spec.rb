@@ -2,9 +2,8 @@
 
 require "rails_helper"
 
-# Aucune page du portail n'est encore réservée. On en route donc une, anonyme et locale
-# à ce fichier, pour éprouver le garde sur un vrai cycle de requête plutôt que de se
-# contenter de regarder la chaîne de rappels.
+# Un contrôleur anonyme, local à ce fichier : le garde s'éprouve sur un vrai cycle de requête,
+# sans dépendre d'une page réelle ni de ce qu'elle fait une fois l'agent entré.
 RSpec.describe Portail::BaseController, type: :controller do
   controller do
     # Seule l'authentification est l'objet ici ; l'autorisation a son propre spec.
