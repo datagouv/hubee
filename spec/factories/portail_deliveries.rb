@@ -116,11 +116,10 @@ FactoryBot.define do
     end
   end
 
-  factory :portail_delivery_list, class: "Portail::Delivery::List" do
+  factory :portail_delivery_page, class: "Portail::Delivery::Page" do
     skip_create
     initialize_with { new(**attributes) }
 
-    deliveries { [] }
     pagination { build(:portail_pagination) }
     # Les états de l'amont, dans son ordre.
     counts_by_state {

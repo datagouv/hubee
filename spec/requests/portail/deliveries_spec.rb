@@ -20,6 +20,9 @@ RSpec.describe "Portail::Deliveries", type: :request do
     agent
   end
 
+  # Ce que la frontière rend : les démarches, et la page qui les situe.
+  def upstream_list(deliveries: [], **page) = [deliveries, build(:portail_delivery_page, **page)]
+
   # L'organisation de l'agent connecté, dans le vocabulaire de la gem : son client bouchonné
   # filtre sur ce couple, comme l'API.
   def upstream_recipient
@@ -51,7 +54,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "lists the deliveries of the agent organisation" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
-        .and_return(build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)]))
+        .and_return(upstream_list(deliveries: [build(:portail_delivery_summary)]))
 
       get "/demarches"
 
@@ -65,7 +68,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .with(hash_including(state: "transmitted", page: 1))
         # Le hash complet est éprouvé dans le spec de l'étape FetchList.
-        .and_return(build(:portail_delivery_list))
+        .and_return(upstream_list)
 
       get "/demarches"
     end
@@ -75,7 +78,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         # Le hash complet est éprouvé dans le spec de l'étape FetchList.
         .with(hash_including(state: "acknowledged", page: 2))
-        .and_return(build(:portail_delivery_list))
+        .and_return(upstream_list)
 
       get "/demarches", params: {statut: "acknowledged", page: "2"}
     end
@@ -84,8 +87,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "offers every state the upstream counted, with its total" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
-        build(:portail_delivery_list,
-          counts_by_state: {"transmitted" => 12, "acknowledged" => 3, "done" => 41})
+        upstream_list(counts_by_state: {"transmitted" => 12, "acknowledged" => 3, "done" => 41})
       )
 
       get "/demarches"
@@ -101,7 +103,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "marks the state being shown as the current page in the menu" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
-        .and_return(build(:portail_delivery_list, counts_by_state: {"done" => 41}))
+        .and_return(upstream_list(counts_by_state: {"done" => 41}))
 
       get "/demarches?statut=done"
 
@@ -115,7 +117,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "keeps the state menu alongside an empty state" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
-        .and_return(build(:portail_delivery_list, deliveries: [],
+        .and_return(upstream_list(deliveries: [],
           counts_by_state: {"transmitted" => 0, "done" => 41}))
 
       get "/demarches"
@@ -131,7 +133,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "does not repeat the filtered state on every row" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
-        .and_return(build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)]))
+        .and_return(upstream_list(deliveries: [build(:portail_delivery_summary)]))
 
       get "/demarches"
 
@@ -144,7 +146,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     it "announces how many deliveries there are before the first row" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
-        build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)],
+        upstream_list(deliveries: [build(:portail_delivery_summary)],
           pagination: build(:portail_pagination, total: 637, total_pages: 26))
       )
 
@@ -219,7 +221,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .with(hash_including(page: 1))
-        .and_return(build(:portail_delivery_list))
+        .and_return(upstream_list)
 
       get "/demarches", params: {page: ""}
     end
@@ -229,7 +231,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       pagination = build(:portail_pagination, current_page: 2, total_pages: 5)
       expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
-        build(:portail_delivery_list, pagination: pagination,
+        upstream_list(pagination: pagination,
           deliveries: [build(:portail_delivery_summary)])
       )
 
@@ -248,7 +250,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       pagination = build(:portail_pagination, current_page: 20, total_pages: 40)
       expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
-        build(:portail_delivery_list, pagination: pagination,
+        upstream_list(pagination: pagination,
           deliveries: [build(:portail_delivery_summary)])
       )
 
@@ -264,7 +266,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       pagination = build(:portail_pagination, current_page: 1, total_pages: 3)
       expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
-        build(:portail_delivery_list, pagination: pagination,
+        upstream_list(pagination: pagination,
           deliveries: [build(:portail_delivery_summary)])
       )
 
@@ -284,7 +286,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: match_array(["CERTDC", "AEC"])))
-          .and_return(build(:portail_delivery_list))
+          .and_return(upstream_list)
 
         get "/demarches"
 
@@ -296,7 +298,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: ["CERTDC"]))
-          .and_return(build(:portail_delivery_list))
+          .and_return(upstream_list)
 
         get "/demarches"
 
@@ -308,7 +310,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: []))
-          .and_return(build(:portail_delivery_list))
+          .and_return(upstream_list)
 
         get "/demarches"
 
@@ -320,7 +322,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       it "hides and reports a delivery the upstream served outside the habilitations" do
         agent = sign_in_member(process_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
-          build(:portail_delivery_list, deliveries: [
+          upstream_list(deliveries: [
             build(:portail_delivery_summary, number: "DGS-CERTDC-0000000000001-01"),
             build(:portail_delivery_summary, id: "hors-perimetre", number: "DGS-AEC-0000000000002-01",
               data_stream_code: "AEC")
@@ -339,7 +341,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(events).to include(be_a_semantic_logger_event(
           level: :info, message: "Décision d'accès",
           payload_includes: {
-            event: "Portail::Access::Decision", outcome: :upstream_mismatch, path: "/demarches",
+            event: "Portail::Access::Refusal", reason: :upstream_mismatch, path: "/demarches",
             dropped_ids: ["hors-perimetre"], membership_id: Membership.find_by!(agent: agent).id,
             ip_address: "127.0.0.1"
           }
@@ -760,7 +762,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(events).to include(be_a_semantic_logger_event(
           level: :info, message: "Décision d'accès",
           payload_includes: {
-            event: "Portail::Access::Decision", outcome: :refused, path: "/demarches/#{delivery_id}",
+            event: "Portail::Access::Refusal", reason: :out_of_perimeter, path: "/demarches/#{delivery_id}",
             agent_id: agent.id, membership_id: membership.id, ip_address: "127.0.0.1"
           }
         ))

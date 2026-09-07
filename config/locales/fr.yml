@@ -130,10 +130,10 @@ fr:
           one: 1 démarche
           other: "%{count} démarches"
         empty: Aucune démarche dans cet état pour votre structure.
-      no_habilitation:
-        text: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
-      degraded:
-        text: Les démarches de votre structure n'ont pas pu être affichées.
+        failures:
+          no_habilitation: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
+          # Le motif est dans le flash : la page ne dit que la conséquence.
+          upstream: Les démarches de votre structure n'ont pas pu être affichées.
       show:
         title: "Démarche %{number} — HubEE"
         heading: "Démarche %{number}"

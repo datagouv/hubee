@@ -7,15 +7,15 @@ module Portail
     # refus qui fonctionne : journalisé, jamais alerté.
     class Alerter
       def emit(event)
-        decision = event[:payload]
-        return unless decision.outcome == :upstream_mismatch
+        refusal = event[:payload]
+        return unless refusal.reason == :upstream_mismatch
 
-        count = decision.dropped_ids.size
+        count = refusal.dropped_ids.size
         Sentry.capture_message(
-          "Périmètre non respecté par l'amont sur #{decision.path} : #{count} " \
+          "Périmètre non respecté par l'amont sur #{refusal.path} : #{count} " \
           "élément#{"s" if count > 1} hors périmètre retiré#{"s" if count > 1} de la page",
           level: :warning,
-          extra: {membership_id: decision.membership_id, dropped_ids: decision.dropped_ids}
+          extra: {membership_id: refusal.membership_id, dropped_ids: refusal.dropped_ids}
         )
       end
     end

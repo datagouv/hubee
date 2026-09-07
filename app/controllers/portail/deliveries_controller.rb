@@ -18,18 +18,18 @@ module Portail
       unless result.success?
         # Rien à borner : aucune page n'a été lue.
         skip_policy_scope
-        return render_failure(result.error)
+        return explain_failure(result.error)
       end
 
       # La requête était déjà bornée par le rattachement ; le scope borne ce que l'amont a
       # réellement servi, sans lui faire confiance. La policy est nommée : Pundit ne la
       # déduirait pas d'un tableau.
-      @list = result.list
-      @deliveries = policy_scope(@list.deliveries, policy_scope_class: DeliveryPolicy::Scope)
+      @page = result.page
+      @deliveries = policy_scope(result.deliveries, policy_scope_class: DeliveryPolicy::Scope)
 
       # L'amont n'a pas tenu son contrat : signalé, pas refusé en bloc. Un filtre non respecté
       # est une anomalie amont, pas une raison de priver l'agent de sa page.
-      report_upstream_mismatch
+      report_upstream_mismatch(result.deliveries)
     end
 
     def show
@@ -48,20 +48,23 @@ module Portail
 
     private
 
-    def report_upstream_mismatch
-      dropped = @list.deliveries - @deliveries
+    def report_upstream_mismatch(served)
+      dropped = served - @deliveries
       return if dropped.empty?
 
-      Rails.event.notify(Access::Decision.new(outcome: :upstream_mismatch, path: request.path,
+      Rails.event.notify(Access::Refusal.new(reason: :upstream_mismatch, path: request.path,
         membership_id: current_membership.id, dropped_ids: dropped.map(&:id)))
     end
 
-    def render_failure(error)
-      return render(:no_habilitation) if error == :no_habilitation
-
-      # Toujours 200 : le portail a servi sa page, c'est un service tiers qui manque.
-      flash.now[:alert] = t("portail.deliveries.errors.#{error}")
-      render :degraded
+    # Toujours 200, sur la page de la liste. Deux familles : le portail refuse de lui-même, ou
+    # l'amont a échoué, et la vue ne dit alors que la conséquence, le flash portant le motif.
+    def explain_failure(error)
+      if error == :no_habilitation
+        @failure = :no_habilitation
+      else
+        @failure = :upstream
+        flash.now[:alert] = t("portail.deliveries.errors.#{error}")
+      end
     end
 
     # `.presence` : `?page=` vide retombe sur la première page. Une valeur trafiquée donne 0,
