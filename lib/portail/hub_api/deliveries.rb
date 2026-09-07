@@ -22,9 +22,10 @@ module Portail
             client: client
           )
 
-          # Les démarches à part de la page : ce que l'amont a servi ne voyage pas avec ce qui
-          # le situe, et ne peut donc pas atteindre une vue sans passer par la policy.
-          [list.deliveries.map { |summary| summary_from(summary) }, page_of(list)]
+          Portail::Delivery::List.new(
+            deliveries: list.deliveries.map { |summary| summary_from(summary) },
+            page: page_of(list)
+          )
         rescue HubApiV1::Error => e
           raise translated(e)
         end

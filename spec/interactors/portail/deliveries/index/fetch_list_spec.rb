@@ -11,18 +11,16 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
   # Le couple doit venir du rattachement : pris ailleurs, il ouvrirait une autre structure.
   # Hash complet : un paramètre inattendu doit se voir.
   it "asks the upstream for the organisation of the membership, on the requested state and page" do
-    deliveries = [build(:portail_delivery_summary)]
-    page = build(:portail_delivery_page)
+    list = build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)])
     expect(Portail::HubAPI::Deliveries).to receive(:list).with(
       siret: "22770001000019", insee_code: "77372", state: "transmitted",
       data_stream_codes: [], page: 1, per_page: described_class::PER_PAGE
-    ).and_return([deliveries, page])
+    ).and_return(list)
 
     result = described_class.call(membership: membership, state: "transmitted", page: 1)
 
     expect(result).to be_success
-    expect(result.deliveries).to eq(deliveries)
-    expect(result.page).to eq(page)
+    expect(result.list).to eq(list)
   end
 
   it "passes the habilitated data streams as a filter" do
@@ -30,7 +28,7 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     expect(Portail::HubAPI::Deliveries).to receive(:list).with(
       siret: "22770001000019", insee_code: "77372", state: "acknowledged",
       data_stream_codes: ["CERTDC"], page: 2, per_page: described_class::PER_PAGE
-    ).and_return([[], build(:portail_delivery_page)])
+    ).and_return(build(:portail_delivery_list))
 
     result = described_class.call(membership: membership, state: "acknowledged", page: 2)
 

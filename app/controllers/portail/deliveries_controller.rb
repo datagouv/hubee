@@ -23,13 +23,13 @@ module Portail
 
       # La requête était déjà bornée par le rattachement ; le scope borne ce que l'amont a
       # réellement servi, sans lui faire confiance. La policy est nommée : Pundit ne la
-      # déduirait pas d'un tableau.
-      @page = result.page
-      @deliveries = policy_scope(result.deliveries, policy_scope_class: DeliveryPolicy::Scope)
+      # déduirait pas d'un tableau. La liste brute reste ici : la vue ne voit que le borné.
+      @page = result.list.page
+      @deliveries = policy_scope(result.list.deliveries, policy_scope_class: DeliveryPolicy::Scope)
 
       # L'amont n'a pas tenu son contrat : signalé, pas refusé en bloc. Un filtre non respecté
       # est une anomalie amont, pas une raison de priver l'agent de sa page.
-      report_upstream_mismatch(result.deliveries)
+      report_upstream_mismatch(result.list.deliveries)
     end
 
     def show

@@ -20,8 +20,11 @@ RSpec.describe "Portail::Deliveries", type: :request do
     agent
   end
 
-  # Ce que la frontière rend : les démarches, et la page qui les situe.
-  def upstream_list(deliveries: [], **page) = [deliveries, build(:portail_delivery_page, **page)]
+  # Ce que la frontière rend, la page écrite à plat : les bouchons ne parlent que de ce qui
+  # compte pour l'exemple.
+  def upstream_list(deliveries: [], **page)
+    build(:portail_delivery_list, deliveries:, page: build(:portail_delivery_page, **page))
+  end
 
   # L'organisation de l'agent connecté, dans le vocabulaire de la gem : son client bouchonné
   # filtre sur ce couple, comme l'API.
