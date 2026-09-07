@@ -39,6 +39,14 @@ bin/rails db:create
 bin/rails db:migrate
 ```
 
+#### Brancher le portail sur le socle de développement
+
+Le portail consulte les démarches par l'API V1. En local, c'est le socle de développement (dépôt `hubee-socle-et-tests`) qui la sert, et qui fournit les variables du bloc « Client de l'API V1 » de `.env.example` :
+
+1. Depuis le dépôt du socle, `rake env-portail` imprime ce bloc `.env` : le coller dans le `.env` du portail. La tâche ne lit que la configuration locale, le socle peut être éteint.
+2. Toujours depuis le socle, une fois celui-ci démarré et seedé (`rake start`), `rake portail-dossiers` crée des dossiers sur les deux démarches en accès portail du seed, `CERTDC` et `EtatCivil`, adressés au « Service instructeur de test 3 ». Chaque exécution en ajoute de nouveaux.
+3. Depuis le portail, `bin/rails db:seed` crée l'agent `socle@test.proconnect.gouv.fr`, membre de ce service instructeur et habilité sur ces deux démarches. Le socle ne connaît pas les agents : ce rattachement vit uniquement côté portail.
+
 ### 4. Lancer les tests
 
 ```bash

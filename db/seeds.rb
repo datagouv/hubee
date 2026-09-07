@@ -383,12 +383,13 @@ end
 
 # Un couple organisation × flux connu de l'amont interrogé, sans quoi l'écran reste vide.
 # Membre et non administrateur local, pour que le filtrage par habilitation soit traversé.
-socle_siret, socle_insee, socle_process =
+socle_siret, socle_insee, socle_processes =
   if ENV["REVIEW_APP"] == "true"
     ["21260274200018", "26274", "EtatCivil"]
   else
-    # Code INSEE aligné sur celui que les factories de la gem associent à ce SIRET.
-    ["22770001000019", "77372", "CERTDC"]
+    # Code INSEE déclaré par le seed du socle pour cette organisation : l'amont ne connaît pas
+    # le 77372 des factories de la gem, avec lequel la liste des démarches restait vide.
+    ["22770001000019", "77001", %w[CERTDC EtatCivil]]
   end
 
 socle_link = OrganizationLink.find_or_create_by!(siret: socle_siret, insee_code: socle_insee)
@@ -398,7 +399,9 @@ socle_agent = Agent.find_or_create_by!(email: "socle@test.proconnect.gouv.fr") d
 end
 socle_membership = Membership.find_or_create_by!(agent: socle_agent, organization_link: socle_link)
 socle_membership.update!(role: "member")
-ProcessAccess.find_or_create_by!(membership: socle_membership, process_code: socle_process)
+Array(socle_processes).each do |process_code|
+  ProcessAccess.find_or_create_by!(membership: socle_membership, process_code:)
+end
 
 puts "  ✅ Created #{Agent.count} agents"
 if Portail::Access::SensitiveProcesses::CODES.empty?
