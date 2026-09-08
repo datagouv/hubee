@@ -1,8 +1,11 @@
 <%# locals: (criteria:, selectable_data_streams:) %>
-<%# En GET : l'état de navigation est l'URL, rechargeable et partageable. L'état voyage en champ
-    caché parce que seule l'URL le connaît ; les flux proposés sont ceux du périmètre. %>
+<%# En GET : l'état de navigation est l'URL, rechargeable et partageable. L'état et le tri
+    voyagent en champs cachés parce que seule l'URL les connaît : filtrer ne doit pas remettre
+    l'ordre par défaut. Les flux proposés sont ceux du périmètre. %>
 <%= form_with url: demarches_path, method: :get, class: "fr-mb-3w" do |f| %>
-  <%= f.hidden_field :statut, value: criteria.state %>
+  <% criteria.link_params.slice(:statut, :tri, :ordre).each do |name, value| %>
+    <%= f.hidden_field name, value: value %>
+  <% end %>
 
   <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
     <div class="fr-col-12 fr-col-md-4">
