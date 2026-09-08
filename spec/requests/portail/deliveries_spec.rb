@@ -366,12 +366,15 @@ RSpec.describe "Portail::Deliveries", type: :request do
       end
 
       # Le formulaire repart de l'URL : ce qui est demandé reste affiché, l'état compris, en
-      # champ caché parce que seule l'URL le connaît.
+      # champ caché parce que seule l'URL le connaît. Temps figé : la borne des dates est
+      # « aujourd'hui », un passage de minuit entre le rendu et l'assertion la ferait mentir.
       it "renders the filter form on the offered data streams, with the requested values kept" do
+        travel_to Time.zone.local(2026, 9, 8, 12)
         sign_in_member(process_codes: ["CERTDC", "AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
 
-        get "/demarches", params: {statut: "done", flux: "AEC", du: "2026-08-01", au: "2026-08-31"}
+        get "/demarches", params: {statut: "done", flux: "AEC", du: "2026-08-01", au: "2026-08-31",
+                                   tri: "updated_at", ordre: "asc"}
 
         expect(response).to have_http_status(:success)
 
@@ -380,8 +383,11 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(form).to have_field("Transmise à partir du", with: "2026-08-01", type: "date")
         expect(form).to have_field("Transmise jusqu'au", with: "2026-08-31", type: "date")
         # Rien n'est transmis dans le futur : le sélecteur s'arrête à aujourd'hui.
-        expect(form).to have_css("input[type='date'][max='#{Date.current.iso8601}']", count: 2)
+        expect(form).to have_css("input[type='date'][max='2026-09-08']", count: 2)
         expect(form).to have_field("statut", type: "hidden", with: "done")
+        # Le tri aussi voyage en champs cachés : filtrer ne doit pas remettre l'ordre par défaut.
+        expect(form).to have_field("tri", type: "hidden", with: "updated_at")
+        expect(form).to have_field("ordre", type: "hidden", with: "asc")
         expect(form).to have_button("Filtrer")
         expect(form).to have_link("Réinitialiser", href: "/demarches?statut=done")
       end
