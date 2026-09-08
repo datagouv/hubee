@@ -101,16 +101,22 @@ RSpec.describe Portail::HubAPI::Deliveries do
         sort: "updated_at", direction: "asc", page: 1, per_page: 25, client: client)
     end
 
-    # La date vient de l'URL : illisible, elle est refusée ici, dans le vocabulaire de la gem,
-    # avant tout appel.
-    it "refuses an unreadable transmission date before any call" do
+    # La date vient de l'URL : hors de la forme AAAA-MM-JJ, hors calendrier ou hors siècle, elle
+    # est refusée ici avant tout appel. `Date.iso8601` seul laisserait passer les écritures
+    # ordinale, compacte et les années absurdes, et lève une ArgumentError, pas une Date::Error,
+    # au-delà de 128 caractères : une URL forgée donnerait un 500.
+    it "refuses a transmission date that is not a calendar day in YYYY-MM-DD before any call" do
       client = HubApiV1::Testing::FakeClient.new
+      unreadable = ["31/08/2026", "2026-213", "20260801", "2026-02-30", "0000-01-01", "2126-01-01",
+        "2026-08-01#{"x" * 200}"]
 
-      expect {
-        described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
-          data_stream_codes: [], transmitted_from: "31/08/2026", transmitted_to: nil,
-          sort: "transmitted_at", direction: "desc", page: 1, per_page: 25, client: client)
-      }.to raise_error(Portail::HubAPI::InvalidRequest)
+      unreadable.each do |date|
+        expect {
+          described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
+            data_stream_codes: [], transmitted_from: date, transmitted_to: nil,
+            sort: "transmitted_at", direction: "desc", page: 1, per_page: 25, client: client)
+        }.to raise_error(Portail::HubAPI::InvalidRequest), date
+      end
       expect(client.requests).to be_empty
     end
 
