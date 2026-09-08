@@ -15,6 +15,12 @@ Before do
   HubApiV1.client = HubApiV1::Testing::FakeClient.new
 end
 
+# Les compteurs de `rate_limit` survivraient d'un scénario à l'autre : la connexion du dernier
+# répondrait 429 une fois le seuil atteint par les précédents. Même remise à zéro qu'en RSpec.
+Before do
+  ActionController::Base.cache_store.clear
+end
+
 After do
   HubApiV1.reset_client!
 end
