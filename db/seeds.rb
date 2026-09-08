@@ -1,11 +1,41 @@
 # Seeds pour développement
 # Usage : bin/rails db:seed
 
-# Les semis créent des comptes habilités : rien de tout cela ne doit naître en production.
+# Deux publics, deux gardes, et ils ne se recouvrent pas.
+#
+# 1. Les comptes de test des environnements déployés (review app et recette), ci-dessous.
+#    Réclamés par SEED_TEST_ACCOUNTS, absente en local comme en production. Ils passent avant
+#    le garde des données de démonstration : la recette tourne en production, elle ne veut
+#    aucune de ces données, mais elle veut ces comptes-là.
+# 2. Les données de démonstration et les agents du socle local, après. Développement, test et
+#    review app uniquement — rien de tout cela ne doit naître en production.
+require Rails.root.join("db/seeds/test_accounts")
+
+if Seeds::TestAccounts.requested?
+  puts "🌱 Enrôlement des comptes de test du portail..."
+
+  memberships = Seeds::TestAccounts.apply!
+  puts Seeds::TestAccounts.report(memberships)
+
+  # Un code sensible manquant laisse son compte de côté plutôt que de l'enrôler sur un
+  # périmètre faux : le dire, sans quoi le compte semblerait s'être perdu.
+  missing = Seeds::TestAccounts.missing_variables
+  if missing.any?
+    skipped = Seeds::TestAccounts::ACCOUNTS.size - memberships.size
+    puts "⚠️  #{missing.join(", ")} absente(s) : #{skipped} compte(s) sensible(s) non enrôlé(s)"
+  end
+
+  if Portail::Access::SensitiveProcesses::CODES.empty?
+    puts "⚠️  SENSITIVE_PROCESS_CODES vide : aucun compte ne déclenchera d'élévation par habilitation"
+  end
+
+  puts "✅ #{memberships.size} comptes de test enrôlés"
+end
+
 # `local?` et non `development?` : la CI valide ce fichier en test. REVIEW_APP rouvre la porte
 # pour les review apps, qui tournent en production sans autre source de données.
 unless Rails.env.local? || ENV["REVIEW_APP"] == "true"
-  puts "⏭️  Semis ignorés hors développement, test et review app (#{Rails.env})"
+  puts "⏭️  Semis de démonstration ignorés hors développement, test et review app (#{Rails.env})"
   return
 end
 
@@ -383,24 +413,22 @@ end
 
 # Un couple organisation × flux connu de l'amont interrogé, sans quoi l'écran reste vide.
 # Membre et non administrateur local, pour que le filtrage par habilitation soit traversé.
-socle_siret, socle_insee, socle_processes =
-  if ENV["REVIEW_APP"] == "true"
-    ["21260274200018", "26274", "EtatCivil"]
-  else
-    # Code INSEE déclaré par le seed du socle pour cette organisation : l'amont ne connaît pas
-    # le 77372 des factories de la gem, avec lequel la liste des démarches restait vide.
-    ["22770001000019", "77001", %w[CERTDC EtatCivil]]
+#
+# Local seulement : en review app, les comptes de test viennent du catalogue partagé avec la
+# recette (`bin/rails portail:test_accounts:seed`), qui vise une autre organisation.
+unless ENV["REVIEW_APP"] == "true"
+  # Code INSEE déclaré par le seed du socle pour cette organisation : l'amont ne connaît pas
+  # le 77372 des factories de la gem, avec lequel la liste des démarches restait vide.
+  socle_link = OrganizationLink.find_or_create_by!(siret: "22770001000019", insee_code: "77001")
+  socle_agent = Agent.find_or_create_by!(email: "socle@test.proconnect.gouv.fr") do |a|
+    a.first_name = "Camille"
+    a.last_name = "Socle"
   end
-
-socle_link = OrganizationLink.find_or_create_by!(siret: socle_siret, insee_code: socle_insee)
-socle_agent = Agent.find_or_create_by!(email: "socle@test.proconnect.gouv.fr") do |a|
-  a.first_name = "Camille"
-  a.last_name = "Socle"
-end
-socle_membership = Membership.find_or_create_by!(agent: socle_agent, organization_link: socle_link)
-socle_membership.update!(role: "member")
-Array(socle_processes).each do |process_code|
-  ProcessAccess.find_or_create_by!(membership: socle_membership, process_code:)
+  socle_membership = Membership.find_or_create_by!(agent: socle_agent, organization_link: socle_link)
+  socle_membership.update!(role: "member")
+  %w[CERTDC EtatCivil].each do |process_code|
+    ProcessAccess.find_or_create_by!(membership: socle_membership, process_code:)
+  end
 end
 
 puts "  ✅ Created #{Agent.count} agents"
