@@ -44,13 +44,18 @@ module Portail
 
         private
 
-        # Une date de l'URL devient un instant en heure de Paris, bornes incluses : « jusqu'au
-        # 31 » couvre toute la journée du 31. Illisible, elle est refusée avant tout appel.
+        # Une date de l'URL devient un instant en heure de Paris, bornes incluses. La forme est
+        # vérifiée avant `Date.iso8601`, trop permissif, et qui lève hors Date::Error au-delà de
+        # 128 caractères. Le siècle borne les années absurdes que l'amont refuserait en panne.
+        CALENDAR_DAY = /\A(19|20)\d{2}-\d{2}-\d{2}\z/
+
         def day_start(date) = date && parsed(date).in_time_zone
 
         def day_end(date) = date && parsed(date).in_time_zone.end_of_day
 
         def parsed(date)
+          raise InvalidRequest, "Unreadable date #{date.inspect} (expected YYYY-MM-DD)" unless date.match?(CALENDAR_DAY)
+
           Date.iso8601(date)
         rescue Date::Error
           raise InvalidRequest, "Unreadable date #{date.inspect} (expected YYYY-MM-DD)"
