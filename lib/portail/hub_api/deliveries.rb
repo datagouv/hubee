@@ -9,14 +9,18 @@ module Portail
     # sorties en modèles du portail, erreurs en erreurs de Portail::HubAPI.
     module Deliveries
       class << self
-        def list(siret:, insee_code:, state:, data_stream_codes:, page:, per_page:,
-          client: HubApiV1.client)
+        def list(siret:, insee_code:, state:, data_stream_codes:, transmitted_from:, transmitted_to:,
+          sort:, direction:, page:, per_page:, client: HubApiV1.client)
           list = HubApiV1::V2::Delivery.list(
             siret: siret,
             code_insee: insee_code,
             # String dans le portail, Symbol en amont : la conversion vit ici seulement.
             state: state.to_sym,
             data_stream_codes: data_stream_codes,
+            transmitted_from: day_start(transmitted_from),
+            transmitted_to: day_end(transmitted_to),
+            sort: sort.to_sym,
+            direction: direction.to_sym,
             offset: offset_for(page, per_page),
             per_page: per_page,
             client: client
@@ -27,7 +31,7 @@ module Portail
             page: page_of(list)
           )
         rescue HubApiV1::Error => e
-          raise translated(e)
+          raise HubAPI.translated(e)
         end
 
         def find(id:, siret:, insee_code:, client: HubApiV1.client)
@@ -35,10 +39,22 @@ module Portail
             HubApiV1::V2::Delivery.find(id: id, siret: siret, code_insee: insee_code, client: client)
           )
         rescue HubApiV1::Error => e
-          raise translated(e)
+          raise HubAPI.translated(e)
         end
 
         private
+
+        # Une date de l'URL devient un instant en heure de Paris, bornes incluses : « jusqu'au
+        # 31 » couvre toute la journée du 31. Illisible, elle est refusée avant tout appel.
+        def day_start(date) = date && parsed(date).in_time_zone
+
+        def day_end(date) = date && parsed(date).in_time_zone.end_of_day
+
+        def parsed(date)
+          Date.iso8601(date)
+        rescue Date::Error
+          raise InvalidRequest, "Unreadable date #{date.inspect} (expected YYYY-MM-DD)"
+        end
 
         # `to_i` : la page peut arriver en String. Trafiquée, elle donne 0, donc un décalage
         # négatif que l'amont refuse.
@@ -133,20 +149,6 @@ module Portail
             current_page: pagination.current_page, total_pages: pagination.total_pages,
             total: pagination.total
           )
-        end
-
-        # La classe d'origine reste dans le message : c'est elle qui distingue une panne d'un
-        # refus au journal.
-        def translated(error)
-          case error
-          when HubApiV1::V2::DeliveryNotFoundError then NotFound.new(error.message)
-          when HubApiV1::V2::InvalidArgumentError then InvalidRequest.new(error.message)
-          else
-            # Une panne est un incident, signalé ici et non par chaque appelant : un seul point,
-            # avec l'exception d'origine. Le portail ne nomme pas Sentry, abonné au rapporteur.
-            Rails.error.report(error, handled: true)
-            Unavailable.new("#{error.class} : #{error.message}")
-          end
         end
       end
     end

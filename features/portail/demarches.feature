@@ -37,3 +37,34 @@ Fonctionnalité: Les démarches de l'organisation
     Et il s'est connecté
     Quand il ouvre directement cette démarche
     Alors il obtient une page introuvable, sans que le dossier lui soit montré
+
+  # Le filtre et le tri sont portés par l'URL : la page se recharge et se partage telle quelle.
+  Scénario: L'agent restreint la liste à un flux
+    Étant donné il est habilité sur le flux "AEC"
+    Et l'API amont sert aussi une démarche "DGS-AEC-0000000000002-01" sur le flux "AEC"
+    Et il s'est connecté
+    Quand il filtre sur le flux "AEC"
+    Alors il ne voit que la démarche "DGS-AEC-0000000000002-01"
+
+  Scénario: L'agent restreint la liste à une période de transmission
+    Étant donné l'API amont sert aussi une démarche "DGS-CERTDC-0000000000003-01" transmise le "2026-08-20"
+    Et il s'est connecté
+    Quand il filtre sur les démarches transmises jusqu'au "2026-08-31"
+    Alors il ne voit que la démarche "DGS-CERTDC-0000000000003-01"
+
+  # Les plus récentes d'abord par défaut : un clic sur l'en-tête inverse l'ordre.
+  Scénario: L'agent inverse l'ordre de transmission
+    Étant donné l'API amont sert aussi une démarche "DGS-CERTDC-0000000000003-01" transmise le "2026-08-20"
+    Et il s'est connecté
+    Quand il trie par « Transmise le »
+    Alors les démarches sont listées dans l'ordre "DGS-CERTDC-0000000000003-01, DGS-CERTDC-0000000000001-01"
+
+  # Sans habilitation nommée, les flux proposés viennent des abonnements de la structure : seuls
+  # ceux en lecture via le portail comptent, et jamais ceux d'une autre organisation du même SIRET.
+  Scénario: L'administrateur local sans habilitation filtre sur les flux reçus par le portail
+    Étant donné il est administrateur local sans habilitation
+    Et l'API amont sert à sa structure des abonnements de toutes natures
+    Et il s'est connecté
+    Alors le filtre propose les flux "AEC, CERTDC"
+    Quand il filtre sur le flux "AEC"
+    Alors il ne voit que la démarche "DGS-AEC-0000000000002-01"

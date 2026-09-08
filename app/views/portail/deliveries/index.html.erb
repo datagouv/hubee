@@ -6,13 +6,16 @@
 <% else %>
 <div class="fr-grid-row fr-grid-row--gutters">
   <div class="fr-col-12 fr-col-md-4 fr-col-lg-3">
-    <%= render "state_menu", counts_by_state: @page.counts_by_state, current_state: @current_state %>
+    <%= render "state_menu", counts_by_state: @page.counts_by_state, criteria: @criteria %>
   </div>
 
   <div class="fr-col-12 fr-col-md-8 fr-col-lg-9">
+    <%# Avant la liste, vide comprise : c'est lui qui permet de lever un filtre. %>
+    <%= render "filters", criteria: @criteria, selectable_data_streams: @selectable_data_streams %>
+
     <%# Le message vide reste à côté du menu : le compteur d'un autre état dit où aller. %>
     <% if @deliveries.empty? %>
-      <p class="fr-text--lead"><%= t(".empty") %></p>
+      <p class="fr-text--lead"><%= t(@criteria.filtered? ? ".empty_filtered" : ".empty") %></p>
     <% else %>
       <%# Le total est celui de l'amont, compté avant la policy : une page servie hors périmètre
           montre moins de lignes qu'annoncé. L'écart est alerté, pas masqué. %>
@@ -21,19 +24,19 @@
       </p>
 
       <%# Emboîtement DSFR qui porte le défilement horizontal. Pas de colonne « État » :
-          l'amont ne sert qu'un état à la fois. %>
+          l'amont ne sert qu'un état à la fois. Les dates se trient par leur en-tête. %>
       <div class="fr-table fr-table--bordered">
         <div class="fr-table__wrapper">
           <div class="fr-table__container">
             <div class="fr-table__content">
               <table>
-                <caption><%= t(".caption", state: delivery_state_label(@current_state)) %></caption>
+                <caption><%= t(".caption", state: delivery_state_label(@criteria.state)) %></caption>
                 <thead>
                   <tr>
                     <th scope="col"><%= t("portail.deliveries.fields.number") %></th>
                     <th scope="col"><%= t("portail.deliveries.fields.data_stream") %></th>
-                    <th scope="col"><%= t("portail.deliveries.fields.transmitted_at") %></th>
-                    <th scope="col"><%= t("portail.deliveries.fields.updated_at") %></th>
+                    <%= delivery_sort_header("transmitted_at", @criteria) %>
+                    <%= delivery_sort_header("updated_at", @criteria) %>
                   </tr>
                 </thead>
                 <tbody>
@@ -52,7 +55,7 @@
         </div>
       </div>
 
-      <%= render "pagination", pagination: @page.pagination, state: @current_state %>
+      <%= render "pagination", pagination: @page.pagination, criteria: @criteria %>
     <% end %>
   </div>
 </div>

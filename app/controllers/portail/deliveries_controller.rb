@@ -2,17 +2,13 @@
 
 module Portail
   class DeliveriesController < Portail::BaseController
-    # La liste s'ouvre sur les démarches que l'agent n'a pas encore prises en charge, son
-    # travail du jour ; ouvrir sur « traitée » ou « clôturée » montrerait d'abord l'archive.
-    DEFAULT_STATE = "transmitted"
-
     def index
-      # L'état affiché, relu par la vue. `.to_s` : `?statut[]=…` fait de la valeur un tableau.
-      # Aucune validation : l'amont tranche, et son refus est affiché plutôt que corrigé en douce.
-      @current_state = params[:statut].to_s.presence || DEFAULT_STATE
+      # Ce que l'URL demande, relu par la vue pour réécrire chaque lien. Aucune validation :
+      # l'amont tranche, et son refus est affiché plutôt que corrigé en douce.
+      @criteria = Delivery::Criteria.from_params(params)
 
       result = Deliveries::Index.call(
-        membership: current_membership, state: @current_state, page: requested_page
+        membership: current_membership, criteria: @criteria, page: requested_page
       )
 
       unless result.success?
@@ -20,6 +16,9 @@ module Portail
         skip_policy_scope
         return explain_failure(result.error)
       end
+
+      # Les flux que le formulaire propose : le périmètre, borné plus haut.
+      @selectable_data_streams = result.selectable_data_streams
 
       # La requête était déjà bornée par le rattachement ; le scope borne ce que l'amont a
       # réellement servi, sans lui faire confiance. La policy est nommée : Pundit ne la

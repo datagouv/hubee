@@ -9,22 +9,22 @@ module Portail
         PER_PAGE = 25
 
         def call
-          # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut
-          # « aucun filtre », donc toute l'organisation.
-          context.fail!(error: :no_habilitation) if Access::ProcessPerimeter.none?(context.membership)
-
           context.list = fetch
         end
 
         private
 
-        # La requête est bornée par le rattachement ; ce que l'amont renvoie est ensuite borné
-        # par la policy, qui ne lui fait pas confiance.
+        def criteria = context.criteria
+
+        # La requête est bornée par le filtre résolu à l'étape précédente ; ce que l'amont
+        # renvoie est ensuite borné par la policy, qui ne lui fait pas confiance.
         def fetch
           link = context.membership.organization_link
           HubAPI::Deliveries.list(
-            siret: link.siret, insee_code: link.insee_code, state: context.state,
-            data_stream_codes: Access::ProcessPerimeter.filter(context.membership),
+            siret: link.siret, insee_code: link.insee_code, state: criteria.state,
+            data_stream_codes: context.requested_data_streams,
+            transmitted_from: criteria.transmitted_from, transmitted_to: criteria.transmitted_to,
+            sort: criteria.sort, direction: criteria.direction,
             page: context.page, per_page: PER_PAGE
           )
         rescue HubAPI::InvalidRequest => e
