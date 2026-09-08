@@ -1,10 +1,10 @@
-<%# locals: (pagination:, state:) %>
+<%# locals: (pagination:, criteria:) %>
 <% if pagination.total_pages > 1 %>
   <nav class="fr-pagination fr-mt-4w" role="navigation" aria-label="<%= t("portail.deliveries.pagination.label") %>">
     <ul class="fr-pagination__list">
       <li>
         <%= delivery_pagination_step t("portail.deliveries.pagination.previous"), "prev",
-              href: (demarches_path(statut: state, page: pagination.current_page - 1) if pagination.current_page > 1) %>
+              href: (demarches_path(**criteria.link_params, page: pagination.current_page - 1) if pagination.current_page > 1) %>
       </li>
       <% delivery_pagination_pages(pagination).each do |page| %>
         <li>
@@ -13,13 +13,13 @@
             <span class="fr-pagination__link" aria-hidden="true">…</span>
           <% else %>
             <%= delivery_pagination_page page,
-                  href: (demarches_path(statut: state, page: page) unless page == pagination.current_page) %>
+                  href: (demarches_path(**criteria.link_params, page: page) unless page == pagination.current_page) %>
           <% end %>
         </li>
       <% end %>
       <li>
         <%= delivery_pagination_step t("portail.deliveries.pagination.next"), "next",
-              href: (demarches_path(statut: state, page: pagination.current_page + 1) if pagination.current_page < pagination.total_pages) %>
+              href: (demarches_path(**criteria.link_params, page: pagination.current_page + 1) if pagination.current_page < pagination.total_pages) %>
       </li>
     </ul>
   </nav>

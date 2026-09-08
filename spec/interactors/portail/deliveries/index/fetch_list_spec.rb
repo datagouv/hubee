@@ -8,42 +8,37 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
       organization_link: create(:organization_link, siret: "22770001000019", insee_code: "77372"))
   end
 
-  # Le couple doit venir du rattachement : pris ailleurs, il ouvrirait une autre structure.
-  # Hash complet : un paramètre inattendu doit se voir.
-  it "asks the upstream for the organisation of the membership, on the requested state and page" do
+  def criteria(**params) = Portail::Delivery::Criteria.from_params(params)
+
+  # Le couple doit venir du rattachement : pris ailleurs, il ouvrirait une autre structure. Le
+  # filtre de flux est celui résolu par l'étape précédente. Hash complet : un paramètre inattendu
+  # doit se voir.
+  it "asks the upstream for the organisation of the membership, on the resolved filter, criteria and page" do
     list = build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)])
     expect(Portail::HubAPI::Deliveries).to receive(:list).with(
-      siret: "22770001000019", insee_code: "77372", state: "transmitted",
-      data_stream_codes: [], page: 1, per_page: described_class::PER_PAGE
+      siret: "22770001000019", insee_code: "77372", state: "transmitted", data_stream_codes: ["CERTDC"],
+      transmitted_from: nil, transmitted_to: nil, sort: "transmitted_at", direction: "desc",
+      page: 1, per_page: described_class::PER_PAGE
     ).and_return(list)
 
-    result = described_class.call(membership: membership, state: "transmitted", page: 1)
+    result = described_class.call(membership: membership, criteria: criteria, requested_data_streams: ["CERTDC"], page: 1)
 
     expect(result).to be_success
     expect(result.list).to eq(list)
   end
 
-  it "passes the habilitated data streams as a filter" do
-    create(:process_access, membership: membership, process_code: "CERTDC")
+  it "passes the state, the period, the sort and the page along, as the URL says them" do
     expect(Portail::HubAPI::Deliveries).to receive(:list).with(
-      siret: "22770001000019", insee_code: "77372", state: "acknowledged",
-      data_stream_codes: ["CERTDC"], page: 2, per_page: described_class::PER_PAGE
+      siret: "22770001000019", insee_code: "77372", state: "done", data_stream_codes: [],
+      transmitted_from: "2026-08-01", transmitted_to: "2026-08-31", sort: "updated_at", direction: "asc",
+      page: 2, per_page: described_class::PER_PAGE
     ).and_return(build(:portail_delivery_list))
 
-    result = described_class.call(membership: membership, state: "acknowledged", page: 2)
+    result = described_class.call(membership: membership,
+      criteria: criteria(statut: "done", du: "2026-08-01", au: "2026-08-31", tri: "updated_at", ordre: "asc"),
+      requested_data_streams: [], page: 2)
 
     expect(result).to be_success
-  end
-
-  # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut « aucun filtre ».
-  it "fails without calling the upstream when the membership has no access" do
-    member = create(:membership)
-    expect(Portail::HubAPI::Deliveries).not_to receive(:list)
-
-    result = described_class.call(membership: member, state: "transmitted", page: 1)
-
-    expect(result).to be_failure
-    expect(result.error).to eq(:no_habilitation)
   end
 
   # `inspect` : le message amont cite le paramètre refusé, qui vient de l'URL.
@@ -53,7 +48,8 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
 
     result = nil
     events = capture_semantic_logger_events do
-      result = described_class.call(membership: membership, state: "n-importe-quoi", page: 1)
+      result = described_class.call(membership: membership, criteria: criteria(statut: "n-importe-quoi"),
+        requested_data_streams: [], page: 1)
     end
 
     expect(result).to be_failure
@@ -69,7 +65,7 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
 
     result = nil
     events = capture_semantic_logger_events do
-      result = described_class.call(membership: membership, state: "transmitted", page: 1)
+      result = described_class.call(membership: membership, criteria: criteria, requested_data_streams: [], page: 1)
     end
 
     expect(result).to be_failure

@@ -98,6 +98,29 @@ end
   create(:process_access, membership: Membership.find_by!(agent: @agent), process_code: code)
 end
 
+# Le rôle ne tranche que la liste vide : les habilitations posées par le contexte sont retirées.
+Étantdonné("il est administrateur local sans habilitation") do
+  membership = Membership.find_by!(agent: @agent)
+  membership.process_accesses.destroy_all
+  membership.update!(role: "local_administrator")
+end
+
+# Les cinq natures : actif portail (deux flux), actif API, inactif, activation future, autre
+# organisation du même SIRET. Seuls AEC et CERTDC doivent ressortir.
+Étantdonné("l'API amont sert à sa structure des abonnements de toutes natures") do
+  own = {subscriber_siret: E2E_SIRET, subscriber_branch_code: "00001"}
+  [
+    {id: "sub-1", process_code: "CERTDC", access_mode: "PORTAIL", **own},
+    {id: "sub-2", process_code: "AEC", access_mode: "PORTAIL", **own},
+    {id: "sub-3", process_code: "DEMO_API", access_mode: "API", **own},
+    {id: "sub-4", process_code: "DEMO_INACTIF", access_mode: "PORTAIL", status: "Inactif", **own},
+    {id: "sub-5", process_code: "DEMO_FUTUR", access_mode: "PORTAIL", activate_date_time: 1.day.from_now, **own},
+    {id: "sub-6", process_code: "DEMO_AUTRE", access_mode: "PORTAIL", subscriber_siret: E2E_SIRET, subscriber_branch_code: "00002"}
+  ].each { |record| HubApiV1.client.add_subscription(build_subscription_record(record)) }
+  HubApiV1.client.add_case(e2e_delivery("DGS-AEC-0000000000002-01",
+    data_stream: HubApiV1::V2::DataStream.new(code: "AEC")))
+end
+
 Étantdonné("l'API amont sert une démarche pour son organisation") do
   HubApiV1.client.add_case(build_v2_delivery(state: :transmitted, recipient: e2e_recipient))
 end
@@ -121,8 +144,39 @@ end
   )
 end
 
+# L'identifiant dérive du numéro : distinct par démarche, lisible dans un échec.
+def e2e_delivery(number, **attributes)
+  build_v2_delivery(
+    id: format("0a11c2f4-0000-4000-8000-%012d", number[/\d{13}/].to_i), number: number,
+    state: :transmitted, recipient: e2e_recipient, **attributes
+  )
+end
+
+Étantdonné("l'API amont sert aussi une démarche {string} sur le flux {string}") do |number, code|
+  HubApiV1.client.add_case(e2e_delivery(number, data_stream: HubApiV1::V2::DataStream.new(code: code)))
+end
+
+# Un instant en heure de Paris : c'est ainsi que le portail borne la période.
+Étantdonné("l'API amont sert aussi une démarche {string} transmise le {string}") do |number, date|
+  HubApiV1.client.add_case(e2e_delivery(number, transmitted_at: Time.zone.parse(date).noon))
+end
+
 Quand("il filtre sur l'état {string}") do |label|
   within("nav.fr-sidemenu") { click_link label }
+end
+
+Quand("il filtre sur le flux {string}") do |code|
+  select code, from: "Flux"
+  click_button "Filtrer"
+end
+
+Quand("il filtre sur les démarches transmises jusqu'au {string}") do |date|
+  fill_in "Transmise jusqu'au", with: Date.parse(date)
+  click_button "Filtrer"
+end
+
+Quand("il trie par « {word} le »") do |column|
+  within("table thead") { click_link "#{column} le" }
 end
 
 Quand("il ouvre la démarche {string}") do |number|
@@ -136,6 +190,19 @@ end
 Alors("il voit la démarche {string} dans la liste") do |number|
   expect(page).to have_css("table caption", text: "Transmise")
   expect(page).to have_link(number)
+end
+
+Alors("le filtre propose les flux {string}") do |codes|
+  expect(page).to have_select("Flux", options: ["Tous les flux", *codes.split(", ")])
+end
+
+Alors("il ne voit que la démarche {string}") do |number|
+  expect(page).to have_css("table tbody tr", count: 1)
+  expect(page).to have_link(number)
+end
+
+Alors("les démarches sont listées dans l'ordre {string}") do |numbers|
+  expect(page.all("table tbody tr td:first-child").map(&:text)).to eq(numbers.split(", "))
 end
 
 Alors("il voit le détail de la démarche, demandeur compris") do

@@ -1,0 +1,33 @@
+<%# locals: (criteria:, selectable_data_streams:) %>
+<%# En GET : l'état de navigation est l'URL, rechargeable et partageable. L'état voyage en champ
+    caché parce que seule l'URL le connaît ; les flux proposés sont ceux du périmètre. %>
+<%= form_with url: demarches_path, method: :get, class: "fr-mb-3w" do |f| %>
+  <%= f.hidden_field :statut, value: criteria.state %>
+
+  <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
+    <div class="fr-col-12 fr-col-md-4">
+      <%= f.dsfr_select :flux, selectable_data_streams,
+            {include_blank: t(".all_data_streams"), selected: criteria.data_stream_code},
+            label: t("portail.deliveries.fields.data_stream") %>
+    </div>
+    <%# Rien n'est transmis dans le futur : le sélecteur s'arrête à aujourd'hui. %>
+    <div class="fr-col-6 fr-col-md-3">
+      <%= f.dsfr_input_field :du, :date_field, label: t(".from"), value: criteria.transmitted_from,
+            max: Date.current.iso8601 %>
+    </div>
+    <div class="fr-col-6 fr-col-md-3">
+      <%= f.dsfr_input_field :au, :date_field, label: t(".to"), value: criteria.transmitted_to,
+            max: Date.current.iso8601 %>
+    </div>
+    <div class="fr-col-12 fr-col-md-2">
+      <%= f.dsfr_submit t(".submit") %>
+    </div>
+  </div>
+
+  <%# Un filtre posé se lève par un lien, pas en vidant chaque champ : l'état seul reste. %>
+  <% if criteria.filtered? %>
+    <p class="fr-mt-2w fr-mb-0">
+      <%= link_to t(".reset"), demarches_path(statut: criteria.state), class: "fr-link fr-icon-close-line fr-link--icon-left" %>
+    </p>
+  <% end %>
+<% end %>

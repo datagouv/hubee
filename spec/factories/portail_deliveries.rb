@@ -136,3 +136,29 @@ FactoryBot.define do
     }
   end
 end
+
+FactoryBot.define do
+  # Un abonnement de la structure de l'agent, en lecture via le portail : le cas qui fait
+  # proposer son flux au filtre.
+  factory :portail_subscription, class: "Portail::Subscription" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    transient { data_stream_code { "CERTDC" } }
+
+    id { "550e8400-e29b-41d4-a716-446655440000" }
+    data_stream { build(:portail_data_stream, code: data_stream_code) }
+    read_package { true }
+    create_package { false }
+    access_mode { "portal" }
+  end
+end
+
+FactoryBot.define do
+  factory :portail_subscription_list, class: "Portail::Subscription::List" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    subscriptions { [build(:portail_subscription)] }
+  end
+end

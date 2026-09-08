@@ -169,7 +169,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       get "/demarches", params: {statut: "n-importe-quoi"}
 
       expect(response).to have_http_status(:success)
-      expect(Capybara.string(response.body)).to have_text("L'état ou la page demandés n'existent pas")
+      expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
     end
 
     # Rien n'est bouchonné en deçà de la frontière : c'est le vrai refus de la gem qui se produit.
@@ -180,7 +180,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       get "/demarches", params: {statut: ["transmitted"]}
 
       expect(response).to have_http_status(:success)
-      expect(Capybara.string(response.body)).to have_text("L'état ou la page demandés n'existent pas")
+      expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
     end
 
     it "shows the refusal for a non-scalar page parameter" do
@@ -190,7 +190,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       get "/demarches", params: {page: ["2"]}
 
       expect(response).to have_http_status(:success)
-      expect(Capybara.string(response.body)).to have_text("L'état ou la page demandés n'existent pas")
+      expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
     end
 
     it "explains the lack of habilitation instead of showing a mute empty table" do
@@ -306,6 +306,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       it "leaves a local administrator without habilitation unfiltered" do
         sign_in_local_administrator
+        # Ses flux proposés viennent de l'amont : bouchonnés, ils ne sont pas le sujet ici.
+        expect(Portail::HubAPI::Subscriptions).to receive(:list).and_return(build(:portail_subscription_list))
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: []))
@@ -345,6 +347,150 @@ RSpec.describe "Portail::Deliveries", type: :request do
             ip_address: "127.0.0.1"
           }
         ))
+      end
+    end
+
+    # L'état de navigation est porté par l'URL : rechargeable et partageable.
+    context "filters and sort" do
+      it "honours the filters and the sort requested as parameters" do
+        sign_in_member(process_codes: ["CERTDC", "AEC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:list)
+          # Le hash complet est éprouvé dans le spec de l'étape FetchList.
+          .with(hash_including(data_stream_codes: ["AEC"], transmitted_from: "2026-08-01",
+            transmitted_to: "2026-08-31", sort: "updated_at", direction: "asc"))
+          .and_return(upstream_list)
+
+        get "/demarches", params: {flux: "AEC", du: "2026-08-01", au: "2026-08-31", tri: "updated_at", ordre: "asc"}
+
+        expect(response).to have_http_status(:success)
+      end
+
+      # Le formulaire repart de l'URL : ce qui est demandé reste affiché, l'état compris, en
+      # champ caché parce que seule l'URL le connaît.
+      it "renders the filter form on the offered data streams, with the requested values kept" do
+        sign_in_member(process_codes: ["CERTDC", "AEC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
+
+        get "/demarches", params: {statut: "done", flux: "AEC", du: "2026-08-01", au: "2026-08-31"}
+
+        expect(response).to have_http_status(:success)
+
+        form = Capybara.string(response.body).find("form[action='/demarches'][method='get']")
+        expect(form).to have_select("Flux", options: ["Tous les flux", "AEC", "CERTDC"], selected: "AEC")
+        expect(form).to have_field("Transmise à partir du", with: "2026-08-01", type: "date")
+        expect(form).to have_field("Transmise jusqu'au", with: "2026-08-31", type: "date")
+        # Rien n'est transmis dans le futur : le sélecteur s'arrête à aujourd'hui.
+        expect(form).to have_css("input[type='date'][max='#{Date.current.iso8601}']", count: 2)
+        expect(form).to have_field("statut", type: "hidden", with: "done")
+        expect(form).to have_button("Filtrer")
+        expect(form).to have_link("Réinitialiser", href: "/demarches?statut=done")
+      end
+
+      # Un tri est un lien d'en-tête : le tri courant est annoncé, un clic l'inverse, un clic sur
+      # l'autre colonne part des plus récentes. Les filtres voyagent avec.
+      it "sorts by the column headers, carrying the filters along" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:list)
+          .and_return(upstream_list(deliveries: [build(:portail_delivery_summary)]))
+
+        get "/demarches", params: {flux: "CERTDC", tri: "updated_at", ordre: "asc"}
+
+        expect(response).to have_http_status(:success)
+
+        page = Capybara.string(response.body)
+        expect(page).to have_css("th[aria-sort='ascending']", text: "Mise à jour le")
+        # Rails écrit les paramètres dans l'ordre alphabétique ; le sens par défaut est omis.
+        expect(page).to have_link("Mise à jour le", href: "/demarches?flux=CERTDC&statut=transmitted&tri=updated_at")
+        expect(page).to have_link("Transmise le", href: "/demarches?flux=CERTDC&statut=transmitted")
+        expect(page).to have_no_css("th[aria-sort]", text: "Transmise le")
+      end
+
+      it "carries the filters and the sort through the state menu and the pagination" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
+          upstream_list(deliveries: [build(:portail_delivery_summary)],
+            counts_by_state: {"transmitted" => 12, "done" => 41},
+            pagination: build(:portail_pagination, current_page: 1, total_pages: 2))
+        )
+
+        get "/demarches", params: {flux: "CERTDC", ordre: "asc"}
+
+        expect(response).to have_http_status(:success)
+
+        page = Capybara.string(response.body)
+        expect(page).to have_link("Traitée 41", href: "/demarches?flux=CERTDC&ordre=asc&statut=done")
+        expect(page).to have_link("Page suivante", href: "/demarches?flux=CERTDC&ordre=asc&page=2&statut=transmitted")
+      end
+
+      # Le formulaire reste sur la liste vide : c'est lui qui permet de lever le filtre.
+      it "keeps the filter form and says so when nothing matches the filters" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
+
+        get "/demarches", params: {du: "2026-08-01"}
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_text("Aucune démarche ne correspond à vos critères")
+        expect(Capybara.string(response.body)).to have_button("Filtrer")
+      end
+
+      # Le flux choisi remplace le périmètre, jamais ne l'élargit.
+      it "shows the refusal for a data stream outside the habilitations, without calling the upstream" do
+        sign_in_member(process_codes: ["CERTDC"])
+        expect(Portail::HubAPI::Deliveries).not_to receive(:list)
+
+        get "/demarches", params: {flux: "AEC"}
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
+      end
+
+      # Rien n'est bouchonné en deçà de la frontière : c'est le vrai refus de la date qui se produit.
+      it "shows the refusal for an unreadable date" do
+        sign_in_member
+        use_hub_api_fake_client
+
+        get "/demarches", params: {du: "31/08/2026"}
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
+      end
+
+      # Sans habilitation nommée, les flux proposés sont ceux des abonnements de l'organisation en
+      # lecture via le portail, lus en amont ; le client bouchonné les sert comme l'API.
+      it "offers an unrestricted local administrator the data streams its organisation reads through the portal" do
+        sign_in_local_administrator
+        client = use_hub_api_fake_client
+        client.add_subscription(build_subscription_record(process_code: "CERTDC", access_mode: "PORTAIL",
+          subscriber_siret: ProConnectTestHelper::TEST_SIRET,
+          subscriber_branch_code: ProConnectTestHelper::TEST_INSEE_CODE))
+        client.add_subscription(build_subscription_record(id: "sub-2", process_code: "AEC", access_mode: "PORTAIL",
+          subscriber_siret: ProConnectTestHelper::TEST_SIRET,
+          subscriber_branch_code: ProConnectTestHelper::TEST_INSEE_CODE))
+        # Un abonnement par l'API : l'amont ne sert pas ses dossiers, le flux n'est pas proposé.
+        client.add_subscription(build_subscription_record(id: "sub-3", process_code: "DEMO_API", access_mode: "API",
+          subscriber_siret: ProConnectTestHelper::TEST_SIRET,
+          subscriber_branch_code: ProConnectTestHelper::TEST_INSEE_CODE))
+        # Une autre organisation du même SIRET : ses flux ne sont pas proposés.
+        client.add_subscription(build_subscription_record(id: "sub-4", process_code: "DEMO_AUTRE",
+          subscriber_siret: ProConnectTestHelper::TEST_SIRET, subscriber_branch_code: "00002"))
+
+        get "/demarches"
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body))
+          .to have_select("Flux", options: ["Tous les flux", "AEC", "CERTDC"])
+      end
+
+      it "renders the page with an alert when the organisation subscriptions cannot be read" do
+        sign_in_local_administrator
+        expect(Portail::HubAPI::Subscriptions).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
+        expect(Portail::HubAPI::Deliveries).not_to receive(:list)
+
+        get "/demarches"
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
       end
     end
   end

@@ -7,13 +7,33 @@ module Portail
 
     # DSFR marque l'entrée active par `aria-current`, et `nil` ne rend aucun attribut. Le
     # compteur est du texte, pas un badge : le DSFR réserve le badge à un usage non cliquable.
-    def delivery_state_menu_link(state, count, current:)
-      link_to(demarches_path(statut: state), class: "fr-sidemenu__link",
-        "aria-current": ("page" if current)) do
+    # Le filtre et le tri suivent d'un état à l'autre : seul l'état change dans le lien.
+    # Le lien est une boîte flex : la marge automatique renvoie le compteur au bord, et le
+    # retrait garde un blanc quand le libellé est long.
+    def delivery_state_menu_link(state, count, criteria:)
+      link_to(demarches_path(**criteria.with(state: state).link_params), class: "fr-sidemenu__link",
+        "aria-current": ("page" if state == criteria.state)) do
         safe_join([
           delivery_state_label(state),
-          tag.span(count, class: "fr-text--sm fr-text-mention--grey")
+          tag.span(count, class: "fr-text--sm fr-text-mention--grey fr-ml-auto fr-pl-1w")
         ], " ")
+      end
+    end
+
+    # `aria-sort` annonce la colonne triée. Un clic sur celle-ci inverse le sens ; sur l'autre,
+    # les plus récentes d'abord. L'icône dit le sens au regard, l'infobulle au clavier.
+    SORT_ICONS = {"asc" => "fr-icon-arrow-up-line", "desc" => "fr-icon-arrow-down-line"}.freeze
+    ARIA_SORTS = {"asc" => "ascending", "desc" => "descending"}.freeze
+
+    def delivery_sort_header(field, criteria)
+      active = criteria.sort == field
+      next_direction = (active && criteria.direction == "desc") ? "asc" : "desc"
+      target = criteria.with(sort: field, direction: next_direction)
+
+      tag.th(scope: "col", "aria-sort": (ARIA_SORTS[criteria.direction] if active)) do
+        link_to(t("portail.deliveries.fields.#{field}"), demarches_path(**target.link_params),
+          class: ["fr-link", ("fr-link--icon-right #{SORT_ICONS[criteria.direction]}" if active)].compact,
+          title: t("portail.deliveries.sort.#{next_direction}"))
       end
     end
 
