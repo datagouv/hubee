@@ -1,0 +1,31 @@
+<%# locals: (criteria:) %>
+<%# Les filtres posés, rappelés au-dessus des résultats en tags, chacun un lien vers la même page
+    sans lui : le DSFR réserve le tag supprimable au rappel d'un filtre coché dans une colonne.
+    Le verbe est dans le lien, masqué à l'écran : l'intitulé lu dit ce que le clic fait. %>
+<% if criteria.filtered? %>
+  <div class="delivery-active-filters fr-mb-2w">
+    <ul class="fr-tags-group" aria-label="<%= t(".active") %>">
+      <% criteria.data_stream_codes.each do |code| %>
+        <li>
+          <%= link_to demarches_path(**criteria.with(data_stream_codes: criteria.data_stream_codes - [code]).link_params),
+                class: "fr-tag fr-icon-close-line fr-tag--icon-left" do %>
+            <span class="fr-sr-only"><%= t(".remove") %></span> <%= code %>
+          <% end %>
+        </li>
+      <% end %>
+      <% if criteria.transmitted_from || criteria.transmitted_to %>
+        <li>
+          <%= link_to demarches_path(**criteria.with(transmitted_from: nil, transmitted_to: nil).link_params),
+                class: "fr-tag fr-icon-close-line fr-tag--icon-left" do %>
+            <span class="fr-sr-only"><%= t(".remove") %></span> <%= delivery_period_label(criteria) %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+    <%# Hors du groupe de tags : ce n'est pas un filtre, c'est l'action qui les lève tous. Le tri
+        reste, comme dans les tags unitaires. %>
+    <%= link_to t(".clear_all"),
+          demarches_path(**criteria.with(data_stream_codes: [], transmitted_from: nil, transmitted_to: nil).link_params),
+          class: "fr-link fr-icon-delete-line fr-link--icon-left" %>
+  </div>
+<% end %>

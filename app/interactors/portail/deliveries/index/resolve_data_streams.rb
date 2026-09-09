@@ -46,13 +46,15 @@ module Portail
           context.fail!(error: :unavailable)
         end
 
-        # Le flux choisi, s'il est sélectionnable ; sans choix, le périmètre lui-même.
+        # Les flux choisis, s'ils sont tous sélectionnables ; sans choix, le périmètre lui-même.
         def requested_data_streams
-          chosen = context.criteria.data_stream_code
-          return Access::ProcessPerimeter.filter(membership) if chosen.nil?
-          return [chosen] if context.selectable_data_streams.include?(chosen)
+          chosen = context.criteria.data_stream_codes
+          return Access::ProcessPerimeter.filter(membership) if chosen.empty?
 
-          Rails.logger.info("Flux hors des flux sélectionnables — #{chosen.inspect}")
+          unknown = chosen - context.selectable_data_streams
+          return chosen if unknown.empty?
+
+          Rails.logger.info("Flux hors des flux sélectionnables — #{unknown.inspect}")
           context.fail!(error: :invalid_request)
         end
       end

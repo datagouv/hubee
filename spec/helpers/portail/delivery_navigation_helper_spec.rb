@@ -31,7 +31,7 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
         criteria: criteria(statut: "transmitted", flux: "CERTDC", du: "2026-08-01", tri: "updated_at"))
 
       expect(Capybara.string(link))
-        .to have_link("Traitée 3", href: "/demarches?du=2026-08-01&flux=CERTDC&statut=done&tri=updated_at")
+        .to have_link("Traitée 3", href: "/demarches?du=2026-08-01&flux%5B%5D=CERTDC&statut=done&tri=updated_at")
     end
 
     it "marks the active state as the current page" do
@@ -64,7 +64,7 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
 
       expect(Capybara.string(header)).to have_css("th[scope='col']:not([aria-sort])")
       expect(Capybara.string(header))
-        .to have_link("Mise à jour le", href: "/demarches?flux=CERTDC&statut=transmitted&tri=updated_at")
+        .to have_link("Mise à jour le", href: "/demarches?flux%5B%5D=CERTDC&statut=transmitted&tri=updated_at")
       expect(Capybara.string(header)).to have_no_css("a[class*='fr-icon']")
     end
 
