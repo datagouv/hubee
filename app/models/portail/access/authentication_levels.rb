@@ -16,14 +16,14 @@ module Portail
       # Dérivé, jamais recopié.
       ACCEPTED = [MINIMUM, *SECOND_FACTOR].freeze
 
-      module_function
+      class << self
+        # Une élévation n'accepte plus le plancher : la requête serait contradictoire.
+        def demanded(step_up:) = step_up ? SECOND_FACTOR : [MINIMUM]
 
-      # Une élévation n'accepte plus le plancher : la requête serait contradictoire.
-      def demanded(step_up:) = step_up ? SECOND_FACTOR : [MINIMUM]
+        def accepted?(acr) = ACCEPTED.include?(acr)
 
-      def accepted?(acr) = ACCEPTED.include?(acr)
-
-      def second_factor?(acr) = SECOND_FACTOR.include?(acr)
+        def second_factor?(acr) = SECOND_FACTOR.include?(acr)
+      end
     end
   end
 end

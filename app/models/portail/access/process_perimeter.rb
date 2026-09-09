@@ -9,24 +9,24 @@ module Portail
       # « aucun filtre », soit toute l'organisation.
       class NoAccess < StandardError; end
 
-      module_function
+      class << self
+        # Le rôle d'abord : une colonne, avant de parcourir les habilitations.
+        def covers?(membership, code)
+          unrestricted?(membership) || membership.process_codes.include?(code)
+        end
 
-      # Le rôle d'abord : une colonne, avant de parcourir les habilitations.
-      def covers?(membership, code)
-        unrestricted?(membership) || membership.process_codes.include?(code)
+        # Ce que l'amont attend : une liste de flux, vide quand rien ne restreint la lecture. La
+        # gem omet alors le paramètre, et l'amont sert toute l'organisation.
+        def filter(membership)
+          raise NoAccess if none?(membership)
+
+          membership.process_codes
+        end
+
+        def none?(membership) = membership.process_codes.empty? && !membership.local_administrator?
+
+        def unrestricted?(membership) = membership.process_codes.empty? && membership.local_administrator?
       end
-
-      # Ce que l'amont attend : une liste de flux, vide quand rien ne restreint la lecture. La
-      # gem omet alors le paramètre, et l'amont sert toute l'organisation.
-      def filter(membership)
-        raise NoAccess if none?(membership)
-
-        membership.process_codes
-      end
-
-      def none?(membership) = membership.process_codes.empty? && !membership.local_administrator?
-
-      def unrestricted?(membership) = membership.process_codes.empty? && membership.local_administrator?
     end
   end
 end

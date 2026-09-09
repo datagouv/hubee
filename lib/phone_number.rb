@@ -35,18 +35,18 @@ module PhoneNumber
   # Un numéro national français : le zéro initial suivi de neuf chiffres.
   NATIONAL_FORMAT = /\A0\d{9}\z/
 
-  module_function
+  class << self
+    # Rend la forme E.164 quand elle est déductible, et la valeur nettoyée sinon — jamais nil
+    # pour une saisie non vide. C'est la validation appelante qui rejette ce qui n'a pas pu
+    # être normalisé : effacer ici perdrait la donnée sans que le producteur le sache.
+    def normalize(raw)
+      return nil if raw.blank?
 
-  # Rend la forme E.164 quand elle est déductible, et la valeur nettoyée sinon — jamais nil
-  # pour une saisie non vide. C'est la validation appelante qui rejette ce qui n'a pas pu
-  # être normalisé : effacer ici perdrait la donnée sans que le producteur le sache.
-  def normalize(raw)
-    return nil if raw.blank?
+      cleaned = raw.gsub(TRUNK_CODE, "").gsub(SEPARATORS, "").sub(/\A00/, "+")
+      return cleaned unless cleaned.match?(NATIONAL_FORMAT)
 
-    cleaned = raw.gsub(TRUNK_CODE, "").gsub(SEPARATORS, "").sub(/\A00/, "+")
-    return cleaned unless cleaned.match?(NATIONAL_FORMAT)
-
-    national = cleaned.delete_prefix("0")
-    "#{OVERSEAS_PREFIXES.fetch(national[0, 3], "+33")}#{national}"
+      national = cleaned.delete_prefix("0")
+      "#{OVERSEAS_PREFIXES.fetch(national[0, 3], "+33")}#{national}"
+    end
   end
 end

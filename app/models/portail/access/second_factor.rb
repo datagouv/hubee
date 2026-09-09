@@ -9,25 +9,27 @@ module Portail
       # l'attester en niveau : l'acr reste eidas1, mais l'amr du jeton vérifié en témoigne.
       MFA_METHOD = "mfa"
 
-      module_function
+      class << self
+        def required_for?(membership)
+          membership.local_administrator? || sensitive_habilitation?(membership)
+        end
 
-      def required_for?(membership)
-        membership.local_administrator? || sensitive_habilitation?(membership)
-      end
+        # Attesté par le niveau, ou par la méthode — les deux sortent du même jeton signé.
+        def satisfied?(membership, acr:, amr: [])
+          return true unless required_for?(membership)
 
-      # Attesté par le niveau, ou par la méthode — les deux sortent du même jeton signé.
-      def satisfied?(membership, acr:, amr: [])
-        return true unless required_for?(membership)
+          AuthenticationLevels.second_factor?(acr) || Array(amr).include?(MFA_METHOD)
+        end
 
-        AuthenticationLevels.second_factor?(acr) || Array(amr).include?(MFA_METHOD)
-      end
+        private
 
-      def sensitive_habilitation?(membership)
-        return false if SensitiveProcesses::CODES.empty?
+        def sensitive_habilitation?(membership)
+          return false if SensitiveProcesses::CODES.empty?
 
-        membership.process_accesses
-          .where("UPPER(process_code) IN (?)", SensitiveProcesses::CODES)
-          .exists?
+          membership.process_accesses
+            .where("UPPER(process_code) IN (?)", SensitiveProcesses::CODES)
+            .exists?
+        end
       end
     end
   end
