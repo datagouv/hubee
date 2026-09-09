@@ -41,6 +41,18 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     expect(result).to be_success
   end
 
+  # Un périmètre vide ne part jamais en aval, quelle que soit l'étape qui appelle : celle-ci le
+  # vérifie elle-même, pour rester réutilisable seule.
+  it "fails without calling the upstream when the membership has no access" do
+    expect(Portail::HubAPI::Deliveries).not_to receive(:list)
+
+    result = described_class.call(membership: create(:membership), criteria: criteria,
+      requested_data_streams: [], page: 1)
+
+    expect(result).to be_failure
+    expect(result.error).to eq(:no_habilitation)
+  end
+
   # `inspect` : le message amont cite le paramètre refusé, qui vient de l'URL.
   it "fails as an invalid request, logged, when the upstream refuses a parameter" do
     expect(Portail::HubAPI::Deliveries).to receive(:list)
