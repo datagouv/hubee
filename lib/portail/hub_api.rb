@@ -17,20 +17,20 @@ module Portail
     # Montré à l'agent plutôt que corrigé en silence.
     class InvalidRequest < Error; end
 
-    module_function
-
-    # La classe d'origine reste dans le message : c'est elle qui distingue une panne d'un refus
-    # au journal. Les deux familles de refus : le client V1 et sa surcouche V2 ont chacun le leur.
-    def translated(error)
-      case error
-      when HubApiV1::V2::DeliveryNotFoundError then NotFound.new(error.message)
-      when HubApiV1::InvalidArgumentError, HubApiV1::V2::InvalidArgumentError
-        InvalidRequest.new(error.message)
-      else
-        # Une panne est un incident, signalé ici et non par chaque appelant : un seul point,
-        # avec l'exception d'origine. Le portail ne nomme pas Sentry, abonné au rapporteur.
-        Rails.error.report(error, handled: true)
-        Unavailable.new("#{error.class} : #{error.message}")
+    class << self
+      # La classe d'origine reste dans le message : c'est elle qui distingue une panne d'un refus
+      # au journal. Les deux familles de refus : le client V1 et sa surcouche V2 ont chacun le leur.
+      def translated(error)
+        case error
+        when HubApiV1::V2::DeliveryNotFoundError then NotFound.new(error.message)
+        when HubApiV1::InvalidArgumentError, HubApiV1::V2::InvalidArgumentError
+          InvalidRequest.new(error.message)
+        else
+          # Une panne est un incident, signalé ici et non par chaque appelant : un seul point,
+          # avec l'exception d'origine. Le portail ne nomme pas Sentry, abonné au rapporteur.
+          Rails.error.report(error, handled: true)
+          Unavailable.new("#{error.class} : #{error.message}")
+        end
       end
     end
   end
