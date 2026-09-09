@@ -15,7 +15,7 @@ module Portail
       DEFAULT_SORT = "transmitted_at"
       DEFAULT_DIRECTION = "desc"
 
-      # Les noms de l'URL, en français comme les chemins ; les valeurs, celles du modèle.
+      # Clé : l'attribut de Criteria ; valeur : le nom du paramètre d'URL, en français comme les chemins.
       PARAM_NAMES = {
         state: :statut, data_stream_code: :flux, transmitted_from: :du, transmitted_to: :au,
         sort: :tri, direction: :ordre
