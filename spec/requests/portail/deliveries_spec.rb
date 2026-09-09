@@ -404,8 +404,9 @@ RSpec.describe "Portail::Deliveries", type: :request do
         # Effacer les filtres n'est pas remettre l'ordre : le tri reste, comme dans les tags.
         expect(Capybara.string(response.body))
           .to have_link("Tout effacer", href: "/demarches?ordre=asc&statut=done&tri=updated_at")
-        # Le verbe est dans l'intitulé lu, pas seulement dans une infobulle.
-        expect(tags).to have_css("a.fr-tag .fr-sr-only", text: "Retirer le filtre", count: 2)
+        # Des tags supprimables, la croix à droite ; le verbe est dans l'intitulé lu.
+        expect(tags).to have_css("a.fr-tag.fr-tag--dismiss[aria-label='Retirer le filtre AEC']")
+        expect(tags).to have_css("a.fr-tag.fr-tag--dismiss[aria-label='Retirer le filtre Transmise du 01/08/2026 au 31/08/2026']")
       end
 
       # Un tri est un lien d'en-tête : le tri courant est annoncé, un clic l'inverse, un clic sur
@@ -541,6 +542,126 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
+      end
+    end
+
+    context "search by number" do
+      it "searches on the number as a fragment, alongside the filters and the sort" do
+        sign_in_member(process_codes: ["CERTDC", "AEC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:list)
+          # Le hash complet est éprouvé dans le spec de l'étape FetchList.
+          .with(hash_including(number: "ID22026", data_stream_codes: ["AEC"], direction: "asc"))
+          .and_return(upstream_list)
+
+        get "/demarches", params: {numero: "ID22026", flux: "AEC", ordre: "asc"}
+
+        expect(response).to have_http_status(:success)
+      end
+
+      # Le premier filtre du panneau : son titre dit qu'il ne cherche que le numéro.
+      it "renders the number field first in the filter panel, announcing the number alone, with the sought number kept" do
+        sign_in_member(process_codes: ["CERTDC", "AEC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
+
+        get "/demarches", params: {statut: "done", numero: "ID22026", flux: "AEC", ordre: "asc"}
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body))
+          .to have_css("section.fr-accordion button[aria-controls='delivery-filters'][aria-expanded='true']")
+        form = Capybara.string(response.body).find("form[action='/demarches'][method='get']")
+        # Un champ seul : un libellé avec sa description, pas une légende.
+        expect(form.first("fieldset, .fr-input-group")).to have_field("Numéro de démarche", type: "search", with: "ID22026")
+        expect(form).to have_css(".fr-input-group label .fr-hint-text", text: "Complet ou partiel")
+        # La longueur d'un numéro complet : l'amont refuse au-delà, le navigateur arrête avant.
+        expect(form).to have_css("input[type='search'][maxlength='30']")
+        expect(form).to have_checked_field("AEC")
+        expect(form).to have_field("statut", type: "hidden", with: "done")
+        expect(form).to have_field("ordre", type: "hidden", with: "asc")
+        expect(form).to have_no_field("numero", type: "hidden")
+
+        # Le numéro est rappelé en tag, retirable seul ; « Tout effacer » le lève aussi.
+        tags = Capybara.string(response.body).find("ul.fr-tags-group")
+        expect(tags).to have_link("Numéro contenant « ID22026 »", href: "/demarches?flux%5B%5D=AEC&ordre=asc&statut=done")
+        expect(tags).to have_link("AEC", href: "/demarches?numero=ID22026&ordre=asc&statut=done")
+        expect(Capybara.string(response.body))
+          .to have_link("Tout effacer", href: "/demarches?ordre=asc&statut=done")
+      end
+
+      it "keeps the filter form and says so when nothing matches the number" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
+
+        get "/demarches", params: {numero: "ID22026"}
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_text("Aucune démarche ne correspond à vos critères")
+        expect(page).to have_field("Numéro de démarche", with: "ID22026")
+        expect(page).to have_link("Numéro contenant « ID22026 »", href: "/demarches?statut=transmitted")
+      end
+
+      it "carries the number through the state menu, the sort headers and the pagination" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
+          upstream_list(deliveries: [build(:portail_delivery_summary)],
+            counts_by_state: {"transmitted" => 1, "done" => 2},
+            pagination: build(:portail_pagination, current_page: 1, total_pages: 2))
+        )
+
+        get "/demarches", params: {numero: "ID22026"}
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_link("Traitée 2", href: "/demarches?numero=ID22026&statut=done")
+        expect(page).to have_link("Mise à jour le", href: "/demarches?numero=ID22026&statut=transmitted&tri=updated_at")
+        expect(page).to have_link("Page suivante", href: "/demarches?numero=ID22026&page=2&statut=transmitted")
+      end
+
+      # Rien n'est bouchonné en deçà de la frontière : le filtre de flux écarte le numéro, et la
+      # réponse ne distingue pas « inexistant » de « hors périmètre ».
+      {
+        "a member" => :sign_in_member,
+        "a local administrator with named habilitations" => :sign_in_local_administrator
+      }.each do |role, sign_in|
+        it "finds nothing, without telling more, when #{role} seeks a number outside the habilitations" do
+          send(sign_in, process_codes: ["CERTDC"])
+          client = use_hub_api_fake_client
+          client.add_case(build_v2_delivery(number: "DGS-AEC-0000000000002-01", state: :transmitted,
+            data_stream: HubApiV1::V2::DataStream.new(code: "AEC"), recipient: upstream_recipient))
+
+          get "/demarches", params: {numero: "0000000000002"}
+
+          expect(response).to have_http_status(:success)
+          expect(Capybara.string(response.body)).to have_text("Aucune démarche ne correspond à vos critères")
+          expect(Capybara.string(response.body)).to have_no_text("DGS-AEC-0000000000002-01")
+        end
+      end
+
+      # Rien n'est bouchonné en deçà de la frontière : le refus de la gem arrive avant tout appel.
+      it "shows the refusal for a number longer than a complete one, without calling the upstream" do
+        sign_in_member
+        client = use_hub_api_fake_client
+
+        get "/demarches", params: {numero: "DGS-CERTDC-0000000000001-01-XXX"}
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
+        expect(client.requests).to be_empty
+      end
+
+      it "finds a number on any data stream the organisation reads for an unrestricted local administrator" do
+        sign_in_local_administrator
+        client = use_hub_api_fake_client
+        client.add_subscription(build_subscription_record(process_code: "AEC", access_mode: "PORTAIL",
+          subscriber_siret: ProConnectTestHelper::TEST_SIRET,
+          subscriber_branch_code: ProConnectTestHelper::TEST_INSEE_CODE))
+        client.add_case(build_v2_delivery(number: "DGS-AEC-0000000000002-01", state: :transmitted,
+          data_stream: HubApiV1::V2::DataStream.new(code: "AEC"), recipient: upstream_recipient))
+
+        get "/demarches", params: {numero: "0000000000002"}
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_link("DGS-AEC-0000000000002-01")
       end
     end
   end

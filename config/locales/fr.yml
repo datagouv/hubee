@@ -111,6 +111,8 @@ fr:
         invalid_request: L'état, le filtre ou la page demandés n'existent pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
       filters:
         title: Filtrer les résultats
+        number: Numéro de démarche
+        number_hint: Complet ou partiel
         period: Période de transmission
         from: À partir du
         to: Jusqu'au
@@ -118,7 +120,8 @@ fr:
       # Le rappel des filtres posés, en tags au-dessus des résultats.
       active_filters:
         active: Filtres actifs
-        remove: Retirer le filtre
+        remove: "Retirer le filtre %{filter}"
+        number: "Numéro contenant « %{number} »"
         between: "Transmise du %{from} au %{to}"
         from: "Transmise à partir du %{from}"
         to: "Transmise jusqu'au %{to}"

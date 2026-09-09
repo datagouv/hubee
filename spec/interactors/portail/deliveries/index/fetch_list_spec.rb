@@ -17,7 +17,7 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     list = build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)])
     expect(Portail::HubAPI::Deliveries).to receive(:list).with(
       siret: "22770001000019", insee_code: "77372", state: "transmitted", data_stream_codes: ["CERTDC"],
-      transmitted_from: nil, transmitted_to: nil, sort: "transmitted_at", direction: "desc",
+      number: nil, transmitted_from: nil, transmitted_to: nil, sort: "transmitted_at", direction: "desc",
       page: 1, per_page: described_class::PER_PAGE
     ).and_return(list)
 
@@ -27,15 +27,16 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     expect(result.list).to eq(list)
   end
 
-  it "passes the state, the period, the sort and the page along, as the URL says them" do
+  it "passes the state, the number, the period, the sort and the page along, as the URL says them" do
     expect(Portail::HubAPI::Deliveries).to receive(:list).with(
       siret: "22770001000019", insee_code: "77372", state: "done", data_stream_codes: [],
-      transmitted_from: "2026-08-01", transmitted_to: "2026-08-31", sort: "updated_at", direction: "asc",
-      page: 2, per_page: described_class::PER_PAGE
+      number: "ID22026", transmitted_from: "2026-08-01", transmitted_to: "2026-08-31",
+      sort: "updated_at", direction: "asc", page: 2, per_page: described_class::PER_PAGE
     ).and_return(build(:portail_delivery_list))
 
     result = described_class.call(membership: membership,
-      criteria: criteria(statut: "done", du: "2026-08-01", au: "2026-08-31", tri: "updated_at", ordre: "asc"),
+      criteria: criteria(statut: "done", numero: "ID22026", du: "2026-08-01", au: "2026-08-31",
+        tri: "updated_at", ordre: "asc"),
       requested_data_streams: [], page: 2)
 
     expect(result).to be_success

@@ -192,6 +192,12 @@ Quand("il filtre sur les démarches transmises jusqu'au {string}") do |date|
   click_button "Filtrer"
 end
 
+Quand("il cherche le numéro {string}") do |number|
+  open_filters
+  fill_in "Numéro de démarche", with: number
+  click_button "Filtrer"
+end
+
 Quand("il trie par « {word} le »") do |column|
   within("table thead") { click_link "#{column} le" }
 end
@@ -226,6 +232,11 @@ Alors("il ne voit que les démarches {string}") do |numbers|
   expected = numbers.split(", ")
   expect(page).to have_css("table tbody tr", count: expected.size)
   expected.each { |number| expect(page).to have_link(number) }
+end
+
+Alors("aucune démarche ne correspond à ses critères") do
+  expect(page).to have_text("Aucune démarche ne correspond à vos critères")
+  expect(page).to have_no_css("table tbody tr")
 end
 
 Alors("les démarches sont listées dans l'ordre {string}") do |numbers|
