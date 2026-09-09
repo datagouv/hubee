@@ -6,7 +6,7 @@ module Portail
     # filtre et le tri survivent au changement d'état et de page. Les valeurs restent des chaînes :
     # aucune validation ici, l'amont tranche et son refus est affiché plutôt que corrigé en douce.
     class Criteria < Data.define(
-      :state, :data_stream_codes, :transmitted_from, :transmitted_to, :sort, :direction
+      :state, :data_stream_codes, :number, :transmitted_from, :transmitted_to, :sort, :direction
     )
       # La liste s'ouvre sur les démarches que l'agent n'a pas encore prises en charge, son
       # travail du jour ; ouvrir sur « traitée » ou « clôturée » montrerait d'abord l'archive.
@@ -17,8 +17,8 @@ module Portail
 
       # Clé : l'attribut de Criteria ; valeur : le nom du paramètre d'URL, en français comme les chemins.
       PARAM_NAMES = {
-        state: :statut, data_stream_codes: :flux, transmitted_from: :du, transmitted_to: :au,
-        sort: :tri, direction: :ordre
+        state: :statut, data_stream_codes: :flux, number: :numero, transmitted_from: :du,
+        transmitted_to: :au, sort: :tri, direction: :ordre
       }.freeze
 
       DEFAULTS = {
@@ -33,11 +33,14 @@ module Portail
         private
 
         # `.to_s` : `?statut[]=…` fait de la valeur un tableau, qui part tel quel se faire refuser.
-        # `.presence` : un champ de formulaire laissé vide retombe sur le défaut.
+        # `.presence` : un champ laissé vide retombe sur le défaut. `.strip` : l'amont ne retire pas
+        # les blancs d'un numéro collé.
         def read(member, value)
-          return Array(value).filter_map { |code| code.to_s.presence }.uniq if member == :data_stream_codes
-
-          value.to_s.presence || DEFAULTS[member]
+          case member
+          when :data_stream_codes then Array(value).filter_map { |code| code.to_s.presence }.uniq
+          when :number then value.to_s.strip.presence
+          else value.to_s.presence || DEFAULTS[member]
+          end
         end
       end
 
@@ -50,7 +53,7 @@ module Portail
         }.to_h
       end
 
-      def filtered? = data_stream_codes.any? || [transmitted_from, transmitted_to].any?
+      def filtered? = data_stream_codes.any? || number.present? || [transmitted_from, transmitted_to].any?
     end
   end
 end

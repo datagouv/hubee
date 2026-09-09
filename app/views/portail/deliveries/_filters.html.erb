@@ -16,6 +16,11 @@
         <%= f.hidden_field name, value: value %>
       <% end %>
 
+      <%# En tête : l'usage le plus fréquent. `maxlength` : la longueur d'un numéro complet, l'amont
+          refuse au-delà. %>
+      <%= f.dsfr_input_field :numero, :search_field, label: t(".number"), hint: t(".number_hint"),
+            value: criteria.number, maxlength: Portail::HubAPI::Deliveries::NUMBER_MAX_LENGTH %>
+
       <fieldset class="fr-fieldset delivery-data-streams" id="delivery-data-streams" aria-labelledby="delivery-data-streams-legend">
         <legend class="fr-fieldset__legend" id="delivery-data-streams-legend">
           <%= t("portail.deliveries.fields.data_stream") %>

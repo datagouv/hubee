@@ -55,6 +55,20 @@ Fonctionnalité: Les démarches de l'organisation
     Quand il filtre sur les flux "AEC, CERTDC"
     Alors il ne voit que les démarches "DGS-AEC-0000000000002-01, DGS-CERTDC-0000000000001-01"
 
+  # Le numéro suffit, complet ou tronqué : c'est ainsi qu'il circule entre les agents.
+  Scénario: L'agent retrouve une démarche par un fragment de son numéro
+    Étant donné l'API amont sert aussi une démarche "DGS-CERTDC-0000000000005-01" sur le flux "CERTDC"
+    Et il s'est connecté
+    Quand il cherche le numéro "0000000000005"
+    Alors il ne voit que la démarche "DGS-CERTDC-0000000000005-01"
+
+  # Même périmètre qu'en liste : un numéro hors habilitation ne renvoie rien, sans confirmer le dossier.
+  Scénario: Un numéro hors habilitation ne renvoie rien
+    Étant donné l'API amont sert aussi une démarche sur un flux non habilité
+    Et il s'est connecté
+    Quand il cherche le numéro "DGS-AEC-0000000000002-01"
+    Alors aucune démarche ne correspond à ses critères
+
   Scénario: L'agent restreint la liste à une période de transmission
     Étant donné l'API amont sert aussi une démarche "DGS-CERTDC-0000000000003-01" transmise le "2026-08-20"
     Et il s'est connecté

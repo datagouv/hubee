@@ -19,7 +19,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       ))
 
       list = described_class.list(siret: siret, insee_code: insee_code, state: "acknowledged",
-        data_stream_codes: [], transmitted_from: nil, transmitted_to: nil,
+        data_stream_codes: [], number: nil, transmitted_from: nil, transmitted_to: nil,
         sort: "transmitted_at", direction: "desc", page: 1, per_page: 25, client: client)
 
       expect(list).to be_a(Portail::Delivery::List)
@@ -42,12 +42,12 @@ RSpec.describe Portail::HubAPI::Deliveries do
       client = HubApiV1::Testing::FakeClient.new
       expect(HubApiV1::V2::Delivery).to receive(:list).with(
         siret: siret, code_insee: insee_code, state: :transmitted,
-        data_stream_codes: ["CERTDC"], transmitted_from: nil, transmitted_to: nil,
+        data_stream_codes: ["CERTDC"], number: "ID22026", transmitted_from: nil, transmitted_to: nil,
         sort: :transmitted_at, direction: :desc, offset: 50, per_page: 25, client: client
       ).and_return(build_v2_delivery_list([]))
 
       described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
-        data_stream_codes: ["CERTDC"], transmitted_from: nil, transmitted_to: nil,
+        data_stream_codes: ["CERTDC"], number: "ID22026", transmitted_from: nil, transmitted_to: nil,
         sort: "transmitted_at", direction: "desc", page: 3, per_page: 25, client: client)
     end
 
@@ -55,12 +55,12 @@ RSpec.describe Portail::HubAPI::Deliveries do
       shared = use_hub_api_fake_client
       expect(HubApiV1::V2::Delivery).to receive(:list).with(
         siret: siret, code_insee: insee_code, state: :transmitted,
-        data_stream_codes: [], transmitted_from: nil, transmitted_to: nil,
+        data_stream_codes: [], number: nil, transmitted_from: nil, transmitted_to: nil,
         sort: :transmitted_at, direction: :desc, offset: 0, per_page: 25, client: shared
       ).and_return(build_v2_delivery_list([]))
 
       described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
-        data_stream_codes: [], transmitted_from: nil, transmitted_to: nil,
+        data_stream_codes: [], number: nil, transmitted_from: nil, transmitted_to: nil,
         sort: "transmitted_at", direction: "desc", page: 1, per_page: 25)
     end
 
@@ -70,7 +70,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
       expect {
         described_class.list(siret: siret, insee_code: insee_code, state: "n-importe-quoi",
-          data_stream_codes: [], transmitted_from: nil, transmitted_to: nil,
+          data_stream_codes: [], number: nil, transmitted_from: nil, transmitted_to: nil,
           sort: "transmitted_at", direction: "desc", page: 1, per_page: 25, client: client)
       }.to raise_error(Portail::HubAPI::InvalidRequest)
     end
@@ -80,7 +80,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
       expect {
         described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
-          data_stream_codes: [], transmitted_from: nil, transmitted_to: nil,
+          data_stream_codes: [], number: nil, transmitted_from: nil, transmitted_to: nil,
           sort: "transmitted_at", direction: "desc", page: "n-importe-quoi", per_page: 25, client: client)
       }.to raise_error(Portail::HubAPI::InvalidRequest)
     end
@@ -90,14 +90,14 @@ RSpec.describe Portail::HubAPI::Deliveries do
     it "turns the transmission dates into day boundaries in the application time zone" do
       client = HubApiV1::Testing::FakeClient.new
       expect(HubApiV1::V2::Delivery).to receive(:list).with(
-        siret: siret, code_insee: insee_code, state: :transmitted, data_stream_codes: [],
+        siret: siret, code_insee: insee_code, state: :transmitted, data_stream_codes: [], number: nil,
         transmitted_from: Time.zone.local(2026, 8, 1),
         transmitted_to: Time.zone.local(2026, 8, 31).end_of_day,
         sort: :updated_at, direction: :asc, offset: 0, per_page: 25, client: client
       ).and_return(build_v2_delivery_list([]))
 
       described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
-        data_stream_codes: [], transmitted_from: "2026-08-01", transmitted_to: "2026-08-31",
+        data_stream_codes: [], number: nil, transmitted_from: "2026-08-01", transmitted_to: "2026-08-31",
         sort: "updated_at", direction: "asc", page: 1, per_page: 25, client: client)
     end
 
@@ -108,7 +108,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
       expect {
         described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
-          data_stream_codes: [], transmitted_from: "31/08/2026", transmitted_to: nil,
+          data_stream_codes: [], number: nil, transmitted_from: "31/08/2026", transmitted_to: nil,
           sort: "transmitted_at", direction: "desc", page: 1, per_page: 25, client: client)
       }.to raise_error(Portail::HubAPI::InvalidRequest)
       expect(client.requests).to be_empty
@@ -119,7 +119,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
       expect {
         described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
-          data_stream_codes: [], transmitted_from: nil, transmitted_to: nil,
+          data_stream_codes: [], number: nil, transmitted_from: nil, transmitted_to: nil,
           sort: "n-importe-quoi", direction: "desc", page: 1, per_page: 25, client: client)
       }.to raise_error(Portail::HubAPI::InvalidRequest)
     end
@@ -129,7 +129,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       client = HubApiV1::Testing::FakeClient.new
 
       list = described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
-        data_stream_codes: [], transmitted_from: nil, transmitted_to: nil,
+        data_stream_codes: [], number: nil, transmitted_from: nil, transmitted_to: nil,
         sort: "transmitted_at", direction: "desc", page: 1, per_page: 25, client: client)
 
       expect(list.page.counts_by_state.keys).to eq(
@@ -303,7 +303,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
         expect {
           described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
-            data_stream_codes: [], transmitted_from: nil, transmitted_to: nil,
+            data_stream_codes: [], number: nil, transmitted_from: nil, transmitted_to: nil,
             sort: "transmitted_at", direction: "desc", page: 1, per_page: 25)
         }.to raise_error(error[:translated])
       end

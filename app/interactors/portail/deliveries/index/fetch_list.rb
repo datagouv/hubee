@@ -26,7 +26,7 @@ module Portail
           link = context.membership.organization_link
           HubAPI::Deliveries.list(
             siret: link.siret, insee_code: link.insee_code, state: criteria.state,
-            data_stream_codes: context.requested_data_streams,
+            data_stream_codes: context.requested_data_streams, number: criteria.number,
             transmitted_from: criteria.transmitted_from, transmitted_to: criteria.transmitted_to,
             sort: criteria.sort, direction: criteria.direction,
             page: context.page, per_page: PER_PAGE

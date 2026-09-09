@@ -8,15 +8,19 @@ module Portail
     # Les démarches, traduites dans les deux sens : entrées vers les mots-clés de la gem,
     # sorties en modèles du portail, erreurs en erreurs de Portail::HubAPI.
     module Deliveries
+      # La borne de l'amont, reprise ici pour que le champ de recherche ne nomme pas la gem.
+      NUMBER_MAX_LENGTH = HubApiV1::V2::Delivery::MAX_NUMBER_LENGTH
+
       class << self
-        def list(siret:, insee_code:, state:, data_stream_codes:, transmitted_from:, transmitted_to:,
-          sort:, direction:, page:, per_page:, client: HubApiV1.client)
+        def list(siret:, insee_code:, state:, data_stream_codes:, number:, transmitted_from:,
+          transmitted_to:, sort:, direction:, page:, per_page:, client: HubApiV1.client)
           list = HubApiV1::V2::Delivery.list(
             siret: siret,
             code_insee: insee_code,
             # String dans le portail, Symbol en amont : la conversion vit ici seulement.
             state: state.to_sym,
             data_stream_codes: data_stream_codes,
+            number: number,
             transmitted_from: day_start(transmitted_from),
             transmitted_to: day_end(transmitted_to),
             sort: sort.to_sym,
