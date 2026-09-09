@@ -12,6 +12,7 @@
   <div class="fr-col-12 fr-col-md-8 fr-col-lg-9">
     <%# Avant la liste, vide comprise : c'est lui qui permet de lever un filtre. %>
     <%= render "filters", criteria: @criteria, selectable_data_streams: @selectable_data_streams %>
+    <%= render "active_filters", criteria: @criteria %>
 
     <%# Le message vide reste à côté du menu : le compteur d'un autre état dit où aller. %>
     <% if @deliveries.empty? %>

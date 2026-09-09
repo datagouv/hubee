@@ -43,3 +43,40 @@
 .delivery-timeline__entry {
   background-color: var(--background-alt-grey);
 }
+
+/* delivery-data-streams : les cases du filtre par flux (portail/deliveries/_filters).
+   En colonnes plutôt qu'en liste : la liste verticale du DSFR s'allonge avec les dizaines de
+   flux d'une structure. Deux colonnes, trois à partir du point de rupture MD du DSFR. */
+.delivery-data-streams .fr-fieldset__element {
+  flex: 0 0 50%;
+}
+
+@media (min-width: 48em) {
+  .delivery-data-streams .fr-fieldset__element {
+    flex: 0 0 33.333%;
+  }
+}
+
+/* delivery-active-filters : les tags des filtres posés et le lien qui les lève tous
+   (portail/deliveries/_active_filters). Sur une même ligne, centrés : le DSFR cale chaque tag en
+   haut d'une ligne plus haute que lui, ce qui décale un voisin centré. La ligne reprend la
+   hauteur du tag, et l'espace entre rangées revient par le gap. */
+.delivery-active-filters {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+.delivery-active-filters .fr-tags-group {
+  margin-bottom: 0;
+  row-gap: 0.75rem;
+}
+
+.delivery-active-filters .fr-tags-group > li {
+  line-height: 2rem;
+}
+
+.delivery-active-filters .fr-tags-group > li > .fr-tag {
+  margin-bottom: 0;
+}

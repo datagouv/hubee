@@ -46,6 +46,15 @@ Fonctionnalité: Les démarches de l'organisation
     Quand il filtre sur le flux "AEC"
     Alors il ne voit que la démarche "DGS-AEC-0000000000002-01"
 
+  Scénario: L'agent restreint la liste à plusieurs flux à la fois
+    Étant donné il est habilité sur le flux "AEC"
+    Et il est habilité sur le flux "DEMO"
+    Et l'API amont sert aussi une démarche "DGS-AEC-0000000000002-01" sur le flux "AEC"
+    Et l'API amont sert aussi une démarche "DGS-DEMO-0000000000004-01" sur le flux "DEMO"
+    Et il s'est connecté
+    Quand il filtre sur les flux "AEC, CERTDC"
+    Alors il ne voit que les démarches "DGS-AEC-0000000000002-01, DGS-CERTDC-0000000000001-01"
+
   Scénario: L'agent restreint la liste à une période de transmission
     Étant donné l'API amont sert aussi une démarche "DGS-CERTDC-0000000000003-01" transmise le "2026-08-20"
     Et il s'est connecté

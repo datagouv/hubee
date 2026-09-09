@@ -64,6 +64,19 @@ module Portail
       number_to_human_size(attachment.byte_size)
     end
 
+    # Rendu sur le seul chemin réussi : la frontière a déjà refusé toute date illisible.
+    def delivery_period_label(criteria)
+      from = criteria.transmitted_from && l(Date.iso8601(criteria.transmitted_from))
+      to = criteria.transmitted_to && l(Date.iso8601(criteria.transmitted_to))
+      if from && to
+        t("portail.deliveries.active_filters.between", from: from, to: to)
+      elsif from
+        t("portail.deliveries.active_filters.from", from: from)
+      else
+        t("portail.deliveries.active_filters.to", to: to)
+      end
+    end
+
     private
 
     # Format long : le jour et l'année situent une transmission relue des semaines après.

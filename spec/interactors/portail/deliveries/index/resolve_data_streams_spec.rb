@@ -56,32 +56,32 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
   end
 
   # Le flux choisi remplace le périmètre, jamais ne l'élargit.
-  it "narrows the filter to the chosen data stream when it is among the offered ones" do
+  it "narrows the filter to the chosen data streams when they are all among the offered ones" do
     membership = create(:membership)
     create(:process_access, membership: membership, process_code: "CERTDC")
     create(:process_access, membership: membership, process_code: "AEC")
 
-    result = described_class.call(membership: membership, criteria: criteria(flux: "AEC"))
+    result = described_class.call(membership: membership, criteria: criteria(flux: ["AEC", "CERTDC"]))
 
     expect(result).to be_success
-    expect(result.requested_data_streams).to eq(["AEC"])
+    expect(result.requested_data_streams).to eq(["AEC", "CERTDC"])
   end
 
   # Un administrateur non restreint aussi : l'amont accepterait n'importe quel code, le portail
   # borne à ce qu'il a lui-même proposé.
-  it "fails as an invalid request, logged, for a chosen data stream outside the offered ones" do
+  it "fails as an invalid request, logged, when a chosen data stream is outside the offered ones" do
     membership = create(:membership, :local_administrator)
     expect(Portail::HubAPI::Subscriptions).to receive(:list).and_return(upstream_subscriptions("CERTDC"))
 
     result = nil
     events = capture_semantic_logger_events do
-      result = described_class.call(membership: membership, criteria: criteria(flux: "DEMO_AUTRE"))
+      result = described_class.call(membership: membership, criteria: criteria(flux: ["CERTDC", "DEMO_AUTRE"]))
     end
 
     expect(result).to be_failure
     expect(result.error).to eq(:invalid_request)
     expect(events).to include(be_a_semantic_logger_event(
-      level: :info, message: 'Flux hors des flux sélectionnables — "DEMO_AUTRE"'
+      level: :info, message: 'Flux hors des flux sélectionnables — ["DEMO_AUTRE"]'
     ))
   end
 

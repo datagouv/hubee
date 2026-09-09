@@ -165,13 +165,30 @@ Quand("il filtre sur l'état {string}") do |label|
   within("nav.fr-sidemenu") { click_link label }
 end
 
+# Le panneau des filtres est replié tant que rien ne filtre ; sans JavaScript, le bouton ne fait
+# rien et le formulaire reste atteignable.
+def open_filters
+  toggle = first("button.fr-accordion__btn[aria-controls='delivery-filters']", minimum: 0)
+  toggle.click if toggle && toggle["aria-expanded"] == "false"
+end
+
+# Dans un vrai navigateur, le DSFR masque la case native derrière son habillage : on coche par
+# le libellé, et on la retrouve avec `visible: :all`.
 Quand("il filtre sur le flux {string}") do |code|
-  select code, from: "Flux"
+  open_filters
+  check code, allow_label_click: true
+  click_button "Filtrer"
+end
+
+Quand("il filtre sur les flux {string}") do |codes|
+  open_filters
+  codes.split(", ").each { |code| check code, allow_label_click: true }
   click_button "Filtrer"
 end
 
 Quand("il filtre sur les démarches transmises jusqu'au {string}") do |date|
-  fill_in "Transmise jusqu'au", with: Date.parse(date)
+  open_filters
+  fill_in "Jusqu'au", with: Date.parse(date)
   click_button "Filtrer"
 end
 
@@ -193,12 +210,22 @@ Alors("il voit la démarche {string} dans la liste") do |number|
 end
 
 Alors("le filtre propose les flux {string}") do |codes|
-  expect(page).to have_select("Flux", options: ["Tous les flux", *codes.split(", ")])
+  # `visible: :all` : le panneau est replié tant que rien ne filtre.
+  within("fieldset#delivery-data-streams", visible: :all) do
+    codes.split(", ").each { |code| expect(page).to have_unchecked_field(code, visible: :all) }
+    expect(page).to have_css("input[type='checkbox']", count: codes.split(", ").size, visible: :all)
+  end
 end
 
 Alors("il ne voit que la démarche {string}") do |number|
   expect(page).to have_css("table tbody tr", count: 1)
   expect(page).to have_link(number)
+end
+
+Alors("il ne voit que les démarches {string}") do |numbers|
+  expected = numbers.split(", ")
+  expect(page).to have_css("table tbody tr", count: expected.size)
+  expected.each { |number| expect(page).to have_link(number) }
 end
 
 Alors("les démarches sont listées dans l'ordre {string}") do |numbers|

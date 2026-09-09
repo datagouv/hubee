@@ -378,10 +378,16 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
         expect(response).to have_http_status(:success)
 
+        # Le panneau est ouvert : un filtre est posé, il doit se voir.
+        expect(Capybara.string(response.body))
+          .to have_css("section.fr-accordion button[aria-controls='delivery-filters'][aria-expanded='true']")
         form = Capybara.string(response.body).find("form[action='/demarches'][method='get']")
-        expect(form).to have_select("Flux", options: ["Tous les flux", "AEC", "CERTDC"], selected: "AEC")
-        expect(form).to have_field("Transmise à partir du", with: "2026-08-01", type: "date")
-        expect(form).to have_field("Transmise jusqu'au", with: "2026-08-31", type: "date")
+        # Un groupe de cases, pas un select : nhube permettait plusieurs flux à la fois.
+        expect(form).to have_css("fieldset legend", text: "Flux")
+        expect(form).to have_checked_field("AEC")
+        expect(form).to have_unchecked_field("CERTDC")
+        expect(form).to have_field("À partir du", with: "2026-08-01", type: "date")
+        expect(form).to have_field("Jusqu'au", with: "2026-08-31", type: "date")
         # Rien n'est transmis dans le futur : le sélecteur s'arrête à aujourd'hui.
         expect(form).to have_css("input[type='date'][max='2026-09-08']", count: 2)
         expect(form).to have_field("statut", type: "hidden", with: "done")
@@ -389,7 +395,17 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(form).to have_field("tri", type: "hidden", with: "updated_at")
         expect(form).to have_field("ordre", type: "hidden", with: "asc")
         expect(form).to have_button("Filtrer")
-        expect(form).to have_link("Réinitialiser", href: "/demarches?statut=done")
+
+        # Les filtres posés sont rappelés en tags, chacun un lien vers la page sans lui.
+        tags = Capybara.string(response.body).find("ul.fr-tags-group")
+        expect(tags).to have_link("AEC", href: "/demarches?au=2026-08-31&du=2026-08-01&ordre=asc&statut=done&tri=updated_at")
+        expect(tags).to have_link("Transmise du 01/08/2026 au 31/08/2026",
+          href: "/demarches?flux%5B%5D=AEC&ordre=asc&statut=done&tri=updated_at")
+        # Effacer les filtres n'est pas remettre l'ordre : le tri reste, comme dans les tags.
+        expect(Capybara.string(response.body))
+          .to have_link("Tout effacer", href: "/demarches?ordre=asc&statut=done&tri=updated_at")
+        # Le verbe est dans l'intitulé lu, pas seulement dans une infobulle.
+        expect(tags).to have_css("a.fr-tag .fr-sr-only", text: "Retirer le filtre", count: 2)
       end
 
       # Un tri est un lien d'en-tête : le tri courant est annoncé, un clic l'inverse, un clic sur
@@ -406,8 +422,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
         page = Capybara.string(response.body)
         expect(page).to have_css("th[aria-sort='ascending']", text: "Mise à jour le")
         # Rails écrit les paramètres dans l'ordre alphabétique ; le sens par défaut est omis.
-        expect(page).to have_link("Mise à jour le", href: "/demarches?flux=CERTDC&statut=transmitted&tri=updated_at")
-        expect(page).to have_link("Transmise le", href: "/demarches?flux=CERTDC&statut=transmitted")
+        expect(page).to have_link("Mise à jour le", href: "/demarches?flux%5B%5D=CERTDC&statut=transmitted&tri=updated_at")
+        expect(page).to have_link("Transmise le", href: "/demarches?flux%5B%5D=CERTDC&statut=transmitted")
         expect(page).to have_no_css("th[aria-sort]", text: "Transmise le")
       end
 
@@ -424,8 +440,21 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(response).to have_http_status(:success)
 
         page = Capybara.string(response.body)
-        expect(page).to have_link("Traitée 41", href: "/demarches?flux=CERTDC&ordre=asc&statut=done")
-        expect(page).to have_link("Page suivante", href: "/demarches?flux=CERTDC&ordre=asc&page=2&statut=transmitted")
+        expect(page).to have_link("Traitée 41", href: "/demarches?flux%5B%5D=CERTDC&ordre=asc&statut=done")
+        expect(page).to have_link("Page suivante", href: "/demarches?flux%5B%5D=CERTDC&ordre=asc&page=2&statut=transmitted")
+      end
+
+      # Sans filtre, le panneau est replié : la liste est le contenu, le filtre un outil.
+      it "keeps the filter panel folded when nothing is filtered" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
+
+        get "/demarches"
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body))
+          .to have_css("section.fr-accordion button[aria-controls='delivery-filters'][aria-expanded='false']")
+        expect(Capybara.string(response.body)).to have_button("Filtrer")
       end
 
       # Le formulaire reste sur la liste vide : c'est lui qui permet de lever le filtre.
@@ -438,6 +467,18 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("Aucune démarche ne correspond à vos critères")
         expect(Capybara.string(response.body)).to have_button("Filtrer")
+      end
+
+      it "filters on several data streams at once" do
+        sign_in_member(process_codes: ["CERTDC", "AEC", "DEMO"])
+        expect(Portail::HubAPI::Deliveries).to receive(:list)
+          # Le hash complet est éprouvé dans le spec de l'étape FetchList.
+          .with(hash_including(data_stream_codes: ["AEC", "DEMO"]))
+          .and_return(upstream_list)
+
+        get "/demarches", params: {flux: ["AEC", "DEMO"]}
+
+        expect(response).to have_http_status(:success)
       end
 
       # Le flux choisi remplace le périmètre, jamais ne l'élargit.
@@ -484,8 +525,11 @@ RSpec.describe "Portail::Deliveries", type: :request do
         get "/demarches"
 
         expect(response).to have_http_status(:success)
-        expect(Capybara.string(response.body))
-          .to have_select("Flux", options: ["Tous les flux", "AEC", "CERTDC"])
+        form = Capybara.string(response.body).find("form[action='/demarches'][method='get']")
+        expect(form).to have_unchecked_field("AEC")
+        expect(form).to have_unchecked_field("CERTDC")
+        expect(form).to have_no_field("DEMO_API")
+        expect(form).to have_no_field("DEMO_AUTRE")
       end
 
       it "renders the page with an alert when the organisation subscriptions cannot be read" do

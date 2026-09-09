@@ -110,11 +110,19 @@ fr:
         unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
         invalid_request: L'état, le filtre ou la page demandés n'existent pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
       filters:
-        all_data_streams: Tous les flux
-        from: Transmise à partir du
-        to: Transmise jusqu'au
+        title: Filtrer les résultats
+        period: Période de transmission
+        from: À partir du
+        to: Jusqu'au
         submit: Filtrer
-        reset: Réinitialiser les filtres
+      # Le rappel des filtres posés, en tags au-dessus des résultats.
+      active_filters:
+        active: Filtres actifs
+        remove: Retirer le filtre
+        between: "Transmise du %{from} au %{to}"
+        from: "Transmise à partir du %{from}"
+        to: "Transmise jusqu'au %{to}"
+        clear_all: Tout effacer
       # L'infobulle d'un en-tête triable dit ce que le clic fera.
       sort:
         asc: Trier du plus ancien au plus récent
