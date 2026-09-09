@@ -9,6 +9,10 @@ module Portail
         PER_PAGE = 25
 
         def call
+          # Un filtre vide vaudrait toute l'organisation en aval ; vérifié ici aussi, l'étape
+          # doit rester réutilisable seule.
+          context.fail!(error: :no_habilitation) if Access::ProcessPerimeter.none?(context.membership)
+
           context.list = fetch
         end
 

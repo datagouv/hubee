@@ -19,4 +19,16 @@ RSpec.describe Portail::Deliveries::Index do
     expect(result.list).to eq(list)
     expect(result.selectable_data_streams).to eq(["CERTDC"])
   end
+
+  # Le refus de l'organizer entier : chaque étape le porte, la composition le rend une fois.
+  it "refuses a member without habilitation before reading anything upstream" do
+    expect(Portail::HubAPI::Subscriptions).not_to receive(:list)
+    expect(Portail::HubAPI::Deliveries).not_to receive(:list)
+
+    result = described_class.call(membership: create(:membership),
+      criteria: Portail::Delivery::Criteria.from_params({}), page: 1)
+
+    expect(result).to be_failure
+    expect(result.error).to eq(:no_habilitation)
+  end
 end

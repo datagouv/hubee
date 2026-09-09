@@ -17,7 +17,7 @@ module Portail
           # « aucun filtre », donc toute l'organisation.
           context.fail!(error: :no_habilitation) if Access::ProcessPerimeter.none?(membership)
 
-          context.selectable_data_streams = selectable_data_streams
+          context.selectable_data_streams = selectable_data_streams.sort
           context.requested_data_streams = requested_data_streams
         end
 
@@ -29,7 +29,7 @@ module Portail
         # restreint. Transitoire : le temps que les administrateurs locaux reçoivent leurs
         # habilitations par flux comme les agents, la seconde branche disparaîtra.
         def selectable_data_streams
-          return membership.process_codes.sort unless Access::ProcessPerimeter.unrestricted?(membership)
+          return membership.process_codes unless Access::ProcessPerimeter.unrestricted?(membership)
 
           organisation_data_streams
         end

@@ -9,10 +9,10 @@ module Portail
 
       def each(&) = subscriptions.each(&)
 
-      # Les flux que l'organisation reçoit par le portail, chacun une fois, triés : ce que le
+      # Les flux que l'organisation reçoit par le portail, chacun une fois : ce que le
       # filtre propose quand aucune habilitation ne restreint le rattachement.
       def portal_data_stream_codes
-        select(&:readable_via_portal?).map { |subscription| subscription.data_stream.code }.uniq.sort
+        select(&:readable_via_portal?).map { |subscription| subscription.data_stream.code }.uniq
       end
     end
   end
