@@ -22,11 +22,4 @@ RSpec.describe Portail::Subscription::List do
       expect(build(:portail_subscription_list, subscriptions: []).portal_data_stream_codes).to eq([])
     end
   end
-
-  # La liste se parcourt comme ses abonnements : la frontière et ses specs n'ont pas à la déballer.
-  it "enumerates its subscriptions" do
-    subscription = build(:portail_subscription)
-
-    expect(build(:portail_subscription_list, subscriptions: [subscription]).to_a).to eq([subscription])
-  end
 end

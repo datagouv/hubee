@@ -17,15 +17,15 @@ RSpec.describe Portail::HubAPI::Subscriptions do
       client.add_subscription(build_subscription_record(id: "sub-2", process_code: "AEC",
         access_mode: "API", status: "Inactif"))
 
-      subscriptions = described_class.list(siret: siret, insee_code: insee_code, client: client)
+      list = described_class.list(siret: siret, insee_code: insee_code, client: client)
 
-      expect(subscriptions).to be_a(Portail::Subscription::List)
-      expect(subscriptions).to all(be_a(Portail::Subscription))
-      expect(subscriptions.map { |subscription| subscription.data_stream.code }).to contain_exactly("CERTDC", "AEC")
-      expect(subscriptions.find { |subscription| subscription.data_stream.code == "CERTDC" }).to have_attributes(
+      expect(list).to be_a(Portail::Subscription::List)
+      expect(list.subscriptions).to all(be_a(Portail::Subscription))
+      expect(list.subscriptions.map { |subscription| subscription.data_stream.code }).to contain_exactly("CERTDC", "AEC")
+      expect(list.subscriptions.find { |subscription| subscription.data_stream.code == "CERTDC" }).to have_attributes(
         id: "550e8400-e29b-41d4-a716-446655440000", read_package: true, create_package: false, access_mode: "portal"
       )
-      expect(subscriptions.find { |subscription| subscription.data_stream.code == "AEC" })
+      expect(list.subscriptions.find { |subscription| subscription.data_stream.code == "AEC" })
         .to have_attributes(read_package: false, access_mode: "api")
     end
 
@@ -34,10 +34,10 @@ RSpec.describe Portail::HubAPI::Subscriptions do
       client = HubApiV1::Testing::FakeClient.new
       client.add_subscription(build_subscription_record(access_mode: nil))
 
-      subscriptions = described_class.list(siret: siret, insee_code: insee_code, client: client)
+      list = described_class.list(siret: siret, insee_code: insee_code, client: client)
 
-      expect(subscriptions.first).to have_attributes(read_package: true, access_mode: nil)
-      expect(subscriptions.first).not_to be_readable_via_portal
+      expect(list.subscriptions.first).to have_attributes(read_package: true, access_mode: nil)
+      expect(list.subscriptions.first).not_to be_readable_via_portal
     end
 
     # Hash complet : la lecture doit rester bornée sur le couple, pas sur le seul SIRET.
