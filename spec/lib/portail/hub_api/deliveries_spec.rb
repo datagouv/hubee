@@ -220,6 +220,39 @@ RSpec.describe Portail::HubAPI::Deliveries do
     end
   end
 
+  # Le nom de fichier est déposé VERBATIM par le partenaire, sans aucun contrôle amont, et servi
+  # brut dans le détail. Il finit dans un en-tête de réponse et sur le disque de l'agent : la
+  # frontière est le seul endroit où il peut être assaini une fois pour toutes.
+  describe "filename hardening" do
+    hostile_names = {
+      "a path the partner slipped in" => {served: "../../etc/passwd", kept: "passwd"},
+      "a Windows path the upstream does not cut" => {served: "..\\..\\system32", kept: "system32"},
+      "an absolute path" => {served: "/etc/shadow", kept: "shadow"},
+      "control characters aimed at the response headers" => {
+        served: "evil.pdf\r\nX-Injected: oui", kept: "evil.pdfX-Injected: oui"
+      },
+      "a name that is only dots" => {served: "..", kept: "piece"},
+      "no name at all" => {served: "", kept: "piece"},
+      "an ordinary name, left untouched" => {served: "certificat.pdf", kept: "certificat.pdf"}
+    }
+
+    hostile_names.each do |situation, name|
+      it "keeps only a usable filename for #{situation}" do
+        client = HubApiV1::Testing::FakeClient.new
+        client.add_case(build_v2_delivery(
+          data_package: build_v2_data_package(
+            attachments: [build_v2_attachment(filename: name[:served])]
+          )
+        ))
+
+        delivery = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+          siret: siret, insee_code: insee_code, client: client)
+
+        expect(delivery.attachments.first.filename).to eq(name[:kept])
+      end
+    end
+  end
+
   # Aucune exception de la gem ne doit survivre à cette couche.
   describe "error translation" do
     # Une panne est un incident, signalé au rapporteur d'erreurs de Rails avec l'exception

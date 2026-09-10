@@ -38,6 +38,37 @@ module Portail
           raise translated(e)
         end
 
+        # Publiques, à la différence des autres traductions : la frontière des pièces rend la
+        # démarche que l'amont a servie avec le contenu, et le portail n'a qu'un seul jeu de
+        # modèles. Les dupliquer ferait diverger deux lectures du même contrat.
+        def delivery_from(delivery)
+          Portail::Delivery.new(
+            id: delivery.id,
+            number: delivery.number,
+            state: delivery.state.to_s,
+            data_stream: data_stream_from(delivery.data_stream),
+            recipient: recipient_from(delivery.recipient),
+            transmitted_at: delivery.transmitted_at,
+            updated_at: delivery.updated_at,
+            applicant: applicant_from(delivery.data_package&.applicant),
+            # Les pièces du dépôt seulement : celles d'un event restent sur lui, l'écran montre
+            # leur provenance.
+            attachments: attachments_from(delivery.data_package&.attachments),
+            events: delivery.events.map { |event| event_from(event) }
+          )
+        end
+
+        def attachment_from(attachment)
+          Portail::Delivery::Attachment.new(
+            id: attachment.id,
+            filename: safe_filename(attachment.filename),
+            content_type: attachment.content_type,
+            byte_size: attachment.byte_size,
+            kind: attachment.kind,
+            state: attachment.state.to_s
+          )
+        end
+
         private
 
         # `to_i` : la page peut arriver en String. Trafiquée, elle donne 0, donc un décalage
@@ -64,37 +95,23 @@ module Portail
           )
         end
 
-        def delivery_from(delivery)
-          Portail::Delivery.new(
-            id: delivery.id,
-            number: delivery.number,
-            state: delivery.state.to_s,
-            data_stream: data_stream_from(delivery.data_stream),
-            recipient: recipient_from(delivery.recipient),
-            transmitted_at: delivery.transmitted_at,
-            updated_at: delivery.updated_at,
-            applicant: applicant_from(delivery.data_package&.applicant),
-            # Les pièces du dépôt seulement : celles d'un event restent sur lui, l'écran montre
-            # leur provenance.
-            attachments: attachments_from(delivery.data_package&.attachments),
-            events: delivery.events.map { |event| event_from(event) }
-          )
+        # Le nom est déposé VERBATIM par le partenaire, sans aucun contrôle amont : il peut porter
+        # des séparateurs de chemin, des « .. », des guillemets ou des caractères de contrôle. Il
+        # finit dans un en-tête de réponse et sur le disque de l'agent — on ne garde donc que le
+        # dernier segment, antislash compris (l'amont, lui, ne coupe que sur la barre oblique), et
+        # on retire les caractères de contrôle. `.` et `..` ne sont pas des noms de fichier.
+        SAFE_FILENAME_FALLBACK = "piece"
+        CONTROL_CHARACTERS = "\u0000-\u001F\u007F"
+
+        def safe_filename(filename)
+          name = File.basename(filename.to_s.tr("\\", "/")).delete(CONTROL_CHARACTERS).strip
+
+          name.delete(".").empty? ? SAFE_FILENAME_FALLBACK : name
         end
 
         # `Array()` : le paquet de données peut manquer entièrement.
         def attachments_from(attachments)
           Array(attachments).map { |attachment| attachment_from(attachment) }
-        end
-
-        def attachment_from(attachment)
-          Portail::Delivery::Attachment.new(
-            id: attachment.id,
-            filename: attachment.filename,
-            content_type: attachment.content_type,
-            byte_size: attachment.byte_size,
-            kind: attachment.kind,
-            state: attachment.state.to_s
-          )
         end
 
         def event_from(event)
