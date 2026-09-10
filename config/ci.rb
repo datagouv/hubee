@@ -22,8 +22,7 @@ CI.run("Hubee CI", "Plateforme SecNumCloud") do
     # On valide que les seeds tournent, puis on recharge le schéma vide pour restaurer
     # l'invariant « base de test vide » : sinon les données seedées (dont le SIRET DINUM,
     # aussi codé en dur dans des specs) restent en base et cassent le prochain run local.
-    # SEED_TEST_ACCOUNTS : sans elle, le bloc des comptes de test ne tournerait pas, alors que
-    # c'est lui que jouent le déploiement des review apps et celui de la recette.
+    # SEED_TEST_ACCOUNTS : valider aussi les comptes des environnements déployés.
     step "Tests: Seeds", "env RAILS_ENV=test SEED_TEST_ACCOUNTS=true bin/rails db:seed:replant db:schema:load"
   end
 end

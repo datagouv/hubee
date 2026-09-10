@@ -1,86 +1,100 @@
 # frozen_string_literal: true
 
-# Comptes de test du portail, semés en review app et en recette.
+# Comptes de test du portail : ceux du poste de développement (`:local`) et ceux des
+# environnements déployés de test, review app et recette (`:deployed`).
 #
-# Volontairement hors des quatre namespaces de l'application : ce fichier vit sous `db/`, qui
-# n'est ni autoloadé ni eager-loadé. Rien en production ne le référence — il est chargé par
-# `lib/tasks/portail.rake` et par `db/seeds.rb`, et lui-même ne référence que les modèles.
-#
-# Déclaratif : ce qui est listé fait foi. Non destructif : ni agent, ni rattachement, ni trace
-# d'accès n'est supprimé — seuls le rôle et les habilitations sont réalignés sur le catalogue.
+# Sous `db/`, hors autoload : chargé par `db/seeds.rb` seulement, rien en production ne le
+# référence. Déclaratif et non destructif : ni agent, ni rattachement, ni trace d'accès n'est
+# supprimé, seuls le rôle et les habilitations sont réalignés sur le catalogue.
 module Seeds
   module TestAccounts
-    # Le nom de l'organisation ne vit qu'en commentaire : `OrganizationLink` n'en porte aucun,
-    # le libellé est lu en direct dans le référentiel V1.
-    #
     # Le code INSEE est le piège : correct au login, il part en `code_insee` vers hub-api à
     # chaque appel. Un SIRET juste avec un INSEE faux donne un écran vide, sans erreur.
     ORGANIZATIONS = {
+      # Environnements déployés : organisations réelles, connues de la V1 de recette.
       rochefourchat: {siret: "21260274200018", insee_code: "26274"}, # COMMUNE DE ROCHEFOURCHAT
-      ain: {siret: "22010001000010", insee_code: "01053"} # DEPARTEMENT DE L AIN
+      ain: {siret: "22010001000010", insee_code: "01053"}, # DEPARTEMENT DE L AIN
+      # Poste de développement : codes INSEE fictifs, à la forme observée au référentiel V1.
+      dinum: {siret: "13002526500013", insee_code: "00001"},
+      lyon: {siret: "26690123100013", insee_code: "00002"},
+      sardine: {siret: "84087593400027", insee_code: "00003"},
+      # Code INSEE déclaré par le seed du socle : avec le 77372 des factories de la gem, la
+      # liste des démarches restait vide.
+      socle: {siret: "22770001000019", insee_code: "77001"}
     }.freeze
 
-    # Les codes des flux sensibles ne sont pas dans ce dépôt, qui est public : le catalogue les
-    # désigne par un symbole, résolu depuis l'environnement au moment du semis.
-    #
-    # Des variables dédiées, et non `SENSITIVE_PROCESS_CODES` : deux comparaisons se font sur un
-    # code de flux, et une seule ignore la casse.
-    #
-    #   - La MFA l'ignore : `SensitiveProcesses.parse` rabat la liste en majuscules, et
-    #     `SecondFactor` compare en `UPPER()` des deux côtés.
-    #   - Le périmètre compare caractère pour caractère : l'habilitation est stockée verbatim
-    #     (`ProcessAccess` ne fait que `strip`), puis part telle quelle en filtre vers l'amont
-    #     et repasse par le `include?` de `ProcessPerimeter.covers?`, liste comme détail.
-    #
-    # Semer l'habilitation depuis `SENSITIVE_PROCESS_CODES`, déjà majusculée, écrirait donc
-    # `GRAND_CODE` là où l'amont connaît `GrandCode`. La connexion passerait — le login ne
-    # regarde que le SIRET — la MFA se déclencherait, et l'écran des démarches resterait vide
-    # sans message d'erreur. C'est le symptôme le plus coûteux à diagnostiquer.
+    # Les codes des flux sensibles ne sont pas dans ce dépôt public : le catalogue les désigne
+    # par un symbole, résolu depuis l'environnement au semis. Des variables dédiées, et non
+    # SENSITIVE_PROCESS_CODES que `SensitiveProcesses.parse` majuscule : l'habilitation part
+    # verbatim vers l'amont, sensible à la casse, et un code recasé donne un écran vide.
     SENSITIVE_CODE_VARIABLES = {
       sensitive_1: "SEED_SENSITIVE_PROCESS_CODE_1",
       sensitive_2: "SEED_SENSITIVE_PROCESS_CODE_2"
     }.freeze
 
-    Account = Data.define(:email, :first_name, :last_name, :organization, :role, :process_codes)
+    Account = Data.define(:email, :first_name, :last_name, :organization, :role, :process_codes, :scope)
 
     # Une habilitation est soit un code public écrit verbatim, soit l'un des symboles ci-dessus.
     # Les habilitations bornent tout le monde, administrateur local compris ; le rôle ne tranche
     # que la liste vide — tout pour l'administrateur, rien pour le membre.
     ACCOUNTS = [
+      # Environnements déployés : la matrice rôle × habilitation, sur une organisation réelle.
       Account.new(email: "membre-etatcivil@test.proconnect.gouv.fr", first_name: "Camille", last_name: "Membre",
-        organization: :rochefourchat, role: "member", process_codes: ["EtatCivil"]),
+        organization: :rochefourchat, role: "member", process_codes: ["EtatCivil"], scope: :deployed),
       Account.new(email: "membre-sensible@test.proconnect.gouv.fr", first_name: "Dominique", last_name: "Sensible",
-        organization: :rochefourchat, role: "member", process_codes: [:sensitive_1]),
+        organization: :rochefourchat, role: "member", process_codes: [:sensitive_1], scope: :deployed),
       Account.new(email: "admin-total@test.proconnect.gouv.fr", first_name: "Alex", last_name: "Total",
-        organization: :rochefourchat, role: "local_administrator", process_codes: []),
+        organization: :rochefourchat, role: "local_administrator", process_codes: [], scope: :deployed),
       Account.new(email: "admin-etatcivil@test.proconnect.gouv.fr", first_name: "Sacha", last_name: "Borne",
-        organization: :rochefourchat, role: "local_administrator", process_codes: ["EtatCivil"]),
+        organization: :rochefourchat, role: "local_administrator", process_codes: ["EtatCivil"], scope: :deployed),
       Account.new(email: "admin-sensible@test.proconnect.gouv.fr", first_name: "Claude", last_name: "Sensible",
-        organization: :rochefourchat, role: "local_administrator", process_codes: [:sensitive_1]),
+        organization: :rochefourchat, role: "local_administrator", process_codes: [:sensitive_1], scope: :deployed),
       Account.new(email: "marie.durand@basrec.hubee.numerique.gouv.fr", first_name: "Marie", last_name: "Durand",
-        organization: :rochefourchat, role: "local_administrator", process_codes: []),
+        organization: :rochefourchat, role: "local_administrator", process_codes: [], scope: :deployed),
       Account.new(email: "jean.dupont@basrec.hubee.numerique.gouv.fr", first_name: "Jean", last_name: "Dupont",
-        organization: :ain, role: "member", process_codes: [:sensitive_2]),
+        organization: :ain, role: "member", process_codes: [:sensitive_2], scope: :deployed),
       Account.new(email: "marie.dupont@basrec.hubee.numerique.gouv.fr", first_name: "Marie", last_name: "Dupont",
-        organization: :rochefourchat, role: "member", process_codes: ["EtatCivil", "recensementCitoyen"])
+        organization: :rochefourchat, role: "member", process_codes: ["EtatCivil", "recensementCitoyen"], scope: :deployed),
+
+      # Poste de développement : les comptes réels des fournisseurs d'identité de test ProConnect,
+      # userN@yopmail.com (ProConnect Identité), identités libres de FIA1 (@test.proconnect.gouv.fr,
+      # SIRET saisissable), et le compte du FI ANCT.
+      Account.new(email: "user@yopmail.com", first_name: "Camille", last_name: "Ordinaire",
+        organization: :dinum, role: "member", process_codes: [], scope: :local),
+      Account.new(email: "user1@yopmail.com", first_name: "Alex", last_name: "Admin",
+        organization: :dinum, role: "local_administrator", process_codes: [], scope: :local),
+      Account.new(email: "user2@yopmail.com", first_name: "Dominique", last_name: "Habilite",
+        organization: :dinum, role: "member", process_codes: [:sensitive_1], scope: :local),
+      Account.new(email: "user3@yopmail.com", first_name: "Sacha", last_name: "Ailleurs",
+        organization: :lyon, role: "member", process_codes: [], scope: :local),
+      Account.new(email: "agent@test.proconnect.gouv.fr", first_name: "Camille", last_name: "Fia",
+        organization: :dinum, role: "member", process_codes: [], scope: :local),
+      Account.new(email: "admin@test.proconnect.gouv.fr", first_name: "Alex", last_name: "Fia",
+        organization: :dinum, role: "local_administrator", process_codes: [], scope: :local),
+      Account.new(email: "sensible@test.proconnect.gouv.fr", first_name: "Dominique", last_name: "Fia",
+        organization: :dinum, role: "member", process_codes: [:sensitive_1], scope: :local),
+      Account.new(email: "bastien.ogier@sardinepq.fr", first_name: "Bastien", last_name: "Ogier",
+        organization: :sardine, role: "local_administrator", process_codes: [], scope: :local),
+      # Membre et non administrateur local, pour que le filtrage par habilitation soit traversé
+      # sur les deux démarches en accès portail du socle.
+      Account.new(email: "socle@test.proconnect.gouv.fr", first_name: "Camille", last_name: "Socle",
+        organization: :socle, role: "member", process_codes: %w[CERTDC EtatCivil], scope: :local)
     ].freeze
 
     class << self
-      # Le semis local ne pose pas ces comptes : ils visent des organisations que le socle de
-      # développement ne connaît pas. Seuls les environnements déployés de test les demandent, en
-      # posant cette variable — la recette tourne en `production`, c'est la seule chose qui l'en
-      # distingue, et l'outillage de déploiement ne doit jamais la poser en production.
-      def requested? = ENV["SEED_TEST_ACCOUNTS"] == "true"
+      def accounts(scopes) = ACCOUNTS.select { |account| scopes.include?(account.scope) }
 
-      # Ce que l'environnement ne déclare pas, et que l'appelant doit donc signaler.
-      def missing_variables = SENSITIVE_CODE_VARIABLES.values.reject { |name| ENV[name].present? }
+      # Ce que les comptes retenus attendent de l'environnement, et qu'il ne déclare pas.
+      def missing_variables(scopes)
+        accounts(scopes).flat_map(&:process_codes).grep(Symbol).uniq
+          .map { |code| SENSITIVE_CODE_VARIABLES.fetch(code) }
+          .reject { |name| ENV[name].present? }
+      end
 
       # Renvoie les rattachements écrits, dans l'ordre du catalogue, pour que l'appelant en rende
       # compte. Les comptes dont un code sensible manque en sont absents.
-      def apply!
-        links = ORGANIZATIONS.transform_values { |attributes| OrganizationLink.find_or_create_by!(**attributes) }
-
-        ACCOUNTS.filter_map do |account|
+      def apply!(scopes)
+        accounts(scopes).filter_map do |account|
           process_codes = resolve_process_codes(account.process_codes)
           next if process_codes.nil?
 
@@ -91,7 +105,7 @@ module Seeds
           end
 
           # `update!` séparé : le bloc de `find_or_create_by!` ne tourne pas sur un existant.
-          membership = Membership.find_or_create_by!(agent:, organization_link: links.fetch(account.organization))
+          membership = Membership.find_or_create_by!(agent:, organization_link: link_for(account.organization))
           membership.update!(role: account.role)
           align_process_accesses(membership, process_codes)
           membership
@@ -112,6 +126,9 @@ module Seeds
       end
 
       private
+
+      # Par compte et non d'un bloc : seules les organisations des comptes retenus doivent naître.
+      def link_for(organization) = OrganizationLink.find_or_create_by!(**ORGANIZATIONS.fetch(organization))
 
       def perimeter_of(membership)
         if Portail::Access::ProcessPerimeter.unrestricted?(membership)
