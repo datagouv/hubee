@@ -25,6 +25,9 @@ module Portail
         state: DEFAULT_STATE, data_stream_codes: [], sort: DEFAULT_SORT, direction: DEFAULT_DIRECTION
       }.freeze
 
+      # Tout critère restreint la liste, sauf l'état, qui est la page, et le tri.
+      FILTERS = (members - %i[state sort direction]).freeze
+
       class << self
         def from_params(params)
           new(**PARAM_NAMES.to_h { |member, name| [member, read(member, params[name])] })
@@ -53,7 +56,7 @@ module Portail
         }.to_h
       end
 
-      def filtered? = data_stream_codes.any? || number.present? || [transmitted_from, transmitted_to].any?
+      def filtered? = FILTERS.any? { |member| public_send(member).present? }
     end
   end
 end
