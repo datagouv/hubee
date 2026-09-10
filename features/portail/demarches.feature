@@ -24,6 +24,14 @@ Fonctionnalité: Les démarches de l'organisation
     Quand il ouvre la démarche "DGS-CERTDC-0000000000001-01"
     Alors il voit l'inventaire des pièces et l'historique
 
+  # Le critère d'acceptation des lots 2 et 3 : toute la chaîne, FakeClient compris.
+  Scénario: L'agent récupère une pièce reçue depuis le détail
+    Étant donné il s'est connecté
+    Quand il ouvre la démarche "DGS-CERTDC-0000000000001-01"
+    Et il télécharge la pièce "certificat.pdf"
+    Alors il obtient le fichier "certificat.pdf"
+    Et l'historique de la démarche porte son téléchargement
+
   # Chaque état est une page : une navigation, pas un onglet.
   Scénario: L'agent passe d'un état à l'autre par le menu latéral
     Étant donné l'API amont sert aussi une démarche traitée pour son organisation

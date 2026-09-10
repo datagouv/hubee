@@ -64,7 +64,8 @@
 <section class="fr-p-3w fr-mb-4w fr-border-default--grey">
   <h2 class="fr-h4"><%= t(".deposit_attachments") %></h2>
   <% if @delivery.attachments.any? %>
-    <%= render "attachments", attachments: @delivery.attachments, caption: t(".deposit_attachments") %>
+    <%= render "attachments", delivery: @delivery, attachments: @delivery.attachments,
+            caption: t(".deposit_attachments") %>
   <% else %>
     <p class="fr-mb-0"><%= t(".deposit_attachments_empty") %></p>
   <% end %>
@@ -82,7 +83,7 @@
         — <%= event.author.presence || t("portail.deliveries.events.unknown_author") %>
       </p>
       <%# La provenance dans la caption : plusieurs inventaires se suivent ici. %>
-      <%= render "attachments", attachments: event.attachments,
+      <%= render "attachments", delivery: @delivery, attachments: event.attachments,
             caption: "#{t(".added_attachments")} — #{delivery_event_time(event)}" %>
     <% end %>
   <% else %>

@@ -1,6 +1,7 @@
-<%# locals: (attachments:, caption:) %>
-<%# Un inventaire, pas un accès : l'amont ne sert aucun binaire, aucune ligne n'est un lien.
-    La caption, exigée par le RGAA, est masquée : la section qui appelle porte déjà le titre. %>
+<%# locals: (delivery:, attachments:, caption:) %>
+<%# Le nom de chaque pièce reçue est un lien vers son contenu ; les autres états restent en
+    texte — visibles à l'inventaire, mais pas proposés. La caption, exigée par le RGAA, est
+    masquée : la section qui appelle porte déjà le titre. %>
 <div class="fr-table fr-table--bordered fr-table--no-caption">
   <div class="fr-table__wrapper">
     <div class="fr-table__container">
@@ -18,7 +19,19 @@
           <tbody>
             <% attachments.each do |attachment| %>
               <tr>
-                <td><%= attachment.filename %></td>
+                <td>
+                  <% if delivery_attachment_downloadable?(attachment) %>
+                    <%# Le détail est DANS le lien : c'est lui qui porte le format et le poids
+                        jusqu'au nom accessible, que la colonne voisine ne donnerait pas. %>
+                    <%= link_to demarche_piece_path(delivery.id, attachment.id),
+                          class: "fr-link fr-link--download" do %>
+                      <%= attachment.filename %>
+                      <span class="fr-link__detail"><%= delivery_attachment_detail(attachment) %></span>
+                    <% end %>
+                  <% else %>
+                    <%= attachment.filename %>
+                  <% end %>
+                </td>
                 <td><%= attachment.kind %></td>
                 <td><%= delivery_attachment_size(attachment) %></td>
                 <td><%= delivery_attachment_state(attachment) %></td>

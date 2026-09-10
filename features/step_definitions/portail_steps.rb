@@ -152,6 +152,30 @@ Alors("il voit l'inventaire des pièces et l'historique") do
   expect(page).to have_text("George DUBOIS a modifié le statut : Transmise → Reçue")
 end
 
+Quand("il télécharge la pièce {string}") do |filename|
+  # La page de détail est quittée par le téléchargement : on retient son adresse pour y revenir.
+  @delivery_path = current_path
+  click_link filename
+end
+
+# rack_test : sans navigateur pour l'enregistrer, la réponse EST le fichier. C'est ce qu'on
+# vérifie — le nom d'origine annoncé, et un corps de la taille que l'inventaire promettait.
+Alors("il obtient le fichier {string}") do |filename|
+  expect(page.status_code).to eq(200)
+  expect(page.response_headers["Content-Disposition"]).to start_with("attachment;")
+  expect(page.response_headers["Content-Disposition"]).to include(%(filename="#{filename}"))
+  expect(page.body.bytesize).to eq(1024)
+end
+
+# Le critère d'acceptation du lot 3, éprouvé sans HTTP : le fake stocke réellement l'événement,
+# donc la relecture le retrouve, avec son auteur.
+Alors("l'historique de la démarche porte son téléchargement") do
+  visit @delivery_path
+
+  expect(page).to have_css("h2", text: "Historique")
+  expect(page).to have_text("a téléchargé une pièce")
+end
+
 Alors("la liste est celle de l'état {string}") do |label|
   expect(page).to have_css("table caption", text: label)
   expect(page).to have_css("nav.fr-sidemenu a[aria-current='page']", text: label)

@@ -146,8 +146,8 @@ fr:
         deposit_attachments_empty: Aucune pièce n'accompagnait le dépôt.
         added_attachments: Pièces ajoutées ensuite
         added_attachments_empty: Aucune pièce n'a été ajoutée depuis le dépôt.
-        # L'amont ne sert pas les fichiers : le dire évite de chercher un lien qui n'existe pas.
-        attachments_notice: Les pièces se consultent depuis votre système d'information. HubEE en présente l'inventaire.
+        # Les états non livrables restent listés : le dire évite de chercher un lien absent.
+        attachments_notice: Seules les pièces reçues peuvent être téléchargées. Les autres restent listées avec leur état.
         history: Historique
         history_empty: Aucun événement enregistré pour cette démarche.
         si_comment: Commentaire à destination des SI
@@ -211,6 +211,15 @@ fr:
         title: Erreur serveur — HubEE
         heading: Une erreur est survenue
         lead: Le service rencontre un problème technique. Merci de réessayer ultérieurement.
+      attachment_unavailable:
+        title: Pièce indisponible — HubEE
+        heading: Cette pièce n'a pas pu être récupérée
+        lead: "Le fichier n'est plus disponible auprès du service qui le conserve. S'il s'agissait d'une indisponibilité passagère, il redeviendra accessible ; sinon, signalez la démarche à l'administrateur local de votre structure."
+      history_full:
+        title: Téléchargement impossible — HubEE
+        heading: Cette pièce ne peut pas vous être remise
+        lead: "L'historique de cette démarche est saturé. Signalez-la à l'administrateur local de votre structure : la pièce restera indisponible tant que la situation n'est pas traitée."
+        reason: Chaque téléchargement est inscrit à l'historique de la démarche. Celui-ci ayant atteint le nombre d'événements accepté, la pièce ne peut plus être remise sans que cette trace soit perdue.
       service_unavailable:
         title: Service indisponible — HubEE
         heading: Service momentanément indisponible

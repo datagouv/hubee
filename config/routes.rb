@@ -14,6 +14,9 @@ Rails.application.routes.draw do
   # une contrainte de routage qui ne verrait que le cookie et bouclerait sur une session expirée.
   get "demarches", to: "portail/deliveries#index", as: :demarches
   get "demarches/:id", to: "portail/deliveries#show", as: :demarche
+  # Le contenu d'une pièce, pas son inventaire : `pieces` n'a ni index ni page propre, la seule
+  # réponse de cette adresse est le fichier.
+  get "demarches/:demarche_id/pieces/:id", to: "portail/attachments#show", as: :demarche_piece
 
   # =============================================================================
   # API V2 — GELÉE LE 2026-06-12

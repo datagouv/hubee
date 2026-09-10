@@ -428,19 +428,63 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_css("p.fr-badge", text: "Rejetée")
     end
 
-    # L'amont ne sert aucun binaire : la page le dit, et aucune ligne ne prétend être un lien.
-    it "promises no download it cannot honour" do
+    # Le format et le poids sont DANS le lien : ce que le RGAA demande d'annoncer sur un lien de
+    # téléchargement, et que la colonne voisine ne porterait pas jusqu'au nom accessible.
+    it "offers each received piece for download, format and weight announced" do
       sign_in_member
-      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, attachments: [build(:portail_attachment,
+          filename: "certificat.pdf", byte_size: 2048, state: "received")])
+      )
 
       get "/demarches/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
-      expect(Capybara.string(response.body))
-        .to have_text("Les pièces se consultent depuis votre système d'information")
-      rows = Nokogiri::HTML(response.body).css("table tbody a")
-      expect(rows).to be_empty
+      link = Capybara.string(response.body).find("table tbody a.fr-link--download")
+      expect(link[:href])
+        .to eq("/demarches/#{delivery_id}/pieces/a1111111-1111-1111-1111-111111111111")
+      expect(link).to have_text("certificat.pdf")
+      expect(link).to have_css("span.fr-link__detail", text: "PDF – 2 ko")
+    end
+
+    # Les états non livrables restent à l'inventaire — une pièce rejetée est une information que
+    # l'agent n'a nulle part ailleurs — mais la page ne promet pas un accès qu'elle n'a pas.
+    it "promises no download for a piece the upstream cannot serve" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, attachments: [build(:portail_attachment,
+          filename: "certificat.pdf", state: "rejected")])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+
+      expect(Capybara.string(response.body)).to have_text("Seules les pièces reçues")
+      expect(Capybara.string(response.body)).to have_text("certificat.pdf")
+      expect(Nokogiri::HTML(response.body).css("table tbody a")).to be_empty
+    end
+
+    # Les pièces apportées en cours d'instruction se téléchargent comme celles du dépôt : le même
+    # inventaire les sert, et rien ne justifierait qu'elles restent hors d'atteinte.
+    it "offers a piece added later for download too" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, attachments: [], events: [build(:portail_event,
+          event_type: "attachment.created",
+          attachments: [build(:portail_attachment, id: "b2222222-2222-2222-2222-222222222222",
+            filename: "complement.pdf", state: "received")])])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+
+      expect(Capybara.string(response.body)).to have_link(
+        "complement.pdf",
+        href: "/demarches/#{delivery_id}/pieces/b2222222-2222-2222-2222-222222222222"
+      )
     end
 
     it "keeps the pieces added later in their own section, with their provenance" do

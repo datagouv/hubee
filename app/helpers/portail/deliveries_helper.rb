@@ -64,6 +64,21 @@ module Portail
       number_to_human_size(attachment.byte_size)
     end
 
+    # Seule une pièce effectivement reçue est livrable. Les autres états restent VISIBLES à
+    # l'inventaire — une pièce rejetée est une information que l'agent n'a nulle part ailleurs —
+    # mais ils ne sont pas proposés.
+    def delivery_attachment_downloadable?(attachment) = attachment.state == "received"
+
+    # Ce que le RGAA demande d'annoncer sur un lien de téléchargement : le format et le poids.
+    # Le format se lit sur l'extension du nom d'origine et non sur le type de contenu — c'est
+    # elle que l'agent retrouvera sur son disque, et elle ne demande aucune table de
+    # correspondance à tenir à jour. Sans extension, le poids seul.
+    def delivery_attachment_detail(attachment)
+      format = File.extname(attachment.filename.to_s).delete(".").upcase
+
+      [format.presence, delivery_attachment_size(attachment)].compact.join(" – ")
+    end
+
     private
 
     # Format long : le jour et l'année situent une transmission relue des semaines après.

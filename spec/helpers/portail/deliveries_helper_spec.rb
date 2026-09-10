@@ -101,6 +101,44 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     end
   end
 
+  describe "#delivery_attachment_downloadable?" do
+    # La matrice complète des états : seul « reçue » est livrable, et cette table est le seul
+    # endroit qui le décide côté portail.
+    it "offers only a piece the upstream has actually received" do
+      states = {
+        "pending" => false, "received" => true, "corrupted" => false,
+        "rejected" => false, "deleted" => false
+      }
+
+      states.each do |state, downloadable|
+        expect(helper.delivery_attachment_downloadable?(build(:portail_attachment, state: state)))
+          .to eq(downloadable), "état #{state}"
+      end
+    end
+
+    # Un état ajouté en amont sans nous n'ouvre rien : la table est fermée, le repli est le refus.
+    it "offers nothing for a state the upstream added without us" do
+      expect(helper.delivery_attachment_downloadable?(build(:portail_attachment, state: "inconnu")))
+        .to be(false)
+    end
+  end
+
+  describe "#delivery_attachment_detail" do
+    it "announces the format and the weight the RGAA expects on a download link" do
+      expect(helper.delivery_attachment_detail(
+        build(:portail_attachment, filename: "certificat.pdf", byte_size: 2048)
+      )).to eq("PDF – 2 ko")
+    end
+
+    # Sans extension il n'y a pas de format à annoncer : le poids seul, plutôt qu'un tiret cadratin
+    # présenté comme un format.
+    it "announces the weight alone when the filename carries no extension" do
+      expect(helper.delivery_attachment_detail(
+        build(:portail_attachment, filename: "certificat", byte_size: 2048)
+      )).to eq("2 ko")
+    end
+  end
+
   describe "#delivery_attachment_size" do
     # Deux ordres de grandeur : c'est l'unité qui doit changer.
     it "renders the size in human units" do

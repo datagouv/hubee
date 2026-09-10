@@ -77,6 +77,21 @@ FactoryBot.define do
     state { "received" }
   end
 
+  factory :portail_attachment_content, class: "Portail::Delivery::AttachmentContent" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    transient do
+      membership { nil }
+    end
+
+    delivery { build(:portail_delivery, membership: membership) }
+    attachment { build(:portail_attachment) }
+    # De la taille annoncée par la pièce : l'amont promet une taille exacte à l'état « reçue »,
+    # et une spec qui confronte les deux doit pouvoir le faire sans se contredire.
+    body { "x" * attachment.byte_size }
+  end
+
   factory :portail_event, class: "Portail::Delivery::Event" do
     skip_create
     initialize_with { new(**attributes) }
