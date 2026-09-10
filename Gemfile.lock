@@ -1,9 +1,9 @@
 GIT
   remote: https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git
-  revision: c07fadd97f7ac41504b0b6ccb16392e806f14224
-  tag: 2.0.1
+  revision: 528a4d8677af37aca3317121ecaca9249890fe46
+  branch: feat/telechargement-contenu-piece
   specs:
-    hub-api-v1 (2.0.1)
+    hub-api-v1 (2.3.0)
       activesupport (>= 7.0, < 10)
 
 GEM

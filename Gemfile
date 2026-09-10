@@ -63,12 +63,18 @@ gem "sentry-rails"
 # là où la source GitLab privée est injoignable — ex. CI GitHub Actions (analyse statique +
 # sécurité). Conséquence : la gem n'est pas auto-requise par Bundler.require ; la requérir
 # explicitement à l'endroit qui la consomme.
-# HUB_API_V1_PATH=../hub-api-v1 substitue un checkout local au tag si nécessaire
+# HUB_API_V1_PATH=../hub-api-v1 substitue un checkout local à la référence git si nécessaire
+#
+# ⚠️ TEMPORAIRE — pointe une BRANCHE et non un tag, le temps que la release soit publiée.
+# Une branche est une cible mouvante : `bundle update hub-api-v1` rapatrie silencieusement tout ce
+# qui y a été poussé depuis. À repasser en `tag:` dès la release, et à ne pas livrer en l'état.
+# Le numéro n'est délibérément pas écrit ici : il a déjà glissé de 2.2.0 à 2.3.0 quand une autre
+# MR a pris le précédent. Lire `Gemfile.lock` pour savoir ce qui est réellement installé.
 group :hub_api_v1 do
   if (path = ENV["HUB_API_V1_PATH"])
     gem "hub-api-v1", path: path, require: "hub_api_v1"
   else
-    gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "2.0.1", require: "hub_api_v1"
+    gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", branch: "feat/telechargement-contenu-piece", require: "hub_api_v1"
   end
 end
 
