@@ -1,11 +1,39 @@
 # Seeds pour développement
 # Usage : bin/rails db:seed
 
-# Les semis créent des comptes habilités : rien de tout cela ne doit naître en production.
+# Les comptes de test passent avant le garde des données de démonstration : la recette tourne
+# en production et ne veut que ces comptes-là.
+require Rails.root.join("db/seeds/test_accounts")
+
+scopes = []
+scopes << :deployed if ENV["SEED_TEST_ACCOUNTS"] == "true"
+scopes << :local if Rails.env.local?
+
+if scopes.any?
+  puts "🌱 Enrôlement des comptes de test du portail (#{scopes.join(", ")})..."
+
+  memberships = Seeds::TestAccounts.apply!(scopes)
+  puts Seeds::TestAccounts.report(memberships)
+
+  # Un code sensible manquant laisse son compte de côté plutôt que de l'enrôler sur un
+  # périmètre faux : le dire, sans quoi le compte semblerait s'être perdu.
+  missing = Seeds::TestAccounts.missing_variables(scopes)
+  if missing.any?
+    skipped = Seeds::TestAccounts.accounts(scopes).size - memberships.size
+    puts "⚠️  #{missing.join(", ")} absente(s) : #{skipped} compte(s) sensible(s) non enrôlé(s)"
+  end
+
+  if Portail::Access::SensitiveProcesses::CODES.empty?
+    puts "⚠️  SENSITIVE_PROCESS_CODES vide : aucun compte ne déclenchera d'élévation par habilitation"
+  end
+
+  puts "✅ #{memberships.size} comptes de test enrôlés"
+end
+
 # `local?` et non `development?` : la CI valide ce fichier en test. REVIEW_APP rouvre la porte
 # pour les review apps, qui tournent en production sans autre source de données.
 unless Rails.env.local? || ENV["REVIEW_APP"] == "true"
-  puts "⏭️  Semis ignorés hors développement, test et review app (#{Rails.env})"
+  puts "⏭️  Semis de démonstration ignorés hors développement, test et review app (#{Rails.env})"
   return
 end
 
@@ -340,73 +368,6 @@ data_packages_data.each do |pkg_data|
 end
 
 puts "  ✅ Created #{DataPackage.count} data packages"
-
-# Agents du portail V2, alignés sur les comptes réels des FI de test ProConnect :
-# userN@yopmail.com (ProConnect Identité, org DINUM), identités libres de FIA1
-# (@test.proconnect.gouv.fr, SIRET saisissable), et le compte du FI ANCT.
-# Idempotent et non destructif : identités scellées (provider_sub) et traces
-# (AccessDecision) préservées ; seul le rôle est réaligné.
-puts "  👤 Creating portal agents..."
-
-# Comme au référentiel V1 : chaque organisation porte son propre code INSEE, sous la
-# forme majoritaire observée (numérique, 5 chiffres).
-dinum_link = OrganizationLink.find_or_create_by!(siret: "13002526500013", insee_code: "00001")
-lyon_link = OrganizationLink.find_or_create_by!(siret: "26690123100013", insee_code: "00002")
-sardine_link = OrganizationLink.find_or_create_by!(siret: "84087593400027", insee_code: "00003")
-
-# Aligné sur SENSITIVE_PROCESS_CODES pour que l'habilitation semée déclenche bien
-# l'élévation ; repli documenté si la liste est vide.
-sensitive_code = Portail::Access::SensitiveProcesses::CODES.first || "DEMO_SENSIBLE"
-
-portal_agents = [
-  # [email, prénom, nom, lien, rôle, habilitation sensible]
-  ["user@yopmail.com", "Camille", "Ordinaire", dinum_link, "member", false],
-  ["user1@yopmail.com", "Alex", "Admin", dinum_link, "local_administrator", false],
-  ["user2@yopmail.com", "Dominique", "Habilite", dinum_link, "member", true],
-  ["user3@yopmail.com", "Sacha", "Ailleurs", lyon_link, "member", false],
-  ["agent@test.proconnect.gouv.fr", "Camille", "Fia", dinum_link, "member", false],
-  ["admin@test.proconnect.gouv.fr", "Alex", "Fia", dinum_link, "local_administrator", false],
-  ["sensible@test.proconnect.gouv.fr", "Dominique", "Fia", dinum_link, "member", true],
-  ["bastien.ogier@sardinepq.fr", "Bastien", "Ogier", sardine_link, "local_administrator", false]
-]
-
-portal_agents.each do |email, first_name, last_name, link, role, sensitive|
-  agent = Agent.find_or_create_by!(email:) do |a|
-    a.first_name = first_name
-    a.last_name = last_name
-  end
-  # update! séparé : le bloc de find_or_create_by! ne tourne pas sur un existant.
-  membership = Membership.find_or_create_by!(agent:, organization_link: link)
-  membership.update!(role:)
-  ProcessAccess.find_or_create_by!(membership:, process_code: sensitive_code) if sensitive
-end
-
-# Un couple organisation × flux connu de l'amont interrogé, sans quoi l'écran reste vide.
-# Membre et non administrateur local, pour que le filtrage par habilitation soit traversé.
-socle_siret, socle_insee, socle_processes =
-  if ENV["REVIEW_APP"] == "true"
-    ["21260274200018", "26274", "EtatCivil"]
-  else
-    # Code INSEE déclaré par le seed du socle pour cette organisation : l'amont ne connaît pas
-    # le 77372 des factories de la gem, avec lequel la liste des démarches restait vide.
-    ["22770001000019", "77001", %w[CERTDC EtatCivil]]
-  end
-
-socle_link = OrganizationLink.find_or_create_by!(siret: socle_siret, insee_code: socle_insee)
-socle_agent = Agent.find_or_create_by!(email: "socle@test.proconnect.gouv.fr") do |a|
-  a.first_name = "Camille"
-  a.last_name = "Socle"
-end
-socle_membership = Membership.find_or_create_by!(agent: socle_agent, organization_link: socle_link)
-socle_membership.update!(role: "member")
-Array(socle_processes).each do |process_code|
-  ProcessAccess.find_or_create_by!(membership: socle_membership, process_code:)
-end
-
-puts "  ✅ Created #{Agent.count} agents"
-if Portail::Access::SensitiveProcesses::CODES.empty?
-  puts "  ⚠️  SENSITIVE_PROCESS_CODES vide : l'habilitation #{sensitive_code} ne déclenchera pas d'élévation"
-end
 
 puts ""
 puts "📊 Summary:"

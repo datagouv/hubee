@@ -47,6 +47,16 @@ Le portail consulte les démarches par l'API V1. En local, c'est le socle de dé
 2. Toujours depuis le socle, une fois celui-ci démarré et seedé (`rake start`), `rake portail-dossiers` crée des dossiers sur les deux démarches en accès portail du seed, `CERTDC` et `EtatCivil`, adressés au « Service instructeur de test 3 ». Chaque exécution en ajoute de nouveaux.
 3. Depuis le portail, `bin/rails db:seed` crée l'agent `socle@test.proconnect.gouv.fr`, membre de ce service instructeur et habilité sur ces deux démarches. Le socle ne connaît pas les agents : ce rattachement vit uniquement côté portail.
 
+#### Comptes de test
+
+Tous les comptes de test du portail vivent dans un seul catalogue, `db/seeds/test_accounts.rb`, posé par `bin/rails db:seed`. Chaque compte porte sa portée : `:local` pour le poste de développement et la CI, `:deployed` pour les review apps et la recette. En local, `db:seed` pose les comptes locaux ; un environnement déployé pose `SEED_TEST_ACCOUNTS=true` pour recevoir les autres, et cette variable ne doit jamais exister en production. La recette tourne en `production` : elle ne reçoit que ces comptes-là, sans aucune donnée de démonstration.
+
+Le semis est déclaratif et rejouable : il réaligne rôle et habilitations sur le catalogue, sans jamais supprimer un agent, un rattachement ni une trace d'accès.
+
+Les codes des flux sensibles ne sont pas dans ce dépôt public : le catalogue les désigne par un symbole, résolu depuis `SEED_SENSITIVE_PROCESS_CODE_1` et `SEED_SENSITIVE_PROCESS_CODE_2`. Sans elles, les comptes concernés ne sont pas enrôlés et le semis le dit. En local, la première vaut le code de `SENSITIVE_PROCESS_CODES`.
+
+Il imprime le périmètre effectif et la MFA attendue de chaque compte : un `voit rien` signale une habilitation manquante, un `sans MFA` inattendu un code absent de `SENSITIVE_PROCESS_CODES`.
+
 ### 4. Lancer les tests
 
 ```bash

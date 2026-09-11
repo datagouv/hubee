@@ -83,6 +83,9 @@ jobs:
             PROCONNECT_POST_LOGOUT_REDIRECT_URI="https://$REVIEW_SUFFIX.${REVIEW_DOMAIN}/" \
             SENSITIVE_PROCESS_CODES="${{ secrets.DOKKU_SENSITIVE_PROCESS_CODES }}" \
             REVIEW_APP="true" \
+            SEED_TEST_ACCOUNTS="true" \
+            SEED_SENSITIVE_PROCESS_CODE_1="${{ secrets.DOKKU_SEED_SENSITIVE_PROCESS_CODE_1 }}" \
+            SEED_SENSITIVE_PROCESS_CODE_2="${{ secrets.DOKKU_SEED_SENSITIVE_PROCESS_CODE_2 }}" \
             HUB_API_BASE_URL="${{ secrets.DOKKU_HUB_API_BASE_URL }}" \
             KEYCLOAK_BASE_URL="${{ secrets.DOKKU_KEYCLOAK_BASE_URL }}" \
             KEYCLOAK_REALM="${{ secrets.DOKKU_KEYCLOAK_REALM }}" \
