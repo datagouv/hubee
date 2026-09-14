@@ -13,6 +13,11 @@ module Portail
     # l'existence d'un dossier que l'agent n'a pas à voir.
     class NotFound < Error; end
 
+    # L'amont n'a pas servi le contenu d'une pièce, sans dire pourquoi : binaire absent ou panne de
+    # la route. Ni une absence, ni une panne — l'une ferait nier une pièce peut-être intacte,
+    # l'autre promettrait un réessai qui n'aboutira peut-être jamais.
+    class ContentUnavailable < Error; end
+
     # Paramètre refusé avant tout aller-retour réseau, typiquement un état ou une page trafiqués.
     # Montré à l'agent plutôt que corrigé en silence.
     class InvalidRequest < Error; end
@@ -22,7 +27,9 @@ module Portail
       # au journal. Les deux familles de refus : le client V1 et sa surcouche V2 ont chacun le leur.
       def translated(error)
         case error
-        when HubApiV1::V2::DeliveryNotFoundError then NotFound.new(error.message)
+        when HubApiV1::V2::DeliveryNotFoundError, HubApiV1::V2::AttachmentNotFoundError
+          NotFound.new(error.message)
+        when HubApiV1::V2::AttachmentUnavailableError then ContentUnavailable.new(error.message)
         when HubApiV1::InvalidArgumentError, HubApiV1::V2::InvalidArgumentError
           InvalidRequest.new(error.message)
         else
