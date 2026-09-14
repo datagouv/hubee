@@ -183,6 +183,21 @@ RSpec.describe Portail::HubAPI::Deliveries do
       )
     end
 
+    # Le nom est la clé d'appariement de la lecture V1, par égalité stricte : même « nettoyé », il
+    # ne s'apparierait plus à rien. L'assainir appartient au seul point qui l'écrit dans un en-tête.
+    it "carries a hostile filename exactly as the depositor wrote it" do
+      client = HubApiV1::Testing::FakeClient.new
+      hostile = "../..\\dossier/acte \r\n.pdf"
+      client.add_case(build_v2_delivery(
+        data_package: build_v2_data_package(attachments: [build_v2_attachment(filename: hostile)])
+      ))
+
+      result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
+
+      expect(result.attachments.first.filename).to eq(hostile)
+    end
+
     # Liste vide et non nil : l'écran compte les pièces sans se demander si le conteneur existe.
     it "yields no attachment when the upstream serves no data package" do
       client = HubApiV1::Testing::FakeClient.new
