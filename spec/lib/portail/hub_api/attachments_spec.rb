@@ -6,18 +6,19 @@ require "rails_helper"
 # bout en bout contre le FakeClient ; le contenu non servi et la panne, qu'il ne sait pas produire
 # faute de stockage, par bouchon de classe.
 RSpec.describe Portail::HubAPI::Attachments do
-  let(:delivery_id) { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
-  let(:attachment_id) { "a1111111-1111-1111-1111-111111111111" }
-
   describe ".download" do
     # Des octets qui ne sont pas de l'UTF-8 valide : un ré-encodage en route se verrait.
     it "returns the bytes of the attachment untouched" do
       client = HubApiV1::Testing::FakeClient.new
-      client.add_case(build_v2_delivery)
+      client.add_case(build_v2_delivery(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        data_package: build_v2_data_package(
+          attachments: [build_v2_attachment(id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a")]
+        )))
       body = "%PDF-1.7\n\xFF\xFE\x00binaire".b
-      client.add_attachment_content(attachment_id: attachment_id, body: body)
+      client.add_attachment_content(attachment_id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a", body: body)
 
-      content = described_class.download(delivery_id: delivery_id, id: attachment_id, client: client)
+      content = described_class.download(delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a", client: client)
 
       expect(content).to eq(body)
       expect(content.encoding).to eq(Encoding::BINARY)
@@ -26,31 +27,38 @@ RSpec.describe Portail::HubAPI::Attachments do
     # Hash complet : un paramètre inattendu doit se voir.
     it "sends the portal vocabulary as the upstream keywords" do
       client = HubApiV1::Testing::FakeClient.new
-      expect(HubApiV1::V2::Attachment).to receive(:download)
-        .with(delivery_id: delivery_id, id: attachment_id, client: client)
-        .and_return("octets".b)
+      expect(HubApiV1::V2::Attachment).to receive(:download).with(
+        delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a",
+        client: client
+      ).and_return("octets".b)
 
-      described_class.download(delivery_id: delivery_id, id: attachment_id, client: client)
+      described_class.download(delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a", client: client)
     end
 
     it "hands the gem its shared client when none is injected" do
       shared = use_hub_api_fake_client
-      expect(HubApiV1::V2::Attachment).to receive(:download)
-        .with(delivery_id: delivery_id, id: attachment_id, client: shared)
-        .and_return("octets".b)
+      expect(HubApiV1::V2::Attachment).to receive(:download).with(
+        delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a",
+        client: shared
+      ).and_return("octets".b)
 
-      described_class.download(delivery_id: delivery_id, id: attachment_id)
+      described_class.download(delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a")
     end
 
     # Rien n'est bouchonné : c'est le vrai « non trouvé » de l'amont qui doit se produire.
     it "lets an attachment the delivery does not carry reach the upstream refusal, unreported" do
       client = HubApiV1::Testing::FakeClient.new
-      client.add_case(build_v2_delivery)
+      client.add_case(build_v2_delivery(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        data_package: build_v2_data_package(
+          attachments: [build_v2_attachment(id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a")]
+        )))
       expect(Rails.error).not_to receive(:report)
 
       expect {
-        described_class.download(delivery_id: delivery_id, id: "a2222222-2222-2222-2222-222222222222",
-          client: client)
+        described_class.download(delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+          id: "c9d8e7f6-1a2b-4c3d-8e4f-5a6b7c8d9e0f", client: client)
       }.to raise_error(Portail::HubAPI::NotFound)
     end
 
@@ -58,7 +66,7 @@ RSpec.describe Portail::HubAPI::Attachments do
       client = HubApiV1::Testing::FakeClient.new
 
       expect {
-        described_class.download(delivery_id: delivery_id, id: "..", client: client)
+        described_class.download(delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", id: "..", client: client)
       }.to raise_error(Portail::HubAPI::InvalidRequest)
       expect(client.requests).to be_empty
     end
@@ -66,12 +74,13 @@ RSpec.describe Portail::HubAPI::Attachments do
     # Le seul signal d'une panne de la route de contenu, que l'amont confond avec une pièce
     # purgée : une ligne au message stable, comptable en agrégat, sans rapport d'erreur.
     it "logs an unserved content with what locates it, unreported" do
-      stub_hub_api_v2_attachment_unavailable(attachment_id)
-      expect(Rails.logger).to receive(:warn)
-        .with("Contenu de pièce non servi par l'amont", delivery_id: delivery_id, attachment_id: attachment_id)
+      stub_hub_api_v2_attachment_unavailable("b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a")
+      expect(Rails.logger).to receive(:warn).with("Contenu de pièce non servi par l'amont",
+        delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", attachment_id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a")
 
       expect {
-        described_class.download(delivery_id: delivery_id, id: attachment_id)
+        described_class.download(delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+          id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a")
       }.to raise_error(Portail::HubAPI::ContentUnavailable)
     end
   end
@@ -114,7 +123,8 @@ RSpec.describe Portail::HubAPI::Attachments do
         end
 
         expect {
-          described_class.download(delivery_id: delivery_id, id: attachment_id)
+          described_class.download(delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+            id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a")
         }.to raise_error(error[:translated])
       end
     end
