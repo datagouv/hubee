@@ -22,9 +22,11 @@ module Portail
     rescue_from ActionController::InvalidAuthenticityToken, with: :reload_stale_page
 
     # Fermé par défaut : une action qui n'a ni autorisé ni borné explose. Un contrôleur ouvert
-    # aux visiteurs s'en exempte par la déclaration qui l'ouvre, ci-dessous.
-    after_action :verify_authorized, except: :index
-    after_action :verify_policy_scoped, only: :index
+    # aux visiteurs s'en exempte par la déclaration qui l'ouvre, ci-dessous. Sur le nom de
+    # l'action plutôt que par `only:` : Rails refuse un callback qui cible une action absente, et
+    # un contrôleur sans `index` n'aurait pas à s'en défaire lui-même.
+    after_action :verify_authorized, unless: :index_action?
+    after_action :verify_policy_scoped, if: :index_action?
 
     # Fermé par défaut : un contrôleur ajouté demain l'est aussi, sauf déclaration ici. Elle
     # vaut pour le contrôleur entier, et lève tout ce qui suppose un agent : le second facteur
@@ -57,6 +59,8 @@ module Portail
     # Le sujet des policies est le rattachement, pas l'agent : le rôle et les habilitations
     # vivent sur lui, et un même agent peut être membre ici et administrateur local ailleurs.
     def pundit_user = current_membership
+
+    def index_action? = action_name == "index"
 
     def do_not_cache
       response.headers["Cache-Control"] = "no-store"

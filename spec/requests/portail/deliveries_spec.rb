@@ -745,19 +745,32 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_css("p.fr-badge", text: "Rejetée")
     end
 
-    # L'amont ne sert aucun binaire : la page le dit, et aucune ligne ne prétend être un lien.
-    it "promises no download it cannot honour" do
+    # Seule une pièce reçue du dépôt se télécharge : les autres états restent listés sans lien,
+    # et les pièces d'un événement n'ont pas d'adresse. Hors de Turbo : c'est un fichier, pas
+    # une page, et le navigateur doit le recevoir lui-même.
+    it "offers a download on received deposit pieces only" do
       sign_in_member
-      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery,
+          attachments: [
+            build(:portail_attachment, id: "a1111111-1111-1111-1111-111111111111", filename: "recue.pdf"),
+            build(:portail_attachment, id: "a2222222-2222-2222-2222-222222222222", filename: "attendue.pdf", state: "pending")
+          ],
+          events: [build(:portail_event, event_type: "attachment.created", metadata: {},
+            attachments: [build(:portail_attachment, id: "b2", filename: "complement.pdf")])])
+      )
 
       get "/demarches/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
-      expect(Capybara.string(response.body))
-        .to have_text("Les pièces se consultent depuis votre système d'information")
-      rows = Nokogiri::HTML(response.body).css("table tbody a")
-      expect(rows).to be_empty
+      page = Capybara.string(response.body)
+      expect(page).to have_link("Télécharger",
+        href: "/demarches/#{delivery_id}/pieces/a1111111-1111-1111-1111-111111111111", count: 1)
+      expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][data-turbo='false']")
+      expect(page).to have_text("attendue.pdf")
+      expect(page).to have_text("complement.pdf")
+      expect(page).to have_no_link(href: %r{/pieces/(a2222222|b2)})
     end
 
     it "keeps the pieces added later in their own section, with their provenance" do

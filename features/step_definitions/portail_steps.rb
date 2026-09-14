@@ -122,7 +122,7 @@ end
 end
 
 Étantdonné("l'API amont sert une démarche pour son organisation") do
-  HubApiV1.client.add_case(build_v2_delivery(state: :transmitted, recipient: e2e_recipient))
+  HubApiV1.client.add_case(e2e_delivery("DGS-CERTDC-0000000000001-01"))
 end
 
 Étantdonné("l'API amont sert aussi une démarche sur un flux non habilité") do
@@ -210,6 +210,24 @@ Quand("il ouvre directement cette démarche") do
   visit "/demarches/#{@unauthorised_id}"
 end
 
+# Les démarches servies par l'amont portent la pièce par défaut de la gem, dont le client
+# bouchonné sert des octets déterministes de la taille annoncée.
+def e2e_attachment(filename)
+  build_v2_data_package.attachments.find { |attachment| attachment.filename == filename }
+end
+
+Quand("il télécharge la pièce {string}") do |filename|
+  within("tr", text: filename) { click_link "Télécharger" }
+end
+
+Quand("il récupère directement la pièce {string} de la démarche {string}") do |filename, number|
+  visit "/demarches/#{e2e_delivery(number).id}/pieces/#{e2e_attachment(filename).id}"
+end
+
+Quand("il récupère directement la pièce {string} de cette démarche") do |filename|
+  visit "/demarches/#{@unauthorised_id}/pieces/#{e2e_attachment(filename).id}"
+end
+
 Alors("il voit la démarche {string} dans la liste") do |number|
   expect(page).to have_css("table caption", text: "Transmise")
   expect(page).to have_link(number)
@@ -260,6 +278,16 @@ end
 Alors("la liste est celle de l'état {string}") do |label|
   expect(page).to have_css("table caption", text: label)
   expect(page).to have_css("nav.fr-sidemenu a[aria-current='page']", text: label)
+end
+
+# Le fichier tel que l'amont le sert, sous son nom, en pièce jointe et jamais dans la page.
+Alors("il obtient le fichier {string} en pièce jointe") do |filename|
+  attachment = e2e_attachment(filename)
+  expect(page.response_headers["content-disposition"]).to eq(
+    "attachment; filename=\"#{filename}\"; filename*=UTF-8''#{filename}"
+  )
+  expect(page.response_headers["content-type"]).to start_with("application/octet-stream")
+  expect(page.body.b).to eq(HubApiV1::Testing::Factories.attachment_body_for(attachment))
 end
 
 Alors("il obtient une page introuvable, sans que le dossier lui soit montré") do
