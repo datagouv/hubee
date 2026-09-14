@@ -1,7 +1,7 @@
 GIT
   remote: https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git
-  revision: d0c6e3321c10119b3a22dc96b44ae572f01ef9c3
-  branch: feat/contenu-piece-jointe
+  revision: ffeb0710942e6b0b6d06d2adee532a404a22b5e8
+  tag: 2.3.0
   specs:
     hub-api-v1 (2.3.0)
       activesupport (>= 7.0, < 10)
