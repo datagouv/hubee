@@ -10,14 +10,12 @@ module Portail
         def call
           context.body = HubAPI::Attachments.download(delivery_id: delivery_id, id: attachment_id)
         rescue HubAPI::NotFound
-          # L'inventaire disait reçue, l'amont ne la sert plus : l'inventaire a vieilli entre la
-          # page et le clic. Même vocabulaire que l'étape précédente, sous son propre motif.
+          # L'inventaire disait reçue, l'amont ne la sert plus : l'inventaire a vieilli.
           Rails.logger.info("Pièce non livrable", delivery_id:, id: attachment_id, reason: :gone_upstream)
           context.fail!(error: :not_found)
         rescue HubAPI::Error => e
-          # Le contenu non servi est déjà journalisé par la frontière, la panne déjà signalée :
-          # il ne reste qu'à journaliser et à échouer, sous un même mode dégradé.
-          Rails.logger.error("Pièce indisponible — #{e.class} : #{e.message}")
+          # Panne et contenu non servi sont déjà signalés par la frontière : un même mode dégradé.
+          Rails.logger.error("Pièce indisponible", delivery_id:, id: attachment_id, error: e.class.name)
           context.fail!(error: :unavailable)
         end
 

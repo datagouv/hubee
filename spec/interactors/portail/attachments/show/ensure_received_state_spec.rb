@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Attachments::Show::EnsureReceived do
+RSpec.describe Portail::Attachments::Show::EnsureReceivedState do
   let(:delivery) { build(:portail_delivery) }
 
   it "lets a received piece through" do

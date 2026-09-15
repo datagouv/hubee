@@ -18,6 +18,26 @@ RSpec.describe Portail::Attachments::Show::FetchContent do
     expect(result.body).to eq("octets".b)
   end
 
+  # L'inventaire disait reçue, l'amont ne la sert plus : l'inventaire a vieilli.
+  it "fails as not found, logged under its own reason, when the upstream no longer serves the piece" do
+    expect(Portail::HubAPI::Attachments).to receive(:download).and_raise(Portail::HubAPI::NotFound)
+
+    result = nil
+    events = capture_semantic_logger_events do
+      result = described_class.call(delivery: delivery, attachment: attachment)
+    end
+
+    expect(result).to be_failure
+    expect(result.error).to eq(:not_found)
+    expect(events).to include(be_a_semantic_logger_event(
+      level: :info, message: "Pièce non livrable",
+      payload_includes: {
+        delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", id: "a1111111-1111-1111-1111-111111111111",
+        reason: :gone_upstream
+      }
+    ))
+  end
+
   # Le contenu non servi est déjà journalisé par la frontière, la panne déjà signalée : ici,
   # seulement le journal et l'échec, sous un même mode dégradé.
   %w[ContentUnavailable Unavailable].each do |error|
@@ -32,7 +52,13 @@ RSpec.describe Portail::Attachments::Show::FetchContent do
 
       expect(result).to be_failure
       expect(result.error).to eq(:unavailable)
-      expect(events).to include(be_a_semantic_logger_event(level: :error, message_includes: "Pièce indisponible"))
+      expect(events).to include(be_a_semantic_logger_event(
+        level: :error, message: "Pièce indisponible",
+        payload_includes: {
+          delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", id: "a1111111-1111-1111-1111-111111111111",
+          error: "Portail::HubAPI::#{error}"
+        }
+      ))
     end
   end
 end

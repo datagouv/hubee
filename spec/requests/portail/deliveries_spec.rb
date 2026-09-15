@@ -746,8 +746,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
     end
 
     # Seule une pièce reçue du dépôt se télécharge : les autres états restent listés sans lien,
-    # et les pièces d'un événement n'ont pas d'adresse. Hors de Turbo : c'est un fichier, pas
-    # une page, et le navigateur doit le recevoir lui-même.
+    # et les pièces d'un événement n'ont pas d'adresse. `download` : le navigateur reçoit le
+    # fichier lui-même, sans navigation.
     it "offers a download on received deposit pieces only" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
@@ -767,7 +767,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       page = Capybara.string(response.body)
       expect(page).to have_link("Télécharger",
         href: "/demarches/#{delivery_id}/pieces/a1111111-1111-1111-1111-111111111111", count: 1)
-      expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][data-turbo='false']")
+      expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][download]")
       # RGAA : des liens de même intitulé vers des cibles différentes se distinguent par leur nom accessible.
       expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][aria-label='Télécharger recue.pdf']")
       expect(page).to have_text("attendue.pdf")

@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe Portail::Delivery::Attachment do
-  describe "#received?" do
+  describe "#state_received?" do
     attachment_states = {
       "received" => {received: true},
       "pending" => {received: false},
@@ -15,7 +15,7 @@ RSpec.describe Portail::Delivery::Attachment do
 
     attachment_states.each do |state, expectation|
       it "is #{expectation[:received]} for a #{state} piece" do
-        expect(build(:portail_attachment, state: state).received?).to be(expectation[:received])
+        expect(build(:portail_attachment, state: state).state_received?).to be(expectation[:received])
       end
     end
   end

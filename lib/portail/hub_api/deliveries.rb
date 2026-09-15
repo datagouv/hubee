@@ -78,10 +78,7 @@ module Portail
           )
         end
 
-        # Le résumé de la démarche est donné à chacune de ses pièces : c'est lui que la policy juge.
         def delivery_from(delivery)
-          summary = summary_from(delivery)
-
           Portail::Delivery.new(
             id: delivery.id,
             number: delivery.number,
@@ -93,29 +90,28 @@ module Portail
             applicant: applicant_from(delivery.data_package&.applicant),
             # Les pièces du dépôt seulement : celles d'un event restent sur lui, l'écran montre
             # leur provenance.
-            attachments: attachments_from(delivery.data_package&.attachments, summary),
-            events: delivery.events.map { |event| event_from(event, summary) }
+            attachments: attachments_from(delivery.data_package&.attachments),
+            events: delivery.events.map { |event| event_from(event) }
           )
         end
 
         # `Array()` : le paquet de données peut manquer entièrement.
-        def attachments_from(attachments, summary)
-          Array(attachments).map { |attachment| attachment_from(attachment, summary) }
+        def attachments_from(attachments)
+          Array(attachments).map { |attachment| attachment_from(attachment) }
         end
 
-        def attachment_from(attachment, summary)
+        def attachment_from(attachment)
           Portail::Delivery::Attachment.new(
             id: attachment.id,
             filename: attachment.filename,
             content_type: attachment.content_type,
             byte_size: attachment.byte_size,
             kind: attachment.kind,
-            state: attachment.state.to_s,
-            delivery: summary
+            state: attachment.state.to_s
           )
         end
 
-        def event_from(event, summary)
+        def event_from(event)
           Portail::Delivery::Event.new(
             id: event.id,
             event_type: event.event_type.to_s,
@@ -124,7 +120,7 @@ module Portail
             content: event.content,
             si_comment: event.si_comment,
             metadata: metadata_from(event.metadata),
-            attachments: attachments_from(event.attachments, summary)
+            attachments: attachments_from(event.attachments)
           )
         end
 

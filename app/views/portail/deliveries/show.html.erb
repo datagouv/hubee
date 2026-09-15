@@ -65,7 +65,7 @@
   <h2 class="fr-h4"><%= t(".deposit_attachments") %></h2>
   <% if @delivery.attachments.any? %>
     <%= render "attachments", attachments: @delivery.attachments, caption: t(".deposit_attachments"),
-          delivery: @delivery %>
+          downloadable_from: @delivery %>
   <% else %>
     <p class="fr-mb-0"><%= t(".deposit_attachments_empty") %></p>
   <% end %>

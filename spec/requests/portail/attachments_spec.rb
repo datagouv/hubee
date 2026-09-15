@@ -68,9 +68,40 @@ RSpec.describe "Portail::Attachments", type: :request do
       )
     end
 
+    # Un octet nul ferait lever la réduction au dernier segment : il part avant.
+    it "survives a null byte in the filename" do
+      sign_in_member
+      attachment = build(:portail_attachment, filename: "rap\u0000port.pdf")
+      expect(Portail::HubAPI::Deliveries).to receive(:find)
+        .and_return(build(:portail_delivery, attachments: [attachment]))
+      expect(Portail::HubAPI::Attachments).to receive(:download).and_return("octets".b)
+
+      get path
+
+      expect(response).to have_http_status(:success)
+      expect(response.headers["Content-Disposition"]).to eq(
+        "attachment; filename=\"rapport.pdf\"; filename*=UTF-8''rapport.pdf"
+      )
+    end
+
+    # Une inversion de sens d'écriture ferait lire « rapportexe.pdf » pour un fichier « .exe ».
+    it "strips the Unicode formatting characters that could disguise the extension" do
+      sign_in_member
+      attachment = build(:portail_attachment, filename: "rapport\u202Efdp.exe")
+      expect(Portail::HubAPI::Deliveries).to receive(:find)
+        .and_return(build(:portail_delivery, attachments: [attachment]))
+      expect(Portail::HubAPI::Attachments).to receive(:download).and_return("octets".b)
+
+      get path
+
+      expect(response).to have_http_status(:success)
+      expect(response.headers["Content-Disposition"]).to eq(
+        "attachment; filename=\"rapportfdp.exe\"; filename*=UTF-8''rapportfdp.exe"
+      )
+    end
+
     # Le nom d'origine part intact dans la forme UTF-8 de l'en-tête, la seule que lisent les
     # navigateurs actuels ; la forme ASCII est translittérée, un signe inconnu devenant « ? ».
-    # C'est Rails qui encode, ceci le verrouille.
     it "keeps an accented filename intact in the UTF-8 form of the header" do
       sign_in_member
       attachment = build(:portail_attachment, filename: "décision n°1.pdf")
@@ -86,25 +117,9 @@ RSpec.describe "Portail::Attachments", type: :request do
       )
     end
 
-    # Sans nom exploitable, le type déclaré donne au moins une extension au fichier enregistré.
-    it "falls back to a neutral filename, typed by the declared content type, when nothing of the original survives" do
+    it "falls back to a neutral filename when nothing of the original survives" do
       sign_in_member
-      attachment = build(:portail_attachment, filename: "..", content_type: "application/pdf")
-      expect(Portail::HubAPI::Deliveries).to receive(:find)
-        .and_return(build(:portail_delivery, attachments: [attachment]))
-      expect(Portail::HubAPI::Attachments).to receive(:download).and_return("octets".b)
-
-      get path
-
-      expect(response).to have_http_status(:success)
-      expect(response.headers["Content-Disposition"]).to eq(
-        "attachment; filename=\"piece.pdf\"; filename*=UTF-8''piece.pdf"
-      )
-    end
-
-    it "falls back to a bare neutral filename when the declared content type is unknown" do
-      sign_in_member
-      attachment = build(:portail_attachment, filename: "", content_type: "application/x-partenaire")
+      attachment = build(:portail_attachment, filename: "..")
       expect(Portail::HubAPI::Deliveries).to receive(:find)
         .and_return(build(:portail_delivery, attachments: [attachment]))
       expect(Portail::HubAPI::Attachments).to receive(:download).and_return("octets".b)
@@ -118,16 +133,22 @@ RSpec.describe "Portail::Attachments", type: :request do
     end
 
     # Ce que la démarche ne porte pas ne part jamais vers l'amont : la pièce se cherche dans
-    # l'inventaire déjà servi, avant toute autorisation.
-    it "renders a not found page for a piece the delivery does not carry, without calling the upstream" do
+    # l'inventaire déjà servi, avant toute autorisation. L'identifiant en champ, avec son motif.
+    it "renders a not found page for a piece the delivery does not carry, logged, without calling the upstream" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
       expect(Portail::HubAPI::Attachments).not_to receive(:download)
 
-      get "/demarches/#{delivery_id}/pieces/c3333333-3333-3333-3333-333333333333"
+      events = capture_semantic_logger_events do
+        get "/demarches/#{delivery_id}/pieces/c3333333-3333-3333-3333-333333333333"
+      end
 
       expect(response).to have_http_status(:not_found)
       expect(Capybara.string(response.body)).to have_text("Page introuvable")
+      expect(events).to include(be_a_semantic_logger_event(
+        level: :info, message: "Pièce non livrable",
+        payload_includes: {delivery_id: delivery_id, id: "c3333333-3333-3333-3333-333333333333", reason: :unknown}
+      ))
     end
 
     it "renders a not found page for a piece that is not received, without calling the upstream" do
@@ -233,8 +254,8 @@ RSpec.describe "Portail::Attachments", type: :request do
       expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
     end
 
-    # La matrice rôle × habilitation, jugée sur la pièce par sa policy et non déduite du détail :
-    # c'est ici que les octets partiraient. Le refus tombe avant tout appel de contenu.
+    # La matrice rôle × habilitation, sur la pièce et non déduite du détail : c'est ici que les
+    # octets partiraient. Le refus tombe avant tout appel de contenu.
     context "reading perimeter" do
       def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
 
@@ -298,6 +319,14 @@ RSpec.describe "Portail::Attachments", type: :request do
       # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.
       it "refuses a piece of a delivery the upstream served for another organisation" do
         sign_in_member(process_codes: ["CERTDC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, :of_another_organisation))
+
+        expect_a_not_found_page
+      end
+
+      it "refuses a local administrator on a piece of a delivery served for another organisation" do
+        sign_in_local_administrator
         expect(Portail::HubAPI::Deliveries).to receive(:find)
           .and_return(build(:portail_delivery, :of_another_organisation))
 
