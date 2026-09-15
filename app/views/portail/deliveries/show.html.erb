@@ -64,7 +64,8 @@
 <section class="fr-p-3w fr-mb-4w fr-border-default--grey">
   <h2 class="fr-h4"><%= t(".deposit_attachments") %></h2>
   <% if @delivery.attachments.any? %>
-    <%= render "attachments", attachments: @delivery.attachments, caption: t(".deposit_attachments") %>
+    <%= render "attachments", attachments: @delivery.attachments, caption: t(".deposit_attachments"),
+          downloadable_from: @delivery %>
   <% else %>
     <p class="fr-mb-0"><%= t(".deposit_attachments_empty") %></p>
   <% end %>

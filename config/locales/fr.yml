@@ -87,6 +87,10 @@ fr:
         kind: Type de pièce
         byte_size: Taille
         state: État
+        download: Téléchargement
+      attachments:
+        download: Télécharger
+        download_named: "Télécharger %{filename}"
       attachment_states:
         pending: En attente
         received: Reçue

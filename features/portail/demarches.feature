@@ -91,3 +91,21 @@ Fonctionnalité: Les démarches de l'organisation
     Alors le filtre propose les flux "AEC, CERTDC"
     Quand il filtre sur le flux "AEC"
     Alors il ne voit que la démarche "DGS-AEC-0000000000002-01"
+
+  Scénario: L'agent télécharge une pièce reçue depuis le détail
+    Étant donné il s'est connecté
+    Quand il ouvre la démarche "DGS-CERTDC-0000000000001-01"
+    Et il télécharge la pièce "certificat.pdf"
+    Alors il obtient le fichier "certificat.pdf" en pièce jointe
+
+  # L'adresse seule, sans passer par le détail, à travers toute la chaîne.
+  Scénario: L'agent récupère une pièce reçue par son adresse
+    Étant donné il s'est connecté
+    Quand il récupère directement la pièce "certificat.pdf" de la démarche "DGS-CERTDC-0000000000001-01"
+    Alors il obtient le fichier "certificat.pdf" en pièce jointe
+
+  Scénario: Une pièce hors habilitation reste fermée
+    Étant donné l'API amont sert aussi une démarche sur un flux non habilité
+    Et il s'est connecté
+    Quand il récupère directement la pièce "certificat.pdf" de cette démarche
+    Alors il obtient une page introuvable, sans que le dossier lui soit montré
