@@ -768,6 +768,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_link("Télécharger",
         href: "/demarches/#{delivery_id}/pieces/a1111111-1111-1111-1111-111111111111", count: 1)
       expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][data-turbo='false']")
+      # RGAA : des liens de même intitulé vers des cibles différentes se distinguent par leur nom accessible.
+      expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][aria-label='Télécharger recue.pdf']")
       expect(page).to have_text("attendue.pdf")
       expect(page).to have_text("complement.pdf")
       expect(page).to have_no_link(href: %r{/pieces/(a2222222|b2)})

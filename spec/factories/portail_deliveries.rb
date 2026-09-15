@@ -65,6 +65,8 @@ FactoryBot.define do
     end
   end
 
+  # Seule, la pièce porte le résumé de la démarche par défaut ; dans une démarche construite par
+  # la factory, elle reçoit celui de cette démarche, comme à la traduction.
   factory :portail_attachment, class: "Portail::Delivery::Attachment" do
     skip_create
     initialize_with { new(**attributes) }
@@ -75,6 +77,7 @@ FactoryBot.define do
     byte_size { 1024 }
     kind { "VA_CertificatdeDeces" }
     state { "received" }
+    delivery { build(:portail_delivery_summary) }
   end
 
   factory :portail_event, class: "Portail::Delivery::Event" do
@@ -93,7 +96,15 @@ FactoryBot.define do
 
   factory :portail_delivery, class: "Portail::Delivery" do
     skip_create
-    initialize_with { new(**attributes) }
+    # Chaque pièce, du dépôt ou d'un événement, reçoit le résumé de cette démarche.
+    initialize_with do
+      summary = Portail::Delivery::Summary.new(
+        **attributes.slice(:id, :number, :state, :data_stream, :recipient, :transmitted_at, :updated_at)
+      )
+      new(**attributes,
+        attachments: attachments.map { |attachment| attachment.with(delivery: summary) },
+        events: events.map { |event| event.with(attachments: event.attachments.map { |a| a.with(delivery: summary) }) })
+    end
 
     transient do
       data_stream_code { "CERTDC" }

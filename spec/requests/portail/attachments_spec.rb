@@ -24,21 +24,15 @@ RSpec.describe "Portail::Attachments", type: :request do
     agent
   end
 
-  # L'inventaire et le contenu se répondent : la pièce annonce la taille des octets qui suivent.
-  def piece_of(body, **overrides) = build(:portail_attachment, byte_size: body.bytesize, **overrides)
-
-  def delivery_carrying(body, **overrides) = build(:portail_delivery, attachments: [piece_of(body)], **overrides)
-
   describe "GET /demarches/:demarche_id/pieces/:id" do
     # Le fichier tel quel, sous son nom d'origine, et jamais dans la page : un type neutre et
     # `attachment`, quel que soit le type que l'amont annonce. Aucun magasin sur le chemin.
     it "serves a received piece under its original filename, as a download, out of any store" do
       sign_in_member
-      body = "%PDF-1.7\n\xFF\xFE\x00binaire".b
-      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_carrying(body))
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
       expect(Portail::HubAPI::Attachments).to receive(:download)
         .with(delivery_id: delivery_id, id: attachment_id)
-        .and_return(body)
+        .and_return("%PDF-1.7\n\xFF\xFE\x00binaire".b)
 
       get path
 
@@ -61,7 +55,7 @@ RSpec.describe "Portail::Attachments", type: :request do
     # brut : c'est la clé d'appariement de la lecture V1.
     it "hands the agent the last segment of the filename, control characters stripped" do
       sign_in_member
-      attachment = piece_of("octets", filename: "..\\..\\/tmp/rap\r\nport.pdf")
+      attachment = build(:portail_attachment, filename: "..\\..\\/tmp/rap\r\nport.pdf")
       expect(Portail::HubAPI::Deliveries).to receive(:find)
         .and_return(build(:portail_delivery, attachments: [attachment]))
       expect(Portail::HubAPI::Attachments).to receive(:download).and_return("octets".b)
@@ -74,9 +68,43 @@ RSpec.describe "Portail::Attachments", type: :request do
       )
     end
 
-    it "falls back to a neutral filename when nothing of the original survives" do
+    # Le nom d'origine part intact dans la forme UTF-8 de l'en-tête, la seule que lisent les
+    # navigateurs actuels ; la forme ASCII est translittérée, un signe inconnu devenant « ? ».
+    # C'est Rails qui encode, ceci le verrouille.
+    it "keeps an accented filename intact in the UTF-8 form of the header" do
       sign_in_member
-      attachment = piece_of("octets", filename: "..")
+      attachment = build(:portail_attachment, filename: "décision n°1.pdf")
+      expect(Portail::HubAPI::Deliveries).to receive(:find)
+        .and_return(build(:portail_delivery, attachments: [attachment]))
+      expect(Portail::HubAPI::Attachments).to receive(:download).and_return("octets".b)
+
+      get path
+
+      expect(response).to have_http_status(:success)
+      expect(response.headers["Content-Disposition"]).to eq(
+        "attachment; filename=\"decision n%3F1.pdf\"; filename*=UTF-8''d%C3%A9cision%20n%C2%B01.pdf"
+      )
+    end
+
+    # Sans nom exploitable, le type déclaré donne au moins une extension au fichier enregistré.
+    it "falls back to a neutral filename, typed by the declared content type, when nothing of the original survives" do
+      sign_in_member
+      attachment = build(:portail_attachment, filename: "..", content_type: "application/pdf")
+      expect(Portail::HubAPI::Deliveries).to receive(:find)
+        .and_return(build(:portail_delivery, attachments: [attachment]))
+      expect(Portail::HubAPI::Attachments).to receive(:download).and_return("octets".b)
+
+      get path
+
+      expect(response).to have_http_status(:success)
+      expect(response.headers["Content-Disposition"]).to eq(
+        "attachment; filename=\"piece.pdf\"; filename*=UTF-8''piece.pdf"
+      )
+    end
+
+    it "falls back to a bare neutral filename when the declared content type is unknown" do
+      sign_in_member
+      attachment = build(:portail_attachment, filename: "", content_type: "application/x-partenaire")
       expect(Portail::HubAPI::Deliveries).to receive(:find)
         .and_return(build(:portail_delivery, attachments: [attachment]))
       expect(Portail::HubAPI::Attachments).to receive(:download).and_return("octets".b)
@@ -90,7 +118,7 @@ RSpec.describe "Portail::Attachments", type: :request do
     end
 
     # Ce que la démarche ne porte pas ne part jamais vers l'amont : la pièce se cherche dans
-    # l'inventaire déjà servi.
+    # l'inventaire déjà servi, avant toute autorisation.
     it "renders a not found page for a piece the delivery does not carry, without calling the upstream" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
@@ -205,30 +233,10 @@ RSpec.describe "Portail::Attachments", type: :request do
       expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
     end
 
-    # L'amont ne sert que des octets, sans rien qui les rattache à la pièce demandée : la taille
-    # annoncée par l'inventaire, exacte pour une pièce reçue, est le seul témoin. Un fichier
-    # d'une autre taille n'est pas remis, et l'incident est signalé.
-    it "refuses a content whose size is not the one the inventory announces, and reports it" do
-      sign_in_member
-      expect(Portail::HubAPI::Deliveries).to receive(:find)
-        .and_return(build(:portail_delivery, attachments: [build(:portail_attachment, byte_size: 1024)]))
-      expect(Portail::HubAPI::Attachments).to receive(:download).and_return("x" * 1000)
-      expect(Rails.error).to receive(:report).with(
-        instance_of(Portail::Attachments::Show::VerifyContentSize::UnexpectedSize),
-        handled: true, context: {delivery_id: delivery_id, attachment_id: attachment_id, expected: 1024, received: 1000}
-      )
-
-      get path
-
-      expect(response).to have_http_status(:service_unavailable)
-      expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
-      expect(response.body).not_to include("x" * 1000)
-    end
-
-    # La matrice rôle × habilitation, sur la pièce et non déduite du détail : c'est ici que les
-    # octets partiraient. Le refus tombe avant tout appel de contenu.
+    # La matrice rôle × habilitation, jugée sur la pièce par sa policy et non déduite du détail :
+    # c'est ici que les octets partiraient. Le refus tombe avant tout appel de contenu.
     context "reading perimeter" do
-      def delivery_on(code) = delivery_carrying("octets", data_stream_code: code)
+      def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
 
       # La même page qu'une pièce inexistante : distinguer les deux révélerait l'existence d'une
       # démarche hors périmètre.

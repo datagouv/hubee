@@ -1,7 +1,8 @@
 <%# locals: (attachments:, caption:, delivery: nil) %>
-<%# Un inventaire, dont seules les pièces reçues d'un dépôt se téléchargent : `delivery` n'est
-    donné que pour le dépôt, les pièces d'un événement n'ayant pas d'adresse. La caption, exigée
-    par le RGAA, est masquée : la section qui appelle porte déjà le titre. %>
+<%# Un inventaire, dont seules les pièces reçues d'un dépôt se téléchargent, sous la même policy
+    que l'adresse : `delivery` n'est donné que pour le dépôt, les pièces d'un événement n'ayant
+    pas d'adresse. La caption, exigée par le RGAA, est masquée : la section qui appelle porte
+    déjà le titre. %>
 <div class="fr-table fr-table--bordered fr-table--no-caption">
   <div class="fr-table__wrapper">
     <div class="fr-table__container">
@@ -28,11 +29,13 @@
                 <td><%= delivery_attachment_state(attachment) %></td>
                 <% if delivery %>
                   <td>
-                    <% if attachment.state == "received" %>
-                      <%# Hors de Turbo : c'est un fichier, pas une page, le navigateur le reçoit lui-même. %>
+                    <% if policy(attachment).show? && attachment.received? %>
+                      <%# Hors de Turbo : c'est un fichier, pas une page, le navigateur le reçoit lui-même.
+                          Le nom accessible porte la pièce : un même intitulé par ligne ne suffit pas au RGAA. %>
                       <%= link_to t("portail.deliveries.attachments.download"),
                             demarche_piece_path(delivery.id, attachment.id),
                             class: "fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line fr-btn--icon-left",
+                            aria: {label: t("portail.deliveries.attachments.download_named", filename: attachment.filename)},
                             data: {turbo: false} %>
                     <% end %>
                   </td>
