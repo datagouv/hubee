@@ -112,6 +112,7 @@ jobs:
           echo "=== Setting domain ==="
           $SSH_DOKKU -- domains:add $DOKKU_APP "$REVIEW_SUFFIX.${REVIEW_DOMAIN}"
           $SSH_DOKKU -- letsencrypt:enable "$DOKKU_APP" --force
+          $SSH_DOKKU -- letsencrypt:auto-renew "$DOKKU_APP"
 
           echo "=== Database Seeding ==="
           $SSH_DOKKU -- run $DOKKU_APP /rails/bin/rails db:prepare
