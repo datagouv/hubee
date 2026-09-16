@@ -100,7 +100,7 @@ jobs:
           echo "=== Restoring certificate ==="
           if [ -f $HOME/certs/$DOKKU_APP.crt ] && [ -f $HOME/certs/$DOKKU_APP.key ]; then
             echo "=== Restoring saved certificate ==="
-            $SSH_DOKKU -- certs:add "$DOKKU_APP" $HOME/certs/$DOKKU_APP.crt $HOME/certs/$DOKKU_APP.key
+            $SSH_DOKKU -- certs:add "$DOKKU_APP" /home/dokku/certs/$DOKKU_APP.crt /home/dokku/certs/$DOKKU_APP.key
           else
             echo "=== No saved certificate, will use letsencrypt ==="
           fi
