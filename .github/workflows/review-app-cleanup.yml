@@ -66,7 +66,7 @@ jobs:
           ssh-keyscan -p 50022 -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
 
           echo "=== Destroying app $DOKKU_APP ==="
-          if $SSH_DOKKU -- certs:report "$DOKKU_APP" --certs-enabled | grep -q "true"; then
+          if $SSH_DOKKU -- certs:report "$DOKKU_APP" --ssl-enabled | grep -q "true"; then
           echo "=== Certificate found! Saving... ==="
           $SSH_DOKKU -- certs:show "$DOKKU_APP" crt > $HOME/certs/$DOKKU_APP.crt
           $SSH_DOKKU -- certs:show "$DOKKU_APP" key > $HOME/certs/$DOKKU_APP.key
