@@ -66,7 +66,13 @@ jobs:
           ssh-keyscan -p 50022 -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
 
           echo "=== Destroying app $DOKKU_APP ==="
+          mkdir -p $HOME/certs
           if $SSH_DOKKU -- apps:exists "$DOKKU_APP" 2>/dev/null; then
+            if $SSH_DOKKU -- certs:exists "$DOKKU_APP" 2>/dev/null; then
+              $SSH_DOKKU -- certs:show "$DOKKU_APP" crt > $HOME/certs/$DOKKU_APP.crt
+              $SSH_DOKKU -- certs:show "$DOKKU_APP" key > $HOME/certs/$DOKKU_APP.key
+              echo "=== Certificates saved in $HOME/certs/ ==="
+            fi
             $SSH_DOKKU -- apps:destroy "$DOKKU_APP" --force
           fi
           if $SSH_DOKKU -- postgres:exists "$DOKKU_APP" 2>/dev/null; then

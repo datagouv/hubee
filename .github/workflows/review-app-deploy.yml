@@ -97,6 +97,14 @@ jobs:
             ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY="${{ secrets.DOKKU_ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}" \
             ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT="${{ secrets.DOKKU_ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT }}"
 
+          echo "=== Restoring certificate ==="
+          if [ -f $HOME/certs/$DOKKU_APP.crt ] && [ -f $HOME/certs/$DOKKU_APP.key ]; then
+            echo "=== Restoring saved certificate ==="
+            $SSH_DOKKU -- certs:add "$DOKKU_APP" $HOME/certs/$DOKKU_APP.crt $HOME/certs/$DOKKU_APP.key
+          else
+            echo "=== No saved certificate, will use letsencrypt ==="
+          fi
+
           echo "=== Push on dokku ==="
           git remote add dokku ssh://dokku@${{ secrets.DOKKU_HOST }}:50022/$DOKKU_APP
           git push dokku HEAD:refs/heads/main --force
