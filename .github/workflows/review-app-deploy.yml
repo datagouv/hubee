@@ -67,8 +67,6 @@ jobs:
           dsn=$($SSH_DOKKU -- postgres:info "$DOKKU_APP" --dsn)
           userpass=${dsn#*://}; userpass=${userpass%%@*}
           hostport=${dsn#*@};   hostport=${hostport%%/*}
-          # La version annoncée à hub-api suit le commit déployé (tags présents grâce à
-          # fetch-depth: 0) : hub-api l'archive sur chaque événement écrit, une valeur figée mentirait.
           $SSH_DOKKU -- config:set --no-restart "$DOKKU_APP" \
             DATABASE_USERNAME="${userpass%%:*}" \
             DATABASE_PASSWORD="${userpass#*:}" \
@@ -96,9 +94,9 @@ jobs:
             HUB_API_SCOPE="${{ secrets.DOKKU_HUB_API_SCOPE }}" \
             HUB_API_REFERENTIAL_SCOPE="${{ secrets.DOKKU_HUB_API_REFERENTIAL_SCOPE }}" \
             HUB_API_TELESERVICES_SCOPE="${{ secrets.DOKKU_HUB_API_TELESERVICES_SCOPE }}" \
-            HUB_API_EDITOR_NAME="${{ secrets.DOKKU_HUB_API_EDITOR_NAME }}" \
-            HUB_API_APPLICATION_NAME="${{ secrets.DOKKU_HUB_API_APPLICATION_NAME }}" \
-            HUB_API_SOFTWARE_VERSION="$(git describe --tags --always)" \
+            HUB_API_EDITOR_NAME="DINUM" \
+            HUB_API_APPLICATION_NAME="Hubee-reviewapp" \
+            HUB_API_SOFTWARE_VERSION="2" \
             ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY="${{ secrets.DOKKU_ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY }}" \
             ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT="${{ secrets.DOKKU_ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT }}"
 
