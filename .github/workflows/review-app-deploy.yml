@@ -99,7 +99,7 @@ jobs:
 
           echo "=== Setting domain ==="
           echo "=== Restoring certificate ==="
-          if $SSH_DOKKU "test -f /home/dokku/certs/$DOKKU_APP.crt && test -f /home/dokku/certs/$DOKKU_APP.key"; then
+          if $SSH_DOKKU -- apps:exists "$DOKKU_APP" 2>/dev/null || $SSH_DOKKU -- apps:create "$DOKKU_APP"; then
             echo "=== Restoring saved certificate ==="
             $SSH_DOKKU -- certs:add "$DOKKU_APP" /home/dokku/certs/$DOKKU_APP.crt /home/dokku/certs/$DOKKU_APP.key
           else
