@@ -159,7 +159,7 @@ GEM
       railties (>= 5)
     dotenv (3.2.0)
     drb (2.2.3)
-    dsfr-assets (1.15.1)
+    dsfr-assets (1.15.3)
     dsfr-form_builder (0.0.14)
       actionview (>= 6.1, < 9.0)
       activemodel (>= 6.1, < 9.0)
