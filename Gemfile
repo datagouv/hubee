@@ -63,12 +63,15 @@ gem "sentry-rails"
 # là où la source GitLab privée est injoignable — ex. CI GitHub Actions (analyse statique +
 # sécurité). Conséquence : la gem n'est pas auto-requise par Bundler.require ; la requérir
 # explicitement à l'endroit qui la consomme.
-# HUB_API_V1_PATH=../hub-api-v1 substitue un checkout local au tag si nécessaire
+# HUB_API_V1_PATH=../hub-api-v1 substitue un checkout local à la référence si nécessaire
+# La 3.0.0 exige l'identité d'appelant (HUB_API_EDITOR_NAME, HUB_API_APPLICATION_NAME,
+# HUB_API_SOFTWARE_VERSION) : KeyError au premier appel si l'une manque.
+# TODO avant merge : remplacer `ref:` par `tag: "3.0.0"` une fois le tag publié.
 group :hub_api_v1 do
   if (path = ENV["HUB_API_V1_PATH"])
     gem "hub-api-v1", path: path, require: "hub_api_v1"
   else
-    gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "2.3.0", require: "hub_api_v1"
+    gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", ref: "5183eccabdb81f40e4ebb270c57d4d702186fd39", require: "hub_api_v1"
   end
 end
 

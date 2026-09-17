@@ -74,6 +74,7 @@ RSpec.describe Portail::HubAPI::Attachments do
     # Le seul signal d'une panne de la route de contenu, que l'amont confond avec une pièce
     # purgée : une ligne au message stable, comptable en agrégat, sans rapport d'erreur.
     it "logs an unserved content with what locates it, unreported" do
+      use_hub_api_fake_client
       stub_hub_api_v2_attachment_unavailable("b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a")
       expect(Rails.logger).to receive(:warn).with("Contenu de pièce non servi par l'amont",
         delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", attachment_id: "b7e3c2a0-5d1f-4c8e-9a6b-3f2e1d0c9b8a")
