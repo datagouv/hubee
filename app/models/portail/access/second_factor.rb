@@ -24,10 +24,10 @@ module Portail
         private
 
         def sensitive_habilitation?(membership)
-          return false if SensitiveProcesses::CODES.empty?
+          return false if SensitiveDataStreams::CODES.empty?
 
-          membership.process_accesses
-            .where("UPPER(process_code) IN (?)", SensitiveProcesses::CODES)
+          membership.data_stream_accesses
+            .where("UPPER(data_stream_code) IN (?)", SensitiveDataStreams::CODES)
             .exists?
         end
       end

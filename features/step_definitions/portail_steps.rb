@@ -95,13 +95,13 @@ end
 # de nos classes n'est stubbée, toute la chaîne est traversée dans un vrai navigateur.
 
 Étantdonné("il est habilité sur le flux {string}") do |code|
-  create(:process_access, membership: Membership.find_by!(agent: @agent), process_code: code)
+  create(:data_stream_access, membership: Membership.find_by!(agent: @agent), data_stream_code: code)
 end
 
 # Le rôle ne tranche que la liste vide : les habilitations posées par le contexte sont retirées.
 Étantdonné("il est administrateur local sans habilitation") do
   membership = Membership.find_by!(agent: @agent)
-  membership.process_accesses.destroy_all
+  membership.data_stream_accesses.destroy_all
   membership.update!(role: "local_administrator")
 end
 

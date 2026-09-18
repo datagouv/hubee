@@ -8,7 +8,7 @@ RSpec.describe Membership, type: :model do
 
     it { is_expected.to belong_to(:agent) }
     it { is_expected.to belong_to(:organization_link) }
-    it { is_expected.to have_many(:process_accesses) }
+    it { is_expected.to have_many(:data_stream_accesses) }
   end
 
   describe "validations" do
@@ -132,17 +132,17 @@ RSpec.describe Membership, type: :model do
     end
   end
 
-  describe "#process_codes" do
+  describe "#data_stream_codes" do
     it "lists the codes of the habilitated data streams" do
       membership = create(:membership)
-      create(:process_access, membership: membership, process_code: "CERTDC")
-      create(:process_access, membership: membership, process_code: "AEC")
+      create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
+      create(:data_stream_access, membership: membership, data_stream_code: "AEC")
 
-      expect(membership.process_codes).to contain_exactly("CERTDC", "AEC")
+      expect(membership.data_stream_codes).to contain_exactly("CERTDC", "AEC")
     end
 
     it "is empty without habilitation" do
-      expect(create(:membership).process_codes).to eq([])
+      expect(create(:membership).data_stream_codes).to eq([])
     end
   end
 end

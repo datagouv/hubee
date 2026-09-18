@@ -25,18 +25,18 @@ RSpec.describe Seeds::TestAccounts do
       expect(OrganizationLink.pluck(:siret)).to contain_exactly("21260274200018", "22010001000010")
     end
 
-    it "reads a sensitive process code from the environment rather than from the catalogue" do
+    it "reads a sensitive data stream code from the environment rather than from the catalogue" do
       with_sensitive_codes("PREMIER", "SECOND") { described_class.apply!(%i[deployed]) }
 
-      expect(membership_for("membre-sensible@test.proconnect.gouv.fr").process_codes).to eq(["PREMIER"])
-      expect(membership_for("jean.dupont@basrec.hubee.numerique.gouv.fr").process_codes).to eq(["SECOND"])
+      expect(membership_for("membre-sensible@test.proconnect.gouv.fr").data_stream_codes).to eq(["PREMIER"])
+      expect(membership_for("jean.dupont@basrec.hubee.numerique.gouv.fr").data_stream_codes).to eq(["SECOND"])
     end
 
     it "leaves the sensitive accounts unenrolled when the environment declares no code for them" do
       with_sensitive_codes(nil, nil) { described_class.apply!(%i[deployed]) }
 
       expect(Agent.pluck(:email)).to match_array(
-        described_class.accounts(%i[deployed]).reject { |account| account.process_codes.any?(Symbol) }.map(&:email)
+        described_class.accounts(%i[deployed]).reject { |account| account.data_stream_codes.any?(Symbol) }.map(&:email)
       )
     end
 
@@ -62,32 +62,32 @@ RSpec.describe Seeds::TestAccounts do
       expect(membership.reload.role).to eq("member")
     end
 
-    it "revokes a process access that the catalogue no longer declares" do
+    it "revokes a data stream access that the catalogue no longer declares" do
       with_sensitive_codes("PREMIER", "SECOND") { described_class.apply!(%i[deployed]) }
       membership = membership_for("membre-etatcivil@test.proconnect.gouv.fr")
-      ProcessAccess.create!(membership:, process_code: "OBSOLETE")
+      DataStreamAccess.create!(membership:, data_stream_code: "OBSOLETE")
 
       with_sensitive_codes("PREMIER", "SECOND") { described_class.apply!(%i[deployed]) }
 
-      expect(membership.reload.process_codes).to eq(["EtatCivil"])
+      expect(membership.reload.data_stream_codes).to eq(["EtatCivil"])
     end
 
-    it "revokes every process access of an account declared without any, restoring its full perimeter" do
+    it "revokes every data stream access of an account declared without any, restoring its full perimeter" do
       with_sensitive_codes("PREMIER", "SECOND") { described_class.apply!(%i[deployed]) }
       membership = membership_for("admin-total@test.proconnect.gouv.fr")
-      ProcessAccess.create!(membership:, process_code: "OBSOLETE")
+      DataStreamAccess.create!(membership:, data_stream_code: "OBSOLETE")
 
       with_sensitive_codes("PREMIER", "SECOND") { described_class.apply!(%i[deployed]) }
 
-      expect(membership.reload.process_codes).to be_empty
-      expect(Portail::Access::ProcessPerimeter).to be_unrestricted(membership)
+      expect(membership.reload.data_stream_codes).to be_empty
+      expect(Portail::Access::DataStreamPerimeter).to be_unrestricted(membership)
     end
   end
 
   describe ".missing_variables" do
     it "names the sensitive code variables the selected accounts need and the environment does not declare" do
       with_sensitive_codes("PREMIER", nil) do
-        expect(described_class.missing_variables(%i[deployed])).to eq(["SEED_SENSITIVE_PROCESS_CODE_2"])
+        expect(described_class.missing_variables(%i[deployed])).to eq(["SEED_SENSITIVE_DATA_STREAM_CODE_2"])
         # Aucun compte local ne désigne le second code : son absence ne prive personne.
         expect(described_class.missing_variables(%i[local])).to be_empty
       end

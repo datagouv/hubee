@@ -7,7 +7,7 @@ RSpec.describe Portail::Deliveries::Index do
   # pour la liste.
   it "hands back the list of the membership and the data streams it may filter on" do
     membership = create(:membership)
-    create(:process_access, membership: membership, process_code: "CERTDC")
+    create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
     list = build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)])
     expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(list)
     expect(Portail::HubAPI::Subscriptions).not_to receive(:list)

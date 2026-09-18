@@ -10,16 +10,16 @@ RSpec.describe "Portail::Attachments", type: :request do
   let(:path) { "/teledossiers/#{delivery_id}/pieces/#{attachment_id}" }
 
   # Le cas standard du portail : un membre habilité sur le flux du télédossier servi.
-  def sign_in_member(process_codes: ["CERTDC"])
+  def sign_in_member(data_stream_codes: ["CERTDC"])
     agent = create(:agent, provider_sub: "sub-membre")
     sign_in_via_proconnect(agent: agent)
     membership = Membership.find_by!(agent: agent)
-    process_codes.each { |code| create(:process_access, membership: membership, process_code: code) }
+    data_stream_codes.each { |code| create(:data_stream_access, membership: membership, data_stream_code: code) }
     agent
   end
 
-  def sign_in_local_administrator(process_codes: [])
-    agent = sign_in_member(process_codes: process_codes)
+  def sign_in_local_administrator(data_stream_codes: [])
+    agent = sign_in_member(data_stream_codes: data_stream_codes)
     Membership.find_by!(agent: agent).update!(role: "local_administrator")
     agent
   end
@@ -281,7 +281,7 @@ RSpec.describe "Portail::Attachments", type: :request do
       end
 
       it "serves a piece of a delivery on a data stream the member is habilitated to" do
-        sign_in_member(process_codes: ["CERTDC"])
+        sign_in_member(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
         expect_the_piece_to_be_served
@@ -290,7 +290,7 @@ RSpec.describe "Portail::Attachments", type: :request do
       # Seul le journal distingue un refus d'une inexistence, et c'est lui qui laisse voir un
       # agent qui forge des adresses. Éprouvé jusqu'à l'appel au logger, sur le canal CSIRT.
       it "refuses a member on a piece outside their habilitations, logs and alerts" do
-        agent = sign_in_member(process_codes: ["AEC"])
+        agent = sign_in_member(data_stream_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
         expect(Sentry).to receive(:capture_message).with(
           "Accès refusé hors périmètre sur #{path}",
@@ -310,7 +310,7 @@ RSpec.describe "Portail::Attachments", type: :request do
       end
 
       it "refuses a member without any habilitation" do
-        sign_in_member(process_codes: [])
+        sign_in_member(data_stream_codes: [])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
         expect_a_not_found_page
@@ -318,7 +318,7 @@ RSpec.describe "Portail::Attachments", type: :request do
 
       # L'accès à une pièce est celui de son télédossier : un état non servi ferme aussi les octets.
       it "refuses a piece of a delivery in a state the portal does not serve" do
-        sign_in_member(process_codes: ["CERTDC"])
+        sign_in_member(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find)
           .and_return(build(:portail_delivery, state: "integration_error"))
 
@@ -327,7 +327,7 @@ RSpec.describe "Portail::Attachments", type: :request do
 
       # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.
       it "refuses a piece of a delivery the upstream served for another organisation" do
-        sign_in_member(process_codes: ["CERTDC"])
+        sign_in_member(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find)
           .and_return(build(:portail_delivery, :of_another_organisation))
 
@@ -350,14 +350,14 @@ RSpec.describe "Portail::Attachments", type: :request do
       end
 
       it "serves a piece inside the habilitations of a local administrator" do
-        sign_in_local_administrator(process_codes: ["CERTDC"])
+        sign_in_local_administrator(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
         expect_the_piece_to_be_served
       end
 
       it "refuses a local administrator on a piece outside their habilitations" do
-        sign_in_local_administrator(process_codes: ["AEC"])
+        sign_in_local_administrator(data_stream_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
         expect_a_not_found_page

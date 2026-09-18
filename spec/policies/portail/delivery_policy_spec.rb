@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-# La règle rôle × habilitation est éprouvée dans le spec de Portail::Access::ProcessPerimeter, celle
+# La règle rôle × habilitation est éprouvée dans le spec de Portail::Access::DataStreamPerimeter, celle
 # des états servis dans celui de Portail::Access::StatePerimeter. Ici, on constate que la policy les
 # applique à ce que l'amont a servi, liste et détail, et qu'elle vérifie aussi l'organisation :
 # l'amont est un tiers, son filtre n'est pas tenu pour acquis.
@@ -34,7 +34,7 @@ RSpec.describe Portail::DeliveryPolicy do
   context "for a member habilitated on CERTDC" do
     let(:membership) { create(:membership) }
 
-    before { create(:process_access, membership: membership, process_code: "CERTDC") }
+    before { create(:data_stream_access, membership: membership, data_stream_code: "CERTDC") }
 
     describe "Scope#resolve" do
       it "keeps CERTDC for the organisation, drops another data stream or another organisation" do
@@ -134,7 +134,7 @@ RSpec.describe Portail::DeliveryPolicy do
   context "for a local administrator habilitated on CERTDC" do
     let(:membership) { create(:membership, :local_administrator) }
 
-    before { create(:process_access, membership: membership, process_code: "CERTDC") }
+    before { create(:data_stream_access, membership: membership, data_stream_code: "CERTDC") }
 
     describe "Scope#resolve" do
       it "keeps CERTDC only" do

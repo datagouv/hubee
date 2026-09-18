@@ -16,8 +16,8 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
 
   it "offers a habilitated member its data streams, sorted, and filters on them, without calling the upstream" do
     membership = create(:membership)
-    create(:process_access, membership: membership, process_code: "CERTDC")
-    create(:process_access, membership: membership, process_code: "AEC")
+    create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
+    create(:data_stream_access, membership: membership, data_stream_code: "AEC")
     expect(Portail::HubAPI::Subscriptions).not_to receive(:list)
 
     result = described_class.call(membership: membership, criteria: criteria)
@@ -29,7 +29,7 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
 
   it "offers a local administrator with named habilitations those alone" do
     membership = create(:membership, :local_administrator)
-    create(:process_access, membership: membership, process_code: "CERTDC")
+    create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
     expect(Portail::HubAPI::Subscriptions).not_to receive(:list)
 
     result = described_class.call(membership: membership, criteria: criteria)
@@ -58,8 +58,8 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
   # Le flux choisi remplace le périmètre, jamais ne l'élargit.
   it "narrows the filter to the chosen data streams when they are all among the offered ones" do
     membership = create(:membership)
-    create(:process_access, membership: membership, process_code: "CERTDC")
-    create(:process_access, membership: membership, process_code: "AEC")
+    create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
+    create(:data_stream_access, membership: membership, data_stream_code: "AEC")
 
     result = described_class.call(membership: membership, criteria: criteria(flux: ["AEC", "CERTDC"]))
 
