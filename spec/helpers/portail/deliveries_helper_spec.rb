@@ -85,6 +85,37 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     end
   end
 
+  describe "#delivery_attachment_access" do
+    let(:delivery) { build(:portail_delivery, id: "94b1b09d-b47f-4480-9b48-93b8b36108f2") }
+
+    # Le seul cas qui remet un contenu : une pièce reçue, portée par une démarche. Le bouton est
+    # l'affordance, sans badge à côté ; RGAA : le nom accessible porte la pièce.
+    it "links to the download of a received deposit piece, named after the piece" do
+      link = helper.delivery_attachment_access(build(:portail_attachment, filename: "recue.pdf"), delivery)
+
+      page = Capybara.string(link)
+      expect(page).to have_link("Télécharger",
+        href: "/demarches/94b1b09d-b47f-4480-9b48-93b8b36108f2/pieces/a1111111-1111-1111-1111-111111111111")
+      expect(page).to have_css("a.fr-btn.fr-btn--sm[download][aria-label='Télécharger recue.pdf']")
+      expect(page).to have_no_css("p.fr-badge")
+    end
+
+    it "shows the state of a deposit piece that is not received, as the reason" do
+      badge = helper.delivery_attachment_access(build(:portail_attachment, state: "corrupted"), delivery)
+
+      expect(Capybara.string(badge)).to have_css("p.fr-badge.fr-badge--sm.fr-badge--error", text: "Corrompue")
+      expect(Capybara.string(badge)).to have_no_link
+    end
+
+    # Une pièce d'événement n'a pas d'adresse : reçue ou non, seul son état se montre.
+    it "shows only the state of a piece without a delivery to download it from" do
+      badge = helper.delivery_attachment_access(build(:portail_attachment), nil)
+
+      expect(Capybara.string(badge)).to have_css("p.fr-badge.fr-badge--success", text: "Reçue")
+      expect(Capybara.string(badge)).to have_no_link
+    end
+  end
+
   describe "#delivery_attachment_state" do
     it "colours each badge from its own attachment state" do
       rejected = helper.delivery_attachment_state(build(:portail_attachment, state: "rejected"))

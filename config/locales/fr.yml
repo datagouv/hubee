@@ -86,7 +86,6 @@ fr:
         filename: Nom du fichier
         kind: Type de pièce
         byte_size: Taille
-        state: État
         download: Téléchargement
       attachments:
         download: Télécharger
