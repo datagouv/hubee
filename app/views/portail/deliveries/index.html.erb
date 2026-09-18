@@ -11,8 +11,9 @@
 
   <div class="fr-col-12 fr-col-md-8 fr-col-lg-9">
     <%# Avant la liste, vide comprise : c'est lui qui permet de lever un filtre. %>
-    <%= render "filters", criteria: @criteria, selectable_data_streams: @selectable_data_streams %>
-    <%= render "active_filters", criteria: @criteria %>
+    <%= render "filters", criteria: @criteria, selectable_data_streams: @selectable_data_streams,
+          data_stream_names: @data_stream_names %>
+    <%= render "active_filters", criteria: @criteria, data_stream_names: @data_stream_names %>
 
     <%# Le message vide reste à côté du menu : le compteur d'un autre état dit où aller. %>
     <% if @deliveries.empty? %>
@@ -44,7 +45,7 @@
                   <% @deliveries.each do |delivery| %>
                     <tr>
                       <td><%= link_to delivery.number, teledossier_path(delivery.id) %></td>
-                      <td><%= delivery.data_stream.code %></td>
+                      <td><%= data_stream_label(delivery.data_stream.code, @data_stream_names) %></td>
                       <td><%= delivery_transmitted_at(delivery) %></td>
                       <td><%= delivery_updated_at(delivery) %></td>
                     </tr>

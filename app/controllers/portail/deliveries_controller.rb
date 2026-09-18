@@ -17,8 +17,10 @@ module Portail
         return explain_failure(result.error)
       end
 
-      # Les flux que le formulaire propose : le périmètre, borné plus haut.
+      # Les flux que le formulaire propose : le périmètre, borné plus haut. Leurs intitulés, pour
+      # les lire sans connaître les codes.
       @selectable_data_streams = result.selectable_data_streams
+      @data_stream_names = result.data_stream_names
 
       # La requête était déjà bornée par le rattachement ; le scope borne ce que l'amont a
       # réellement servi, sans lui faire confiance. La policy est nommée : Pundit ne la

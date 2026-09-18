@@ -66,6 +66,22 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     end
   end
 
+  describe "#data_stream_label" do
+    # Le libellé identifie la démarche, le code reste : c'est lui qui sert au support.
+    it "names the data stream from the names known, code kept after a dash" do
+      names = {"CERTDC" => "Certificat de décès électronique"}
+
+      expect(helper.data_stream_label("CERTDC", names)).to eq("Certificat de décès électronique – CERTDC")
+    end
+
+    # Un flux sans intitulé connu, ou des intitulés indisponibles : la ligne reste identifiable.
+    # Un intitulé blanc n'arrive jamais ici, la liste d'abonnements ne le projette pas.
+    it "falls back to the code alone when no name is known for it" do
+      expect(helper.data_stream_label("AEC", {"CERTDC" => "Certificat de décès électronique"})).to eq("AEC")
+      expect(helper.data_stream_label("AEC", {})).to eq("AEC")
+    end
+  end
+
   describe "#delivery_state_badge" do
     it "colours each badge from its own state" do
       done = helper.delivery_state_badge(build(:portail_delivery, state: "done"))

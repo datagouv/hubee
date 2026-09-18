@@ -1,4 +1,4 @@
-<%# locals: (criteria:) %>
+<%# locals: (criteria:, data_stream_names:) %>
 <%# Les filtres posés, rappelés au-dessus des résultats en tags supprimables. Des liens et non
     des boutons : l'état vit dans l'URL, retirer un filtre est une navigation, sans JavaScript. %>
 <% if criteria.filtered? %>
@@ -12,8 +12,8 @@
       <% end %>
       <% criteria.data_stream_codes.each do |code| %>
         <li>
-          <%= link_to code, teledossiers_path(**criteria.with(data_stream_codes: criteria.data_stream_codes - [code]).link_params),
-                class: "fr-tag fr-tag--dismiss", "aria-label": t(".remove", filter: code) %>
+          <%= link_to data_stream_label(code, data_stream_names), teledossiers_path(**criteria.with(data_stream_codes: criteria.data_stream_codes - [code]).link_params),
+                class: "fr-tag fr-tag--dismiss", "aria-label": t(".remove", filter: data_stream_label(code, data_stream_names)) %>
         </li>
       <% end %>
       <% if criteria.transmitted_from || criteria.transmitted_to %>

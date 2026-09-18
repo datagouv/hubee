@@ -10,6 +10,14 @@ module Portail
       def portal_data_stream_codes
         subscriptions.select(&:readable_via_portal?).map { |subscription| subscription.data_stream.code }.uniq
       end
+
+      # L'intitulé de chaque flux nommé, par code, quel que soit le canal : un intitulé ne
+      # confère aucun droit. Sans intitulé, pas d'entrée : le repli sur le code appartient à
+      # l'écran.
+      def data_stream_names
+        subscriptions.select { |subscription| subscription.data_stream_name.present? }
+          .to_h { |subscription| [subscription.data_stream.code, subscription.data_stream_name] }
+      end
     end
   end
 end

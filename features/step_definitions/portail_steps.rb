@@ -121,6 +121,14 @@ end
     data_stream: HubApiV1::V2::DataStream.new(code: "AEC")))
 end
 
+# L'intitulé voyage avec l'abonnement de la structure, c'est là que l'amont le sert.
+Étantdonné("l'API amont nomme le flux {string} {string}") do |code, name|
+  HubApiV1.client.add_subscription(build_subscription_record(
+    id: "sub-#{code}", process_code: code, process_name: name, access_mode: "PORTAIL",
+    subscriber_siret: E2E_SIRET, subscriber_branch_code: "00001"
+  ))
+end
+
 Étantdonné("l'API amont sert un télédossier pour son organisation") do
   HubApiV1.client.add_case(e2e_delivery("DGS-CERTDC-0000000000001-01"))
 end
@@ -246,6 +254,10 @@ end
 Alors("il voit le télédossier {string} dans la liste") do |number|
   expect(page).to have_css("table caption", text: "Nouveau")
   expect(page).to have_link(number)
+end
+
+Alors("il voit le télédossier {string} sous la démarche {string}") do |number, label|
+  expect(page.find("table tbody tr", text: number)).to have_css("td:nth-child(2)", text: label)
 end
 
 Alors("le filtre propose les flux {string}") do |codes|

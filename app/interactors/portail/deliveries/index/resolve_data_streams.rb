@@ -3,8 +3,8 @@
 module Portail
   module Deliveries
     class Index
-      # Ce que l'agent peut choisir comme flux, et ce qu'il a demandé : on ne demande que parmi
-      # ce qui est sélectionnable.
+      # Ce que l'agent peut choisir comme flux, ce qu'il a demandé, et le nom de chaque flux : on
+      # ne demande que parmi ce qui est sélectionnable.
       class ResolveDataStreams
         include Interactor
 
@@ -17,7 +17,10 @@ module Portail
           # « aucun filtre », donc toute l'organisation.
           context.fail!(error: :no_habilitation) if Access::DataStreamPerimeter.none?(membership)
 
-          context.selectable_data_streams = selectable_data_streams.sort
+          subscriptions = read_subscriptions
+          context.selectable_data_streams = selectable_data_streams(subscriptions).sort
+          # Une information d'affichage : sans les abonnements, les codes seuls, la page est servie.
+          context.data_stream_names = subscriptions ? subscriptions["names"] : {}
           context.requested_data_streams = requested_data_streams
         end
 
@@ -25,25 +28,31 @@ module Portail
 
         def membership = context.membership
 
-        # Les habilitations du rattachement, ou les abonnements de l'organisation quand rien ne le
-        # restreint. Transitoire : le temps que les administrateurs locaux reçoivent leurs
-        # habilitations par flux comme les agents, la seconde branche disparaîtra.
-        def selectable_data_streams
-          return membership.data_stream_codes unless Access::DataStreamPerimeter.unrestricted?(membership)
-
-          organisation_data_streams
-        end
-
-        # Le couple vient du rattachement : pris ailleurs, il ouvrirait une autre structure.
-        def organisation_data_streams
+        # Les abonnements de l'organisation, lus une fois : les flux qu'elle reçoit par le portail
+        # et le nom de chacun. En primitives, cachables ; nil quand l'amont ne répond pas, et
+        # chaque usage en décide. Le couple vient du rattachement : pris ailleurs, il ouvrirait une
+        # autre structure.
+        def read_subscriptions
           link = membership.organization_link
-          Rails.cache.fetch(["portail", "data_streams", link.siret, link.insee_code], expires_in: CACHE_TTL) do
-            HubAPI::Subscriptions.list(siret: link.siret, insee_code: link.insee_code).portal_data_stream_codes
+          Rails.cache.fetch(["portail", "subscriptions", link.siret, link.insee_code], expires_in: CACHE_TTL) do
+            list = HubAPI::Subscriptions.list(siret: link.siret, insee_code: link.insee_code)
+            {"codes" => list.portal_data_stream_codes, "names" => list.data_stream_names}
           end
         rescue HubAPI::Error => e
-          # L'incident est déjà signalé par Portail::HubAPI : il ne reste qu'à journaliser et à échouer.
-          Rails.logger.error("Flux indisponibles — #{e.class} : #{e.message}")
-          context.fail!(error: :unavailable)
+          # L'incident est déjà signalé par Portail::HubAPI : il ne reste qu'à journaliser.
+          Rails.logger.error("Abonnements indisponibles — #{e.class} : #{e.message}")
+          nil
+        end
+
+        # Les habilitations du rattachement, ou les abonnements de l'organisation quand rien ne le
+        # restreint. Transitoire : le temps que les administrateurs locaux reçoivent leurs
+        # habilitations par flux comme les agents, la seconde branche disparaîtra. Sans les
+        # abonnements, rien à proposer : pas de page.
+        def selectable_data_streams(subscriptions)
+          return membership.data_stream_codes unless Access::DataStreamPerimeter.unrestricted?(membership)
+
+          context.fail!(error: :unavailable) if subscriptions.nil?
+          subscriptions["codes"]
         end
 
         # Les flux choisis, s'ils sont tous sélectionnables ; sans choix, le périmètre lui-même.

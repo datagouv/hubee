@@ -24,6 +24,14 @@ Fonctionnalité: Les télédossiers de l'organisation
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
     Alors il voit l'inventaire des pièces et l'historique
 
+  # L'intitulé vient des abonnements de la structure ; le code reste, c'est lui que le support
+  # connaît. Les autres scénarios n'en posent aucun : le code seul suffit à identifier la ligne.
+  Scénario: L'agent lit la démarche d'un télédossier sans connaître son code
+    Étant donné l'API amont nomme le flux "CERTDC" "Certificat de décès électronique"
+    Et il s'est connecté
+    Alors il voit le télédossier "DGS-CERTDC-0000000000001-01" sous la démarche "Certificat de décès électronique – CERTDC"
+    Et le filtre propose les flux "Certificat de décès électronique – CERTDC"
+
   # Chaque état est une page : une navigation, pas un onglet.
   Scénario: L'agent passe d'un état à l'autre par le menu latéral
     Étant donné l'API amont sert aussi un télédossier traité pour son organisation
