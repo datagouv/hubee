@@ -11,7 +11,7 @@ module Portail
         def call
           # Un filtre vide vaudrait toute l'organisation en aval ; vérifié ici aussi, l'étape
           # doit rester réutilisable seule.
-          context.fail!(error: :no_habilitation) if Access::ProcessPerimeter.none?(context.membership)
+          context.fail!(error: :no_habilitation) if Access::DataStreamPerimeter.none?(context.membership)
 
           # Avant l'appel : l'amont sert cet état, et la policy viderait la page en silence.
           context.fail!(error: :invalid_request) unless Access::StatePerimeter.covers?(criteria.state)

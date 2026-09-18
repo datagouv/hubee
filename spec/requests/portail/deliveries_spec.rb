@@ -6,16 +6,16 @@ require "rails_helper"
 # de la gem est éprouvée dans le spec de la frontière, la chaîne entière dans Cucumber.
 RSpec.describe "Portail::Deliveries", type: :request do
   # Le cas standard du portail : un membre habilité sur le flux des télédossiers servis.
-  def sign_in_member(process_codes: ["CERTDC"])
+  def sign_in_member(data_stream_codes: ["CERTDC"])
     agent = create(:agent, provider_sub: "sub-membre")
     sign_in_via_proconnect(agent: agent)
     membership = Membership.find_by!(agent: agent)
-    process_codes.each { |code| create(:process_access, membership: membership, process_code: code) }
+    data_stream_codes.each { |code| create(:data_stream_access, membership: membership, data_stream_code: code) }
     agent
   end
 
-  def sign_in_local_administrator(process_codes: [])
-    agent = sign_in_member(process_codes: process_codes)
+  def sign_in_local_administrator(data_stream_codes: [])
+    agent = sign_in_member(data_stream_codes: data_stream_codes)
     Membership.find_by!(agent: agent).update!(role: "local_administrator")
     agent
   end
@@ -230,7 +230,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     end
 
     it "explains the lack of habilitation instead of showing a mute empty table" do
-      sign_in_member(process_codes: [])
+      sign_in_member(data_stream_codes: [])
       # Un périmètre vide ne part jamais en aval : il y vaudrait « aucun filtre ».
       expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
@@ -317,7 +317,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     # règle elle-même est éprouvée dans le spec de la policy.
     context "reading perimeter" do
       it "filters the list on the codes a member is habilitated to" do
-        sign_in_member(process_codes: ["CERTDC", "AEC"])
+        sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: match_array(["CERTDC", "AEC"])))
@@ -329,7 +329,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       end
 
       it "filters the list of a local administrator with named habilitations too" do
-        sign_in_local_administrator(process_codes: ["CERTDC"])
+        sign_in_local_administrator(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: ["CERTDC"]))
@@ -357,7 +357,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       # L'amont est un tiers : s'il ignore le filtre, la ligne hors habilitation ne s'affiche
       # pas, la page reste servie, et l'anomalie part en alerte et sur le canal CSIRT.
       it "hides and reports a delivery the upstream served outside the habilitations" do
-        agent = sign_in_member(process_codes: ["CERTDC"])
+        agent = sign_in_member(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(
           upstream_list(deliveries: [
             build(:portail_delivery_summary, number: "DGS-CERTDC-0000000000001-01"),
@@ -389,7 +389,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     # L'état de navigation est porté par l'URL : rechargeable et partageable.
     context "filters and sort" do
       it "honours the filters and the sort requested as parameters" do
-        sign_in_member(process_codes: ["CERTDC", "AEC"])
+        sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           # Le hash complet est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: ["AEC"], transmitted_from: "2026-08-01",
@@ -406,7 +406,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       # « aujourd'hui », un passage de minuit entre le rendu et l'assertion la ferait mentir.
       it "renders the filter form on the offered data streams, with the requested values kept" do
         travel_to Time.zone.local(2026, 9, 8, 12)
-        sign_in_member(process_codes: ["CERTDC", "AEC"])
+        sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
 
         get "/teledossiers", params: {statut: "done", flux: "AEC", du: "2026-08-01", au: "2026-08-31",
@@ -507,7 +507,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       end
 
       it "filters on several data streams at once" do
-        sign_in_member(process_codes: ["CERTDC", "AEC", "DEMO"])
+        sign_in_member(data_stream_codes: ["CERTDC", "AEC", "DEMO"])
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           # Le hash complet est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: ["AEC", "DEMO"]))
@@ -520,7 +520,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       # Le flux choisi remplace le périmètre, jamais ne l'élargit.
       it "shows the refusal for a data stream outside the habilitations, without calling the upstream" do
-        sign_in_member(process_codes: ["CERTDC"])
+        sign_in_member(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
         get "/teledossiers", params: {flux: "AEC"}
@@ -583,7 +583,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     context "search by number" do
       it "searches on the number as a fragment, alongside the filters and the sort" do
-        sign_in_member(process_codes: ["CERTDC", "AEC"])
+        sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           # Le hash complet est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(number: "ID22026", data_stream_codes: ["AEC"], direction: "asc"))
@@ -596,7 +596,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       # Le premier filtre du panneau : son titre dit qu'il ne cherche que le numéro.
       it "renders the number field first in the filter panel, announcing the number alone, with the sought number kept" do
-        sign_in_member(process_codes: ["CERTDC", "AEC"])
+        sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
 
         get "/teledossiers", params: {statut: "done", numero: "ID22026", flux: "AEC", ordre: "asc"}
@@ -660,7 +660,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         "a local administrator with named habilitations" => :sign_in_local_administrator
       }.each do |role, sign_in|
         it "finds nothing, without telling more, when #{role} seeks a number outside the habilitations" do
-          send(sign_in, process_codes: ["CERTDC"])
+          send(sign_in, data_stream_codes: ["CERTDC"])
           client = use_hub_api_fake_client
           client.add_case(build_v2_delivery(number: "DGS-AEC-0000000000002-01", state: :transmitted,
             data_stream: HubApiV1::V2::DataStream.new(code: "AEC"), recipient: upstream_recipient))
@@ -1150,7 +1150,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       end
 
       it "opens a delivery on a data stream the member is habilitated to" do
-        sign_in_member(process_codes: ["CERTDC"])
+        sign_in_member(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
         expect_the_delivery_to_open
@@ -1159,7 +1159,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       # Seul le journal distingue un refus d'une inexistence, et c'est lui qui laisse voir un
       # agent qui balaie des identifiants. Éprouvé jusqu'à l'appel au logger, sur le canal CSIRT.
       it "refuses a member on a delivery outside their habilitations, logs and alerts" do
-        agent = sign_in_member(process_codes: ["AEC"])
+        agent = sign_in_member(data_stream_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
         expect(Sentry).to receive(:capture_message).with(
           "Accès refusé hors périmètre sur /teledossiers/#{delivery_id}",
@@ -1179,7 +1179,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       end
 
       it "refuses a member without any habilitation" do
-        sign_in_member(process_codes: [])
+        sign_in_member(data_stream_codes: [])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
         expect_a_not_found_page
@@ -1187,7 +1187,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.
       it "refuses a delivery the upstream served for another organisation" do
-        sign_in_member(process_codes: ["CERTDC"])
+        sign_in_member(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find)
           .and_return(build(:portail_delivery, :of_another_organisation))
 
@@ -1202,14 +1202,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
       end
 
       it "opens a delivery inside the habilitations of a local administrator" do
-        sign_in_local_administrator(process_codes: ["CERTDC"])
+        sign_in_local_administrator(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
         expect_the_delivery_to_open
       end
 
       it "refuses a local administrator on a delivery outside their habilitations" do
-        sign_in_local_administrator(process_codes: ["AEC"])
+        sign_in_local_administrator(data_stream_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
         expect_a_not_found_page
@@ -1219,7 +1219,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       # un télédossier que HubEE supervise. Le bruit CSIRT est assumé, comme pour un
       # rattachement dont les habilitations ont changé.
       it "refuses a delivery in a state the portal does not serve, logged as out of perimeter" do
-        agent = sign_in_member(process_codes: ["CERTDC"])
+        agent = sign_in_member(data_stream_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find)
           .and_return(build(:portail_delivery, state: "integration_error"))
 

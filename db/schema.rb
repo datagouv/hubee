@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_133749) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -70,6 +70,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_133749) do
     t.index ["data_stream_id"], name: "index_data_packages_on_data_stream_id"
     t.index ["sender_organization_id"], name: "index_data_packages_on_sender_organization_id"
     t.index ["state"], name: "index_data_packages_on_state"
+  end
+
+  create_table "data_stream_accesses", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "data_stream_code", null: false
+    t.uuid "membership_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["membership_id", "data_stream_code"], name: "index_data_stream_accesses_on_membership_and_code", unique: true
   end
 
   create_table "data_streams", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
@@ -165,14 +173,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_133749) do
     t.index ["siret"], name: "index_organizations_on_siret", unique: true
   end
 
-  create_table "process_accesses", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.uuid "membership_id", null: false
-    t.string "process_code", null: false
-    t.datetime "updated_at", null: false
-    t.index ["membership_id", "process_code"], name: "index_process_accesses_on_membership_id_and_process_code", unique: true
-  end
-
   create_table "provider_sessions", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
     t.string "acr"
     t.string "amr", default: [], null: false, array: true
@@ -202,6 +202,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_133749) do
 
   add_foreign_key "data_packages", "data_streams", on_delete: :restrict
   add_foreign_key "data_packages", "organizations", column: "sender_organization_id"
+  add_foreign_key "data_stream_accesses", "memberships", on_delete: :cascade
   add_foreign_key "data_streams", "organizations", column: "owner_organization_id"
   add_foreign_key "memberships", "agents"
   add_foreign_key "memberships", "organization_links"
@@ -209,7 +210,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_133749) do
   add_foreign_key "notifications", "subscriptions", on_delete: :restrict
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
   add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
-  add_foreign_key "process_accesses", "memberships", on_delete: :cascade
   add_foreign_key "provider_sessions", "memberships", on_delete: :cascade
   add_foreign_key "subscriptions", "data_streams", on_delete: :cascade
   add_foreign_key "subscriptions", "organizations", on_delete: :cascade

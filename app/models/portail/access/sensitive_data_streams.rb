@@ -2,10 +2,10 @@
 
 module Portail
   module Access
-    # Les processus dont l'accès exige un second facteur. La liste n'est pas dans ce dépôt,
+    # Les flux dont l'accès exige un second facteur. La liste n'est pas dans ce dépôt,
     # qui est public : elle est injectée par l'environnement depuis ansible_deploy.
-    # Sa présence est exigée au démarrage par config/initializers/sensitive_processes.rb.
-    module SensitiveProcesses
+    # Sa présence est exigée au démarrage par config/initializers/sensitive_data_streams.rb.
+    module SensitiveDataStreams
       class << self
         # Majuscules des deux côtés de la comparaison : les codes sont stockés verbatim, et une
         # divergence de casse ferait échapper un agent au second facteur en silence.
@@ -15,7 +15,7 @@ module Portail
       end
 
       # Déclarée après `parse`, qui la construit.
-      CODES = parse(ENV.fetch("SENSITIVE_PROCESS_CODES", ""))
+      CODES = parse(ENV.fetch("SENSITIVE_DATA_STREAM_CODES", ""))
     end
   end
 end

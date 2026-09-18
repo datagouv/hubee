@@ -38,7 +38,7 @@ module Portail
       return @session_in_cookie if defined?(@session_in_cookie)
 
       # Habilitations chargées d'avance : le garde du second facteur les lit à chaque requête.
-      @session_in_cookie = ProviderSession.includes(membership: [:agent, :process_accesses, :organization_link])
+      @session_in_cookie = ProviderSession.includes(membership: [:agent, :data_stream_accesses, :organization_link])
         .find_by(id: session[:provider_session_id])
     end
 

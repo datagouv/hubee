@@ -23,8 +23,8 @@ if scopes.any?
     puts "⚠️  #{missing.join(", ")} absente(s) : #{skipped} compte(s) sensible(s) non enrôlé(s)"
   end
 
-  if Portail::Access::SensitiveProcesses::CODES.empty?
-    puts "⚠️  SENSITIVE_PROCESS_CODES vide : aucun compte ne déclenchera d'élévation par habilitation"
+  if Portail::Access::SensitiveDataStreams::CODES.empty?
+    puts "⚠️  SENSITIVE_DATA_STREAM_CODES vide : aucun compte ne déclenchera d'élévation par habilitation"
   end
 
   puts "✅ #{memberships.size} comptes de test enrôlés"

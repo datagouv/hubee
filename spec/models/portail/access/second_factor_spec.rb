@@ -5,26 +5,26 @@ require "rails_helper"
 RSpec.describe Portail::Access::SecondFactor do
   # Code inventé : la vraie liste vient de l'outillage de déploiement et ne descend pas dans
   # ce dépôt, qui est public. La règle testée ne dépend d'aucune valeur en particulier.
-  before { stub_const("Portail::Access::SensitiveProcesses::CODES", %w[DEMO_SENSIBLE]) }
+  before { stub_const("Portail::Access::SensitiveDataStreams::CODES", %w[DEMO_SENSIBLE]) }
 
-  def membership_with(process_code, *traits)
+  def membership_with(data_stream_code, *traits)
     create(:membership, *traits).tap do |membership|
-      create(:process_access, membership:, process_code:) if process_code
+      create(:data_stream_access, membership:, data_stream_code:) if data_stream_code
     end
   end
 
   describe ".required_for?" do
-    it "spares an ordinary agent who touches no sensitive process" do
+    it "spares an ordinary agent who touches no sensitive data stream" do
       expect(described_class.required_for?(membership_with(nil))).to be(false)
       expect(described_class.required_for?(membership_with("DEMO_ORDINAIRE"))).to be(false)
     end
 
-    it "requires it of a local administrator, whatever their processes" do
+    it "requires it of a local administrator, whatever their data streams" do
       expect(described_class.required_for?(membership_with(nil, :local_administrator)))
         .to be(true)
     end
 
-    it "requires it of an ordinary agent holding a sensitive process" do
+    it "requires it of an ordinary agent holding a sensitive data stream" do
       expect(described_class.required_for?(membership_with("DEMO_SENSIBLE"))).to be(true)
     end
 

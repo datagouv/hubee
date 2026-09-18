@@ -7,7 +7,7 @@ class Membership < ApplicationRecord
   belongs_to :agent
   belongs_to :organization_link
   # Pas de `dependent:` — la cascade est portée par la base.
-  has_many :process_accesses
+  has_many :data_stream_accesses
 
   # === Enums ===
   # `validate: true` fait d'une valeur inconnue une erreur de validation là où Rails
@@ -32,7 +32,7 @@ class Membership < ApplicationRecord
   # === Méthodes d'instance ===
   # Les codes des flux habilités. `map` et non `pluck` : lit l'association si elle est
   # préchargée.
-  def process_codes = process_accesses.map(&:process_code)
+  def data_stream_codes = data_stream_accesses.map(&:data_stream_code)
 
   private
 

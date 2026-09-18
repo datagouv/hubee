@@ -25,14 +25,14 @@ module Seeds
 
     # Les codes des flux sensibles ne sont pas dans ce dépôt public : le catalogue les désigne
     # par un symbole, résolu depuis l'environnement au semis. Des variables dédiées, et non
-    # SENSITIVE_PROCESS_CODES que `SensitiveProcesses.parse` majuscule : l'habilitation part
+    # SENSITIVE_DATA_STREAM_CODES que `SensitiveDataStreams.parse` majuscule : l'habilitation part
     # verbatim vers l'amont, sensible à la casse, et un code recasé donne un écran vide.
     SENSITIVE_CODE_VARIABLES = {
-      sensitive_1: "SEED_SENSITIVE_PROCESS_CODE_1",
-      sensitive_2: "SEED_SENSITIVE_PROCESS_CODE_2"
+      sensitive_1: "SEED_SENSITIVE_DATA_STREAM_CODE_1",
+      sensitive_2: "SEED_SENSITIVE_DATA_STREAM_CODE_2"
     }.freeze
 
-    Account = Data.define(:email, :first_name, :last_name, :organization, :role, :process_codes, :scope)
+    Account = Data.define(:email, :first_name, :last_name, :organization, :role, :data_stream_codes, :scope)
 
     # Une habilitation est soit un code public écrit verbatim, soit l'un des symboles ci-dessus.
     # Les habilitations bornent tout le monde, administrateur local compris ; le rôle ne tranche
@@ -40,45 +40,45 @@ module Seeds
     ACCOUNTS = [
       # Environnements déployés : la matrice rôle × habilitation, sur une organisation réelle.
       Account.new(email: "membre-etatcivil@test.proconnect.gouv.fr", first_name: "Camille", last_name: "Membre",
-        organization: :rochefourchat, role: "member", process_codes: ["EtatCivil"], scope: :deployed),
+        organization: :rochefourchat, role: "member", data_stream_codes: ["EtatCivil"], scope: :deployed),
       Account.new(email: "membre-sensible@test.proconnect.gouv.fr", first_name: "Dominique", last_name: "Sensible",
-        organization: :rochefourchat, role: "member", process_codes: [:sensitive_1], scope: :deployed),
+        organization: :rochefourchat, role: "member", data_stream_codes: [:sensitive_1], scope: :deployed),
       Account.new(email: "admin-total@test.proconnect.gouv.fr", first_name: "Alex", last_name: "Total",
-        organization: :rochefourchat, role: "local_administrator", process_codes: [], scope: :deployed),
+        organization: :rochefourchat, role: "local_administrator", data_stream_codes: [], scope: :deployed),
       Account.new(email: "admin-etatcivil@test.proconnect.gouv.fr", first_name: "Sacha", last_name: "Borne",
-        organization: :rochefourchat, role: "local_administrator", process_codes: ["EtatCivil"], scope: :deployed),
+        organization: :rochefourchat, role: "local_administrator", data_stream_codes: ["EtatCivil"], scope: :deployed),
       Account.new(email: "admin-sensible@test.proconnect.gouv.fr", first_name: "Claude", last_name: "Sensible",
-        organization: :rochefourchat, role: "local_administrator", process_codes: [:sensitive_1], scope: :deployed),
+        organization: :rochefourchat, role: "local_administrator", data_stream_codes: [:sensitive_1], scope: :deployed),
       Account.new(email: "marie.durand@basrec.hubee.numerique.gouv.fr", first_name: "Marie", last_name: "Durand",
-        organization: :rochefourchat, role: "local_administrator", process_codes: [], scope: :deployed),
+        organization: :rochefourchat, role: "local_administrator", data_stream_codes: [], scope: :deployed),
       Account.new(email: "jean.dupont@basrec.hubee.numerique.gouv.fr", first_name: "Jean", last_name: "Dupont",
-        organization: :ain, role: "member", process_codes: [:sensitive_2], scope: :deployed),
+        organization: :ain, role: "member", data_stream_codes: [:sensitive_2], scope: :deployed),
       Account.new(email: "marie.dupont@basrec.hubee.numerique.gouv.fr", first_name: "Marie", last_name: "Dupont",
-        organization: :rochefourchat, role: "member", process_codes: ["EtatCivil", "recensementCitoyen"], scope: :deployed),
+        organization: :rochefourchat, role: "member", data_stream_codes: ["EtatCivil", "recensementCitoyen"], scope: :deployed),
 
       # Poste de développement : les comptes réels des fournisseurs d'identité de test ProConnect,
       # userN@yopmail.com (ProConnect Identité), identités libres de FIA1 (@test.proconnect.gouv.fr,
       # SIRET saisissable), et le compte du FI ANCT.
       Account.new(email: "user@yopmail.com", first_name: "Camille", last_name: "Ordinaire",
-        organization: :dinum, role: "member", process_codes: [], scope: :local),
+        organization: :dinum, role: "member", data_stream_codes: [], scope: :local),
       Account.new(email: "user1@yopmail.com", first_name: "Alex", last_name: "Admin",
-        organization: :dinum, role: "local_administrator", process_codes: [], scope: :local),
+        organization: :dinum, role: "local_administrator", data_stream_codes: [], scope: :local),
       Account.new(email: "user2@yopmail.com", first_name: "Dominique", last_name: "Habilite",
-        organization: :dinum, role: "member", process_codes: [:sensitive_1], scope: :local),
+        organization: :dinum, role: "member", data_stream_codes: [:sensitive_1], scope: :local),
       Account.new(email: "user3@yopmail.com", first_name: "Sacha", last_name: "Ailleurs",
-        organization: :lyon, role: "member", process_codes: [], scope: :local),
+        organization: :lyon, role: "member", data_stream_codes: [], scope: :local),
       Account.new(email: "agent@test.proconnect.gouv.fr", first_name: "Camille", last_name: "Fia",
-        organization: :dinum, role: "member", process_codes: [], scope: :local),
+        organization: :dinum, role: "member", data_stream_codes: [], scope: :local),
       Account.new(email: "admin@test.proconnect.gouv.fr", first_name: "Alex", last_name: "Fia",
-        organization: :dinum, role: "local_administrator", process_codes: [], scope: :local),
+        organization: :dinum, role: "local_administrator", data_stream_codes: [], scope: :local),
       Account.new(email: "sensible@test.proconnect.gouv.fr", first_name: "Dominique", last_name: "Fia",
-        organization: :dinum, role: "member", process_codes: [:sensitive_1], scope: :local),
+        organization: :dinum, role: "member", data_stream_codes: [:sensitive_1], scope: :local),
       Account.new(email: "bastien.ogier@sardinepq.fr", first_name: "Bastien", last_name: "Ogier",
-        organization: :sardine, role: "local_administrator", process_codes: [], scope: :local),
+        organization: :sardine, role: "local_administrator", data_stream_codes: [], scope: :local),
       # Membre et non administrateur local, pour que le filtrage par habilitation soit traversé
       # sur les deux démarches en accès portail du socle.
       Account.new(email: "socle@test.proconnect.gouv.fr", first_name: "Camille", last_name: "Socle",
-        organization: :socle, role: "member", process_codes: %w[CERTDC EtatCivil], scope: :local)
+        organization: :socle, role: "member", data_stream_codes: %w[CERTDC EtatCivil], scope: :local)
     ].freeze
 
     class << self
@@ -86,7 +86,7 @@ module Seeds
 
       # Ce que les comptes retenus attendent de l'environnement, et qu'il ne déclare pas.
       def missing_variables(scopes)
-        accounts(scopes).flat_map(&:process_codes).grep(Symbol).uniq
+        accounts(scopes).flat_map(&:data_stream_codes).grep(Symbol).uniq
           .map { |code| SENSITIVE_CODE_VARIABLES.fetch(code) }
           .reject { |name| ENV[name].present? }
       end
@@ -95,8 +95,8 @@ module Seeds
       # compte. Les comptes dont un code sensible manque en sont absents.
       def apply!(scopes)
         accounts(scopes).filter_map do |account|
-          process_codes = resolve_process_codes(account.process_codes)
-          next if process_codes.nil?
+          data_stream_codes = resolve_data_stream_codes(account.data_stream_codes)
+          next if data_stream_codes.nil?
 
           # `provider_sub` reste nul : c'est ProConnect qui scelle l'identité au premier login.
           agent = Agent.find_or_create_by!(email: account.email) do |new_agent|
@@ -107,13 +107,13 @@ module Seeds
           # `update!` séparé : le bloc de `find_or_create_by!` ne tourne pas sur un existant.
           membership = Membership.find_or_create_by!(agent:, organization_link: link_for(account.organization))
           membership.update!(role: account.role)
-          align_process_accesses(membership, process_codes)
+          align_data_stream_accesses(membership, data_stream_codes)
           membership
         end
       end
 
       # Ce que le semis a produit, et non ce qu'il visait : un `voit rien` signale une habilitation
-      # qui n'a pas été écrite, un `sans MFA` inattendu un code absent de SENSITIVE_PROCESS_CODES.
+      # qui n'a pas été écrite, un `sans MFA` inattendu un code absent de SENSITIVE_DATA_STREAM_CODES.
       def report(memberships)
         memberships.map do |membership|
           [
@@ -131,18 +131,18 @@ module Seeds
       def link_for(organization) = OrganizationLink.find_or_create_by!(**ORGANIZATIONS.fetch(organization))
 
       def perimeter_of(membership)
-        if Portail::Access::ProcessPerimeter.unrestricted?(membership)
+        if Portail::Access::DataStreamPerimeter.unrestricted?(membership)
           "voit tout"
-        elsif Portail::Access::ProcessPerimeter.none?(membership)
+        elsif Portail::Access::DataStreamPerimeter.none?(membership)
           "voit rien"
         else
-          "limité à #{membership.process_codes.join(", ")}"
+          "limité à #{membership.data_stream_codes.join(", ")}"
         end
       end
 
       # `nil` dès qu'un code sensible manque : mieux vaut laisser le compte de côté que l'enrôler
       # sur un périmètre faux, que personne ne saurait distinguer d'un défaut d'habilitation.
-      def resolve_process_codes(declared)
+      def resolve_data_stream_codes(declared)
         declared.map do |code|
           next code if code.is_a?(String)
 
@@ -153,11 +153,11 @@ module Seeds
         end
       end
 
-      # `where.not(process_code: [])` vaut `1=1` : un compte déclaré sans habilitation perd bien
+      # `where.not(data_stream_code: [])` vaut `1=1` : un compte déclaré sans habilitation perd bien
       # toutes les siennes.
-      def align_process_accesses(membership, process_codes)
-        membership.process_accesses.where.not(process_code: process_codes).destroy_all
-        process_codes.each { |process_code| ProcessAccess.find_or_create_by!(membership:, process_code:) }
+      def align_data_stream_accesses(membership, data_stream_codes)
+        membership.data_stream_accesses.where.not(data_stream_code: data_stream_codes).destroy_all
+        data_stream_codes.each { |data_stream_code| DataStreamAccess.find_or_create_by!(membership:, data_stream_code:) }
       end
     end
   end

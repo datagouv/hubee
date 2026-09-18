@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Access::SensitiveProcesses do
+RSpec.describe Portail::Access::SensitiveDataStreams do
   describe ".parse" do
     # Codes inventés : le découpage ne dépend d'aucune valeur, et la vraie liste ne descend
     # pas dans ce dépôt, qui est public.
@@ -10,7 +10,7 @@ RSpec.describe Portail::Access::SensitiveProcesses do
       expect(described_class.parse("AAA,bbb , Ccc")).to eq(%w[AAA BBB CCC])
     end
 
-    # Une liste vide est un choix légitime : plus aucun processus n'est sensible.
+    # Une liste vide est un choix légitime : plus aucun flux n'est sensible.
     it "accepts an empty list" do
       expect(described_class.parse("")).to eq([])
       expect(described_class.parse(" , ")).to eq([])

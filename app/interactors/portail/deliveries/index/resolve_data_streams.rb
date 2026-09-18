@@ -15,7 +15,7 @@ module Portail
         def call
           # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut
           # « aucun filtre », donc toute l'organisation.
-          context.fail!(error: :no_habilitation) if Access::ProcessPerimeter.none?(membership)
+          context.fail!(error: :no_habilitation) if Access::DataStreamPerimeter.none?(membership)
 
           context.selectable_data_streams = selectable_data_streams.sort
           context.requested_data_streams = requested_data_streams
@@ -29,7 +29,7 @@ module Portail
         # restreint. Transitoire : le temps que les administrateurs locaux reçoivent leurs
         # habilitations par flux comme les agents, la seconde branche disparaîtra.
         def selectable_data_streams
-          return membership.process_codes unless Access::ProcessPerimeter.unrestricted?(membership)
+          return membership.data_stream_codes unless Access::DataStreamPerimeter.unrestricted?(membership)
 
           organisation_data_streams
         end
@@ -49,7 +49,7 @@ module Portail
         # Les flux choisis, s'ils sont tous sélectionnables ; sans choix, le périmètre lui-même.
         def requested_data_streams
           chosen = context.criteria.data_stream_codes
-          return Access::ProcessPerimeter.filter(membership) if chosen.empty?
+          return Access::DataStreamPerimeter.filter(membership) if chosen.empty?
 
           unknown = chosen - context.selectable_data_streams
           return chosen if unknown.empty?

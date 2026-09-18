@@ -53,9 +53,9 @@ Tous les comptes de test du portail vivent dans un seul catalogue, `db/seeds/tes
 
 Le semis est déclaratif et rejouable : il réaligne rôle et habilitations sur le catalogue, sans jamais supprimer un agent, un rattachement ni une trace d'accès.
 
-Les codes des flux sensibles ne sont pas dans ce dépôt public : le catalogue les désigne par un symbole, résolu depuis `SEED_SENSITIVE_PROCESS_CODE_1` et `SEED_SENSITIVE_PROCESS_CODE_2`. Sans elles, les comptes concernés ne sont pas enrôlés et le semis le dit. En local, la première vaut le code de `SENSITIVE_PROCESS_CODES`.
+Les codes des flux sensibles ne sont pas dans ce dépôt public : le catalogue les désigne par un symbole, résolu depuis `SEED_SENSITIVE_DATA_STREAM_CODE_1` et `SEED_SENSITIVE_DATA_STREAM_CODE_2`. Sans elles, les comptes concernés ne sont pas enrôlés et le semis le dit. En local, la première vaut le code de `SENSITIVE_DATA_STREAM_CODES`.
 
-Il imprime le périmètre effectif et la MFA attendue de chaque compte : un `voit rien` signale une habilitation manquante, un `sans MFA` inattendu un code absent de `SENSITIVE_PROCESS_CODES`.
+Il imprime le périmètre effectif et la MFA attendue de chaque compte : un `voit rien` signale une habilitation manquante, un `sans MFA` inattendu un code absent de `SENSITIVE_DATA_STREAM_CODES`.
 
 ### 4. Lancer les tests
 
