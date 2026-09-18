@@ -79,7 +79,6 @@ fr:
         done: Traitée
         refused: Refusée
         closed: Clôturée
-        integration_error: Erreur d'intégration
       state_menu:
         title: Filtrer par état
       attachment_fields:

@@ -133,9 +133,25 @@ RSpec.describe Portail::HubAPI::Deliveries do
         sort: "transmitted_at", direction: "desc", page: 1, per_page: 25, client: client)
 
       expect(list.page.counts_by_state.keys).to eq(
-        %w[transmitted acknowledged in_progress awaiting_documents done refused closed integration_error]
+        %w[transmitted acknowledged in_progress awaiting_documents done refused closed]
       )
       expect(list.page.counts_by_state.values).to all(be_a(Integer))
+    end
+
+    # Supervisé par HubEE, pas par le service instructeur : l'état hors périmètre ne franchit
+    # pas la frontière, même quand l'amont le compte.
+    it "drops a state outside the portal perimeter from the counts even when the upstream counts it" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(state: :integration_error))
+
+      list = described_class.list(siret: siret, insee_code: insee_code, state: "transmitted",
+        data_stream_codes: [], number: nil, transmitted_from: nil, transmitted_to: nil,
+        sort: "transmitted_at", direction: "desc", page: 1, per_page: 25, client: client)
+
+      expect(list.page.counts_by_state).to eq(
+        "transmitted" => 0, "acknowledged" => 0, "in_progress" => 0, "awaiting_documents" => 0,
+        "done" => 0, "refused" => 0, "closed" => 0
+      )
     end
   end
 
@@ -155,6 +171,19 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result.recipient).to eq(Portail::Delivery::Recipient.new(siret: siret, insee_code: insee_code))
       expect(result.applicant).to be_a(Portail::Delivery::Applicant)
       expect(result.applicant.full_name).to eq("George DUBOIS")
+    end
+
+    # La frontière traduit, elle ne ferme pas : un état hors périmètre traverse tel quel, et
+    # c'est la policy qui refuse le détail. Le dire ici évite de chercher le refus à la frontière.
+    it "translates a delivery in a state outside the portal perimeter as is, for the policy to refuse" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(state: :integration_error))
+
+      result = described_class.find(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+        siret: siret, insee_code: insee_code, client: client)
+
+      expect(result).to be_a(Portail::Delivery)
+      expect(result.state).to eq("integration_error")
     end
 
     it "renders no applicant when the upstream serves none" do

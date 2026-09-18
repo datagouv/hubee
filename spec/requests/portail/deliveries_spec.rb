@@ -103,6 +103,27 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(menu).to have_link("Traitée 41", href: "/demarches?statut=done")
     end
 
+    # Rien n'est bouchonné en deçà de la frontière : c'est elle qui masque l'état. Supervisé
+    # par HubEE, l'état d'erreur d'intégration n'est pas une page du service instructeur.
+    it "hides the integration error state from the menu even when the upstream counts it" do
+      sign_in_member
+      client = use_hub_api_fake_client
+      client.add_case(build_v2_delivery(state: :transmitted, recipient: upstream_recipient))
+      client.add_case(build_v2_delivery(
+        id: "0a11c2f4-0000-4000-8000-000000000044", number: "DGS-CERTDC-0000000000002-01",
+        state: :integration_error, recipient: upstream_recipient
+      ))
+
+      get "/demarches"
+
+      expect(response).to have_http_status(:success)
+
+      menu = Capybara.string(response.body).find("nav.fr-sidemenu")
+      expect(menu).to have_link("Transmise 1", href: "/demarches?statut=transmitted")
+      expect(menu).to have_link("Clôturée 0", href: "/demarches?statut=closed")
+      expect(menu).not_to have_link(href: "/demarches?statut=integration_error")
+    end
+
     it "marks the state being shown as the current page in the menu" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list)
@@ -166,8 +187,23 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .and_raise(Portail::HubAPI::InvalidRequest)
 
-      get "/demarches", params: {statut: "n-importe-quoi"}
+      get "/demarches", params: {tri: "n-importe-quoi"}
 
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
+    end
+
+    # Tout état hors périmètre, celui que l'amont sert comme celui qu'il ne connaît pas : le
+    # portail le refuse lui-même, avant tout appel, avec la page d'un filtre refusé par l'amont.
+    it "shows the same refusal for a state the portal does not serve, without asking the upstream" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).not_to receive(:list)
+
+      get "/demarches", params: {statut: "integration_error"}
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
+
+      get "/demarches", params: {statut: "n-importe-quoi"}
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
     end
@@ -1177,6 +1213,23 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
         expect_a_not_found_page
+      end
+
+      # Même porte fermée que l'habilitation, même journal : un identifiant gardé n'ouvre pas
+      # un télédossier que HubEE supervise. Le bruit CSIRT est assumé, comme pour un
+      # rattachement dont les habilitations ont changé.
+      it "refuses a delivery in a state the portal does not serve, logged as out of perimeter" do
+        agent = sign_in_member(process_codes: ["CERTDC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, state: "integration_error"))
+
+        events = capture_semantic_logger_events { expect_a_not_found_page }
+
+        expect(events).to include(be_a_semantic_logger_event(
+          level: :info, message: "Décision d'accès",
+          payload_includes: {event: "Portail::Access::Refusal", reason: :out_of_perimeter,
+                             path: "/demarches/#{delivery_id}", agent_id: agent.id}
+        ))
       end
     end
   end

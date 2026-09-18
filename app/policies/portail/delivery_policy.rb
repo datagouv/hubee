@@ -3,13 +3,15 @@
 module Portail
   # Ce que le rattachement a le droit de lire, appliqué à ce que l'amont a servi : la requête
   # amont est déjà bornée, ici on vérifie qu'il a tenu ce contrat, sur le flux et l'organisation.
+  # L'état s'y ajoute : un télédossier que le portail ne sert pas est hors périmètre pour tous.
   class DeliveryPolicy
     class << self
       # La règle, écrite une fois : pour un détail par `show?`, pour chaque ligne d'une page par
       # le scope.
       def readable?(membership, delivery)
         Access::OrganizationPerimeter.covers?(membership, delivery.recipient) &&
-          Access::ProcessPerimeter.covers?(membership, delivery.data_stream.code)
+          Access::ProcessPerimeter.covers?(membership, delivery.data_stream.code) &&
+          Access::StatePerimeter.covers?(delivery.state)
       end
     end
 

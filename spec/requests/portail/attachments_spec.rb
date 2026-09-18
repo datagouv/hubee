@@ -316,6 +316,15 @@ RSpec.describe "Portail::Attachments", type: :request do
         expect_a_not_found_page
       end
 
+      # L'accès à une pièce est celui de son télédossier : un état non servi ferme aussi les octets.
+      it "refuses a piece of a delivery in a state the portal does not serve" do
+        sign_in_member(process_codes: ["CERTDC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, state: "integration_error"))
+
+        expect_a_not_found_page
+      end
+
       # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.
       it "refuses a piece of a delivery the upstream served for another organisation" do
         sign_in_member(process_codes: ["CERTDC"])

@@ -61,8 +61,10 @@ module Portail
         def page_of(list)
           Portail::Delivery::Page.new(
             pagination: pagination_from(list.pagination),
-            # `transform_keys` préserve l'ordre des états.
+            # `transform_keys` préserve l'ordre des états. Les états hors périmètre tombent ici :
+            # le menu se construit sur ces compteurs, que la policy ne voit pas.
             counts_by_state: list.counts_by_state.transform_keys(&:to_s)
+              .select { |state, _| Portail::Access::StatePerimeter.covers?(state) }
           )
         end
 

@@ -206,6 +206,21 @@ Quand("il ouvre la démarche {string}") do |number|
   click_link number
 end
 
+Étantdonné("l'API amont sert aussi une démarche en erreur d'intégration pour son organisation") do
+  @unauthorised_id = "0a11c2f4-0000-4000-8000-000000000043"
+  HubApiV1.client.add_case(
+    build_v2_delivery(
+      id: @unauthorised_id, number: "DGS-AEC-0000000000002-01", state: :integration_error,
+      recipient: e2e_recipient
+    )
+  )
+end
+
+Alors("le menu des états ne propose pas {string}") do |label|
+  expect(page).to have_css("nav.fr-sidemenu")
+  expect(page).to have_no_css("nav.fr-sidemenu a", text: label)
+end
+
 Quand("il ouvre directement cette démarche") do
   visit "/demarches/#{@unauthorised_id}"
 end

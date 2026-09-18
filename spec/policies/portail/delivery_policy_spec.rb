@@ -2,9 +2,10 @@
 
 require "rails_helper"
 
-# La règle rôle × habilitation est éprouvée dans le spec de Portail::Access::ProcessPerimeter. Ici, on
-# constate que la policy l'applique à ce que l'amont a servi, liste et détail, et qu'elle vérifie
-# aussi l'organisation : l'amont est un tiers, son filtre n'est pas tenu pour acquis.
+# La règle rôle × habilitation est éprouvée dans le spec de Portail::Access::ProcessPerimeter, celle
+# des états servis dans celui de Portail::Access::StatePerimeter. Ici, on constate que la policy les
+# applique à ce que l'amont a servi, liste et détail, et qu'elle vérifie aussi l'organisation :
+# l'amont est un tiers, son filtre n'est pas tenu pour acquis.
 RSpec.describe Portail::DeliveryPolicy do
   def scope(*deliveries) = described_class::Scope.new(membership, deliveries).resolve
 
@@ -43,6 +44,14 @@ RSpec.describe Portail::DeliveryPolicy do
 
         expect(scope(kept, other_stream, other_organisation)).to eq([kept])
       end
+
+      # Servie par l'amont, mais pas une page du service instructeur : HubEE la supervise.
+      it "drops a delivery in a state the portal does not serve" do
+        kept = build(:portail_delivery, membership: membership)
+        unserved = build(:portail_delivery, state: "integration_error", membership: membership)
+
+        expect(scope(kept, unserved)).to eq([kept])
+      end
     end
 
     describe "#show?" do
@@ -66,6 +75,14 @@ RSpec.describe Portail::DeliveryPolicy do
 
         expect(show?(delivery)).to be(false)
       end
+
+      # Le même trou que l'habilitation : la liste ne montre pas cet état, mais un identifiant
+      # gardé suffirait à l'ouvrir.
+      it "refuses a delivery in a state the portal does not serve" do
+        delivery = build(:portail_delivery, state: "integration_error", membership: membership)
+
+        expect(show?(delivery)).to be(false)
+      end
     end
   end
 
@@ -82,6 +99,14 @@ RSpec.describe Portail::DeliveryPolicy do
 
         expect(scope(*kept, other_organisation)).to eq(kept)
       end
+
+      # « Voit tout » s'arrête aux états servis : celui-ci n'est la page de personne.
+      it "drops a delivery in a state the portal does not serve" do
+        kept = build(:portail_delivery, membership: membership)
+        unserved = build(:portail_delivery, state: "integration_error", membership: membership)
+
+        expect(scope(kept, unserved)).to eq([kept])
+      end
     end
 
     describe "#show?" do
@@ -93,6 +118,12 @@ RSpec.describe Portail::DeliveryPolicy do
 
       it "refuses a delivery of another organisation" do
         delivery = build(:portail_delivery, :of_another_organisation)
+
+        expect(show?(delivery)).to be(false)
+      end
+
+      it "refuses a delivery in a state the portal does not serve" do
+        delivery = build(:portail_delivery, state: "integration_error", membership: membership)
 
         expect(show?(delivery)).to be(false)
       end
@@ -112,6 +143,13 @@ RSpec.describe Portail::DeliveryPolicy do
 
         expect(scope(kept, other_stream)).to eq([kept])
       end
+
+      it "drops a delivery in a state the portal does not serve" do
+        kept = build(:portail_delivery, membership: membership)
+        unserved = build(:portail_delivery, state: "integration_error", membership: membership)
+
+        expect(scope(kept, unserved)).to eq([kept])
+      end
     end
 
     describe "#show?" do
@@ -123,6 +161,12 @@ RSpec.describe Portail::DeliveryPolicy do
 
       it "refuses a delivery on another data stream" do
         delivery = build(:portail_delivery, data_stream_code: "AEC", membership: membership)
+
+        expect(show?(delivery)).to be(false)
+      end
+
+      it "refuses a delivery in a state the portal does not serve" do
+        delivery = build(:portail_delivery, state: "integration_error", membership: membership)
 
         expect(show?(delivery)).to be(false)
       end
