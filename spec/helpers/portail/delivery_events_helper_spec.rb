@@ -102,7 +102,7 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
         metadata: {from_state: "transmitted", to_state: "done"})
 
       expect(Capybara.string(helper.delivery_event_sentence(event)).text)
-        .to eq("George DUBOIS a modifié le statut : Transmise → Traitée")
+        .to eq("George DUBOIS a modifié le statut : Nouveau → Traité")
     end
 
     # La gem omet une extrémité quand le statut V1 est nul ou inconnu.
@@ -111,7 +111,7 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
         metadata: {to_state: "done"})
 
       expect(Capybara.string(helper.delivery_event_sentence(event)).text)
-        .to eq("George DUBOIS a modifié le statut : — → Traitée")
+        .to eq("George DUBOIS a modifié le statut : — → Traité")
     end
 
     # L'auteur vient de l'amont et est interpolé dans une clé `_html`.
@@ -161,7 +161,7 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
       event = build(:portail_event, event_type: "unknown", metadata: {})
 
       expect(Capybara.string(helper.delivery_event_sentence(event)).text)
-        .to end_with("est intervenu sur la démarche")
+        .to end_with("est intervenu sur le télédossier")
     end
   end
 

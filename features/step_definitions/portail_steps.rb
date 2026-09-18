@@ -89,7 +89,7 @@ Alors("la page porte le socle DSFR complet") do
   expect(page).to have_css("script[type='importmap']", visible: :all)
 end
 
-# --- Démarches ------------------------------------------------------------------------------
+# --- Télédossiers ------------------------------------------------------------------------------
 #
 # L'API amont est jouée par le client bouchonné de la gem (features/support/world.rb) : aucune
 # de nos classes n'est stubbée, toute la chaîne est traversée dans un vrai navigateur.
@@ -121,11 +121,11 @@ end
     data_stream: HubApiV1::V2::DataStream.new(code: "AEC")))
 end
 
-Étantdonné("l'API amont sert une démarche pour son organisation") do
+Étantdonné("l'API amont sert un télédossier pour son organisation") do
   HubApiV1.client.add_case(e2e_delivery("DGS-CERTDC-0000000000001-01"))
 end
 
-Étantdonné("l'API amont sert aussi une démarche sur un flux non habilité") do
+Étantdonné("l'API amont sert aussi un télédossier sur un flux non habilité") do
   @unauthorised_id = "0a11c2f4-0000-4000-8000-000000000042"
   HubApiV1.client.add_case(
     build_v2_delivery(
@@ -135,7 +135,7 @@ end
   )
 end
 
-Étantdonné("l'API amont sert aussi une démarche traitée pour son organisation") do
+Étantdonné("l'API amont sert aussi un télédossier traité pour son organisation") do
   HubApiV1.client.add_case(
     build_v2_delivery(
       id: "0a11c2f4-0000-4000-8000-000000000043", number: "DGS-CERTDC-0000000000003-01",
@@ -144,7 +144,7 @@ end
   )
 end
 
-# L'identifiant dérive du numéro : distinct par démarche, lisible dans un échec.
+# L'identifiant dérive du numéro : distinct par télédossier, lisible dans un échec.
 def e2e_delivery(number, **attributes)
   build_v2_delivery(
     id: format("0a11c2f4-0000-4000-8000-%012d", number[/\d{13}/].to_i), number: number,
@@ -152,12 +152,12 @@ def e2e_delivery(number, **attributes)
   )
 end
 
-Étantdonné("l'API amont sert aussi une démarche {string} sur le flux {string}") do |number, code|
+Étantdonné("l'API amont sert aussi un télédossier {string} sur le flux {string}") do |number, code|
   HubApiV1.client.add_case(e2e_delivery(number, data_stream: HubApiV1::V2::DataStream.new(code: code)))
 end
 
 # Un instant en heure de Paris : c'est ainsi que le portail borne la période.
-Étantdonné("l'API amont sert aussi une démarche {string} transmise le {string}") do |number, date|
+Étantdonné("l'API amont sert aussi un télédossier {string} transmis le {string}") do |number, date|
   HubApiV1.client.add_case(e2e_delivery(number, transmitted_at: Time.zone.parse(date).noon))
 end
 
@@ -186,7 +186,7 @@ Quand("il filtre sur les flux {string}") do |codes|
   click_button "Filtrer"
 end
 
-Quand("il filtre sur les démarches transmises jusqu'au {string}") do |date|
+Quand("il filtre sur les télédossiers transmis jusqu'au {string}") do |date|
   open_filters
   fill_in "Jusqu'au", with: Date.parse(date)
   click_button "Filtrer"
@@ -194,7 +194,7 @@ end
 
 Quand("il cherche le numéro {string}") do |number|
   open_filters
-  fill_in "Numéro de démarche", with: number
+  fill_in "Numéro de télédossier", with: number
   click_button "Filtrer"
 end
 
@@ -202,11 +202,11 @@ Quand("il trie par « {word} le »") do |column|
   within("table thead") { click_link "#{column} le" }
 end
 
-Quand("il ouvre la démarche {string}") do |number|
+Quand("il ouvre le télédossier {string}") do |number|
   click_link number
 end
 
-Étantdonné("l'API amont sert aussi une démarche en erreur d'intégration pour son organisation") do
+Étantdonné("l'API amont sert aussi un télédossier en erreur d'intégration pour son organisation") do
   @unauthorised_id = "0a11c2f4-0000-4000-8000-000000000043"
   HubApiV1.client.add_case(
     build_v2_delivery(
@@ -221,11 +221,11 @@ Alors("le menu des états ne propose pas {string}") do |label|
   expect(page).to have_no_css("nav.fr-sidemenu a", text: label)
 end
 
-Quand("il ouvre directement cette démarche") do
-  visit "/demarches/#{@unauthorised_id}"
+Quand("il ouvre directement ce télédossier") do
+  visit "/teledossiers/#{@unauthorised_id}"
 end
 
-# Les démarches servies par l'amont portent la pièce par défaut de la gem, dont le client
+# Les télédossiers servis par l'amont portent la pièce par défaut de la gem, dont le client
 # bouchonné sert des octets déterministes de la taille annoncée.
 def e2e_attachment(filename)
   build_v2_data_package.attachments.find { |attachment| attachment.filename == filename }
@@ -235,16 +235,16 @@ Quand("il télécharge la pièce {string}") do |filename|
   within("tr", text: filename) { click_link "Télécharger" }
 end
 
-Quand("il récupère directement la pièce {string} de la démarche {string}") do |filename, number|
-  visit "/demarches/#{e2e_delivery(number).id}/pieces/#{e2e_attachment(filename).id}"
+Quand("il récupère directement la pièce {string} du télédossier {string}") do |filename, number|
+  visit "/teledossiers/#{e2e_delivery(number).id}/pieces/#{e2e_attachment(filename).id}"
 end
 
-Quand("il récupère directement la pièce {string} de cette démarche") do |filename|
-  visit "/demarches/#{@unauthorised_id}/pieces/#{e2e_attachment(filename).id}"
+Quand("il récupère directement la pièce {string} de ce télédossier") do |filename|
+  visit "/teledossiers/#{@unauthorised_id}/pieces/#{e2e_attachment(filename).id}"
 end
 
-Alors("il voit la démarche {string} dans la liste") do |number|
-  expect(page).to have_css("table caption", text: "Transmise")
+Alors("il voit le télédossier {string} dans la liste") do |number|
+  expect(page).to have_css("table caption", text: "Nouveau")
   expect(page).to have_link(number)
 end
 
@@ -256,28 +256,28 @@ Alors("le filtre propose les flux {string}") do |codes|
   end
 end
 
-Alors("il ne voit que la démarche {string}") do |number|
+Alors("il ne voit que le télédossier {string}") do |number|
   expect(page).to have_css("table tbody tr", count: 1)
   expect(page).to have_link(number)
 end
 
-Alors("il ne voit que les démarches {string}") do |numbers|
+Alors("il ne voit que les télédossiers {string}") do |numbers|
   expected = numbers.split(", ")
   expect(page).to have_css("table tbody tr", count: expected.size)
   expected.each { |number| expect(page).to have_link(number) }
 end
 
-Alors("aucune démarche ne correspond à ses critères") do
-  expect(page).to have_text("Aucune démarche ne correspond à vos critères")
+Alors("aucun télédossier ne correspond à ses critères") do
+  expect(page).to have_text("Aucun télédossier ne correspond à vos critères")
   expect(page).to have_no_css("table tbody tr")
 end
 
-Alors("les démarches sont listées dans l'ordre {string}") do |numbers|
+Alors("les télédossiers sont listés dans l'ordre {string}") do |numbers|
   expect(page.all("table tbody tr td:first-child").map(&:text)).to eq(numbers.split(", "))
 end
 
-Alors("il voit le détail de la démarche, demandeur compris") do
-  expect(page).to have_css("h1", text: "Démarche DGS-CERTDC-0000000000001-01")
+Alors("il voit le détail du télédossier, demandeur compris") do
+  expect(page).to have_css("h1", text: "Télédossier DGS-CERTDC-0000000000001-01")
   expect(page).to have_text("CERTDC")
   # Le demandeur est absent de la liste, présent au détail : ce qui distingue les deux écrans.
   expect(page).to have_text("George DUBOIS")
@@ -287,7 +287,7 @@ Alors("il voit l'inventaire des pièces et l'historique") do
   expect(page).to have_css("h2", text: "Pièces du dépôt")
   expect(page).to have_text("certificat.pdf")
   expect(page).to have_css("h2", text: "Historique")
-  expect(page).to have_text("George DUBOIS a modifié le statut : Transmise → Reçue")
+  expect(page).to have_text("George DUBOIS a modifié le statut : Nouveau → Reçu")
 end
 
 Alors("la liste est celle de l'état {string}") do |label|

@@ -9,8 +9,8 @@ RSpec.describe Portail::HubAPI::Deliveries do
   let(:insee_code) { HubApiV1::Testing::Factories::DEFAULT_CODE_INSEE }
 
   describe ".list" do
-    # Deux démarches aux valeurs distinctes : une traduction qui recopierait la première
-    # passerait un test à une seule démarche.
+    # Deux télédossiers aux valeurs distinctes : une traduction qui recopierait le premier
+    # passerait un test à un seul télédossier.
     it "translates an upstream page into portal models" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_case(build_v2_delivery)
@@ -32,7 +32,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       # `code_insee` en amont, `insee_code` ici : la couture vit à la frontière.
       expect(list.deliveries.first.recipient)
         .to eq(Portail::Delivery::Recipient.new(siret: siret, insee_code: insee_code))
-      # La page à part des démarches : ce qui situe la liste ne transporte pas ce qu'elle contient.
+      # La page à part des télédossiers : ce qui situe la liste ne transporte pas ce qu'elle contient.
       expect(list.page).to be_a(Portail::Delivery::Page)
       expect(list.page.pagination).to have_attributes(current_page: 1, total_pages: 1, total: 2)
     end
@@ -197,7 +197,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result.applicant).to be_nil
     end
 
-    # L'état arrive en Symbol et doit ressortir en String, comme celui de la démarche.
+    # L'état arrive en Symbol et doit ressortir en String, comme celui du télédossier.
     it "translates the deposit attachments into portal attachments" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_case(build_v2_delivery)
@@ -291,7 +291,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
     end
 
     # Rien n'est bouchonné : c'est la garde de la gem qui doit refuser, avant tout appel réseau.
-    # L'identifiant vient de l'URL : `/demarches/%20` ne doit pas passer pour une panne.
+    # L'identifiant vient de l'URL : `/teledossiers/%20` ne doit pas passer pour une panne.
     it "lets a blank identifier reach the upstream refusal before any call" do
       client = HubApiV1::Testing::FakeClient.new
 

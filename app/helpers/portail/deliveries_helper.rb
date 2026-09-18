@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Portail
-  # Les champs d'une démarche à l'écran, une méthode par champ avec son repli : une seule
+  # Les champs d'un télédossier à l'écran, une méthode par champ avec son repli : une seule
   # fonction sert la liste et le détail. Un helper et non un mixin : il est indifférent au
   # type reçu. L'historique et la navigation ont leur propre helper, qui incluent celui-ci.
   module DeliveriesHelper
@@ -9,7 +9,7 @@ module Portail
     MISSING = "—"
 
     # Table fermée, repli neutre : un état inconnu ne fait pas tomber le détail. `closed` est
-    # neutre à dessein, une démarche clôturée n'est ni un succès ni un échec.
+    # neutre à dessein, un télédossier clos n'est ni un succès ni un échec.
     STATE_BADGES = {
       "transmitted" => "fr-badge--new",
       "acknowledged" => "fr-badge--info",
@@ -56,7 +56,7 @@ module Portail
         class: ["fr-badge", "fr-badge--sm", ATTACHMENT_BADGES[attachment.state]].compact)
     end
 
-    # Le bouton quand la pièce se remet, sinon son état, qui est la raison. Sans démarche, la
+    # Le bouton quand la pièce se remet, sinon son état, qui est la raison. Sans télédossier, la
     # pièce est celle d'un événement : elle n'a pas d'adresse.
     # `download` : le navigateur reçoit le fichier lui-même, Turbo n'intercepte pas. Le nom
     # accessible porte la pièce : un même intitulé par ligne ne suffit pas au RGAA.
@@ -64,7 +64,7 @@ module Portail
       return delivery_attachment_state(attachment) unless delivery && attachment.state_received?
 
       link_to t("portail.deliveries.attachments.download"),
-        demarche_piece_path(delivery.id, attachment.id),
+        teledossier_piece_path(delivery.id, attachment.id),
         class: "fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line fr-btn--icon-left",
         aria: {label: t("portail.deliveries.attachments.download_named", filename: attachment.filename)},
         download: true

@@ -5,7 +5,7 @@ require "rails_helper"
 # Ces exemples bouchonnent Portail::HubAPI et construisent des Portail::Delivery. La traduction
 # de la gem est éprouvée dans le spec de la frontière, la chaîne entière dans Cucumber.
 RSpec.describe "Portail::Deliveries", type: :request do
-  # Le cas standard du portail : un membre habilité sur le flux des démarches servies.
+  # Le cas standard du portail : un membre habilité sur le flux des télédossiers servis.
   def sign_in_member(process_codes: ["CERTDC"])
     agent = create(:agent, provider_sub: "sub-membre")
     sign_in_via_proconnect(agent: agent)
@@ -33,25 +33,25 @@ RSpec.describe "Portail::Deliveries", type: :request do
       code_insee: ProConnectTestHelper::TEST_INSEE_CODE)
   end
 
-  describe "GET /demarches" do
+  describe "GET /teledossiers" do
     it "redirects a signed-out visitor to the home page" do
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to redirect_to(root_path)
     end
 
-    # Rien n'est bouchonné en deçà de la frontière : la démarche traverse la gem entière.
+    # Rien n'est bouchonné en deçà de la frontière : le télédossier traverse la gem entière.
     it "lists a delivery the upstream serves for the organisation" do
       sign_in_member
       use_hub_api_fake_client.add_case(
         build_v2_delivery(state: :transmitted, recipient: upstream_recipient)
       )
 
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body))
-        .to have_link("DGS-CERTDC-0000000000001-01", href: "/demarches/94b1b09d-b47f-4480-9b48-93b8b36108f2")
+        .to have_link("DGS-CERTDC-0000000000001-01", href: "/teledossiers/94b1b09d-b47f-4480-9b48-93b8b36108f2")
     end
 
     it "lists the deliveries of the agent organisation" do
@@ -59,7 +59,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .and_return(upstream_list(deliveries: [build(:portail_delivery_summary)]))
 
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
@@ -73,7 +73,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         # Le hash complet est éprouvé dans le spec de l'étape FetchList.
         .and_return(upstream_list)
 
-      get "/demarches"
+      get "/teledossiers"
     end
 
     it "honours the state and the page requested as parameters" do
@@ -83,7 +83,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .with(hash_including(state: "acknowledged", page: 2))
         .and_return(upstream_list)
 
-      get "/demarches", params: {statut: "acknowledged", page: "2"}
+      get "/teledossiers", params: {statut: "acknowledged", page: "2"}
     end
 
     # Le menu rend ce que l'amont a compté, dans l'ordre reçu : aucune liste d'états ici.
@@ -93,14 +93,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
         upstream_list(counts_by_state: {"transmitted" => 12, "acknowledged" => 3, "done" => 41})
       )
 
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to have_http_status(:success)
 
       menu = Capybara.string(response.body).find("nav.fr-sidemenu")
-      expect(menu).to have_link("Transmise 12", href: "/demarches?statut=transmitted")
-      expect(menu).to have_link("Reçue 3", href: "/demarches?statut=acknowledged")
-      expect(menu).to have_link("Traitée 41", href: "/demarches?statut=done")
+      expect(menu).to have_link("Nouveau 12", href: "/teledossiers?statut=transmitted")
+      expect(menu).to have_link("Reçu 3", href: "/teledossiers?statut=acknowledged")
+      expect(menu).to have_link("Traité 41", href: "/teledossiers?statut=done")
     end
 
     # Rien n'est bouchonné en deçà de la frontière : c'est elle qui masque l'état. Supervisé
@@ -114,14 +114,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
         state: :integration_error, recipient: upstream_recipient
       ))
 
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to have_http_status(:success)
 
       menu = Capybara.string(response.body).find("nav.fr-sidemenu")
-      expect(menu).to have_link("Transmise 1", href: "/demarches?statut=transmitted")
-      expect(menu).to have_link("Clôturée 0", href: "/demarches?statut=closed")
-      expect(menu).not_to have_link(href: "/demarches?statut=integration_error")
+      expect(menu).to have_link("Nouveau 1", href: "/teledossiers?statut=transmitted")
+      expect(menu).to have_link("Clos 0", href: "/teledossiers?statut=closed")
+      expect(menu).not_to have_link(href: "/teledossiers?statut=integration_error")
     end
 
     it "marks the state being shown as the current page in the menu" do
@@ -129,12 +129,12 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .and_return(upstream_list(counts_by_state: {"done" => 41}))
 
-      get "/demarches?statut=done"
+      get "/teledossiers?statut=done"
 
       expect(response).to have_http_status(:success)
 
       expect(Capybara.string(response.body))
-        .to have_css("nav.fr-sidemenu a[aria-current='page']", text: "Traitée")
+        .to have_css("nav.fr-sidemenu a[aria-current='page']", text: "Traité")
     end
 
     # Le menu survit à l'état vide : le compteur d'un autre état dit à l'agent où aller.
@@ -144,13 +144,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .and_return(upstream_list(deliveries: [],
           counts_by_state: {"transmitted" => 0, "done" => 41}))
 
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to have_http_status(:success)
 
-      expect(Capybara.string(response.body)).to have_text("Aucune démarche dans cet état")
+      expect(Capybara.string(response.body)).to have_text("Aucun télédossier dans cet état")
       expect(Capybara.string(response.body))
-        .to have_link("Traitée 41", href: "/demarches?statut=done")
+        .to have_link("Traité 41", href: "/teledossiers?statut=done")
     end
 
     # L'amont ne sert qu'un état à la fois : une colonne « État » serait constante.
@@ -159,12 +159,12 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .and_return(upstream_list(deliveries: [build(:portail_delivery_summary)]))
 
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to have_http_status(:success)
 
       headers = Nokogiri::HTML(response.body).css("table thead th").map(&:text)
-      expect(headers).to eq(["Numéro", "Flux", "Transmise le", "Mise à jour le"])
+      expect(headers).to eq(["Numéro", "Flux", "Transmis le", "Mise à jour le"])
     end
 
     it "announces how many deliveries there are before the first row" do
@@ -174,11 +174,11 @@ RSpec.describe "Portail::Deliveries", type: :request do
           pagination: build(:portail_pagination, total: 637, total_pages: 26))
       )
 
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to have_http_status(:success)
 
-      expect(Capybara.string(response.body)).to have_text("637 démarches")
+      expect(Capybara.string(response.body)).to have_text("637 télédossiers")
     end
 
     # Un filtre refusé donne une erreur affichée, jamais un filtre réinitialisé en silence.
@@ -187,7 +187,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:list)
         .and_raise(Portail::HubAPI::InvalidRequest)
 
-      get "/demarches", params: {tri: "n-importe-quoi"}
+      get "/teledossiers", params: {tri: "n-importe-quoi"}
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
@@ -199,11 +199,11 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
-      get "/demarches", params: {statut: "integration_error"}
+      get "/teledossiers", params: {statut: "integration_error"}
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
 
-      get "/demarches", params: {statut: "n-importe-quoi"}
+      get "/teledossiers", params: {statut: "n-importe-quoi"}
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
     end
@@ -213,7 +213,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       use_hub_api_fake_client
 
-      get "/demarches", params: {statut: ["transmitted"]}
+      get "/teledossiers", params: {statut: ["transmitted"]}
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
@@ -223,7 +223,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       use_hub_api_fake_client
 
-      get "/demarches", params: {page: ["2"]}
+      get "/teledossiers", params: {page: ["2"]}
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
@@ -234,7 +234,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       # Un périmètre vide ne part jamais en aval : il y vaudrait « aucun filtre ».
       expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("aucun flux")
@@ -245,7 +245,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
 
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
@@ -258,7 +258,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .with(hash_including(page: 1))
         .and_return(upstream_list)
 
-      get "/demarches", params: {page: ""}
+      get "/teledossiers", params: {page: ""}
     end
 
     # La couverture n'instrumente pas les gabarits : sans cet exemple, le partial est un chemin mort.
@@ -270,13 +270,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
           deliveries: [build(:portail_delivery_summary)])
       )
 
-      get "/demarches", params: {page: "2"}
+      get "/teledossiers", params: {page: "2"}
 
       expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
-      expect(page).to have_link("Page précédente", href: demarches_path(statut: "transmitted", page: 1))
-      expect(page).to have_link("Page suivante", href: demarches_path(statut: "transmitted", page: 3))
+      expect(page).to have_link("Page précédente", href: teledossiers_path(statut: "transmitted", page: 1))
+      expect(page).to have_link("Page suivante", href: teledossiers_path(statut: "transmitted", page: 3))
       # La page courante est marquée et n'est pas un lien.
       expect(page).to have_css("a.fr-pagination__link[aria-current='page']", text: "2")
     end
@@ -289,7 +289,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           deliveries: [build(:portail_delivery_summary)])
       )
 
-      get "/demarches", params: {page: "20"}
+      get "/teledossiers", params: {page: "20"}
 
       expect(response).to have_http_status(:success)
       elided = Nokogiri::HTML(response.body).css("nav.fr-pagination span.fr-pagination__link")
@@ -305,7 +305,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           deliveries: [build(:portail_delivery_summary)])
       )
 
-      get "/demarches"
+      get "/teledossiers"
 
       expect(response).to have_http_status(:success)
 
@@ -323,7 +323,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           .with(hash_including(data_stream_codes: match_array(["CERTDC", "AEC"])))
           .and_return(upstream_list)
 
-        get "/demarches"
+        get "/teledossiers"
 
         expect(response).to have_http_status(:success)
       end
@@ -335,7 +335,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           .with(hash_including(data_stream_codes: ["CERTDC"]))
           .and_return(upstream_list)
 
-        get "/demarches"
+        get "/teledossiers"
 
         expect(response).to have_http_status(:success)
       end
@@ -349,7 +349,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           .with(hash_including(data_stream_codes: []))
           .and_return(upstream_list)
 
-        get "/demarches"
+        get "/teledossiers"
 
         expect(response).to have_http_status(:success)
       end
@@ -366,11 +366,11 @@ RSpec.describe "Portail::Deliveries", type: :request do
           ])
         )
         expect(Sentry).to receive(:capture_message).with(
-          a_string_including("Périmètre non respecté par l'amont sur /demarches : 1 élément"),
+          a_string_including("Périmètre non respecté par l'amont sur /teledossiers : 1 élément"),
           level: :warning, extra: hash_including(dropped_ids: ["hors-perimetre"])
         )
 
-        events = capture_semantic_logger_events { get "/demarches" }
+        events = capture_semantic_logger_events { get "/teledossiers" }
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
@@ -378,7 +378,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(events).to include(be_a_semantic_logger_event(
           level: :info, message: "Décision d'accès",
           payload_includes: {
-            event: "Portail::Access::Refusal", reason: :upstream_mismatch, path: "/demarches",
+            event: "Portail::Access::Refusal", reason: :upstream_mismatch, path: "/teledossiers",
             dropped_ids: ["hors-perimetre"], membership_id: Membership.find_by!(agent: agent).id,
             ip_address: "127.0.0.1"
           }
@@ -396,7 +396,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
             transmitted_to: "2026-08-31", sort: "updated_at", direction: "asc"))
           .and_return(upstream_list)
 
-        get "/demarches", params: {flux: "AEC", du: "2026-08-01", au: "2026-08-31", tri: "updated_at", ordre: "asc"}
+        get "/teledossiers", params: {flux: "AEC", du: "2026-08-01", au: "2026-08-31", tri: "updated_at", ordre: "asc"}
 
         expect(response).to have_http_status(:success)
       end
@@ -409,15 +409,15 @@ RSpec.describe "Portail::Deliveries", type: :request do
         sign_in_member(process_codes: ["CERTDC", "AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
 
-        get "/demarches", params: {statut: "done", flux: "AEC", du: "2026-08-01", au: "2026-08-31",
-                                   tri: "updated_at", ordre: "asc"}
+        get "/teledossiers", params: {statut: "done", flux: "AEC", du: "2026-08-01", au: "2026-08-31",
+                                      tri: "updated_at", ordre: "asc"}
 
         expect(response).to have_http_status(:success)
 
         # Le panneau est ouvert : un filtre est posé, il doit se voir.
         expect(Capybara.string(response.body))
           .to have_css("section.fr-accordion button[aria-controls='delivery-filters'][aria-expanded='true']")
-        form = Capybara.string(response.body).find("form[action='/demarches'][method='get']")
+        form = Capybara.string(response.body).find("form[action='/teledossiers'][method='get']")
         # Un groupe de cases, pas un select : nhube permettait plusieurs flux à la fois.
         expect(form).to have_css("fieldset legend", text: "Flux")
         expect(form).to have_checked_field("AEC")
@@ -434,15 +434,15 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
         # Les filtres posés sont rappelés en tags, chacun un lien vers la page sans lui.
         tags = Capybara.string(response.body).find("ul.fr-tags-group")
-        expect(tags).to have_link("AEC", href: "/demarches?au=2026-08-31&du=2026-08-01&ordre=asc&statut=done&tri=updated_at")
-        expect(tags).to have_link("Transmise du 01/08/2026 au 31/08/2026",
-          href: "/demarches?flux%5B%5D=AEC&ordre=asc&statut=done&tri=updated_at")
+        expect(tags).to have_link("AEC", href: "/teledossiers?au=2026-08-31&du=2026-08-01&ordre=asc&statut=done&tri=updated_at")
+        expect(tags).to have_link("Transmis du 01/08/2026 au 31/08/2026",
+          href: "/teledossiers?flux%5B%5D=AEC&ordre=asc&statut=done&tri=updated_at")
         # Effacer les filtres n'est pas remettre l'ordre : le tri reste, comme dans les tags.
         expect(Capybara.string(response.body))
-          .to have_link("Tout effacer", href: "/demarches?ordre=asc&statut=done&tri=updated_at")
+          .to have_link("Tout effacer", href: "/teledossiers?ordre=asc&statut=done&tri=updated_at")
         # Des tags supprimables, la croix à droite ; le verbe est dans l'intitulé lu.
         expect(tags).to have_css("a.fr-tag.fr-tag--dismiss[aria-label='Retirer le filtre AEC']")
-        expect(tags).to have_css("a.fr-tag.fr-tag--dismiss[aria-label='Retirer le filtre Transmise du 01/08/2026 au 31/08/2026']")
+        expect(tags).to have_css("a.fr-tag.fr-tag--dismiss[aria-label='Retirer le filtre Transmis du 01/08/2026 au 31/08/2026']")
       end
 
       # Un tri est un lien d'en-tête : le tri courant est annoncé, un clic l'inverse, un clic sur
@@ -452,16 +452,16 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           .and_return(upstream_list(deliveries: [build(:portail_delivery_summary)]))
 
-        get "/demarches", params: {flux: "CERTDC", tri: "updated_at", ordre: "asc"}
+        get "/teledossiers", params: {flux: "CERTDC", tri: "updated_at", ordre: "asc"}
 
         expect(response).to have_http_status(:success)
 
         page = Capybara.string(response.body)
         expect(page).to have_css("th[aria-sort='ascending']", text: "Mise à jour le")
         # Rails écrit les paramètres dans l'ordre alphabétique ; le sens par défaut est omis.
-        expect(page).to have_link("Mise à jour le", href: "/demarches?flux%5B%5D=CERTDC&statut=transmitted&tri=updated_at")
-        expect(page).to have_link("Transmise le", href: "/demarches?flux%5B%5D=CERTDC&statut=transmitted")
-        expect(page).to have_no_css("th[aria-sort]", text: "Transmise le")
+        expect(page).to have_link("Mise à jour le", href: "/teledossiers?flux%5B%5D=CERTDC&statut=transmitted&tri=updated_at")
+        expect(page).to have_link("Transmis le", href: "/teledossiers?flux%5B%5D=CERTDC&statut=transmitted")
+        expect(page).to have_no_css("th[aria-sort]", text: "Transmis le")
       end
 
       it "carries the filters and the sort through the state menu and the pagination" do
@@ -472,13 +472,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
             pagination: build(:portail_pagination, current_page: 1, total_pages: 2))
         )
 
-        get "/demarches", params: {flux: "CERTDC", ordre: "asc"}
+        get "/teledossiers", params: {flux: "CERTDC", ordre: "asc"}
 
         expect(response).to have_http_status(:success)
 
         page = Capybara.string(response.body)
-        expect(page).to have_link("Traitée 41", href: "/demarches?flux%5B%5D=CERTDC&ordre=asc&statut=done")
-        expect(page).to have_link("Page suivante", href: "/demarches?flux%5B%5D=CERTDC&ordre=asc&page=2&statut=transmitted")
+        expect(page).to have_link("Traité 41", href: "/teledossiers?flux%5B%5D=CERTDC&ordre=asc&statut=done")
+        expect(page).to have_link("Page suivante", href: "/teledossiers?flux%5B%5D=CERTDC&ordre=asc&page=2&statut=transmitted")
       end
 
       # Sans filtre, le panneau est replié : la liste est le contenu, le filtre un outil.
@@ -486,7 +486,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         sign_in_member
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
 
-        get "/demarches"
+        get "/teledossiers"
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body))
@@ -499,10 +499,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
         sign_in_member
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
 
-        get "/demarches", params: {du: "2026-08-01"}
+        get "/teledossiers", params: {du: "2026-08-01"}
 
         expect(response).to have_http_status(:success)
-        expect(Capybara.string(response.body)).to have_text("Aucune démarche ne correspond à vos critères")
+        expect(Capybara.string(response.body)).to have_text("Aucun télédossier ne correspond à vos critères")
         expect(Capybara.string(response.body)).to have_button("Filtrer")
       end
 
@@ -513,7 +513,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           .with(hash_including(data_stream_codes: ["AEC", "DEMO"]))
           .and_return(upstream_list)
 
-        get "/demarches", params: {flux: ["AEC", "DEMO"]}
+        get "/teledossiers", params: {flux: ["AEC", "DEMO"]}
 
         expect(response).to have_http_status(:success)
       end
@@ -523,7 +523,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         sign_in_member(process_codes: ["CERTDC"])
         expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
-        get "/demarches", params: {flux: "AEC"}
+        get "/teledossiers", params: {flux: "AEC"}
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
@@ -534,7 +534,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         sign_in_member
         use_hub_api_fake_client
 
-        get "/demarches", params: {du: "31/08/2026"}
+        get "/teledossiers", params: {du: "31/08/2026"}
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
@@ -559,10 +559,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
         client.add_subscription(build_subscription_record(id: "sub-4", process_code: "DEMO_AUTRE",
           subscriber_siret: ProConnectTestHelper::TEST_SIRET, subscriber_branch_code: "00002"))
 
-        get "/demarches"
+        get "/teledossiers"
 
         expect(response).to have_http_status(:success)
-        form = Capybara.string(response.body).find("form[action='/demarches'][method='get']")
+        form = Capybara.string(response.body).find("form[action='/teledossiers'][method='get']")
         expect(form).to have_unchecked_field("AEC")
         expect(form).to have_unchecked_field("CERTDC")
         expect(form).to have_no_field("DEMO_API")
@@ -574,7 +574,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(Portail::HubAPI::Subscriptions).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
         expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
-        get "/demarches"
+        get "/teledossiers"
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
@@ -589,7 +589,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           .with(hash_including(number: "ID22026", data_stream_codes: ["AEC"], direction: "asc"))
           .and_return(upstream_list)
 
-        get "/demarches", params: {numero: "ID22026", flux: "AEC", ordre: "asc"}
+        get "/teledossiers", params: {numero: "ID22026", flux: "AEC", ordre: "asc"}
 
         expect(response).to have_http_status(:success)
       end
@@ -599,14 +599,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
         sign_in_member(process_codes: ["CERTDC", "AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
 
-        get "/demarches", params: {statut: "done", numero: "ID22026", flux: "AEC", ordre: "asc"}
+        get "/teledossiers", params: {statut: "done", numero: "ID22026", flux: "AEC", ordre: "asc"}
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body))
           .to have_css("section.fr-accordion button[aria-controls='delivery-filters'][aria-expanded='true']")
-        form = Capybara.string(response.body).find("form[action='/demarches'][method='get']")
+        form = Capybara.string(response.body).find("form[action='/teledossiers'][method='get']")
         # Un champ seul : un libellé avec sa description, pas une légende.
-        expect(form.first("fieldset, .fr-input-group")).to have_field("Numéro de démarche", type: "search", with: "ID22026")
+        expect(form.first("fieldset, .fr-input-group")).to have_field("Numéro de télédossier", type: "search", with: "ID22026")
         expect(form).to have_css(".fr-input-group label .fr-hint-text", text: "Complet ou partiel")
         # La longueur d'un numéro complet : l'amont refuse au-delà, le navigateur arrête avant.
         expect(form).to have_css("input[type='search'][maxlength='30']")
@@ -617,23 +617,23 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
         # Le numéro est rappelé en tag, retirable seul ; « Tout effacer » le lève aussi.
         tags = Capybara.string(response.body).find("ul.fr-tags-group")
-        expect(tags).to have_link("Numéro contenant « ID22026 »", href: "/demarches?flux%5B%5D=AEC&ordre=asc&statut=done")
-        expect(tags).to have_link("AEC", href: "/demarches?numero=ID22026&ordre=asc&statut=done")
+        expect(tags).to have_link("Numéro contenant « ID22026 »", href: "/teledossiers?flux%5B%5D=AEC&ordre=asc&statut=done")
+        expect(tags).to have_link("AEC", href: "/teledossiers?numero=ID22026&ordre=asc&statut=done")
         expect(Capybara.string(response.body))
-          .to have_link("Tout effacer", href: "/demarches?ordre=asc&statut=done")
+          .to have_link("Tout effacer", href: "/teledossiers?ordre=asc&statut=done")
       end
 
       it "keeps the filter form and says so when nothing matches the number" do
         sign_in_member
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
 
-        get "/demarches", params: {numero: "ID22026"}
+        get "/teledossiers", params: {numero: "ID22026"}
 
         expect(response).to have_http_status(:success)
         page = Capybara.string(response.body)
-        expect(page).to have_text("Aucune démarche ne correspond à vos critères")
-        expect(page).to have_field("Numéro de démarche", with: "ID22026")
-        expect(page).to have_link("Numéro contenant « ID22026 »", href: "/demarches?statut=transmitted")
+        expect(page).to have_text("Aucun télédossier ne correspond à vos critères")
+        expect(page).to have_field("Numéro de télédossier", with: "ID22026")
+        expect(page).to have_link("Numéro contenant « ID22026 »", href: "/teledossiers?statut=transmitted")
       end
 
       it "carries the number through the state menu, the sort headers and the pagination" do
@@ -644,13 +644,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
             pagination: build(:portail_pagination, current_page: 1, total_pages: 2))
         )
 
-        get "/demarches", params: {numero: "ID22026"}
+        get "/teledossiers", params: {numero: "ID22026"}
 
         expect(response).to have_http_status(:success)
         page = Capybara.string(response.body)
-        expect(page).to have_link("Traitée 2", href: "/demarches?numero=ID22026&statut=done")
-        expect(page).to have_link("Mise à jour le", href: "/demarches?numero=ID22026&statut=transmitted&tri=updated_at")
-        expect(page).to have_link("Page suivante", href: "/demarches?numero=ID22026&page=2&statut=transmitted")
+        expect(page).to have_link("Traité 2", href: "/teledossiers?numero=ID22026&statut=done")
+        expect(page).to have_link("Mise à jour le", href: "/teledossiers?numero=ID22026&statut=transmitted&tri=updated_at")
+        expect(page).to have_link("Page suivante", href: "/teledossiers?numero=ID22026&page=2&statut=transmitted")
       end
 
       # Rien n'est bouchonné en deçà de la frontière : le filtre de flux écarte le numéro, et la
@@ -665,10 +665,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
           client.add_case(build_v2_delivery(number: "DGS-AEC-0000000000002-01", state: :transmitted,
             data_stream: HubApiV1::V2::DataStream.new(code: "AEC"), recipient: upstream_recipient))
 
-          get "/demarches", params: {numero: "0000000000002"}
+          get "/teledossiers", params: {numero: "0000000000002"}
 
           expect(response).to have_http_status(:success)
-          expect(Capybara.string(response.body)).to have_text("Aucune démarche ne correspond à vos critères")
+          expect(Capybara.string(response.body)).to have_text("Aucun télédossier ne correspond à vos critères")
           expect(Capybara.string(response.body)).to have_no_text("DGS-AEC-0000000000002-01")
         end
       end
@@ -678,7 +678,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         sign_in_member
         client = use_hub_api_fake_client
 
-        get "/demarches", params: {numero: "DGS-CERTDC-0000000000001-01-XXX"}
+        get "/teledossiers", params: {numero: "DGS-CERTDC-0000000000001-01-XXX"}
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("L'état, le filtre ou la page demandés n'existent pas")
@@ -694,7 +694,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         client.add_case(build_v2_delivery(number: "DGS-AEC-0000000000002-01", state: :transmitted,
           data_stream: HubApiV1::V2::DataStream.new(code: "AEC"), recipient: upstream_recipient))
 
-        get "/demarches", params: {numero: "0000000000002"}
+        get "/teledossiers", params: {numero: "0000000000002"}
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_link("DGS-AEC-0000000000002-01")
@@ -702,11 +702,11 @@ RSpec.describe "Portail::Deliveries", type: :request do
     end
   end
 
-  describe "GET /demarches/:id" do
+  describe "GET /teledossiers/:id" do
     let(:delivery_id) { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
 
     it "redirects a signed-out visitor to the home page" do
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to redirect_to(root_path)
     end
@@ -726,12 +726,12 @@ RSpec.describe "Portail::Deliveries", type: :request do
         ]
       ))
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
-      expect(page).to have_text("George DUBOIS a modifié le statut : — → Traitée")
+      expect(page).to have_text("George DUBOIS a modifié le statut : — → Traité")
       expect(page).to have_text("Sans date")
       expect(Nokogiri::HTML(response.body)
         .xpath("//dt[normalize-space()='Demandeur']/following-sibling::dd[1]").text).to eq("—")
@@ -743,7 +743,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
@@ -756,7 +756,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:find)
         .and_return(build(:portail_delivery, applicant: nil))
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("Demandeur")
@@ -772,7 +772,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           filename: "certificat.pdf", byte_size: 2048, state: "rejected")])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -796,13 +796,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
             attachments: [build(:portail_attachment, id: "b2", filename: "complement.pdf")])])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
       expect(page).to have_link("Télécharger",
-        href: "/demarches/#{delivery_id}/pieces/a1111111-1111-1111-1111-111111111111", count: 1)
+        href: "/teledossiers/#{delivery_id}/pieces/a1111111-1111-1111-1111-111111111111", count: 1)
       expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][download]")
       # RGAA : des liens de même intitulé vers des cibles différentes se distinguent par leur nom accessible.
       expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][aria-label='Télécharger recue.pdf']")
@@ -823,7 +823,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         ])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -846,7 +846,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
             attachments: [build(:portail_attachment, id: "b2", filename: "complement.pdf")])])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -868,7 +868,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
             attachments: [build(:portail_attachment, id: "b2", filename: "complement.pdf")])])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -891,7 +891,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
             attachments: [build(:portail_attachment, id: "b2")])])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -906,14 +906,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:find)
         .and_return(build(:portail_delivery, attachments: [], events: []))
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
       expect(page).to have_text("Aucune pièce n'accompagnait le dépôt.")
       expect(page).to have_text("Aucune pièce n'a été ajoutée depuis le dépôt.")
-      expect(page).to have_text("Aucun événement enregistré pour cette démarche.")
+      expect(page).to have_text("Aucun événement enregistré pour ce télédossier.")
     end
 
     it "renders the history with both ends of each state change" do
@@ -924,12 +924,12 @@ RSpec.describe "Portail::Deliveries", type: :request do
           metadata: {from_state: "transmitted", to_state: "acknowledged"})])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
-      expect(page).to have_text("George DUBOIS a modifié le statut : Transmise → Reçue")
+      expect(page).to have_text("George DUBOIS a modifié le statut : Nouveau → Reçu")
       expect(page).to have_text("Dossier pris en charge")
     end
 
@@ -942,7 +942,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         ])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -960,7 +960,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         ])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -976,7 +976,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         ])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -993,7 +993,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           si_comment: "retry #2 après timeout passerelle")])
       )
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -1007,7 +1007,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Portail::HubAPI::Deliveries).to receive(:find)
         .and_return(build(:portail_delivery, state: "done"))
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -1015,7 +1015,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_css("nav.fr-breadcrumb a[aria-current='page']",
         text: "DGS-CERTDC-0000000000001-01")
       # L'état ouvre le récapitulatif et n'en sort pas.
-      expect(page).to have_css("dl.delivery-summary p.fr-badge.fr-badge--success", text: "Traitée")
+      expect(page).to have_css("dl.delivery-summary p.fr-badge.fr-badge--success", text: "Traité")
     end
 
     # Sans l'enveloppe, dt et dd deviennent deux cellules indépendantes et le libellé se
@@ -1024,13 +1024,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
       cells = Nokogiri::HTML(response.body).css("dl.delivery-summary > div")
       expect(cells.map { |cell| cell.css("dt").text.strip })
-        .to eq(["État", "Flux", "Demandeur", "Transmise le", "Mise à jour le"])
+        .to eq(["État", "Flux", "Demandeur", "Transmis le", "Mise à jour le"])
       expect(cells.map { |cell| cell.css("dd").count }).to all(eq(1))
     end
 
@@ -1039,7 +1039,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -1056,7 +1056,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
 
@@ -1069,19 +1069,19 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:not_found)
       expect(Capybara.string(response.body)).to have_text("Page introuvable")
     end
 
-    # Une panne au détail est un incident, signalé à la frontière. Sans la démarche, le portail
+    # Une panne au détail est un incident, signalé à la frontière. Sans le télédossier, le portail
     # n'a rien à montrer : une page d'erreur, pas une redirection dont le message s'évapore.
     it "renders a service unavailable page when the upstream is failing" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::Unavailable)
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:service_unavailable)
       expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
@@ -1094,10 +1094,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_raise(Portail::HubAPI::NotFound)
 
-      events = capture_semantic_logger_events { get "/demarches/evil%0Aforged" }
+      events = capture_semantic_logger_events { get "/teledossiers/evil%0Aforged" }
 
       expect(events).to include(be_a_semantic_logger_event(
-        level: :info, message: "Démarche introuvable en amont", payload_includes: {id: "evil\nforged"}
+        level: :info, message: "Télédossier introuvable en amont", payload_includes: {id: "evil\nforged"}
       ))
     end
 
@@ -1110,7 +1110,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       use_hub_api_fake_client
       expect(Rails.error).not_to receive(:report)
 
-      get "/demarches/#{delivery_id}"
+      get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:not_found)
       expect(Capybara.string(response.body)).to have_text("Page introuvable")
@@ -1121,21 +1121,21 @@ RSpec.describe "Portail::Deliveries", type: :request do
       use_hub_api_fake_client
       expect(Rails.error).not_to receive(:report)
 
-      get "/demarches/pas-un-identifiant"
+      get "/teledossiers/pas-un-identifiant"
 
       expect(response).to have_http_status(:not_found)
       expect(Capybara.string(response.body)).to have_text("Page introuvable")
     end
 
     # La matrice rôle × habilitation côté détail, le trou que ferme la policy : la liste ne
-    # montre pas une démarche hors habilitation, mais son identifiant suffirait à l'ouvrir.
+    # montre pas un télédossier hors habilitation, mais son identifiant suffirait à l'ouvrir.
     context "reading perimeter" do
       def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
 
-      # La même page qu'une démarche inexistante : distinguer les deux révélerait l'existence
-      # d'une démarche hors périmètre.
+      # La même page qu'un télédossier inexistant : distinguer les deux révélerait l'existence
+      # d'un télédossier hors périmètre.
       def expect_a_not_found_page
-        get "/demarches/#{delivery_id}"
+        get "/teledossiers/#{delivery_id}"
 
         expect(response).to have_http_status(:not_found)
         expect(Capybara.string(response.body)).to have_text("Page introuvable")
@@ -1143,7 +1143,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       end
 
       def expect_the_delivery_to_open
-        get "/demarches/#{delivery_id}"
+        get "/teledossiers/#{delivery_id}"
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
@@ -1162,7 +1162,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         agent = sign_in_member(process_codes: ["AEC"])
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
         expect(Sentry).to receive(:capture_message).with(
-          "Accès refusé hors périmètre sur /demarches/#{delivery_id}",
+          "Accès refusé hors périmètre sur /teledossiers/#{delivery_id}",
           level: :warning, extra: hash_including(agent_id: agent.id)
         )
 
@@ -1172,7 +1172,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(events).to include(be_a_semantic_logger_event(
           level: :info, message: "Décision d'accès",
           payload_includes: {
-            event: "Portail::Access::Refusal", reason: :out_of_perimeter, path: "/demarches/#{delivery_id}",
+            event: "Portail::Access::Refusal", reason: :out_of_perimeter, path: "/teledossiers/#{delivery_id}",
             agent_id: agent.id, membership_id: membership.id, ip_address: "127.0.0.1"
           }
         ))
@@ -1228,7 +1228,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(events).to include(be_a_semantic_logger_event(
           level: :info, message: "Décision d'accès",
           payload_includes: {event: "Portail::Access::Refusal", reason: :out_of_perimeter,
-                             path: "/demarches/#{delivery_id}", agent_id: agent.id}
+                             path: "/teledossiers/#{delivery_id}", agent_id: agent.id}
         ))
       end
     end

@@ -5,7 +5,7 @@ require "hub_api_v1"
 
 module Portail
   module HubAPI
-    # Les démarches, traduites dans les deux sens : entrées vers les mots-clés de la gem,
+    # Les télédossiers, traduits dans les deux sens : entrées vers les mots-clés de la gem,
     # sorties en modèles du portail, erreurs en erreurs de Portail::HubAPI.
     module Deliveries
       # La borne de l'amont, reprise ici pour que le champ de recherche ne nomme pas la gem.

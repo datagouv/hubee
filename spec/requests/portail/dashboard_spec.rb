@@ -16,7 +16,7 @@ RSpec.describe "Portail::Dashboard", type: :request do
 
       get "/"
 
-      expect(response).to redirect_to(demarches_path)
+      expect(response).to redirect_to(teledossiers_path)
     end
 
     # Le rôle ne change pas la porte d'entrée, seulement le périmètre de la liste.
@@ -27,7 +27,7 @@ RSpec.describe "Portail::Dashboard", type: :request do
 
       get "/"
 
-      expect(response).to redirect_to(demarches_path)
+      expect(response).to redirect_to(teledossiers_path)
     end
   end
 end

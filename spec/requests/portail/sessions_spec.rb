@@ -12,8 +12,8 @@ RSpec.describe "Portail::Sessions", type: :request do
 
         expect(response).to redirect_to(root_path)
         follow_redirect!
-        # La racine renvoie l'agent connecté sur ses démarches.
-        expect(response).to redirect_to(demarches_path)
+        # La racine renvoie l'agent connecté sur ses télédossiers.
+        expect(response).to redirect_to(teledossiers_path)
         follow_redirect!
         expect(response).to have_http_status(:success)
         expect(response.body).to include("Connecté en tant que")
@@ -285,7 +285,7 @@ RSpec.describe "Portail::Sessions", type: :request do
 
       expect(response).to redirect_to(root_path)
       follow_redirect!
-      # Session toujours ouverte : la racine renvoie sur les démarches, l'alerte survit.
+      # Session toujours ouverte : la racine renvoie sur les télédossiers, l'alerte survit.
       follow_redirect!
       expect(Capybara.string(response.body)).to have_text("Cette page n'était plus à jour")
     ensure
@@ -627,7 +627,7 @@ RSpec.describe "Portail::Sessions", type: :request do
       Membership.last.update!(role: "local_administrator")
 
       # Une page réservée : l'accueil, ouvert aux visiteurs, n'exige pas le second facteur.
-      get demarches_path
+      get teledossiers_path
       follow_redirect!
 
       expect(Capybara.string(response.body))
@@ -639,7 +639,7 @@ RSpec.describe "Portail::Sessions", type: :request do
       agent = create(:agent)
       sign_in_via_proconnect(agent:, amr: ["pwd"])
       Membership.last.update!(role: "local_administrator")
-      get demarches_path
+      get teledossiers_path
 
       expect(Portail::ProConnect::Client).to receive(:authorization)
         .with(step_up: true, login_hint: agent.email,

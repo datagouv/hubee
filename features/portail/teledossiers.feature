@@ -1,94 +1,94 @@
 # language: fr
-Fonctionnalité: Les démarches de l'organisation
+Fonctionnalité: Les télédossiers de l'organisation
   En tant qu'agent connecté
   Afin de suivre les dossiers de ma structure
-  Je veux consulter les démarches de mon organisation et ouvrir leur détail
+  Je veux consulter les télédossiers de mon organisation et ouvrir leur détail
 
   Contexte:
     Étant donné un agent rattaché à une organisation
     Et il est habilité sur le flux "CERTDC"
     Et ProConnect est prêt à l'authentifier
-    Et l'API amont sert une démarche pour son organisation
+    Et l'API amont sert un télédossier pour son organisation
 
-  Scénario: L'agent connecté arrive sur les démarches de sa structure
+  Scénario: L'agent connecté arrive sur les télédossiers de sa structure
     Étant donné il s'est connecté
-    Alors il voit la démarche "DGS-CERTDC-0000000000001-01" dans la liste
+    Alors il voit le télédossier "DGS-CERTDC-0000000000001-01" dans la liste
 
-  Scénario: L'agent ouvre le détail d'une démarche
+  Scénario: L'agent ouvre le détail d'un télédossier
     Étant donné il s'est connecté
-    Quand il ouvre la démarche "DGS-CERTDC-0000000000001-01"
-    Alors il voit le détail de la démarche, demandeur compris
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors il voit le détail du télédossier, demandeur compris
 
   Scénario: Le détail inventorie les pièces et déroule l'historique
     Étant donné il s'est connecté
-    Quand il ouvre la démarche "DGS-CERTDC-0000000000001-01"
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
     Alors il voit l'inventaire des pièces et l'historique
 
   # Chaque état est une page : une navigation, pas un onglet.
   Scénario: L'agent passe d'un état à l'autre par le menu latéral
-    Étant donné l'API amont sert aussi une démarche traitée pour son organisation
+    Étant donné l'API amont sert aussi un télédossier traité pour son organisation
     Et il s'est connecté
-    Quand il filtre sur l'état "Traitée"
-    Alors la liste est celle de l'état "Traitée"
+    Quand il filtre sur l'état "Traité"
+    Alors la liste est celle de l'état "Traité"
 
   # L'amont ne borne que sur l'organisation : le refus par flux est le nôtre.
-  Scénario: Une démarche hors habilitation reste fermée
-    Étant donné l'API amont sert aussi une démarche sur un flux non habilité
+  Scénario: Un télédossier hors habilitation reste fermé
+    Étant donné l'API amont sert aussi un télédossier sur un flux non habilité
     Et il s'est connecté
-    Quand il ouvre directement cette démarche
+    Quand il ouvre directement ce télédossier
     Alors il obtient une page introuvable, sans que le dossier lui soit montré
 
   # HubEE supervise cet état : ni dans le menu, ni par son adresse.
-  Scénario: Une démarche en erreur d'intégration reste fermée
-    Étant donné l'API amont sert aussi une démarche en erreur d'intégration pour son organisation
+  Scénario: Un télédossier en erreur d'intégration reste fermée
+    Étant donné l'API amont sert aussi un télédossier en erreur d'intégration pour son organisation
     Et il s'est connecté
     Alors le menu des états ne propose pas "Erreur d'intégration"
-    Quand il ouvre directement cette démarche
+    Quand il ouvre directement ce télédossier
     Alors il obtient une page introuvable, sans que le dossier lui soit montré
 
   # Le filtre et le tri sont portés par l'URL : la page se recharge et se partage telle quelle.
   Scénario: L'agent restreint la liste à un flux
     Étant donné il est habilité sur le flux "AEC"
-    Et l'API amont sert aussi une démarche "DGS-AEC-0000000000002-01" sur le flux "AEC"
+    Et l'API amont sert aussi un télédossier "DGS-AEC-0000000000002-01" sur le flux "AEC"
     Et il s'est connecté
     Quand il filtre sur le flux "AEC"
-    Alors il ne voit que la démarche "DGS-AEC-0000000000002-01"
+    Alors il ne voit que le télédossier "DGS-AEC-0000000000002-01"
 
   Scénario: L'agent restreint la liste à plusieurs flux à la fois
     Étant donné il est habilité sur le flux "AEC"
     Et il est habilité sur le flux "DEMO"
-    Et l'API amont sert aussi une démarche "DGS-AEC-0000000000002-01" sur le flux "AEC"
-    Et l'API amont sert aussi une démarche "DGS-DEMO-0000000000004-01" sur le flux "DEMO"
+    Et l'API amont sert aussi un télédossier "DGS-AEC-0000000000002-01" sur le flux "AEC"
+    Et l'API amont sert aussi un télédossier "DGS-DEMO-0000000000004-01" sur le flux "DEMO"
     Et il s'est connecté
     Quand il filtre sur les flux "AEC, CERTDC"
-    Alors il ne voit que les démarches "DGS-AEC-0000000000002-01, DGS-CERTDC-0000000000001-01"
+    Alors il ne voit que les télédossiers "DGS-AEC-0000000000002-01, DGS-CERTDC-0000000000001-01"
 
   # Le numéro suffit, complet ou tronqué : c'est ainsi qu'il circule entre les agents.
-  Scénario: L'agent retrouve une démarche par un fragment de son numéro
-    Étant donné l'API amont sert aussi une démarche "DGS-CERTDC-0000000000005-01" sur le flux "CERTDC"
+  Scénario: L'agent retrouve un télédossier par un fragment de son numéro
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000005-01" sur le flux "CERTDC"
     Et il s'est connecté
     Quand il cherche le numéro "0000000000005"
-    Alors il ne voit que la démarche "DGS-CERTDC-0000000000005-01"
+    Alors il ne voit que le télédossier "DGS-CERTDC-0000000000005-01"
 
   # Même périmètre qu'en liste : un numéro hors habilitation ne renvoie rien, sans confirmer le dossier.
   Scénario: Un numéro hors habilitation ne renvoie rien
-    Étant donné l'API amont sert aussi une démarche sur un flux non habilité
+    Étant donné l'API amont sert aussi un télédossier sur un flux non habilité
     Et il s'est connecté
     Quand il cherche le numéro "DGS-AEC-0000000000002-01"
-    Alors aucune démarche ne correspond à ses critères
+    Alors aucun télédossier ne correspond à ses critères
 
   Scénario: L'agent restreint la liste à une période de transmission
-    Étant donné l'API amont sert aussi une démarche "DGS-CERTDC-0000000000003-01" transmise le "2026-08-20"
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000003-01" transmis le "2026-08-20"
     Et il s'est connecté
-    Quand il filtre sur les démarches transmises jusqu'au "2026-08-31"
-    Alors il ne voit que la démarche "DGS-CERTDC-0000000000003-01"
+    Quand il filtre sur les télédossiers transmis jusqu'au "2026-08-31"
+    Alors il ne voit que le télédossier "DGS-CERTDC-0000000000003-01"
 
   # Les plus récentes d'abord par défaut : un clic sur l'en-tête inverse l'ordre.
   Scénario: L'agent inverse l'ordre de transmission
-    Étant donné l'API amont sert aussi une démarche "DGS-CERTDC-0000000000003-01" transmise le "2026-08-20"
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000003-01" transmis le "2026-08-20"
     Et il s'est connecté
-    Quand il trie par « Transmise le »
-    Alors les démarches sont listées dans l'ordre "DGS-CERTDC-0000000000003-01, DGS-CERTDC-0000000000001-01"
+    Quand il trie par « Transmis le »
+    Alors les télédossiers sont listés dans l'ordre "DGS-CERTDC-0000000000003-01, DGS-CERTDC-0000000000001-01"
 
   # Sans habilitation nommée, les flux proposés viennent des abonnements de la structure : seuls
   # ceux en lecture via le portail comptent, et jamais ceux d'une autre organisation du même SIRET.
@@ -98,22 +98,22 @@ Fonctionnalité: Les démarches de l'organisation
     Et il s'est connecté
     Alors le filtre propose les flux "AEC, CERTDC"
     Quand il filtre sur le flux "AEC"
-    Alors il ne voit que la démarche "DGS-AEC-0000000000002-01"
+    Alors il ne voit que le télédossier "DGS-AEC-0000000000002-01"
 
   Scénario: L'agent télécharge une pièce reçue depuis le détail
     Étant donné il s'est connecté
-    Quand il ouvre la démarche "DGS-CERTDC-0000000000001-01"
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
     Et il télécharge la pièce "certificat.pdf"
     Alors il obtient le fichier "certificat.pdf" en pièce jointe
 
   # L'adresse seule, sans passer par le détail, à travers toute la chaîne.
   Scénario: L'agent récupère une pièce reçue par son adresse
     Étant donné il s'est connecté
-    Quand il récupère directement la pièce "certificat.pdf" de la démarche "DGS-CERTDC-0000000000001-01"
+    Quand il récupère directement la pièce "certificat.pdf" du télédossier "DGS-CERTDC-0000000000001-01"
     Alors il obtient le fichier "certificat.pdf" en pièce jointe
 
   Scénario: Une pièce hors habilitation reste fermée
-    Étant donné l'API amont sert aussi une démarche sur un flux non habilité
+    Étant donné l'API amont sert aussi un télédossier sur un flux non habilité
     Et il s'est connecté
-    Quand il récupère directement la pièce "certificat.pdf" de cette démarche
+    Quand il récupère directement la pièce "certificat.pdf" de ce télédossier
     Alors il obtient une page introuvable, sans que le dossier lui soit montré

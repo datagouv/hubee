@@ -2,7 +2,7 @@
 
 module Portail
   module Access
-    # Ce que le portail a refusé en cours de session, et sur quelles bases : une démarche hors
+    # Ce que le portail a refusé en cours de session, et sur quelles bases : un télédossier hors
     # du périmètre de lecture, ou une page servie par l'amont hors du périmètre demandé, dont
     # `dropped_ids` sont les éléments retirés. Un Data, comme Auth::Decision : jeu de clés
     # fermé, immuable d'un abonné à l'autre.

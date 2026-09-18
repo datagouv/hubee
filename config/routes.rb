@@ -9,14 +9,14 @@ Rails.application.routes.draw do
   # La page d'accueil du portail est servie à la racine de l'application.
   root "portail/dashboard#index"
 
-  # Routes explicites plutôt que `resources` : l'inflecteur singularise « demarches » en
-  # « demarch ». La redirection de l'agent connecté vit dans le contrôleur d'accueil, pas dans
-  # une contrainte de routage qui ne verrait que le cookie et bouclerait sur une session expirée.
-  get "demarches", to: "portail/deliveries#index", as: :demarches
-  get "demarches/:id", to: "portail/deliveries#show", as: :demarche
+  # Routes explicites plutôt que `resources` : l'inflecteur anglais n'a rien à dire sur un mot
+  # français. La redirection de l'agent connecté vit dans le contrôleur d'accueil, pas dans une
+  # contrainte de routage qui ne verrait que le cookie et bouclerait sur une session expirée.
+  get "teledossiers", to: "portail/deliveries#index", as: :teledossiers
+  get "teledossiers/:id", to: "portail/deliveries#show", as: :teledossier
   # Le contenu d'une pièce, pas son inventaire : `pieces` n'a ni index ni page propre, la seule
   # réponse de cette adresse est le fichier.
-  get "demarches/:demarche_id/pieces/:id", to: "portail/attachments#show", as: :demarche_piece
+  get "teledossiers/:teledossier_id/pieces/:id", to: "portail/attachments#show", as: :teledossier_piece
 
   # =============================================================================
   # API V2 — GELÉE LE 2026-06-12

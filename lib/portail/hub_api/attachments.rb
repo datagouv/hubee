@@ -5,7 +5,7 @@ require "hub_api_v1"
 
 module Portail
   module HubAPI
-    # Le contenu des pièces d'une démarche. Ni l'état de la pièce, ni sa taille, ni les droits de
+    # Le contenu des pièces d'un télédossier. Ni l'état de la pièce, ni sa taille, ni les droits de
     # l'agent ne sont regardés ici : ce sont des décisions de l'appelant, prises avant l'appel.
     module Attachments
       class << self

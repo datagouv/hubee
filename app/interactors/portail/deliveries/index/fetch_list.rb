@@ -36,12 +36,12 @@ module Portail
           )
         rescue HubAPI::InvalidRequest => e
           # `inspect` : le message amont cite le paramètre refusé, qui vient de l'URL.
-          Rails.logger.info("Filtre de démarches refusé — #{e.message.inspect}")
+          Rails.logger.info("Filtre de télédossiers refusé — #{e.message.inspect}")
           context.fail!(error: :invalid_request)
         rescue HubAPI::Error => e
           # L'incident est déjà signalé par Portail::HubAPI, qui a traduit la panne : il ne
           # reste qu'à la journaliser et à échouer.
-          Rails.logger.error("Démarches indisponibles — #{e.class} : #{e.message}")
+          Rails.logger.error("Télédossiers indisponibles — #{e.class} : #{e.message}")
           context.fail!(error: :unavailable)
         end
       end

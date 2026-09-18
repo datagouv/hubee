@@ -27,7 +27,7 @@ module Portail
             data_stream: Portail::DataStream.new(code: subscription.data_stream.code),
             read_package: subscription.read_package,
             create_package: subscription.create_package,
-            # Symbol en amont, String dans le portail, comme l'état d'une démarche ; un canal
+            # Symbol en amont, String dans le portail, comme l'état d'un télédossier ; un canal
             # non renseigné reste nil, « » ferait croire à une valeur.
             access_mode: subscription.access_mode&.to_s
           )

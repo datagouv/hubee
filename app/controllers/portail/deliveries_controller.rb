@@ -35,12 +35,12 @@ module Portail
       result = Deliveries::Show.call(membership: current_membership, id: params[:id])
 
       unless result.success?
-        # Rien à autoriser : aucune démarche n'a été trouvée.
+        # Rien à autoriser : aucun télédossier n'a été trouvé.
         skip_authorization
         return (result.error == :not_found) ? not_found : unavailable
       end
 
-      # Sans cette ligne, un identifiant connu ouvrirait une démarche hors habilitation. La
+      # Sans cette ligne, un identifiant connu ouvrirait un télédossier hors habilitation. La
       # policy vérifie aussi l'organisation servie : l'amont n'est pas cru sur parole.
       @delivery = authorize(result.delivery)
     end

@@ -72,13 +72,13 @@ fr:
         lead: Espace de gestion réservé aux administrations.
     deliveries:
       states:
-        transmitted: Transmise
-        acknowledged: Reçue
+        transmitted: Nouveau
+        acknowledged: Reçu
         in_progress: En cours
-        awaiting_documents: Pièces attendues
-        done: Traitée
-        refused: Refusée
-        closed: Clôturée
+        awaiting_documents: En attente de compléments
+        done: Traité
+        refused: Refusé
+        closed: Clos
       state_menu:
         title: Filtrer par état
       attachment_fields:
@@ -103,7 +103,7 @@ fr:
         downloaded_all_html: "%{author} a téléchargé toutes les pièces"
         message_sent_html: "%{author} a envoyé un message"
         comment_added_html: "%{author} a ajouté un commentaire interne"
-        unknown_html: "%{author} est intervenu sur la démarche"
+        unknown_html: "%{author} est intervenu sur le télédossier"
         unknown_author: Un auteur inconnu
         # La conséquence et non le mécanisme : ce qui compte est que la personne l'ait reçu.
         broadcast: Information transmise à la personne concernée.
@@ -113,7 +113,7 @@ fr:
         invalid_request: L'état, le filtre ou la page demandés n'existent pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
       filters:
         title: Filtrer les résultats
-        number: Numéro de démarche
+        number: Numéro de télédossier
         number_hint: Complet ou partiel
         period: Période de transmission
         from: À partir du
@@ -124,16 +124,16 @@ fr:
         active: Filtres actifs
         remove: "Retirer le filtre %{filter}"
         number: "Numéro contenant « %{number} »"
-        between: "Transmise du %{from} au %{to}"
-        from: "Transmise à partir du %{from}"
-        to: "Transmise jusqu'au %{to}"
+        between: "Transmis du %{from} au %{to}"
+        from: "Transmis à partir du %{from}"
+        to: "Transmis jusqu'au %{to}"
         clear_all: Tout effacer
       # L'infobulle d'un en-tête triable dit ce que le clic fera.
       sort:
         asc: Trier du plus ancien au plus récent
         desc: Trier du plus récent au plus ancien
       pagination:
-        label: Pagination des démarches
+        label: Pagination des télédossiers
         previous: Page précédente
         next: Page suivante
         page: "Page %{number}"
@@ -142,25 +142,25 @@ fr:
         number: Numéro
         data_stream: Flux
         state: État
-        transmitted_at: Transmise le
+        transmitted_at: Transmis le
         updated_at: Mise à jour le
         applicant: Demandeur
       index:
-        title: Mes démarches — HubEE
-        heading: Les démarches de ma structure
-        caption: "Démarches à l'état « %{state} »"
+        title: Mes télédossiers — HubEE
+        heading: Les télédossiers de ma structure
+        caption: "Télédossiers à l'état « %{state} »"
         total:
-          one: 1 démarche
-          other: "%{count} démarches"
-        empty: Aucune démarche dans cet état pour votre structure.
-        empty_filtered: Aucune démarche ne correspond à vos critères dans cet état.
+          one: 1 télédossier
+          other: "%{count} télédossiers"
+        empty: Aucun télédossier dans cet état pour votre structure.
+        empty_filtered: Aucun télédossier ne correspond à vos critères dans cet état.
         failures:
-          no_habilitation: Vous n'êtes habilité sur aucun flux ; aucune démarche ne peut vous être présentée. Rapprochez-vous de l'administrateur local de votre structure.
+          no_habilitation: Vous n'êtes habilité sur aucun flux ; aucun télédossier ne peut vous être présenté. Rapprochez-vous de l'administrateur local de votre structure.
           # Le motif est dans le flash : la page ne dit que la conséquence.
-          upstream: Les démarches de votre structure n'ont pas pu être affichées.
+          upstream: Les télédossiers de votre structure n'ont pas pu être affichés.
       show:
-        title: "Démarche %{number} — HubEE"
-        heading: "Démarche %{number}"
+        title: "Télédossier %{number} — HubEE"
+        heading: "Télédossier %{number}"
         back: Retour à la liste
         breadcrumb: Fil d'Ariane
         breadcrumb_open: Voir le fil d'Ariane
@@ -173,7 +173,7 @@ fr:
         # L'amont ne sert pas les fichiers : le dire évite de chercher un lien qui n'existe pas.
         attachments_notice: Les pièces se consultent depuis votre système d'information. HubEE en présente l'inventaire.
         history: Historique
-        history_empty: Aucun événement enregistré pour cette démarche.
+        history_empty: Aucun événement enregistré pour ce télédossier.
         si_comment: Commentaire à destination des SI
         event_attachments: Pièces apportées
     sessions:
