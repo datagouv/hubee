@@ -5,7 +5,7 @@
 # docker build -t hubee .
 # docker run -d -p 80:3000 -e SECRET_KEY_BASE=<...> -e DATABASE_HOST=<...> -e DATABASE_PORT=<...> -e DATABASE_USERNAME=<...> -e DATABASE_PASSWORD=<...> --name hubee hubee
 
-FROM docker.io/library/ruby:4.0.7-slim@sha256:24e70fc8d06fe9741a2873de09d1717810490a122d1ac2641ed65dcc48bc4162 AS base
+FROM docker.io/library/ruby:4.0.7-slim@sha256:2345473a1f244262ba738cb33847d2f0c5464d4adc64b1b43fd1b3a6e6a8bfb2 AS base
 
 # Rails app lives here
 WORKDIR /rails
