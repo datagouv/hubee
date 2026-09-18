@@ -13,6 +13,9 @@ module Portail
           # doit rester réutilisable seule.
           context.fail!(error: :no_habilitation) if Access::ProcessPerimeter.none?(context.membership)
 
+          # Avant l'appel : l'amont sert cet état, et la policy viderait la page en silence.
+          context.fail!(error: :invalid_request) unless Access::StatePerimeter.covers?(criteria.state)
+
           context.list = fetch
         end
 

@@ -54,21 +54,34 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     expect(result.error).to eq(:no_habilitation)
   end
 
-  # `inspect` : le message amont cite le paramètre refusé, qui vient de l'URL.
+  # L'amont accepterait cet état : le refus est celui du portail, avant tout appel, et il se
+  # lit comme un refus amont, même erreur.
+  it "fails as an invalid request without calling the upstream for a state the portal does not serve" do
+    expect(Portail::HubAPI::Deliveries).not_to receive(:list)
+
+    result = described_class.call(membership: membership, criteria: criteria(statut: "integration_error"),
+      requested_data_streams: [], page: 1)
+
+    expect(result).to be_failure
+    expect(result.error).to eq(:invalid_request)
+  end
+
+  # `inspect` : le message amont cite le paramètre refusé, qui vient de l'URL. Sur le tri :
+  # l'état, lui, est tranché par le portail avant l'appel.
   it "fails as an invalid request, logged, when the upstream refuses a parameter" do
     expect(Portail::HubAPI::Deliveries).to receive(:list)
-      .and_raise(Portail::HubAPI::InvalidRequest, "status: n-importe-quoi")
+      .and_raise(Portail::HubAPI::InvalidRequest, "sort: n-importe-quoi")
 
     result = nil
     events = capture_semantic_logger_events do
-      result = described_class.call(membership: membership, criteria: criteria(statut: "n-importe-quoi"),
+      result = described_class.call(membership: membership, criteria: criteria(tri: "n-importe-quoi"),
         requested_data_streams: [], page: 1)
     end
 
     expect(result).to be_failure
     expect(result.error).to eq(:invalid_request)
     expect(events).to include(be_a_semantic_logger_event(
-      level: :info, message: 'Filtre de démarches refusé — "status: n-importe-quoi"'
+      level: :info, message: 'Filtre de démarches refusé — "sort: n-importe-quoi"'
     ))
   end
 

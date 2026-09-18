@@ -23,6 +23,11 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       expect(helper.delivery_state_label(nil)).to eq("—")
       expect(helper.delivery_state_label("")).to eq("—")
     end
+
+    # Supervisé par HubEE : l'état n'a pas de libellé sur le portail, seulement le repli neutre.
+    it "falls back to a dash for the hidden integration error state" do
+      expect(helper.delivery_state_label("integration_error")).to eq("—")
+    end
   end
 
   describe "#delivery_transmitted_at and #delivery_updated_at" do
@@ -82,6 +87,14 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       badge = helper.delivery_state_badge(build(:portail_delivery, state: "inconnu"))
 
       expect(Capybara.string(badge)).to have_css("p.fr-badge", text: "—")
+    end
+
+    # Le détail d'une démarche ouverte par son URL dans cet état tombe sur le même repli.
+    it "falls back to a neutral badge for the hidden integration error state" do
+      badge = helper.delivery_state_badge(build(:portail_delivery, state: "integration_error"))
+
+      expect(Capybara.string(badge)).to have_css("p.fr-badge", text: "—")
+      expect(badge).not_to include("fr-badge--")
     end
   end
 

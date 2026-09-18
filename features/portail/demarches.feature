@@ -38,6 +38,14 @@ Fonctionnalité: Les démarches de l'organisation
     Quand il ouvre directement cette démarche
     Alors il obtient une page introuvable, sans que le dossier lui soit montré
 
+  # HubEE supervise cet état : ni dans le menu, ni par son adresse.
+  Scénario: Une démarche en erreur d'intégration reste fermée
+    Étant donné l'API amont sert aussi une démarche en erreur d'intégration pour son organisation
+    Et il s'est connecté
+    Alors le menu des états ne propose pas "Erreur d'intégration"
+    Quand il ouvre directement cette démarche
+    Alors il obtient une page introuvable, sans que le dossier lui soit montré
+
   # Le filtre et le tri sont portés par l'URL : la page se recharge et se partage telle quelle.
   Scénario: L'agent restreint la liste à un flux
     Étant donné il est habilité sur le flux "AEC"

@@ -17,8 +17,7 @@ module Portail
       "awaiting_documents" => "fr-badge--warning",
       "done" => "fr-badge--success",
       "refused" => "fr-badge--error",
-      "closed" => nil,
-      "integration_error" => "fr-badge--error"
+      "closed" => nil
     }.freeze
 
     # Même politique. `deleted` n'est pas une erreur : la pièce a été retirée, pas refusée.
