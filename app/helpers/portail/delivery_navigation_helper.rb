@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Portail
-  # Se déplacer dans les démarches : le menu d'états et la pagination.
+  # Se déplacer dans les télédossiers : le menu d'états et la pagination.
   module DeliveryNavigationHelper
     include Portail::DeliveriesHelper
 
@@ -11,7 +11,7 @@ module Portail
     # Le lien est une boîte flex : la marge automatique renvoie le compteur au bord, et le
     # retrait garde un blanc quand le libellé est long.
     def delivery_state_menu_link(state, count, criteria:)
-      link_to(demarches_path(**criteria.with(state: state).link_params), class: "fr-sidemenu__link",
+      link_to(teledossiers_path(**criteria.with(state: state).link_params), class: "fr-sidemenu__link",
         "aria-current": ("page" if state == criteria.state)) do
         safe_join([
           delivery_state_label(state),
@@ -31,7 +31,7 @@ module Portail
       target = criteria.with(sort: field, direction: next_direction)
 
       tag.th(scope: "col", "aria-sort": (ARIA_SORTS[criteria.direction] if active)) do
-        link_to(t("portail.deliveries.fields.#{field}"), demarches_path(**target.link_params),
+        link_to(t("portail.deliveries.fields.#{field}"), teledossiers_path(**target.link_params),
           class: ["fr-link", ("fr-link--icon-right #{SORT_ICONS[criteria.direction]}" if active)].compact,
           title: t("portail.deliveries.sort.#{next_direction}"))
       end

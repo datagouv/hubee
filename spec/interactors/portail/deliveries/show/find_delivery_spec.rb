@@ -34,7 +34,7 @@ RSpec.describe Portail::Deliveries::Show::FindDelivery do
     expect(result).to be_failure
     expect(result.error).to eq(:not_found)
     expect(events).to include(be_a_semantic_logger_event(
-      level: :info, message: "Démarche introuvable en amont",
+      level: :info, message: "Télédossier introuvable en amont",
       payload_includes: {id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", reason: :unknown}
     ))
   end
@@ -50,7 +50,7 @@ RSpec.describe Portail::Deliveries::Show::FindDelivery do
 
     expect(result).to be_failure
     expect(result.error).to eq(:unavailable)
-    expect(events).to include(be_a_semantic_logger_event(level: :error, message_includes: "Démarches indisponibles"))
+    expect(events).to include(be_a_semantic_logger_event(level: :error, message_includes: "Télédossiers indisponibles"))
   end
 
   # L'identifiant vient de l'URL : sans bouchon de la couche de traduction, c'est le refus réel
@@ -66,7 +66,7 @@ RSpec.describe Portail::Deliveries::Show::FindDelivery do
     expect(result).to be_failure
     expect(result.error).to eq(:not_found)
     expect(events).to include(be_a_semantic_logger_event(
-      level: :info, message: "Démarche introuvable en amont", payload_includes: {id: " ", reason: :invalid_id}
+      level: :info, message: "Télédossier introuvable en amont", payload_includes: {id: " ", reason: :invalid_id}
     ))
   end
 end

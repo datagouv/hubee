@@ -8,7 +8,7 @@ module Portail
     class Criteria < Data.define(
       :state, :data_stream_codes, :number, :transmitted_from, :transmitted_to, :sort, :direction
     )
-      # La liste s'ouvre sur les démarches que l'agent n'a pas encore prises en charge, son
+      # La liste s'ouvre sur les télédossiers que l'agent n'a pas encore pris en charge, son
       # travail du jour ; ouvrir sur « traitée » ou « clôturée » montrerait d'abord l'archive.
       DEFAULT_STATE = "transmitted"
       # Les plus récentes d'abord, le seul tri que l'amont sert sans surcoût.

@@ -12,8 +12,8 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
       done = helper.delivery_state_menu_link("done", 3, criteria: criteria)
 
       expect(Capybara.string(acknowledged))
-        .to have_link("Reçue 12", href: "/demarches?statut=acknowledged")
-      expect(Capybara.string(done)).to have_link("Traitée 3", href: "/demarches?statut=done")
+        .to have_link("Reçu 12", href: "/teledossiers?statut=acknowledged")
+      expect(Capybara.string(done)).to have_link("Traité 3", href: "/teledossiers?statut=done")
       # Le lien DSFR est une boîte flex : sans marge, le compteur colle au libellé.
       expect(Capybara.string(done)).to have_css("a > span.fr-ml-auto.fr-pl-1w", text: "3")
     end
@@ -22,7 +22,7 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
     it "keeps an empty state in the menu with its zero" do
       link = helper.delivery_state_menu_link("refused", 0, criteria: criteria)
 
-      expect(Capybara.string(link)).to have_link("Refusée 0", href: "/demarches?statut=refused")
+      expect(Capybara.string(link)).to have_link("Refusé 0", href: "/teledossiers?statut=refused")
     end
 
     # Le filtre et le tri suivent d'un état à l'autre : seul l'état change.
@@ -31,7 +31,7 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
         criteria: criteria(statut: "transmitted", flux: "CERTDC", du: "2026-08-01", tri: "updated_at"))
 
       expect(Capybara.string(link))
-        .to have_link("Traitée 3", href: "/demarches?du=2026-08-01&flux%5B%5D=CERTDC&statut=done&tri=updated_at")
+        .to have_link("Traité 3", href: "/teledossiers?du=2026-08-01&flux%5B%5D=CERTDC&statut=done&tri=updated_at")
     end
 
     it "marks the active state as the current page" do
@@ -55,7 +55,7 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
       header = helper.delivery_sort_header("transmitted_at", criteria)
 
       expect(Capybara.string(header)).to have_css("th[scope='col'][aria-sort='descending']")
-      expect(Capybara.string(header)).to have_link("Transmise le", href: "/demarches?ordre=asc&statut=transmitted")
+      expect(Capybara.string(header)).to have_link("Transmis le", href: "/teledossiers?ordre=asc&statut=transmitted")
       expect(Capybara.string(header)).to have_css("a.fr-icon-arrow-down-line[title='Trier du plus ancien au plus récent']")
     end
 
@@ -64,7 +64,7 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
 
       expect(Capybara.string(header)).to have_css("th[scope='col']:not([aria-sort])")
       expect(Capybara.string(header))
-        .to have_link("Mise à jour le", href: "/demarches?flux%5B%5D=CERTDC&statut=transmitted&tri=updated_at")
+        .to have_link("Mise à jour le", href: "/teledossiers?flux%5B%5D=CERTDC&statut=transmitted&tri=updated_at")
       expect(Capybara.string(header)).to have_no_css("a[class*='fr-icon']")
     end
 
@@ -73,18 +73,18 @@ RSpec.describe Portail::DeliveryNavigationHelper, type: :helper do
 
       expect(Capybara.string(header)).to have_css("th[aria-sort='ascending'] a.fr-icon-arrow-up-line")
       expect(Capybara.string(header))
-        .to have_link("Mise à jour le", href: "/demarches?statut=transmitted&tri=updated_at")
+        .to have_link("Mise à jour le", href: "/teledossiers?statut=transmitted&tri=updated_at")
     end
   end
 
   describe "#delivery_pagination_step" do
     # Un segment désactivé reste rendu : il doit rester explicite lui aussi.
     it "titles the step whether it leads somewhere or not" do
-      reachable = helper.delivery_pagination_step("Page suivante", "next", href: "/demarches?page=2")
+      reachable = helper.delivery_pagination_step("Page suivante", "next", href: "/teledossiers?page=2")
       disabled = helper.delivery_pagination_step("Page précédente", "prev")
 
       expect(Capybara.string(reachable))
-        .to have_css("a.fr-pagination__link--next[title='Page suivante'][href='/demarches?page=2']")
+        .to have_css("a.fr-pagination__link--next[title='Page suivante'][href='/teledossiers?page=2']")
       expect(Capybara.string(disabled))
         .to have_css("a.fr-pagination__link--prev[title='Page précédente'][aria-disabled='true']:not([href])")
     end

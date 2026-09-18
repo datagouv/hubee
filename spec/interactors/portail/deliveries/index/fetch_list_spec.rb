@@ -81,7 +81,7 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     expect(result).to be_failure
     expect(result.error).to eq(:invalid_request)
     expect(events).to include(be_a_semantic_logger_event(
-      level: :info, message: 'Filtre de démarches refusé — "sort: n-importe-quoi"'
+      level: :info, message: 'Filtre de télédossiers refusé — "sort: n-importe-quoi"'
     ))
   end
 
@@ -96,6 +96,6 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
 
     expect(result).to be_failure
     expect(result.error).to eq(:unavailable)
-    expect(events).to include(be_a_semantic_logger_event(level: :error, message_includes: "Démarches indisponibles"))
+    expect(events).to include(be_a_semantic_logger_event(level: :error, message_includes: "Télédossiers indisponibles"))
   end
 end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Portail
-  # L'historique d'une démarche : la frise groupée par mois et la phrase de chaque event.
+  # L'historique d'un télédossier : la frise groupée par mois et la phrase de chaque event.
   module DeliveryEventsHelper
     include Portail::DeliveriesHelper
 

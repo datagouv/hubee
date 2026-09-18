@@ -61,7 +61,7 @@ RSpec.describe Portail::DeliveryPolicy do
         expect(show?(delivery)).to be(true)
       end
 
-      # Le trou que cette policy ferme : la liste ne montre pas cette démarche, mais son
+      # Le trou que cette policy ferme : la liste ne montre pas ce télédossier, mais son
       # identifiant suffirait à l'ouvrir.
       it "refuses a delivery on another data stream" do
         delivery = build(:portail_delivery, data_stream_code: "AEC", membership: membership)

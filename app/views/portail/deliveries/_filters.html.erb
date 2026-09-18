@@ -11,7 +11,7 @@
     <%# En GET : l'état de navigation est l'URL, rechargeable et partageable. L'état et le tri
         voyagent en champs cachés parce que seule l'URL les connaît : filtrer ne doit pas remettre
         l'ordre par défaut. Les flux proposés sont ceux du périmètre. %>
-    <%= form_with url: demarches_path, method: :get, class: "fr-background-alt--grey fr-p-3w" do |f| %>
+    <%= form_with url: teledossiers_path, method: :get, class: "fr-background-alt--grey fr-p-3w" do |f| %>
       <% criteria.link_params.slice(:statut, :tri, :ordre).each do |name, value| %>
         <%= f.hidden_field name, value: value %>
       <% end %>

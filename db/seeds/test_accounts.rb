@@ -19,7 +19,7 @@ module Seeds
       lyon: {siret: "26690123100013", insee_code: "00002"},
       sardine: {siret: "84087593400027", insee_code: "00003"},
       # Code INSEE déclaré par le seed du socle : avec le 77372 des factories de la gem, la
-      # liste des démarches restait vide.
+      # liste des télédossiers restait vide.
       socle: {siret: "22770001000019", insee_code: "77001"}
     }.freeze
 

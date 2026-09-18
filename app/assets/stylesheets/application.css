@@ -9,13 +9,13 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
-/* delivery-summary : le récapitulatif d'une démarche (portail/deliveries/show).
+/* delivery-summary : le récapitulatif d'un télédossier (portail/deliveries/show).
    Un reset et rien d'autre : le DSFR ne normalise pas le retrait du navigateur sur dd. */
 .delivery-summary dd {
   margin-left: 0;
 }
 
-/* delivery-timeline : la frise de l'historique d'une démarche (portail/deliveries/show).
+/* delivery-timeline : la frise de l'historique d'un télédossier (portail/deliveries/show).
    Le DSFR n'a pas de composant frise ; la mise en page est à nous, aucune couleur ne l'est. */
 .delivery-timeline,
 .delivery-timeline__entries {

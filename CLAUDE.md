@@ -12,7 +12,7 @@ Un agent est rattaché à une organisation (*membership*) avec un rôle — **me
 
 **Le cas standard est l'agent membre habilité sur un flux**, puis l'administrateur local habilité. Les autres combinaisons (membre sans habilitation, administrateur sans habilitation) sont des cas secondaires. Conséquence directe pour les specs et les exemples : le décor par défaut est le membre habilité — jamais l'administrateur local, qui masquerait le filtrage par habilitation.
 
-Toute fonctionnalité de lecture des démarches se teste sur la **matrice complète rôle × habilitation**, sur la liste **et** sur le détail — aucune combinaison ne se déduit d'une autre.
+Toute fonctionnalité de lecture des télédossiers se teste sur la **matrice complète rôle × habilitation**, sur la liste **et** sur le détail — aucune combinaison ne se déduit d'une autre.
 
 ## Gel de l'API V2 — reprise partielle (août 2026)
 

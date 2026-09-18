@@ -10,7 +10,7 @@ RSpec.describe Portail::HubAPI::Subscriptions do
   describe ".list" do
     # Deux abonnements aux valeurs distinctes : une traduction qui recopierait le premier
     # passerait un test à un seul abonnement. Le mode d'accès arrive en Symbol et ressort en
-    # String, comme l'état d'une démarche.
+    # String, comme l'état d'un télédossier.
     it "translates the upstream subscriptions into portal models" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_subscription(build_subscription_record(process_code: "CERTDC", access_mode: "PORTAIL"))
@@ -57,7 +57,7 @@ RSpec.describe Portail::HubAPI::Subscriptions do
       described_class.list(siret: siret, insee_code: insee_code)
     end
 
-    # Même politique que les démarches : une panne est un incident signalé, un refus non.
+    # Même politique que les télédossiers : une panne est un incident signalé, un refus non.
     it "raises Unavailable, reported, on a transport failure" do
       use_hub_api_fake_client
       expect(HubApiV1::V2::Subscription).to receive(:list).and_raise(HubApiV1::Client::ServerError)

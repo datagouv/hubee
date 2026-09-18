@@ -7,9 +7,9 @@ require "rails_helper"
 RSpec.describe "Portail::Attachments", type: :request do
   let(:delivery_id) { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
   let(:attachment_id) { "a1111111-1111-1111-1111-111111111111" }
-  let(:path) { "/demarches/#{delivery_id}/pieces/#{attachment_id}" }
+  let(:path) { "/teledossiers/#{delivery_id}/pieces/#{attachment_id}" }
 
-  # Le cas standard du portail : un membre habilité sur le flux de la démarche servie.
+  # Le cas standard du portail : un membre habilité sur le flux du télédossier servi.
   def sign_in_member(process_codes: ["CERTDC"])
     agent = create(:agent, provider_sub: "sub-membre")
     sign_in_via_proconnect(agent: agent)
@@ -24,7 +24,7 @@ RSpec.describe "Portail::Attachments", type: :request do
     agent
   end
 
-  describe "GET /demarches/:demarche_id/pieces/:id" do
+  describe "GET /teledossiers/:teledossier_id/pieces/:id" do
     # Le fichier tel quel, sous son nom d'origine, et jamais dans la page : un type neutre et
     # `attachment`, quel que soit le type que l'amont annonce. Aucun magasin sur le chemin.
     it "serves a received piece under its original filename, as a download, out of any store" do
@@ -132,7 +132,7 @@ RSpec.describe "Portail::Attachments", type: :request do
       )
     end
 
-    # Ce que la démarche ne porte pas ne part jamais vers l'amont : la pièce se cherche dans
+    # Ce que le télédossier ne porte pas ne part jamais vers l'amont : la pièce se cherche dans
     # l'inventaire déjà servi, avant toute autorisation. L'identifiant en champ, avec son motif.
     it "renders a not found page for a piece the delivery does not carry, logged, without calling the upstream" do
       sign_in_member
@@ -140,7 +140,7 @@ RSpec.describe "Portail::Attachments", type: :request do
       expect(Portail::HubAPI::Attachments).not_to receive(:download)
 
       events = capture_semantic_logger_events do
-        get "/demarches/#{delivery_id}/pieces/c3333333-3333-3333-3333-333333333333"
+        get "/teledossiers/#{delivery_id}/pieces/c3333333-3333-3333-3333-333333333333"
       end
 
       expect(response).to have_http_status(:not_found)
@@ -174,7 +174,7 @@ RSpec.describe "Portail::Attachments", type: :request do
       )
       expect(Portail::HubAPI::Attachments).not_to receive(:download)
 
-      get "/demarches/#{delivery_id}/pieces/e2222222-2222-2222-2222-222222222222"
+      get "/teledossiers/#{delivery_id}/pieces/e2222222-2222-2222-2222-222222222222"
 
       expect(response).to have_http_status(:not_found)
       expect(Capybara.string(response.body)).to have_text("Page introuvable")
@@ -260,7 +260,7 @@ RSpec.describe "Portail::Attachments", type: :request do
       def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
 
       # La même page qu'une pièce inexistante : distinguer les deux révélerait l'existence d'une
-      # démarche hors périmètre.
+      # télédossier hors périmètre.
       def expect_a_not_found_page
         expect(Portail::HubAPI::Attachments).not_to receive(:download)
 

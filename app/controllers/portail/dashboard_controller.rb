@@ -5,7 +5,7 @@ module Portail
     allow_unauthenticated_access
 
     def index
-      redirect_to demarches_path if agent_signed_in?
+      redirect_to teledossiers_path if agent_signed_in?
     end
   end
 end

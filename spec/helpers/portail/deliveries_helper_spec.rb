@@ -8,8 +8,8 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
   describe "#delivery_state" do
     # Deux états : un libellé codé en dur passerait un test à une seule valeur.
     it "translates each state into its own French label" do
-      expect(helper.delivery_state(build(:portail_delivery, state: "acknowledged"))).to eq("Reçue")
-      expect(helper.delivery_state(build(:portail_delivery, state: "done"))).to eq("Traitée")
+      expect(helper.delivery_state(build(:portail_delivery, state: "acknowledged"))).to eq("Reçu")
+      expect(helper.delivery_state(build(:portail_delivery, state: "done"))).to eq("Traité")
     end
 
     it "falls back to a dash for a state the upstream added without us" do
@@ -71,15 +71,15 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       done = helper.delivery_state_badge(build(:portail_delivery, state: "done"))
       refused = helper.delivery_state_badge(build(:portail_delivery, state: "refused"))
 
-      expect(Capybara.string(done)).to have_css("p.fr-badge.fr-badge--success", text: "Traitée")
-      expect(Capybara.string(refused)).to have_css("p.fr-badge.fr-badge--error", text: "Refusée")
+      expect(Capybara.string(done)).to have_css("p.fr-badge.fr-badge--success", text: "Traité")
+      expect(Capybara.string(refused)).to have_css("p.fr-badge.fr-badge--error", text: "Refusé")
     end
 
     # Neutre par décision, pas par oubli.
     it "leaves a closed delivery neutral" do
       badge = helper.delivery_state_badge(build(:portail_delivery, state: "closed"))
 
-      expect(Capybara.string(badge)).to have_css("p.fr-badge", text: "Clôturée")
+      expect(Capybara.string(badge)).to have_css("p.fr-badge", text: "Clos")
       expect(badge).not_to include("fr-badge--")
     end
 
@@ -89,7 +89,7 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       expect(Capybara.string(badge)).to have_css("p.fr-badge", text: "—")
     end
 
-    # Le détail d'une démarche ouverte par son URL dans cet état tombe sur le même repli.
+    # Le détail d'un télédossier ouverte par son URL dans cet état tombe sur le même repli.
     it "falls back to a neutral badge for the hidden integration error state" do
       badge = helper.delivery_state_badge(build(:portail_delivery, state: "integration_error"))
 
@@ -101,14 +101,14 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
   describe "#delivery_attachment_access" do
     let(:delivery) { build(:portail_delivery, id: "94b1b09d-b47f-4480-9b48-93b8b36108f2") }
 
-    # Le seul cas qui remet un contenu : une pièce reçue, portée par une démarche. Le bouton est
+    # Le seul cas qui remet un contenu : une pièce reçue, portée par un télédossier. Le bouton est
     # l'affordance, sans badge à côté ; RGAA : le nom accessible porte la pièce.
     it "links to the download of a received deposit piece, named after the piece" do
       link = helper.delivery_attachment_access(build(:portail_attachment, filename: "recue.pdf"), delivery)
 
       page = Capybara.string(link)
       expect(page).to have_link("Télécharger",
-        href: "/demarches/94b1b09d-b47f-4480-9b48-93b8b36108f2/pieces/a1111111-1111-1111-1111-111111111111")
+        href: "/teledossiers/94b1b09d-b47f-4480-9b48-93b8b36108f2/pieces/a1111111-1111-1111-1111-111111111111")
       expect(page).to have_css("a.fr-btn.fr-btn--sm[download][aria-label='Télécharger recue.pdf']")
       expect(page).to have_no_css("p.fr-badge")
     end
@@ -163,7 +163,7 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
   it "serves the list form exactly like the detail form" do
     summary = build(:portail_delivery_summary, state: "transmitted", transmitted_at: nil)
 
-    expect(helper.delivery_state(summary)).to eq("Transmise")
+    expect(helper.delivery_state(summary)).to eq("Nouveau")
     expect(helper.delivery_transmitted_at(summary)).to eq("—")
   end
 end
