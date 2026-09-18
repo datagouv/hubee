@@ -747,7 +747,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     # Seule une pièce reçue du dépôt se télécharge : les autres états restent listés sans lien,
     # et les pièces d'un événement n'ont pas d'adresse. `download` : le navigateur reçoit le
-    # fichier lui-même, sans navigation.
+    # fichier lui-même, sans navigation. Le bouton est l'affordance : pas d'étiquette à côté.
     it "offers a download on received deposit pieces only" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
@@ -770,9 +770,56 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][download]")
       # RGAA : des liens de même intitulé vers des cibles différentes se distinguent par leur nom accessible.
       expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][aria-label='Télécharger recue.pdf']")
+      expect(page.find("tr", text: "recue.pdf")).to have_no_css("p.fr-badge")
       expect(page).to have_text("attendue.pdf")
       expect(page).to have_text("complement.pdf")
       expect(page).to have_no_link(href: %r{/pieces/(a2222222|b2)})
+    end
+
+    # La colonne « État » a disparu : c'est la dernière colonne qui dit pourquoi une pièce du
+    # dépôt ne se télécharge pas, par le badge de son état à la place du bouton.
+    it "explains why a deposit piece cannot be downloaded in place of the button" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, attachments: [
+          build(:portail_attachment, id: "a3333333-3333-3333-3333-333333333333",
+            filename: "corrompue.pdf", state: "corrupted")
+        ])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+
+      page = Capybara.string(response.body)
+      # Nokogiri : c'est l'ordre des colonnes, donc une position, qu'on vérifie.
+      headers = Nokogiri::HTML(response.body).css("table thead th").map { |th| th.text.strip }
+      expect(headers).to eq(["Nom du fichier", "Type de pièce", "Taille", "Téléchargement"])
+      row = page.find("tr", text: "corrompue.pdf")
+      expect(row).to have_css("td:last-child p.fr-badge.fr-badge--sm.fr-badge--error", text: "Corrompue")
+      expect(row).to have_no_link("Télécharger")
+      expect(row).to have_no_css("a[href$='/pieces/a3333333-3333-3333-3333-333333333333']")
+    end
+
+    # Une pièce d'événement n'a pas d'adresse : la dernière colonne ne porte que son état.
+    it "shows only the state of an event piece in the download column" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, attachments: [],
+          events: [build(:portail_event, event_type: "attachment.created", metadata: {},
+            attachments: [build(:portail_attachment, id: "b2", filename: "complement.pdf")])])
+      )
+
+      get "/demarches/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+
+      table = Capybara.string(response.body).find("table", text: "complement.pdf")
+      expect(table).to have_css("thead th", text: "Téléchargement")
+      expect(table).to have_no_css("thead th", text: "État")
+      expect(table).to have_css("td:last-child p.fr-badge.fr-badge--sm.fr-badge--success", text: "Reçue")
+      expect(table).to have_no_link("Télécharger")
+      expect(table).to have_no_css("a[href*='/pieces/']")
     end
 
     it "keeps the pieces added later in their own section, with their provenance" do

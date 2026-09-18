@@ -57,6 +57,20 @@ module Portail
         class: ["fr-badge", "fr-badge--sm", ATTACHMENT_BADGES[attachment.state]].compact)
     end
 
+    # Le bouton quand la pièce se remet, sinon son état, qui est la raison. Sans démarche, la
+    # pièce est celle d'un événement : elle n'a pas d'adresse.
+    # `download` : le navigateur reçoit le fichier lui-même, Turbo n'intercepte pas. Le nom
+    # accessible porte la pièce : un même intitulé par ligne ne suffit pas au RGAA.
+    def delivery_attachment_access(attachment, delivery)
+      return delivery_attachment_state(attachment) unless delivery && attachment.state_received?
+
+      link_to t("portail.deliveries.attachments.download"),
+        demarche_piece_path(delivery.id, attachment.id),
+        class: "fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line fr-btn--icon-left",
+        aria: {label: t("portail.deliveries.attachments.download_named", filename: attachment.filename)},
+        download: true
+    end
+
     # Déclarative tant que la pièce n'est pas reçue : approximative vaut mieux qu'absente.
     def delivery_attachment_size(attachment)
       return MISSING if attachment.byte_size.blank?
