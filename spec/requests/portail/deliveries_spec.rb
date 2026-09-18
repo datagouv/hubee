@@ -33,6 +33,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
       code_insee: ProConnectTestHelper::TEST_INSEE_CODE)
   end
 
+  # Les abonnements de l'organisation nomment ses flux, pour tout le monde : les exemples qui les
+  # traversent entièrement rétablissent l'appel d'origine.
+  before { stub_organisation_subscriptions }
+
   describe "GET /teledossiers" do
     it "redirects a signed-out visitor to the home page" do
       get "/teledossiers"
@@ -64,6 +68,74 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(response).to have_http_status(:success)
       expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
       expect(Capybara.string(response.body)).to have_text("CERTDC")
+    end
+
+    # L'intitulé identifie la démarche sans connaître les codes ; le code reste, pour le support.
+    context "data stream names" do
+      it "names the data stream of each row from the subscriptions, code kept" do
+        sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
+        stub_organisation_subscriptions({"CERTDC" => "Certificat de décès électronique", "AEC" => "Actes d'état civil"})
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list(deliveries: [
+          build(:portail_delivery_summary),
+          build(:portail_delivery_summary, id: "0a11c2f4-0000-4000-8000-000000000044",
+            number: "DGS-AEC-0000000000002-01", data_stream_code: "AEC")
+        ]))
+
+        get "/teledossiers"
+
+        expect(response).to have_http_status(:success)
+        cells = Nokogiri::HTML(response.body).css("table tbody tr td:nth-child(2)").map { |cell| cell.text.strip }
+        expect(cells).to eq(["Certificat de décès électronique – CERTDC", "Actes d'état civil – AEC"])
+      end
+
+      # Une démarche que les abonnements ne nomment pas reste listée et identifiable par son code.
+      it "falls back to the code alone for a data stream the subscriptions do not name" do
+        sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list(deliveries: [
+          build(:portail_delivery_summary, number: "DGS-AEC-0000000000002-01", data_stream_code: "AEC")
+        ]))
+
+        get "/teledossiers"
+
+        expect(response).to have_http_status(:success)
+        cells = Nokogiri::HTML(response.body).css("table tbody tr td:nth-child(2)").map { |cell| cell.text.strip }
+        expect(cells).to eq(["AEC"])
+      end
+
+      # Les abonnements sont un second amont pour un membre : leur panne ne coûte que les noms,
+      # jamais la page.
+      it "keeps the list usable, codes alone, when the subscriptions are unavailable" do
+        sign_in_member
+        expect(Portail::HubAPI::Subscriptions).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
+        expect(Portail::HubAPI::Deliveries).to receive(:list)
+          .and_return(upstream_list(deliveries: [build(:portail_delivery_summary)]))
+
+        get "/teledossiers"
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_link("DGS-CERTDC-0000000000001-01")
+        expect(page).to have_no_text("momentanément indisponible")
+        cells = Nokogiri::HTML(response.body).css("table tbody tr td:nth-child(2)").map { |cell| cell.text.strip }
+        expect(cells).to eq(["CERTDC"])
+      end
+
+      # Le filtre se choisit à la lecture, et son rappel en tag aussi.
+      it "names the data streams offered by the filter and recalled as active filters" do
+        sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
+        stub_organisation_subscriptions({"CERTDC" => "Certificat de décès électronique"})
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
+
+        get "/teledossiers", params: {flux: "CERTDC"}
+
+        expect(response).to have_http_status(:success)
+        form = Capybara.string(response.body).find("form[action='/teledossiers'][method='get']")
+        expect(form).to have_checked_field("Certificat de décès électronique – CERTDC")
+        expect(form).to have_unchecked_field("AEC")
+        tags = Capybara.string(response.body).find("ul.fr-tags-group")
+        expect(tags).to have_link("Certificat de décès électronique – CERTDC", href: "/teledossiers?statut=transmitted")
+        expect(tags).to have_css("a.fr-tag--dismiss[aria-label='Retirer le filtre Certificat de décès électronique – CERTDC']")
+      end
     end
 
     it "opens on the transmitted state by default" do
@@ -544,6 +616,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       # lecture via le portail, lus en amont ; le client bouchonné les sert comme l'API.
       it "offers an unrestricted local administrator the data streams its organisation reads through the portal" do
         sign_in_local_administrator
+        expect(Portail::HubAPI::Subscriptions).to receive(:list).and_call_original
         client = use_hub_api_fake_client
         client.add_subscription(build_subscription_record(process_code: "CERTDC", access_mode: "PORTAIL",
           subscriber_siret: ProConnectTestHelper::TEST_SIRET,
@@ -687,6 +760,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       it "finds a number on any data stream the organisation reads for an unrestricted local administrator" do
         sign_in_local_administrator
+        expect(Portail::HubAPI::Subscriptions).to receive(:list).and_call_original
         client = use_hub_api_fake_client
         client.add_subscription(build_subscription_record(process_code: "AEC", access_mode: "PORTAIL",
           subscriber_siret: ProConnectTestHelper::TEST_SIRET,

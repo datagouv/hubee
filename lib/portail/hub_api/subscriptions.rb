@@ -25,6 +25,7 @@ module Portail
           Portail::Subscription.new(
             id: subscription.id,
             data_stream: Portail::DataStream.new(code: subscription.data_stream.code),
+            data_stream_name: subscription.data_stream_name,
             read_package: subscription.read_package,
             create_package: subscription.create_package,
             # Symbol en amont, String dans le portail, comme l'état d'un télédossier ; un canal

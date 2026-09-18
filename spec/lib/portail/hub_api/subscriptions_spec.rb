@@ -13,9 +13,10 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     # String, comme l'état d'un télédossier.
     it "translates the upstream subscriptions into portal models" do
       client = HubApiV1::Testing::FakeClient.new
-      client.add_subscription(build_subscription_record(process_code: "CERTDC", access_mode: "PORTAIL"))
+      client.add_subscription(build_subscription_record(process_code: "CERTDC",
+        process_name: "Certificat de décès électronique", access_mode: "PORTAIL"))
       client.add_subscription(build_subscription_record(id: "sub-2", process_code: "AEC",
-        access_mode: "API", status: "Inactif"))
+        process_name: "Actes d'état civil", access_mode: "API", status: "Inactif"))
 
       list = described_class.list(siret: siret, insee_code: insee_code, client: client)
 
@@ -23,10 +24,21 @@ RSpec.describe Portail::HubAPI::Subscriptions do
       expect(list.subscriptions).to all(be_a(Portail::Subscription))
       expect(list.subscriptions.map { |subscription| subscription.data_stream.code }).to contain_exactly("CERTDC", "AEC")
       expect(list.subscriptions.find { |subscription| subscription.data_stream.code == "CERTDC" }).to have_attributes(
-        id: "550e8400-e29b-41d4-a716-446655440000", read_package: true, create_package: false, access_mode: "portal"
+        id: "550e8400-e29b-41d4-a716-446655440000", data_stream_name: "Certificat de décès électronique",
+        read_package: true, create_package: false, access_mode: "portal"
       )
       expect(list.subscriptions.find { |subscription| subscription.data_stream.code == "AEC" })
-        .to have_attributes(read_package: false, access_mode: "api")
+        .to have_attributes(data_stream_name: "Actes d'état civil", read_package: false, access_mode: "api")
+    end
+
+    # Un flux que l'amont ne nomme pas reste un abonnement entier : l'intitulé seul manque.
+    it "leaves an unnamed data stream unnamed" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_subscription(build_subscription_record(process_name: nil))
+
+      list = described_class.list(siret: siret, insee_code: insee_code, client: client)
+
+      expect(list.subscriptions.first).to have_attributes(data_stream_name: nil, read_package: true)
     end
 
     # Un canal non renseigné en amont reste inconnu ici : « » ferait croire à une valeur.

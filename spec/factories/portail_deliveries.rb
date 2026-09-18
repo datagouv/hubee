@@ -148,6 +148,9 @@ FactoryBot.define do
 
     id { "550e8400-e29b-41d4-a716-446655440000" }
     data_stream { build(:portail_data_stream, code: data_stream_code) }
+    # Sans intitulé par défaut : le cas nommé se pose explicitement, le repli sur le code est
+    # le décor commun.
+    data_stream_name { nil }
     read_package { true }
     create_package { false }
     access_mode { "portal" }

@@ -22,4 +22,22 @@ RSpec.describe Portail::Subscription::List do
       expect(build(:portail_subscription_list, subscriptions: []).portal_data_stream_codes).to eq([])
     end
   end
+
+  describe "#data_stream_names" do
+    # Tous les abonnements nomment, quel que soit leur canal : un intitulé ne confère aucun
+    # droit. Un flux sans intitulé n'a pas d'entrée, le repli sur le code appartient à l'écran.
+    it "projects the name of every named data stream, by code" do
+      list = build(:portail_subscription_list, subscriptions: [
+        build(:portail_subscription, data_stream_code: "CERTDC", data_stream_name: "Certificat de décès électronique"),
+        build(:portail_subscription, id: "sub-2", data_stream_code: "AEC", data_stream_name: "Actes d'état civil", access_mode: "api"),
+        build(:portail_subscription, id: "sub-3", data_stream_code: "DEMO", data_stream_name: nil)
+      ])
+
+      expect(list.data_stream_names).to eq({"CERTDC" => "Certificat de décès électronique", "AEC" => "Actes d'état civil"})
+    end
+
+    it "is empty without any subscription" do
+      expect(build(:portail_subscription_list, subscriptions: []).data_stream_names).to eq({})
+    end
+  end
 end

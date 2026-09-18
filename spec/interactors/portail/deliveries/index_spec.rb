@@ -3,14 +3,15 @@
 require "rails_helper"
 
 RSpec.describe Portail::Deliveries::Index do
-  # Le cas standard : un membre habilité. Ses flux sont connus en base, l'amont n'est lu que
-  # pour la liste.
-  it "hands back the list of the membership and the data streams it may filter on" do
+  # Le cas standard : un membre habilité. Ses flux sont connus en base ; les abonnements ne
+  # servent qu'à les nommer.
+  it "hands back the list of the membership, the data streams it may filter on and their names" do
     membership = create(:membership)
     create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
     list = build(:portail_delivery_list, deliveries: [build(:portail_delivery_summary)])
     expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(list)
-    expect(Portail::HubAPI::Subscriptions).not_to receive(:list)
+    expect(Portail::HubAPI::Subscriptions).to receive(:list).and_return(build(:portail_subscription_list,
+      subscriptions: [build(:portail_subscription, data_stream_name: "Certificat de décès électronique")]))
 
     result = described_class.call(membership: membership,
       criteria: Portail::Delivery::Criteria.from_params({statut: "done"}), page: 1)
@@ -18,6 +19,7 @@ RSpec.describe Portail::Deliveries::Index do
     expect(result).to be_success
     expect(result.list).to eq(list)
     expect(result.selectable_data_streams).to eq(["CERTDC"])
+    expect(result.data_stream_names).to eq({"CERTDC" => "Certificat de décès électronique"})
   end
 
   # Le refus de l'organizer entier : chaque étape le porte, la composition le rend une fois.

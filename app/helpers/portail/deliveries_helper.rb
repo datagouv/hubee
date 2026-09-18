@@ -48,6 +48,13 @@ module Portail
 
     def delivery_updated_at(delivery) = delivery_time(delivery.updated_at)
 
+    # Le code reste, après un tiret : c'est lui qui sert au support. Sans libellé, le code seul,
+    # jamais une ligne vide ni une page en moins.
+    def data_stream_label(code, names)
+      name = names[code]
+      name ? "#{name} – #{code}" : code
+    end
+
     # Toujours affiché, avec son repli : masquer la ligne cacherait que l'information manque.
     def delivery_applicant(delivery) = delivery.applicant&.full_name.presence || MISSING
 
