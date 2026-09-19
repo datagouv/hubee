@@ -132,7 +132,7 @@ module Portail
           metadata.transform_values { |value| value.is_a?(Symbol) ? value.to_s : value }
         end
 
-        def data_stream_from(data_stream) = Portail::DataStream.new(code: data_stream.code)
+        def data_stream_from(data_stream) = Portail::DataStream::Summary.new(code: data_stream.code)
 
         def recipient_from(recipient)
           Portail::Delivery::Recipient.new(siret: recipient.siret, insee_code: recipient.code_insee)

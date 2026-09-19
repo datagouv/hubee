@@ -22,13 +22,26 @@ module Portail
     # Montré à l'agent plutôt que corrigé en silence.
     class InvalidRequest < Error; end
 
+    # Le flux n'autorise pas l'attente de compléments : ni une panne, ni une erreur de l'agent,
+    # mais un refus à montrer tel quel.
+    class AwaitingAttachmentsNotAllowed < Error; end
+
+    # Refus DÉFINITIF sur ce télédossier : aucun réessai n'y changera quoi que ce soit, et le dire
+    # à l'agent lui épargne d'insister.
+    class EventLimitReached < Error; end
+
     class << self
       # La classe d'origine reste dans le message : c'est elle qui distingue une panne d'un refus
       # au journal. Les deux familles de refus : le client V1 et sa surcouche V2 ont chacun le leur.
       def translated(error)
         case error
-        when HubApiV1::V2::DeliveryNotFoundError, HubApiV1::V2::AttachmentNotFoundError
+        when HubApiV1::V2::DeliveryNotFoundError, HubApiV1::V2::AttachmentNotFoundError,
+          HubApiV1::V2::DataStreamNotFoundError
           NotFound.new(error.message)
+        # Deux refus de l'amont, pas deux incidents : ils ne passent donc pas par le rapporteur.
+        when HubApiV1::V2::AwaitingAttachmentsNotAllowedError
+          AwaitingAttachmentsNotAllowed.new(error.message)
+        when HubApiV1::V2::DeliveryEventLimitReachedError then EventLimitReached.new(error.message)
         when HubApiV1::V2::AttachmentUnavailableError then ContentUnavailable.new(error.message)
         when HubApiV1::InvalidArgumentError, HubApiV1::V2::InvalidArgumentError
           InvalidRequest.new(error.message)

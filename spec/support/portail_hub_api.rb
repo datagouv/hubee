@@ -12,6 +12,12 @@ module PortailHubAPIStubs
     end)
     allow(Portail::HubAPI::Subscriptions).to receive(:list).and_return(list)
   end
+
+  # Même raison : le détail lit le flux, et la plupart des exemples ne s'intéressent pas à ce
+  # qu'il autorise. Permissif par défaut, comme la factory.
+  def stub_data_stream(data_stream = build(:portail_data_stream))
+    allow(Portail::HubAPI::DataStreams).to receive(:find).and_return(data_stream)
+  end
 end
 
 RSpec.configure do |config|

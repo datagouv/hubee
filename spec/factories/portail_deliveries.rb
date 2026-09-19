@@ -27,7 +27,7 @@ FactoryBot.define do
     end
   end
 
-  factory :portail_data_stream, class: "Portail::DataStream" do
+  factory :portail_data_stream_summary, class: "Portail::DataStream::Summary" do
     skip_create
     initialize_with { new(**attributes) }
 
@@ -55,7 +55,7 @@ FactoryBot.define do
     id { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
-    data_stream { build(:portail_data_stream, code: data_stream_code) }
+    data_stream { build(:portail_data_stream_summary, code: data_stream_code) }
     recipient { build(:portail_recipient, membership: membership) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
@@ -103,7 +103,7 @@ FactoryBot.define do
     id { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
-    data_stream { build(:portail_data_stream, code: data_stream_code) }
+    data_stream { build(:portail_data_stream_summary, code: data_stream_code) }
     recipient { build(:portail_recipient, membership: membership) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
@@ -147,7 +147,7 @@ FactoryBot.define do
     transient { data_stream_code { "CERTDC" } }
 
     id { "550e8400-e29b-41d4-a716-446655440000" }
-    data_stream { build(:portail_data_stream, code: data_stream_code) }
+    data_stream { build(:portail_data_stream_summary, code: data_stream_code) }
     # Sans intitulé par défaut : le cas nommé se pose explicitement, le repli sur le code est
     # le décor commun.
     data_stream_name { nil }
@@ -163,5 +163,24 @@ FactoryBot.define do
     initialize_with { new(**attributes) }
 
     subscriptions { [build(:portail_subscription)] }
+  end
+
+  # Le flux entier. Permissif par défaut : un décor restrictif doit se demander, pour qu'un spec
+  # qui éprouve un refus le dise dans son propre texte.
+  factory :portail_data_stream, class: "Portail::DataStream" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    code { "CERTDC" }
+    name { "Certificat de décès électronique" }
+    # Les états de l'amont, dans son ordre : la seule règle qui varie par flux est l'attente de
+    # compléments.
+    allowed_states {
+      %w[transmitted acknowledged in_progress awaiting_attachments done refused closed integration_error]
+    }
+
+    trait :without_awaiting_attachments do
+      allowed_states { %w[transmitted acknowledged in_progress done refused closed integration_error] }
+    end
   end
 end
