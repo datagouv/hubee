@@ -1,9 +1,9 @@
 GIT
   remote: https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git
-  revision: 426ab77e14c234b6f11c742c26e80d4b283e27f5
-  tag: 3.1.0
+  revision: e70562f77255d56e93c7838531a831fab4c8427c
+  branch: chore/release-3-2-0
   specs:
-    hub-api-v1 (3.1.0)
+    hub-api-v1 (3.2.0)
       activesupport (>= 7.0, < 10)
 
 GEM

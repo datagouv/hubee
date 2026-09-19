@@ -64,13 +64,15 @@ gem "sentry-rails"
 # sécurité). Conséquence : la gem n'est pas auto-requise par Bundler.require ; la requérir
 # explicitement à l'endroit qui la consomme.
 # HUB_API_V1_PATH=../hub-api-v1 substitue un checkout local au tag si nécessaire
+# ⚠️ TEMPORAIRE : pointé sur le sommet de la pile de MR de la gem, qui porte la 3.2.0 entière, le
+# temps qu'elle soit publiée. À repasser en `tag: "3.2.0"` avant de fusionner cette branche.
 # La 3.0.0 exige l'identité d'appelant (HUB_API_EDITOR_NAME, HUB_API_APPLICATION_NAME,
 # HUB_API_SOFTWARE_VERSION) : KeyError au premier appel si l'une manque.
 group :hub_api_v1 do
   if (path = ENV["HUB_API_V1_PATH"])
     gem "hub-api-v1", path: path, require: "hub_api_v1"
   else
-    gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "3.1.0", require: "hub_api_v1"
+    gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", branch: "chore/release-3-2-0", require: "hub_api_v1"
   end
 end
 
