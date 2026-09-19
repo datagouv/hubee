@@ -108,6 +108,12 @@ fr:
         # La conséquence et non le mécanisme : ce qui compte est que la personne l'ait reçu.
         broadcast: Information transmise à la personne concernée.
         undated_month: Sans date
+      state_form:
+        heading: Faire avancer ce télédossier
+        label: Nouvel état
+        placeholder: Choisir un état
+        submit: Enregistrer
+        notice: L'émetteur du dossier en sera informé et verra votre nom.
       change_state:
         # Le texte que lit l'émetteur du dossier. Il nomme le statut comme le fait déjà
         # l'historique, pour ne pas dépareiller d'une ligne à l'autre.

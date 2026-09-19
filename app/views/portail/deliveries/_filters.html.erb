@@ -29,7 +29,7 @@
           <div class="fr-fieldset__element">
             <div class="fr-checkbox-group fr-checkbox-group--sm">
               <%= f.check_box :flux, {multiple: true, id: "flux-#{index}", checked: criteria.data_stream_codes.include?(code), include_hidden: false}, code, nil %>
-              <%= f.label :flux, data_stream_label(code, data_stream_names), value: code, for: "flux-#{index}", class: "fr-label" %>
+              <%= f.label :flux, data_stream_label(code, data_stream_names[code]), value: code, for: "flux-#{index}", class: "fr-label" %>
             </div>
           </div>
         <% end %>
