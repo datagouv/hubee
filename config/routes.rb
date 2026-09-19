@@ -17,6 +17,8 @@ Rails.application.routes.draw do
   # Le contenu d'une pièce, pas son inventaire : `pieces` n'a ni index ni page propre, la seule
   # réponse de cette adresse est le fichier.
   get "teledossiers/:teledossier_id/pieces/:id", to: "portail/attachments#show", as: :teledossier_piece
+  # L'état, ressource singulière : un télédossier n'en a qu'un et on le remplace, d'où `update`.
+  patch "teledossiers/:teledossier_id/etat", to: "portail/deliveries/states#update", as: :teledossier_etat
 
   # =============================================================================
   # API V2 — GELÉE LE 2026-06-12

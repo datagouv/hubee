@@ -172,4 +172,86 @@ RSpec.describe Portail::DeliveryPolicy do
       end
     end
   end
+
+  # Mettre à jour exige les droits de lire, et rien de plus. Le cas du télédossier terminal est
+  # ici pour marquer la frontière : il est autorisé, son refus vient d'ailleurs.
+  describe "#update?" do
+    def update?(delivery) = described_class.new(membership, delivery).update?
+
+    context "for a member habilitated on CERTDC" do
+      let(:membership) { create(:membership) }
+
+      before { create(:data_stream_access, membership: membership, data_stream_code: "CERTDC") }
+
+      it "grants what reading grants" do
+        delivery = build(:portail_delivery, state: "in_progress", membership: membership)
+
+        expect(update?(delivery)).to be(true)
+      end
+
+      it "still grants a delivery no transition can leave" do
+        delivery = build(:portail_delivery, state: "done", membership: membership)
+
+        expect(update?(delivery)).to be(true)
+      end
+
+      it "refuses a delivery on another data stream" do
+        delivery = build(:portail_delivery, state: "in_progress", data_stream_code: "AEC",
+          membership: membership)
+
+        expect(update?(delivery)).to be(false)
+      end
+
+      it "refuses a delivery of another organisation" do
+        delivery = build(:portail_delivery, :of_another_organisation, state: "in_progress")
+
+        expect(update?(delivery)).to be(false)
+      end
+
+      it "refuses a delivery in a state the portal does not serve" do
+        delivery = build(:portail_delivery, state: "integration_error", membership: membership)
+
+        expect(update?(delivery)).to be(false)
+      end
+    end
+
+    context "for a member without habilitation" do
+      let(:membership) { create(:membership) }
+
+      it "refuses a delivery that would otherwise be actionable" do
+        delivery = build(:portail_delivery, state: "in_progress", membership: membership)
+
+        expect(update?(delivery)).to be(false)
+      end
+    end
+
+    context "for a local administrator without habilitation" do
+      let(:membership) { create(:membership, :local_administrator) }
+
+      it "grants a delivery of the organisation" do
+        delivery = build(:portail_delivery, state: "in_progress", membership: membership)
+
+        expect(update?(delivery)).to be(true)
+      end
+    end
+
+    context "for a local administrator habilitated on CERTDC" do
+      let(:membership) { create(:membership, :local_administrator) }
+
+      before { create(:data_stream_access, membership: membership, data_stream_code: "CERTDC") }
+
+      it "grants a delivery on CERTDC" do
+        delivery = build(:portail_delivery, state: "in_progress", membership: membership)
+
+        expect(update?(delivery)).to be(true)
+      end
+
+      it "refuses a delivery on another data stream" do
+        delivery = build(:portail_delivery, state: "in_progress", data_stream_code: "AEC",
+          membership: membership)
+
+        expect(update?(delivery)).to be(false)
+      end
+    end
+  end
 end
