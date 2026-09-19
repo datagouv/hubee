@@ -24,6 +24,8 @@ module Portail
 
     def show? = DeliveryPolicy.readable?(membership, delivery)
 
+    def update? = show?
+
     class Scope
       attr_reader :membership, :scope
 
