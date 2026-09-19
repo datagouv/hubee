@@ -24,7 +24,7 @@ module Portail
         def subscription_from(subscription)
           Portail::Subscription.new(
             id: subscription.id,
-            data_stream: Portail::DataStream.new(code: subscription.data_stream.code),
+            data_stream: Portail::DataStream::Summary.new(code: subscription.data_stream.code),
             data_stream_name: subscription.data_stream.name,
             read_package: subscription.read_package,
             create_package: subscription.create_package,
