@@ -108,6 +108,24 @@ fr:
         # La conséquence et non le mécanisme : ce qui compte est que la personne l'ait reçu.
         broadcast: Information transmise à la personne concernée.
         undated_month: Sans date
+      change_state:
+        # Le texte que lit l'émetteur du dossier. Il nomme le statut comme le fait déjà
+        # l'historique, pour ne pas dépareiller d'une ligne à l'autre.
+        event_messages:
+          acknowledged: Changement du statut à SI_RECEIVED
+          in_progress: Changement du statut à IN_PROGRESS
+          awaiting_attachments: Changement du statut à ADD_AWAITING
+          refused: Changement du statut à REFUSED
+          done: Changement du statut à DONE
+        saved: L'état du télédossier a été modifié.
+        errors:
+          invalid_request: Ce changement d'état n'est pas possible depuis l'état actuel.
+          awaiting_attachments_not_allowed: Ce flux n'autorise pas l'attente de compléments.
+          event_limit_reached: Ce télédossier ne peut plus enregistrer d'événement. Passez par le portail actuel.
+          unknown_author: "Votre compte ne porte ni prénom ni nom. Contactez le support, l'émetteur du dossier doit pouvoir identifier qui agit."
+          rejected: Ce changement n'a pas pu être enregistré. Le support en est informé.
+          not_found: Ce télédossier n'est plus accessible.
+          unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
       errors:
         unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
         invalid_request: L'état, le filtre ou la page demandés n'existent pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
