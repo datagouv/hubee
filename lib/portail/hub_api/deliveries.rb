@@ -46,6 +46,19 @@ module Portail
           raise HubAPI.translated(e)
         end
 
+        # `notify` n'est pas laissé au défaut de la gem : c'est ici que se lit la décision de
+        # prévenir l'émetteur, et un changement d'état est ce qu'il doit apprendre.
+        def change_state(id:, state:, author:, message:, siret:, insee_code:, client: HubApiV1.client)
+          event_from(
+            HubApiV1::V2::Delivery.change_state(
+              id: id, state: state.to_sym, author: author, message: message,
+              siret: siret, code_insee: insee_code, notify: true, client: client
+            )
+          )
+        rescue HubApiV1::Error => e
+          raise HubAPI.translated(e)
+        end
+
         private
 
         # Une date de l'URL devient un instant en heure de Paris, bornes incluses : « jusqu'au

@@ -164,4 +164,25 @@ FactoryBot.define do
 
     subscriptions { [build(:portail_subscription)] }
   end
+
+  # Le profil d'une démarche. Permissif par défaut : un décor restrictif doit se demander, pour
+  # qu'un spec qui éprouve un refus le dise dans son propre texte.
+  factory :portail_data_stream_profile, class: "Portail::DataStream::Profile" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    code { "CERTDC" }
+    name { "Certificat de décès électronique" }
+    awaiting_documents { "allowed" }
+
+    trait :without_awaiting_documents do
+      awaiting_documents { "denied" }
+    end
+
+    # Une démarche que personne n'a jamais paramétrée : rien n'y est autorisé explicitement, et
+    # surtout rien n'y est refusé non plus.
+    trait :unconfigured do
+      awaiting_documents { "unspecified" }
+    end
+  end
 end
