@@ -363,4 +363,132 @@ RSpec.describe Portail::HubAPI::Deliveries do
       end
     end
   end
+
+  describe ".change_state" do
+    let(:id) { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
+
+    def change_state(client:, state: "done")
+      described_class.change_state(id: id, state: state, author: "Camille MARTIN",
+        message: "Changement du statut à DONE", siret: siret, insee_code: insee_code, client: client)
+    end
+
+    # Le faux client déplace réellement le télédossier : la relecture prouve le déplacement au
+    # lieu de l'affirmer.
+    it "moves the delivery and returns the event written upstream" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(state: :in_progress))
+
+      event = change_state(client: client)
+
+      expect(event).to be_a(Portail::Delivery::Event)
+      expect(event.event_type).to eq("delivery.state_changed")
+      expect(described_class.find(id: id, siret: siret, insee_code: insee_code, client: client).state)
+        .to eq("done")
+    end
+
+    it "leaves the new state in the delivery history" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(state: :in_progress))
+
+      change_state(client: client)
+
+      delivery = described_class.find(id: id, siret: siret, insee_code: insee_code, client: client)
+      expect(delivery.events.map(&:event_type)).to include("delivery.state_changed")
+    end
+
+    # Hash complet : un paramètre inattendu doit se voir. `code_insee` en amont, `insee_code` ici.
+    it "sends the delivery, the target state and the caller identity upstream" do
+      client = HubApiV1::Testing::FakeClient.new
+      expect(HubApiV1::V2::Delivery).to receive(:change_state).with(
+        id: id, state: :done, author: "Camille MARTIN", message: "Changement du statut à DONE",
+        siret: siret, code_insee: insee_code, notify: true, client: client
+      ).and_return(build_v2_event)
+
+      change_state(client: client)
+    end
+
+    it "raises a not found error for a delivery out of the declared perimeter" do
+      client = HubApiV1::Testing::FakeClient.new
+
+      expect { change_state(client: client) }.to raise_error(Portail::HubAPI::NotFound)
+    end
+
+    it "raises an invalid request error for a state the portal does not know" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(state: :in_progress))
+
+      expect { change_state(state: "yolo", client: client) }
+        .to raise_error(Portail::HubAPI::InvalidRequest)
+    end
+
+    # Refus rejoué par le faux client, traduction comprise : pas un double qui affirmerait le refus.
+    it "raises a named refusal when the data stream forbids awaiting attachments" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(state: :in_progress))
+      client.add_data_stream(build_v2_data_stream(code: "CERTDC",
+        allowed_states: HubApiV1::V2::Mapping::ORDERED_STATES - [:awaiting_attachments]))
+
+      expect { change_state(state: "awaiting_attachments", client: client) }
+        .to raise_error(Portail::HubAPI::AwaitingAttachmentsNotAllowed)
+    end
+
+    it "moves the delivery when the data stream allows awaiting attachments" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(state: :in_progress))
+      client.add_data_stream(build_v2_data_stream(code: "CERTDC"))
+
+      expect { change_state(state: "awaiting_attachments", client: client) }.not_to raise_error
+    end
+
+    it "raises a named refusal when the delivery can hold no further event" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(state: :in_progress))
+      client.saturate_case(id)
+
+      expect { change_state(client: client) }.to raise_error(Portail::HubAPI::EventLimitReached)
+    end
+  end
+
+  # Aucune exception de la gem ne doit survivre à cette couche, et un refus ne se signale pas comme
+  # un incident.
+  describe "state change error translation" do
+    upstream_errors = {
+      "a delivery the upstream does not serve" => {
+        raised: HubApiV1::V2::DeliveryNotFoundError, translated: Portail::HubAPI::NotFound,
+        reported: false
+      },
+      "a state the upstream refuses" => {
+        raised: HubApiV1::V2::InvalidArgumentError, translated: Portail::HubAPI::InvalidRequest,
+        reported: false
+      },
+      "a data stream that forbids awaiting attachments" => {
+        raised: HubApiV1::V2::AwaitingAttachmentsNotAllowedError,
+        translated: Portail::HubAPI::AwaitingAttachmentsNotAllowed, reported: false
+      },
+      "a delivery that can hold no further event" => {
+        raised: HubApiV1::V2::DeliveryEventLimitReachedError,
+        translated: Portail::HubAPI::EventLimitReached, reported: false
+      },
+      "a transport failure" => {
+        raised: HubApiV1::Client::Error, translated: Portail::HubAPI::Unavailable, reported: true
+      }
+    }
+
+    upstream_errors.each do |situation, error|
+      it "raises #{error[:translated].name.demodulize} for #{situation}, reported: #{error[:reported]}" do
+        expect(HubApiV1::V2::Delivery).to receive(:change_state).and_raise(error[:raised])
+        if error[:reported]
+          expect(Rails.error).to receive(:report).with(instance_of(error[:raised]), handled: true)
+        else
+          expect(Rails.error).not_to receive(:report)
+        end
+
+        expect {
+          described_class.change_state(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", state: "done",
+            author: "Camille MARTIN", message: "Changement du statut à DONE",
+            siret: siret, insee_code: insee_code, client: HubApiV1::Testing::FakeClient.new)
+        }.to raise_error(error[:translated])
+      end
+    end
+  end
 end
