@@ -131,6 +131,10 @@ end
 
 Étantdonné("l'API amont sert un télédossier pour son organisation") do
   HubApiV1.client.add_case(e2e_delivery("DGS-CERTDC-0000000000001-01"))
+  # Déclarer la démarche sert à deux choses : la nommer à l'écran, et borner ce qu'elle autorise.
+  HubApiV1.client.add_data_stream_profile(
+    build_v2_data_stream_profile(code: "CERTDC", name: "Certificat de décès électronique")
+  )
 end
 
 Étantdonné("l'API amont sert aussi un télédossier sur un flux non habilité") do
@@ -320,4 +324,29 @@ end
 Alors("il obtient une page introuvable, sans que le dossier lui soit montré") do
   expect(page).to have_text("Page introuvable")
   expect(page).to have_no_text("DGS-AEC-0000000000002-01")
+end
+
+Quand("il finalise le traitement du télédossier") do
+  select("Traité", from: "Nouvel état")
+  click_button("Enregistrer")
+end
+
+Alors("il voit le télédossier au statut {string}") do |state|
+  expect(page).to have_css(".fr-badge", text: state)
+end
+
+# L'auteur est publié : l'émetteur du dossier le lit. Le nom exact, donc, pas la seule phrase.
+Alors("l'historique porte le changement signé {string}") do |author|
+  expect(page).to have_text("#{author} a modifié le statut")
+end
+
+# Fermer appartient à l'émetteur : jamais proposé. Le formulaire doit exister pour que
+# l'absence de « Clos » dise quelque chose.
+Alors("il ne peut pas clore le télédossier") do
+  expect(page).to have_select("Nouvel état")
+  expect(page).to have_no_select("Nouvel état", with_options: ["Clos"])
+end
+
+Alors("il voit le flux nommé {string}") do |name|
+  expect(page).to have_text(name)
 end

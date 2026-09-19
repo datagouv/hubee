@@ -45,6 +45,9 @@ module Portail
       # Sans cette ligne, un identifiant connu ouvrirait un télédossier hors habilitation. La
       # policy vérifie aussi l'organisation servie : l'amont n'est pas cru sur parole.
       @delivery = authorize(result.delivery)
+      # Une seule lecture par page : le nom du flux et les états proposés en vivent tous deux, et
+      # une vue qui lirait l'amont elle-même paierait deux fois la même panne.
+      @data_stream_profile = DataStream::ProfileCache.fetch(@delivery.data_stream.code)
     end
 
     private

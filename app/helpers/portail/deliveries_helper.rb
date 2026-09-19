@@ -39,6 +39,17 @@ module Portail
 
     def delivery_state(delivery) = delivery_state_label(delivery.state)
 
+    # Même forme qu'en liste. Le profil est lu une fois par le controller : la vue ne déclenche
+    # aucune lecture amont et n'interprète aucun échec.
+    def delivery_data_stream_label(delivery, profile)
+      code = delivery.data_stream.code
+      data_stream_label(code, {code => profile&.name}.compact)
+    end
+
+    def delivery_offered_states(delivery, profile)
+      Access::StateTransitions.offered_from(delivery.state, profile)
+    end
+
     def delivery_state_badge(delivery)
       tag.p(delivery_state(delivery),
         class: ["fr-badge", STATE_BADGES[delivery.state]].compact)
