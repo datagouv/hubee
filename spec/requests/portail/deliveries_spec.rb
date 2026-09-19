@@ -1125,8 +1125,9 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(muted).to eq(2)
     end
 
-    # Deux rangs : les dates écrites en entier ont besoin d'une demi-largeur.
-    it "splits the summary into what is sought and what merely situates it" do
+    # Une seule largeur : les colonnes s'alignent d'une ligne à l'autre. La hiérarchie entre ce
+    # qu'on vient chercher et ce qui le situe est portée par la couleur, pas par la largeur.
+    it "lines the summary cells up instead of ranking them by width" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
 
@@ -1135,8 +1136,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(response).to have_http_status(:success)
 
       cells = Nokogiri::HTML(response.body).css("dl.delivery-summary > div").map { |c| c["class"] }
-      expect(cells.count { |classes| classes.include?("fr-col-md-4") }).to eq(3)
-      expect(cells.count { |classes| classes.include?("fr-col-md-6") }).to eq(2)
+      expect(cells).to all(include("fr-col-12", "fr-col-sm-6", "fr-col-md-4"))
+      expect(cells.size).to eq(5)
     end
 
     it "renders a not found page when the delivery does not exist" do
