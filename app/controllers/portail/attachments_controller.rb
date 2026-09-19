@@ -32,14 +32,14 @@ module Portail
       set_attachment unless performed?
     end
 
-    # Mêmes refus que le détail. Rien à autoriser tant qu'aucun télédossier n'est trouvé.
+    # Mêmes refus que le détail. Un rendu ici coupe la chaîne, la vérification d'autorisation ne
+    # tourne pas : rien à lever.
     def set_delivery
       result = Deliveries::Show.call(membership: current_membership, id: params[:teledossier_id])
 
       if result.success?
         @delivery = result.delivery
       else
-        skip_authorization
         render_failure(result.error)
       end
     end
@@ -51,7 +51,6 @@ module Portail
       @attachment = @delivery.attachments.find { |candidate| candidate.id == params[:id] }
       return if @attachment
 
-      skip_authorization
       Rails.logger.info("Pièce non livrable", delivery_id: @delivery.id, id: params[:id], reason: :unknown)
       not_found
     end
