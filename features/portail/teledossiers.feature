@@ -18,6 +18,15 @@ Fonctionnalité: Les télédossiers de l'organisation
     Étant donné il s'est connecté
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
     Alors il voit le détail du télédossier, demandeur compris
+    Et il voit le flux nommé "Certificat de décès électronique"
+
+  Scénario: L'agent fait avancer un télédossier depuis son détail
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors il ne peut pas clore le télédossier
+    Quand il finalise le traitement du télédossier
+    Alors il voit le télédossier au statut "Traité"
+    Et l'historique porte le changement signé "Alex MARTIN"
 
   Scénario: Le détail inventorie les pièces et déroule l'historique
     Étant donné il s'est connecté

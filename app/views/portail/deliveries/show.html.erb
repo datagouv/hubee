@@ -18,9 +18,10 @@
 <h1><%= t(".heading", number: @delivery.number) %></h1>
 
 <h2 class="fr-h4 fr-mt-4w"><%= t(".summary") %></h2>
-<%# Deux rangs : ce qu'on vient chercher, puis les horodatages. Les icônes DSFR se posent en
-    `::before` par la classe, sans texte à masquer. Chaque couple dt/dd est enveloppé dans un
-    div, permis dans un dl depuis HTML 5.2, pour que la grille ait des cellules à placer. %>
+<%# Une seule largeur pour les cinq champs : les colonnes s'alignent d'une ligne à l'autre à
+    toutes les largeurs. Les icônes DSFR se posent en `::before` par la classe, sans texte à
+    masquer. Chaque couple dt/dd est enveloppé dans un div, permis dans un dl depuis HTML 5.2,
+    pour que la grille ait des cellules à placer. %>
 <div class="fr-background-alt--grey fr-p-3w fr-mb-4w">
   <dl class="fr-grid-row fr-grid-row--gutters delivery-summary">
     <div class="fr-col-12 fr-col-sm-6 fr-col-md-4">
@@ -34,7 +35,7 @@
       <dt class="fr-icon-file-text-line fr-icon--sm fr-hint-text fr-mb-1v">
         <%= t("portail.deliveries.fields.data_stream") %>
       </dt>
-      <dd class="fr-text--bold"><%= @delivery.data_stream.code %></dd>
+      <dd class="fr-text--bold"><%= delivery_data_stream_label(@delivery, @data_stream_profile) %></dd>
     </div>
 
     <div class="fr-col-12 fr-col-sm-6 fr-col-md-4">
@@ -44,15 +45,14 @@
       <dd class="fr-text--bold"><%= delivery_applicant(@delivery) %></dd>
     </div>
 
-    <%# Demi-largeur : une date écrite en entier ne tient pas dans un quart de bloc. %>
-    <div class="fr-col-12 fr-col-md-6">
+    <div class="fr-col-12 fr-col-sm-6 fr-col-md-4">
       <dt class="fr-icon-calendar-line fr-icon--sm fr-hint-text fr-mb-1v">
         <%= t("portail.deliveries.fields.transmitted_at") %>
       </dt>
       <dd class="fr-text-mention--grey"><%= delivery_transmitted_at(@delivery) %></dd>
     </div>
 
-    <div class="fr-col-12 fr-col-md-6">
+    <div class="fr-col-12 fr-col-sm-6 fr-col-md-4">
       <dt class="fr-icon-refresh-line fr-icon--sm fr-hint-text fr-mb-1v">
         <%= t("portail.deliveries.fields.updated_at") %>
       </dt>
@@ -60,6 +60,13 @@
     </div>
   </dl>
 </div>
+
+<%# La garde de droits coïncide aujourd'hui avec la lecture ; elle dit l'intention pour le jour
+    où elles divergeront. %>
+<% offered = delivery_offered_states(@delivery, @data_stream_profile) %>
+<% if offered.any? && policy(@delivery).update? %>
+  <%= render "state_form", delivery: @delivery, states: offered %>
+<% end %>
 
 <section class="fr-p-3w fr-mb-4w fr-border-default--grey">
   <h2 class="fr-h4"><%= t(".deposit_attachments") %></h2>

@@ -1,0 +1,35 @@
+<%# locals: (delivery:, states:) %>
+<%# Sous le récapitulatif, sans script : l'agent décide en gardant le dossier sous les yeux, et la
+    confirmation tient dans les deux gestes, choisir puis enregistrer. %>
+<section class="fr-background-alt--grey fr-p-3w fr-mb-4w" aria-labelledby="state-heading">
+  <h2 id="state-heading" class="fr-h5 fr-mb-2w"><%= t(".heading") %></h2>
+
+  <%# Avant les contrôles, là où un lecteur d'écran l'entend avant d'agir : ce geste sort de
+      l'administration. Relié au champ par aria-describedby. %>
+  <p id="state-notice" class="fr-hint-text fr-mb-2w"><%= t(".notice") %></p>
+
+  <%= form_with url: teledossier_etat_path(delivery.id), method: :patch do |form| %>
+    <%# L'état lu par l'agent voyage avec sa décision : sans lui, une page laissée ouverte
+        écraserait le travail d'un collègue en silence. %>
+    <%= hidden_field_tag :etat_vu, delivery.state %>
+
+    <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
+      <div class="fr-col-12 fr-col-md-6">
+        <div class="fr-select-group">
+          <%= label_tag :etat, t(".label"), class: "fr-label" %>
+          <%# L'invite n'est pas une option : sélectionnée, désactivée et cachée une fois la liste
+              ouverte, comme le DSFR l'écrit. %>
+          <%= select_tag :etat,
+                content_tag(:option, t(".placeholder"), value: "", selected: true, disabled: true, hidden: true) +
+                options_for_select(states.map { |state| [delivery_state_label(state), state] }),
+                required: true, class: "fr-select", aria: {describedby: "state-notice"} %>
+        </div>
+      </div>
+      <%# Colonne numérotée : le DSFR n'a pas de colonne « auto », et sans classe de palier le
+          bouton repassait à la ligne. `--bottom` l'aligne sur le bas du champ, pas sur son label. %>
+      <div class="fr-col-12 fr-col-md-3">
+        <%= form.dsfr_submit t(".submit") %>
+      </div>
+    </div>
+  <% end %>
+</section>

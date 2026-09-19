@@ -182,4 +182,40 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     expect(helper.delivery_state(summary)).to eq("Nouveau")
     expect(helper.delivery_transmitted_at(summary)).to eq("—")
   end
+
+  # La règle vit dans Access::StateTransitions, éprouvée là : ici, seulement qu'on la consulte
+  # avec ce que la vue a en main.
+  describe "#delivery_offered_states" do
+    it "hands the table the state of the delivery and the profile it was given" do
+      profile = build(:portail_data_stream_profile, :without_awaiting_documents)
+
+      expect(helper.delivery_offered_states(build(:portail_delivery, state: "in_progress"), profile))
+        .to eq(%w[refused done])
+    end
+
+    it "offers the table when no profile could be read" do
+      expect(helper.delivery_offered_states(build(:portail_delivery, state: "in_progress"), nil))
+        .to eq(%w[awaiting_documents refused done])
+    end
+  end
+
+  describe "#delivery_data_stream_label" do
+    it "names the data stream and keeps its code, as the list does" do
+      profile = build(:portail_data_stream_profile, name: "Certificat de décès électronique")
+
+      expect(helper.delivery_data_stream_label(build(:portail_delivery), profile))
+        .to eq("Certificat de décès électronique – CERTDC")
+    end
+
+    it "falls back to the code when the profile carries no name" do
+      profile = build(:portail_data_stream_profile, name: nil)
+
+      expect(helper.delivery_data_stream_label(build(:portail_delivery), profile)).to eq("CERTDC")
+    end
+
+    # Une démarche sans profil lisible reste identifiable, et sa page reste servie.
+    it "falls back to the code when no profile could be read" do
+      expect(helper.delivery_data_stream_label(build(:portail_delivery), nil)).to eq("CERTDC")
+    end
+  end
 end

@@ -10,9 +10,10 @@
  */
 
 /* delivery-summary : le récapitulatif d'un télédossier (portail/deliveries/show).
-   Un reset et rien d'autre : le DSFR ne normalise pas le retrait du navigateur sur dd. */
+   Le DSFR retire la marge des dd mais leur laisse un retrait en padding : c'est lui qu'on annule,
+   sinon chaque valeur est décalée d'1rem sous son intitulé. */
 .delivery-summary dd {
-  margin-left: 0;
+  padding-inline-start: 0;
 }
 
 /* delivery-timeline : la frise de l'historique d'un télédossier (portail/deliveries/show).
