@@ -12,8 +12,8 @@
       <% end %>
       <% criteria.data_stream_codes.each do |code| %>
         <li>
-          <%= link_to data_stream_label(code, data_stream_names), teledossiers_path(**criteria.with(data_stream_codes: criteria.data_stream_codes - [code]).link_params),
-                class: "fr-tag fr-tag--dismiss", "aria-label": t(".remove", filter: data_stream_label(code, data_stream_names)) %>
+          <%= link_to data_stream_label(code, data_stream_names[code]), teledossiers_path(**criteria.with(data_stream_codes: criteria.data_stream_codes - [code]).link_params),
+                class: "fr-tag fr-tag--dismiss", "aria-label": t(".remove", filter: data_stream_label(code, data_stream_names[code])) %>
         </li>
       <% end %>
       <% if criteria.transmitted_from || criteria.transmitted_to %>

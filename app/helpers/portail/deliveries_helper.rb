@@ -39,6 +39,10 @@ module Portail
 
     def delivery_state(delivery) = delivery_state_label(delivery.state)
 
+    def delivery_offered_states(delivery, data_stream)
+      Access::StateTransitions.offered_from(delivery.state, data_stream)
+    end
+
     def delivery_state_badge(delivery)
       tag.p(delivery_state(delivery),
         class: ["fr-badge", STATE_BADGES[delivery.state]].compact)
@@ -48,10 +52,9 @@ module Portail
 
     def delivery_updated_at(delivery) = delivery_time(delivery.updated_at)
 
-    # Le code reste, après un tiret : c'est lui qui sert au support. Sans libellé, le code seul,
-    # jamais une ligne vide ni une page en moins.
-    def data_stream_label(code, names)
-      name = names[code]
+    # Le code reste, après un tiret : c'est lui qui sert au support. Sans nom, le code seul, jamais
+    # une ligne vide ni une page en moins.
+    def data_stream_label(code, name)
       name ? "#{name} – #{code}" : code
     end
 

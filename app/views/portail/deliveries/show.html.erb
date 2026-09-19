@@ -35,7 +35,8 @@
       <dt class="fr-icon-file-text-line fr-icon--sm fr-hint-text fr-mb-1v">
         <%= t("portail.deliveries.fields.data_stream") %>
       </dt>
-      <dd class="fr-text--bold"><%= @delivery.data_stream_code %></dd>
+      <%# Le flux est lu une fois par le controller, nil s'il ne se lit pas : la page reste servie. %>
+      <dd class="fr-text--bold"><%= data_stream_label(@delivery.data_stream_code, @data_stream&.name) %></dd>
     </div>
 
     <div class="fr-col-12 fr-col-sm-6 fr-col-md-4">
@@ -60,6 +61,13 @@
     </div>
   </dl>
 </div>
+
+<%# La garde de droits coïncide aujourd'hui avec la lecture ; elle dit l'intention pour le jour
+    où elles divergeront. %>
+<% offered = delivery_offered_states(@delivery, @data_stream) %>
+<% if offered.any? && policy(@delivery).update? %>
+  <%= render "state_form", delivery: @delivery, states: offered %>
+<% end %>
 
 <section class="fr-p-3w fr-mb-4w fr-border-default--grey">
   <h2 class="fr-h4"><%= t(".deposit_attachments") %></h2>

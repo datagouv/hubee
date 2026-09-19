@@ -35,7 +35,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
   # Les abonnements de l'organisation nomment ses flux, pour tout le monde : les exemples qui les
   # traversent entièrement rétablissent l'appel d'origine.
-  before { stub_organisation_subscriptions }
+  before do
+    stub_organisation_subscriptions
+    stub_data_stream
+  end
 
   describe "GET /teledossiers" do
     it "redirects a signed-out visitor to the home page" do
@@ -1118,7 +1121,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       emphasised = summary.css("dd.fr-text--bold").map { |value| value.text.strip }
       muted = summary.css("dd.fr-text-mention--grey").count
 
-      expect(emphasised).to eq(["CERTDC", "George DUBOIS"])
+      expect(emphasised).to eq(["Certificat de décès électronique – CERTDC", "George DUBOIS"])
       expect(muted).to eq(2)
     end
 
@@ -1201,6 +1204,113 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     # La matrice rôle × habilitation côté détail, le trou que ferme la policy : la liste ne
     # montre pas un télédossier hors habilitation, mais son identifiant suffirait à l'ouvrir.
+    it "names the data stream on the detail, keeping its code for the support" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body))
+        .to have_text("Certificat de décès électronique – CERTDC")
+    end
+
+    # « CERTDC » seul serait satisfait par le numéro affiché sur la même page : c'est la valeur
+    # exacte de la cellule du flux qu'on veut.
+    it "falls back to the code when the data stream has no readable name" do
+      sign_in_member
+      stub_data_stream(build(:portail_data_stream, name: nil))
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      summary = Nokogiri::HTML(response.body).at_css("dl.delivery-summary")
+      expect(summary.css("dd").map { |cell| cell.text.strip }).to include("CERTDC")
+    end
+
+    # Ce que l'agent peut faire depuis le détail, et ce qu'on ne lui montre pas.
+    context "state change" do
+      def open_detail(state: "in_progress")
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, state: state))
+        get "/teledossiers/#{delivery_id}"
+      end
+
+      # Les états cibles nommés, pas des verbes : l'agent doit savoir où le dossier atterrit.
+      it "offers the reachable states by name, to a habilitated agent" do
+        sign_in_member
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        # L'invite n'est pas un choix : cachée et désactivée, elle n'entre pas dans la liste.
+        expect(page).to have_select("Nouvel état",
+          options: ["En attente de compléments", "Refusé", "Traité"])
+        # Sans choix, pas d'envoi : le navigateur bloque avant le serveur.
+        expect(page).to have_css("select#etat[required]")
+        expect(page).to have_button("Enregistrer")
+      end
+
+      it "warns that the move reaches the sender under the agent name" do
+        sign_in_member
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body))
+          .to have_text("L'émetteur du dossier en sera informé et verra votre nom.")
+      end
+
+      # Fermer appartient à l'émetteur : le portail ne le propose jamais, depuis aucun état.
+      it "never offers to close the delivery" do
+        sign_in_member
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body))
+          .to have_select("Nouvel état", with_options: ["Traité"])
+        expect(Capybara.string(response.body))
+          .to have_no_select("Nouvel état", with_options: ["Clos"])
+      end
+
+      it "hides the complements request when the data stream forbids it" do
+        sign_in_member
+        stub_data_stream(build(:portail_data_stream, :without_awaiting_attachments))
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        # Positive : `have_no_select` seul passerait aussi si le formulaire n'existait pas.
+        expect(Capybara.string(response.body))
+          .to have_select("Nouvel état", options: ["Refusé", "Traité"])
+      end
+
+      it "offers nothing on a delivery no move can leave" do
+        sign_in_member
+
+        open_detail(state: "done")
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_no_button("Enregistrer")
+      end
+
+      # Le bouton en ligne avec le champ. Le DSFR n'ayant pas de colonne « auto », une colonne
+      # sans classe de palier repasse à la ligne — ce qui était le cas.
+      it "keeps the field and its button on one line" do
+        sign_in_member
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        cells = Nokogiri::HTML(response.body).css("form[action$='/etat'] .fr-grid-row > div")
+        expect(cells.map { |cell| cell["class"] })
+          .to eq(["fr-col-12 fr-col-md-6", "fr-col-12 fr-col-md-3"])
+      end
+    end
+
     context "reading perimeter" do
       def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
 

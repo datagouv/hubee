@@ -67,18 +67,16 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
   end
 
   describe "#data_stream_label" do
-    # Le libellé identifie la démarche, le code reste : c'est lui qui sert au support.
-    it "names the data stream from the names known, code kept after a dash" do
-      names = {"CERTDC" => "Certificat de décès électronique"}
-
-      expect(helper.data_stream_label("CERTDC", names)).to eq("Certificat de décès électronique – CERTDC")
+    # Le libellé identifie le flux, le code reste : c'est lui qui sert au support.
+    it "names the data stream, code kept after a dash" do
+      expect(helper.data_stream_label("CERTDC", "Certificat de décès électronique"))
+        .to eq("Certificat de décès électronique – CERTDC")
     end
 
-    # Un flux sans intitulé connu, ou des intitulés indisponibles : la ligne reste identifiable.
-    # Un intitulé blanc n'arrive jamais ici, la liste d'abonnements ne le projette pas.
-    it "falls back to the code alone when no name is known for it" do
-      expect(helper.data_stream_label("AEC", {"CERTDC" => "Certificat de décès électronique"})).to eq("AEC")
-      expect(helper.data_stream_label("AEC", {})).to eq("AEC")
+    # Un flux sans nom connu, ou un flux qui ne se lit pas : la ligne reste identifiable. Un nom
+    # blanc n'arrive jamais ici, la liste d'abonnements ne le projette pas.
+    it "falls back to the code alone when no name is known" do
+      expect(helper.data_stream_label("AEC", nil)).to eq("AEC")
     end
   end
 
@@ -181,5 +179,21 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
 
     expect(helper.delivery_state(summary)).to eq("Nouveau")
     expect(helper.delivery_transmitted_at(summary)).to eq("—")
+  end
+
+  # La règle vit dans Access::StateTransitions, éprouvée là : ici, seulement qu'on la consulte
+  # avec ce que la vue a en main.
+  describe "#delivery_offered_states" do
+    it "hands the table the state of the delivery and the data stream it was given" do
+      data_stream = build(:portail_data_stream, :without_awaiting_attachments)
+
+      expect(helper.delivery_offered_states(build(:portail_delivery, state: "in_progress"), data_stream))
+        .to eq(%w[refused done])
+    end
+
+    it "offers the table when the data stream could not be read" do
+      expect(helper.delivery_offered_states(build(:portail_delivery, state: "in_progress"), nil))
+        .to eq(%w[awaiting_attachments refused done])
+    end
   end
 end

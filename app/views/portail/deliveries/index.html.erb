@@ -45,7 +45,7 @@
                   <% @deliveries.each do |delivery| %>
                     <tr>
                       <td><%= link_to delivery.number, teledossier_path(delivery.id) %></td>
-                      <td><%= data_stream_label(delivery.data_stream_code, @data_stream_names) %></td>
+                      <td><%= data_stream_label(delivery.data_stream_code, @data_stream_names[delivery.data_stream_code]) %></td>
                       <td><%= delivery_transmitted_at(delivery) %></td>
                       <td><%= delivery_updated_at(delivery) %></td>
                     </tr>
