@@ -24,6 +24,10 @@ module Portail
 
     def show? = DeliveryPolicy.readable?(membership, delivery)
 
+    # Mettre à jour un télédossier exige les droits de le lire, et rien de plus. Ce qui est
+    # atteignable depuis l'état courant se décide ailleurs : un télédossier terminal se voit.
+    def update? = show?
+
     class Scope
       attr_reader :membership, :scope
 
