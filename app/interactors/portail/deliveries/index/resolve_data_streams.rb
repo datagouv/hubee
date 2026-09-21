@@ -8,10 +8,6 @@ module Portail
       class ResolveDataStreams
         include Interactor
 
-        # Les abonnements d'une structure bougent rarement, mais un abonnement ajouté doit se voir
-        # dans la foulée : un appel par structure et par dix minutes.
-        CACHE_TTL = 10.minutes
-
         def call
           # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut
           # « aucun filtre », donc toute l'organisation.
@@ -20,7 +16,7 @@ module Portail
           subscriptions = read_subscriptions
           context.selectable_data_streams = selectable_data_streams(subscriptions).sort
           # Une information d'affichage : sans les abonnements, les codes seuls, la page est servie.
-          context.data_stream_names = subscriptions ? subscriptions["names"] : {}
+          context.data_stream_names = subscriptions ? subscriptions.data_stream_names : {}
           context.requested_data_streams = requested_data_streams
         end
 
@@ -28,20 +24,11 @@ module Portail
 
         def membership = context.membership
 
-        # Les abonnements de l'organisation, lus une fois : les flux qu'elle reçoit par le portail
-        # et le nom de chacun. En primitives, cachables ; nil quand l'amont ne répond pas, et
-        # chaque usage en décide. Le couple vient du rattachement : pris ailleurs, il ouvrirait une
-        # autre structure.
+        # Les abonnements de l'organisation, nil quand l'amont ne répond pas : chaque usage en
+        # décide. Le couple vient du rattachement : pris ailleurs, il ouvrirait une autre structure.
         def read_subscriptions
           link = membership.organization_link
-          Rails.cache.fetch(["portail", "subscriptions", link.siret, link.insee_code], expires_in: CACHE_TTL) do
-            list = HubAPI::Subscriptions.list(siret: link.siret, insee_code: link.insee_code)
-            {"codes" => list.portal_data_stream_codes, "names" => list.data_stream_names}
-          end
-        rescue HubAPI::Error => e
-          # L'incident est déjà signalé par Portail::HubAPI : il ne reste qu'à journaliser.
-          Rails.logger.error("Abonnements indisponibles — #{e.class} : #{e.message}")
-          nil
+          HubAPI::Subscriptions.fetch(siret: link.siret, insee_code: link.insee_code)
         end
 
         # Les habilitations du rattachement, ou les abonnements de l'organisation quand rien ne le
@@ -52,7 +39,7 @@ module Portail
           return membership.data_stream_codes unless Access::DataStreamPerimeter.unrestricted?(membership)
 
           context.fail!(error: :unavailable) if subscriptions.nil?
-          subscriptions["codes"]
+          subscriptions.portal_data_stream_codes
         end
 
         # Les flux choisis, s'ils sont tous sélectionnables ; sans choix, le périmètre lui-même.
