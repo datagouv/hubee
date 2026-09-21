@@ -131,7 +131,7 @@ FactoryBot.define do
     pagination { build(:portail_pagination) }
     # Les états de l'amont, dans son ordre.
     counts_by_state {
-      %w[transmitted acknowledged in_progress awaiting_documents done refused closed integration_error]
+      %w[transmitted acknowledged in_progress awaiting_attachments done refused closed integration_error]
         .index_with(0)
     }
   end

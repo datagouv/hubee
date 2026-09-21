@@ -14,7 +14,7 @@ module Portail
       "transmitted" => "fr-badge--new",
       "acknowledged" => "fr-badge--info",
       "in_progress" => "fr-badge--info",
-      "awaiting_documents" => "fr-badge--warning",
+      "awaiting_attachments" => "fr-badge--warning",
       "done" => "fr-badge--success",
       "refused" => "fr-badge--error",
       "closed" => nil

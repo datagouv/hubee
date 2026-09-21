@@ -109,22 +109,22 @@ end
 # organisation du même SIRET. Seuls AEC et CERTDC doivent ressortir.
 Étantdonné("l'API amont sert à sa structure des abonnements de toutes natures") do
   [
-    {id: "sub-1", data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC", name: "Certificat de décès électronique")},
-    {id: "sub-2", data_stream: HubApiV1::V2::DataStream.new(code: "AEC", name: "Actes d'état civil")},
-    {id: "sub-3", data_stream: HubApiV1::V2::DataStream.new(code: "DEMO_API", name: "Démonstration par l'API"), access_mode: :api},
-    {id: "sub-4", data_stream: HubApiV1::V2::DataStream.new(code: "DEMO_INACTIF", name: "Démonstration inactive"), read_package: false},
-    {id: "sub-5", data_stream: HubApiV1::V2::DataStream.new(code: "DEMO_AUTRE", name: "Démonstration d'une autre organisation"),
+    {id: "sub-1", data_stream: HubApiV1::V2::DataStreamSummary.new(code: "CERTDC", name: "Certificat de décès électronique")},
+    {id: "sub-2", data_stream: HubApiV1::V2::DataStreamSummary.new(code: "AEC", name: "Actes d'état civil")},
+    {id: "sub-3", data_stream: HubApiV1::V2::DataStreamSummary.new(code: "DEMO_API", name: "Démonstration par l'API"), access_mode: :api},
+    {id: "sub-4", data_stream: HubApiV1::V2::DataStreamSummary.new(code: "DEMO_INACTIF", name: "Démonstration inactive"), read_package: false},
+    {id: "sub-5", data_stream: HubApiV1::V2::DataStreamSummary.new(code: "DEMO_AUTRE", name: "Démonstration d'une autre organisation"),
      organization: build_v2_recipient(siret: E2E_SIRET, code_insee: "00002")}
   ].each { |subscription| HubApiV1.client.add_subscription(build_v2_subscription(organization: e2e_recipient, **subscription)) }
   HubApiV1.client.add_case(e2e_delivery("DGS-AEC-0000000000002-01",
-    data_stream: HubApiV1::V2::DataStream.new(code: "AEC", name: nil)))
+    data_stream: HubApiV1::V2::DataStreamSummary.new(code: "AEC", name: nil)))
 end
 
 # L'intitulé voyage avec l'abonnement de la structure, c'est là que l'amont le sert.
 Étantdonné("l'API amont nomme le flux {string} {string}") do |code, name|
   HubApiV1.client.add_subscription(build_v2_subscription(
     id: "sub-#{code}", organization: e2e_recipient,
-    data_stream: HubApiV1::V2::DataStream.new(code: code, name: name)
+    data_stream: HubApiV1::V2::DataStreamSummary.new(code: code, name: name)
   ))
 end
 
@@ -137,7 +137,7 @@ end
   HubApiV1.client.add_case(
     build_v2_delivery(
       id: @unauthorised_id, number: "DGS-AEC-0000000000002-01", state: :transmitted,
-      data_stream: HubApiV1::V2::DataStream.new(code: "AEC", name: nil), recipient: e2e_recipient
+      data_stream: HubApiV1::V2::DataStreamSummary.new(code: "AEC", name: nil), recipient: e2e_recipient
     )
   )
 end
@@ -160,7 +160,7 @@ def e2e_delivery(number, **attributes)
 end
 
 Étantdonné("l'API amont sert aussi un télédossier {string} sur le flux {string}") do |number, code|
-  HubApiV1.client.add_case(e2e_delivery(number, data_stream: HubApiV1::V2::DataStream.new(code: code, name: nil)))
+  HubApiV1.client.add_case(e2e_delivery(number, data_stream: HubApiV1::V2::DataStreamSummary.new(code: code, name: nil)))
 end
 
 # Un instant en heure de Paris : c'est ainsi que le portail borne la période.

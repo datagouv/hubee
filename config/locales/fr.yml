@@ -75,7 +75,7 @@ fr:
         transmitted: Nouveau
         acknowledged: Reçu
         in_progress: En cours
-        awaiting_documents: En attente de compléments
+        awaiting_attachments: En attente de compléments
         done: Traité
         refused: Refusé
         closed: Clos
