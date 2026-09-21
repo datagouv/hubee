@@ -28,10 +28,15 @@ RSpec.describe "Portail::Attachments", type: :request do
     # Le fichier tel quel, sous son nom d'origine, et jamais dans la page : un type neutre et
     # `attachment`, quel que soit le type que l'amont annonce. Aucun magasin sur le chemin.
     it "serves a received piece under its original filename, as a download, out of any store" do
-      sign_in_member
+      agent = sign_in_member
+      link = Membership.find_by!(agent: agent).organization_link
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+      # La récupération part signée de l'agent de la session — le nom que ProConnect a servi à la
+      # connexion — et bornée au périmètre de son rattachement : la chaîne entière, du cookie
+      # jusqu'à la frontière.
       expect(Portail::HubAPI::Attachments).to receive(:download)
-        .with(delivery_id: delivery_id, id: attachment_id)
+        .with(delivery_id: delivery_id, id: attachment_id, filename: "certificat.pdf",
+          author: "Alex Martin", siret: link.siret, insee_code: link.insee_code)
         .and_return("%PDF-1.7\n\xFF\xFE\x00binaire".b)
 
       get path
@@ -227,6 +232,19 @@ RSpec.describe "Portail::Attachments", type: :request do
 
       expect(response).to have_http_status(:service_unavailable)
       expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
+    end
+
+    # Ni introuvable ni en panne : le dossier est plein, la pièce n'est pas remise et réessayer
+    # n'y changera rien. Une page à part, parce que l'agent n'a pas la même chose à en conclure.
+    it "renders a dedicated page when the history of the delivery is full" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+      expect(Portail::HubAPI::Attachments).to receive(:download).and_raise(Portail::HubAPI::HistoryFull)
+
+      get path
+
+      expect(response).to have_http_status(:conflict)
+      expect(response.body).to include("Cette pièce ne peut pas être remise")
     end
 
     it "renders a service unavailable page when the upstream fails on the content" do

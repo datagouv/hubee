@@ -4,11 +4,23 @@ module Portail
   module Attachments
     class Show
       # Les octets, entièrement en mémoire, qui ne font que traverser : ni journal, ni magasin.
+      # La récupération est inscrite à l'historique du télédossier par la frontière, qui ne rend
+      # rien si elle n'a pas pu l'écrire : aucun fichier n'est remis sans trace.
       class FetchContent
         include Interactor
 
         def call
-          context.body = HubAPI::Attachments.download(delivery_id: delivery_id, id: attachment_id)
+          context.body = HubAPI::Attachments.download(delivery_id:, id: attachment_id,
+            filename:, author:, siret: link.siret, insee_code: link.insee_code)
+          # La trace amont atteste que le portail a retiré le fichier ; cette ligne-ci, que cet
+          # agent l'a demandé. L'identifiant, pas le nom : la supervision tourne sans donnée
+          # personnelle.
+          Rails.logger.info("Pièce récupérée", delivery_id:, id: attachment_id, agent_id: context.agent.id)
+        rescue HubAPI::HistoryFull
+          # L'amont ne peut plus rien inscrire sur ce dossier : un état durable, pas un incident,
+          # et une issue à part — réessayer n'y changerait rien.
+          Rails.logger.warn("Historique du télédossier saturé", delivery_id:, id: attachment_id)
+          context.fail!(error: :history_full)
         rescue HubAPI::NotFound
           # L'inventaire disait reçue, l'amont ne la sert plus : l'inventaire a vieilli.
           Rails.logger.info("Pièce non livrable", delivery_id:, id: attachment_id, reason: :gone_upstream)
@@ -24,6 +36,29 @@ module Portail
         def delivery_id = context.delivery.id
 
         def attachment_id = context.attachment.id
+
+        # Le périmètre du rattachement, que le verbe d'écriture rejoue avant de tracer : un agent
+        # ne trace que sur les dossiers servis à son organisation.
+        def link = context.membership.organization_link
+
+        # « Prénom Nom », adresse en repli : les deux noms sont nullables en base, l'adresse non.
+        # C'est une règle du portail, jamais de la frontière — elle ne connaît ni l'agent ni la
+        # session.
+        def author
+          agent = context.agent
+
+          [agent.first_name, agent.last_name].compact_blank.join(" ").presence || agent.email
+        end
+
+        # Le nom BRUT du déposant, jamais l'assaini : la lecture V1 apparie l'événement à la pièce
+        # par égalité stricte. Vide, il retombe sur le repli du fichier remis — la ligne
+        # d'historique ne s'appariera alors à aucune pièce, conséquence connue et acceptée.
+        def filename
+          return context.attachment.filename if context.attachment.filename.present?
+
+          Rails.logger.warn("Pièce sans nom tracée sous un nom de repli", delivery_id:, id: attachment_id)
+          Delivery::Attachment::FALLBACK_FILENAME
+        end
       end
     end
   end

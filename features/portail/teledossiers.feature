@@ -129,6 +129,23 @@ Fonctionnalité: Les télédossiers de l'organisation
     Quand il récupère directement la pièce "certificat.pdf" du télédossier "DGS-CERTDC-0000000000001-01"
     Alors il obtient le fichier "certificat.pdf" en pièce jointe
 
+  # La trace écrite à l'amont revient dans l'historique que lit le portail : le type d'événement
+  # qu'écrit la gem doit bien retomber sur la phrase du téléchargement, et pas sur le repli.
+  Scénario: La récupération d'une pièce s'inscrit à l'historique du télédossier
+    Étant donné il s'est connecté
+    Quand il récupère directement la pièce "certificat.pdf" du télédossier "DGS-CERTDC-0000000000001-01"
+    Et il se rend sur l'accueil
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors l'historique porte "Alex Martin a téléchargé une pièce"
+
+  # Le dossier a atteint le plafond d'événements de l'amont : la récupération ne peut plus y être
+  # inscrite, donc la pièce n'est pas remise.
+  Scénario: Une pièce dont la récupération ne peut pas être tracée n'est pas remise
+    Étant donné l'historique du télédossier "DGS-CERTDC-0000000000001-01" est saturé
+    Et il s'est connecté
+    Quand il récupère directement la pièce "certificat.pdf" du télédossier "DGS-CERTDC-0000000000001-01"
+    Alors il voit que la pièce ne peut pas être remise
+
   Scénario: Une pièce hors habilitation reste fermée
     Étant donné l'API amont sert aussi un télédossier sur un flux non habilité
     Et il s'est connecté
