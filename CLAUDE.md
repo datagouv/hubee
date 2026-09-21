@@ -8,7 +8,7 @@ Stack : Rails 8.1 · Ruby 4.0 · PostgreSQL 18 · Solid Queue · Active Storage 
 
 ## Métier — agents du portail V2
 
-Un agent est rattaché à une organisation (*membership*) avec un rôle — **membre** ou **administrateur local** — et des **habilitations par flux** (*process codes*) portées par le rattachement.
+Un agent est rattaché à une organisation (*membership*) avec un rôle — **membre** ou **administrateur local** — et des **habilitations par flux** (*data stream codes*) portées par le rattachement.
 
 **Le cas standard est l'agent membre habilité sur un flux**, puis l'administrateur local habilité. Les autres combinaisons (membre sans habilitation, administrateur sans habilitation) sont des cas secondaires. Conséquence directe pour les specs et les exemples : le décor par défaut est le membre habilité — jamais l'administrateur local, qui masquerait le filtrage par habilitation.
 
