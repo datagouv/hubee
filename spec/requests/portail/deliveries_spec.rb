@@ -618,19 +618,17 @@ RSpec.describe "Portail::Deliveries", type: :request do
         sign_in_local_administrator
         expect(Portail::HubAPI::Subscriptions).to receive(:list).and_call_original
         client = use_hub_api_fake_client
-        client.add_subscription(build_subscription_record(process_code: "CERTDC", access_mode: "PORTAIL",
-          subscriber_siret: ProConnectTestHelper::TEST_SIRET,
-          subscriber_branch_code: ProConnectTestHelper::TEST_INSEE_CODE))
-        client.add_subscription(build_subscription_record(id: "sub-2", process_code: "AEC", access_mode: "PORTAIL",
-          subscriber_siret: ProConnectTestHelper::TEST_SIRET,
-          subscriber_branch_code: ProConnectTestHelper::TEST_INSEE_CODE))
+        client.add_subscription(build_v2_subscription(organization: upstream_recipient,
+          data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC", name: "Certificat de décès électronique")))
+        client.add_subscription(build_v2_subscription(id: "sub-2", organization: upstream_recipient,
+          data_stream: HubApiV1::V2::DataStream.new(code: "AEC", name: "Actes d'état civil")))
         # Un abonnement par l'API : l'amont ne sert pas ses dossiers, le flux n'est pas proposé.
-        client.add_subscription(build_subscription_record(id: "sub-3", process_code: "DEMO_API", access_mode: "API",
-          subscriber_siret: ProConnectTestHelper::TEST_SIRET,
-          subscriber_branch_code: ProConnectTestHelper::TEST_INSEE_CODE))
+        client.add_subscription(build_v2_subscription(id: "sub-3", organization: upstream_recipient,
+          data_stream: HubApiV1::V2::DataStream.new(code: "DEMO_API", name: "Démonstration par l'API"), access_mode: :api))
         # Une autre organisation du même SIRET : ses flux ne sont pas proposés.
-        client.add_subscription(build_subscription_record(id: "sub-4", process_code: "DEMO_AUTRE",
-          subscriber_siret: ProConnectTestHelper::TEST_SIRET, subscriber_branch_code: "00002"))
+        client.add_subscription(build_v2_subscription(id: "sub-4",
+          organization: build_v2_recipient(siret: ProConnectTestHelper::TEST_SIRET, code_insee: "00002"),
+          data_stream: HubApiV1::V2::DataStream.new(code: "DEMO_AUTRE", name: "Démonstration d'une autre organisation")))
 
         get "/teledossiers"
 
@@ -736,7 +734,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           send(sign_in, data_stream_codes: ["CERTDC"])
           client = use_hub_api_fake_client
           client.add_case(build_v2_delivery(number: "DGS-AEC-0000000000002-01", state: :transmitted,
-            data_stream: HubApiV1::V2::DataStream.new(code: "AEC"), recipient: upstream_recipient))
+            data_stream: HubApiV1::V2::DataStream.new(code: "AEC", name: nil), recipient: upstream_recipient))
 
           get "/teledossiers", params: {numero: "0000000000002"}
 
@@ -762,11 +760,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
         sign_in_local_administrator
         expect(Portail::HubAPI::Subscriptions).to receive(:list).and_call_original
         client = use_hub_api_fake_client
-        client.add_subscription(build_subscription_record(process_code: "AEC", access_mode: "PORTAIL",
-          subscriber_siret: ProConnectTestHelper::TEST_SIRET,
-          subscriber_branch_code: ProConnectTestHelper::TEST_INSEE_CODE))
+        client.add_subscription(build_v2_subscription(organization: upstream_recipient,
+          data_stream: HubApiV1::V2::DataStream.new(code: "AEC", name: "Actes d'état civil")))
         client.add_case(build_v2_delivery(number: "DGS-AEC-0000000000002-01", state: :transmitted,
-          data_stream: HubApiV1::V2::DataStream.new(code: "AEC"), recipient: upstream_recipient))
+          data_stream: HubApiV1::V2::DataStream.new(code: "AEC", name: nil), recipient: upstream_recipient))
 
         get "/teledossiers", params: {numero: "0000000000002"}
 

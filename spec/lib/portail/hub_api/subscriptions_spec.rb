@@ -13,10 +13,10 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     # String, comme l'état d'un télédossier.
     it "translates the upstream subscriptions into portal models" do
       client = HubApiV1::Testing::FakeClient.new
-      client.add_subscription(build_subscription_record(process_code: "CERTDC",
-        process_name: "Certificat de décès électronique", access_mode: "PORTAIL"))
-      client.add_subscription(build_subscription_record(id: "sub-2", process_code: "AEC",
-        process_name: "Actes d'état civil", access_mode: "API", status: "Inactif"))
+      client.add_subscription(build_v2_subscription(access_mode: :portal,
+        data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC", name: "Certificat de décès électronique")))
+      client.add_subscription(build_v2_subscription(id: "sub-2", access_mode: :api, read_package: false,
+        data_stream: HubApiV1::V2::DataStream.new(code: "AEC", name: "Actes d'état civil")))
 
       list = described_class.list(siret: siret, insee_code: insee_code, client: client)
 
@@ -34,7 +34,7 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     # Un flux que l'amont ne nomme pas reste un abonnement entier : l'intitulé seul manque.
     it "leaves an unnamed data stream unnamed" do
       client = HubApiV1::Testing::FakeClient.new
-      client.add_subscription(build_subscription_record(process_name: nil))
+      client.add_subscription(build_v2_subscription(data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC", name: nil)))
 
       list = described_class.list(siret: siret, insee_code: insee_code, client: client)
 
@@ -44,7 +44,7 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     # Un canal non renseigné en amont reste inconnu ici : « » ferait croire à une valeur.
     it "leaves an unset access mode unknown" do
       client = HubApiV1::Testing::FakeClient.new
-      client.add_subscription(build_subscription_record(access_mode: nil))
+      client.add_subscription(build_v2_subscription(access_mode: nil))
 
       list = described_class.list(siret: siret, insee_code: insee_code, client: client)
 
