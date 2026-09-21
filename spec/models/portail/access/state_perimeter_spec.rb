@@ -5,7 +5,7 @@ require "rails_helper"
 # Le périmètre du portail, pas celui d'un rattachement : ce qu'il ne sert pas, HubEE le supervise.
 RSpec.describe Portail::Access::StatePerimeter do
   it "covers each state the portal serves" do
-    served = %w[transmitted acknowledged in_progress awaiting_documents done refused closed]
+    served = %w[transmitted acknowledged in_progress awaiting_attachments done refused closed]
 
     expect(served.map { |state| described_class.covers?(state) }).to all(be(true))
   end

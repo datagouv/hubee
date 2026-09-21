@@ -133,7 +133,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
         sort: "transmitted_at", direction: "desc", page: 1, per_page: 25, client: client)
 
       expect(list.page.counts_by_state.keys).to eq(
-        %w[transmitted acknowledged in_progress awaiting_documents done refused closed]
+        %w[transmitted acknowledged in_progress awaiting_attachments done refused closed]
       )
       expect(list.page.counts_by_state.values).to all(be_a(Integer))
     end
@@ -149,7 +149,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
         sort: "transmitted_at", direction: "desc", page: 1, per_page: 25, client: client)
 
       expect(list.page.counts_by_state).to eq(
-        "transmitted" => 0, "acknowledged" => 0, "in_progress" => 0, "awaiting_documents" => 0,
+        "transmitted" => 0, "acknowledged" => 0, "in_progress" => 0, "awaiting_attachments" => 0,
         "done" => 0, "refused" => 0, "closed" => 0
       )
     end

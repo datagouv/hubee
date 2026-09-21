@@ -14,9 +14,9 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     it "translates the upstream subscriptions into portal models" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_subscription(build_v2_subscription(access_mode: :portal,
-        data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC", name: "Certificat de décès électronique")))
+        data_stream: HubApiV1::V2::DataStreamSummary.new(code: "CERTDC", name: "Certificat de décès électronique")))
       client.add_subscription(build_v2_subscription(id: "sub-2", access_mode: :api, read_package: false,
-        data_stream: HubApiV1::V2::DataStream.new(code: "AEC", name: "Actes d'état civil")))
+        data_stream: HubApiV1::V2::DataStreamSummary.new(code: "AEC", name: "Actes d'état civil")))
 
       list = described_class.list(siret: siret, insee_code: insee_code, client: client)
 
@@ -34,7 +34,7 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     # Un flux que l'amont ne nomme pas reste un abonnement entier : l'intitulé seul manque.
     it "leaves an unnamed data stream unnamed" do
       client = HubApiV1::Testing::FakeClient.new
-      client.add_subscription(build_v2_subscription(data_stream: HubApiV1::V2::DataStream.new(code: "CERTDC", name: nil)))
+      client.add_subscription(build_v2_subscription(data_stream: HubApiV1::V2::DataStreamSummary.new(code: "CERTDC", name: nil)))
 
       list = described_class.list(siret: siret, insee_code: insee_code, client: client)
 
