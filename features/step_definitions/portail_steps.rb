@@ -316,6 +316,20 @@ Alors("il obtient le fichier {string} en pièce jointe") do |filename|
   expect(page.body.b).to eq(HubApiV1::Testing::Factories.attachment_body_for(attachment))
 end
 
+# Le plafond d'événements est un relevé de l'amont, pas un contrat : le fake sait le poser, les
+# scénarios n'ont pas à connaître le nombre.
+Étantdonné("l'historique du télédossier {string} est saturé") do |number|
+  HubApiV1.client.saturate_case(e2e_delivery(number).id)
+end
+
+Alors("l'historique porte {string}") do |sentence|
+  expect(page).to have_css("li", text: sentence)
+end
+
+Alors("il voit que la pièce ne peut pas être remise") do
+  expect(page).to have_css("h1", text: "Cette pièce ne peut pas être remise")
+end
+
 Alors("il obtient une page introuvable, sans que le dossier lui soit montré") do
   expect(page).to have_text("Page introuvable")
   expect(page).to have_no_text("DGS-AEC-0000000000002-01")

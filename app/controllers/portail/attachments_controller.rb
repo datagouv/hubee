@@ -4,9 +4,6 @@ module Portail
   # Le contenu d'une pièce d'un télédossier. Une seule action, et rien à rendre : la réponse est le
   # fichier lui-même.
   class AttachmentsController < Portail::BaseController
-    # Quand rien du nom d'origine ne survit.
-    FALLBACK_FILENAME = "piece"
-
     # Un seul callback pour les deux : la pièce se cherche dans le télédossier, l'ordre est ici.
     before_action :set_delivery_and_attachment, only: :show
 
@@ -15,7 +12,10 @@ module Portail
       # une pièce est celui de son télédossier, et la policy vérifie aussi l'organisation servie.
       authorize(@delivery, :show?)
 
-      result = Attachments::Show.call(delivery: @delivery, attachment: @attachment)
+      # L'agent et son rattachement suivent : la récupération s'inscrit à l'historique du
+      # télédossier sous l'identité de la session, et dans le périmètre du rattachement.
+      result = Attachments::Show.call(delivery: @delivery, attachment: @attachment,
+        membership: current_membership, agent: current_agent)
       return render_failure(result.error) unless result.success?
 
       # `attachment` et un type neutre : le type annoncé par l'amont ne décide pas qu'un fichier
@@ -56,8 +56,21 @@ module Portail
       not_found
     end
 
-    # Les mêmes pages que le détail : ce qui ne se livre pas est introuvable, le reste est en panne.
-    def render_failure(error) = (error == :not_found) ? not_found : unavailable
+    # Les mêmes pages que le détail pour deux des trois issues — ce qui ne se livre pas est
+    # introuvable, le reste est en panne —, et une page à part pour le dossier plein : l'agent ne
+    # comprendrait pas une panne là où rien ne se réparera.
+    def render_failure(error)
+      case error
+      when :not_found then not_found
+      when :history_full then history_full
+      else unavailable
+      end
+    end
+
+    # L'amont ne peut plus rien inscrire à l'historique de ce télédossier, et le portail ne sert
+    # pas une pièce dont il ne peut pas garder trace. 409 : c'est l'état de la ressource qui s'y
+    # oppose, sans la promesse de réessai que porterait un 503.
+    def history_full = render("portail/errors/delivery_history_full", status: :conflict)
 
     # Le nom arrive verbatim du partenaire et finit sur le disque de l'agent. Les caractères de
     # contrôle et de mise en forme partent d'abord : un octet nul ferait lever `basename`, et
@@ -66,7 +79,7 @@ module Portail
     def download_filename(attachment)
       name = File.basename(attachment.filename.to_s.gsub(/[\p{Cc}\p{Cf}]/, "").tr("\\", "/"))
 
-      name.delete(".").blank? ? FALLBACK_FILENAME : name
+      name.delete(".").blank? ? Delivery::Attachment::FALLBACK_FILENAME : name
     end
   end
 end
