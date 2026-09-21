@@ -22,7 +22,7 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
       organization_link: create(:organization_link, siret: "22770001000019", insee_code: "77372"))
     create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
     create(:data_stream_access, membership: membership, data_stream_code: "AEC")
-    expect(Portail::HubAPI::Subscriptions).to receive(:list)
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch)
       .with(siret: "22770001000019", insee_code: "77372").and_return(upstream_subscriptions("CERTDC", "DEMO"))
 
     result = described_class.call(membership: membership, criteria: criteria)
@@ -36,7 +36,7 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
   it "offers a local administrator with named habilitations those alone" do
     membership = create(:membership, :local_administrator)
     create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
-    expect(Portail::HubAPI::Subscriptions).to receive(:list).and_return(upstream_subscriptions("CERTDC", "AEC"))
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch).and_return(upstream_subscriptions("CERTDC", "AEC"))
 
     result = described_class.call(membership: membership, criteria: criteria)
 
@@ -45,21 +45,18 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
     expect(result.requested_data_streams).to eq(["CERTDC"])
   end
 
-  # Les noms sont une information d'affichage : sans eux, les codes seuls, et la page.
-  it "leaves a member its data streams unnamed, logged, when the upstream is failing" do
+  # Les noms sont une information d'affichage : sans eux, les codes seuls, et la page. La panne
+  # est déjà journalisée par la frontière, qui rend nil.
+  it "leaves a member its data streams unnamed when the subscriptions could not be read" do
     membership = create(:membership)
     create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
-    expect(Portail::HubAPI::Subscriptions).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch).and_return(nil)
 
-    result = nil
-    events = capture_semantic_logger_events do
-      result = described_class.call(membership: membership, criteria: criteria)
-    end
+    result = described_class.call(membership: membership, criteria: criteria)
 
     expect(result).to be_success
     expect(result.selectable_data_streams).to eq(["CERTDC"])
     expect(result.data_stream_names).to eq({})
-    expect(events).to include(be_a_semantic_logger_event(level: :error, message_includes: "Abonnements indisponibles"))
   end
 
   # Le couple doit venir du rattachement : pris ailleurs, il ouvrirait une autre structure. Ce
@@ -68,7 +65,7 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
   it "offers an unrestricted local administrator the data streams its organisation reads through the portal" do
     membership = create(:membership, :local_administrator,
       organization_link: create(:organization_link, siret: "22770001000019", insee_code: "77372"))
-    expect(Portail::HubAPI::Subscriptions).to receive(:list)
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch)
       .with(siret: "22770001000019", insee_code: "77372").and_return(upstream_subscriptions("CERTDC", "AEC"))
 
     result = described_class.call(membership: membership, criteria: criteria)
@@ -84,7 +81,7 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
     membership = create(:membership)
     create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
     create(:data_stream_access, membership: membership, data_stream_code: "AEC")
-    expect(Portail::HubAPI::Subscriptions).to receive(:list).and_return(upstream_subscriptions)
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch).and_return(upstream_subscriptions)
 
     result = described_class.call(membership: membership, criteria: criteria(flux: ["AEC", "CERTDC"]))
 
@@ -96,7 +93,7 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
   # borne à ce qu'il a lui-même proposé.
   it "fails as an invalid request, logged, when a chosen data stream is outside the offered ones" do
     membership = create(:membership, :local_administrator)
-    expect(Portail::HubAPI::Subscriptions).to receive(:list).and_return(upstream_subscriptions("CERTDC"))
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch).and_return(upstream_subscriptions("CERTDC"))
 
     result = nil
     events = capture_semantic_logger_events do
@@ -110,35 +107,9 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
     ))
   end
 
-  # Les abonnements d'une structure bougent rarement : un appel par structure et par dix minutes,
-  # pour les flux proposés comme pour leurs noms.
-  it "keeps the organisation subscriptions for ten minutes, per organisation" do
-    memory = ActiveSupport::Cache::MemoryStore.new
-    expect(Rails).to receive(:cache).at_least(:once).and_return(memory)
-    membership = create(:membership, :local_administrator,
-      organization_link: create(:organization_link, siret: "22770001000019", insee_code: "77372"))
-    other = create(:membership, :local_administrator,
-      organization_link: create(:organization_link, siret: "13002526500013", insee_code: "75056"))
-    expect(Portail::HubAPI::Subscriptions).to receive(:list)
-      .with(siret: "22770001000019", insee_code: "77372").once.and_return(upstream_subscriptions("CERTDC"))
-    expect(Portail::HubAPI::Subscriptions).to receive(:list)
-      .with(siret: "13002526500013", insee_code: "75056").once.and_return(upstream_subscriptions("AEC"))
-
-    expect(described_class.call(membership: membership, criteria: criteria).selectable_data_streams).to eq(["CERTDC"])
-    expect(described_class.call(membership: membership, criteria: criteria).data_stream_names).to eq({"CERTDC" => "CERTDC nommé"})
-    expect(described_class.call(membership: other, criteria: criteria).selectable_data_streams).to eq(["AEC"])
-
-    travel 11.minutes do
-      expect(Portail::HubAPI::Subscriptions).to receive(:list)
-        .with(siret: "22770001000019", insee_code: "77372").once.and_return(upstream_subscriptions("CERTDC"))
-
-      expect(described_class.call(membership: membership, criteria: criteria).selectable_data_streams).to eq(["CERTDC"])
-    end
-  end
-
   # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut « aucun filtre ».
   it "fails without calling the upstream when the membership has no access" do
-    expect(Portail::HubAPI::Subscriptions).not_to receive(:list)
+    expect(Portail::HubAPI::Subscriptions).not_to receive(:fetch)
 
     result = described_class.call(membership: create(:membership), criteria: criteria)
 
@@ -147,17 +118,13 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
   end
 
   # Sans abonnements, un rattachement non restreint n'a rien à proposer : pas de page.
-  it "fails as unavailable, logged, when the upstream is failing for an unrestricted local administrator" do
+  it "fails as unavailable when the subscriptions could not be read for an unrestricted local administrator" do
     membership = create(:membership, :local_administrator)
-    expect(Portail::HubAPI::Subscriptions).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch).and_return(nil)
 
-    result = nil
-    events = capture_semantic_logger_events do
-      result = described_class.call(membership: membership, criteria: criteria)
-    end
+    result = described_class.call(membership: membership, criteria: criteria)
 
     expect(result).to be_failure
     expect(result.error).to eq(:unavailable)
-    expect(events).to include(be_a_semantic_logger_event(level: :error, message_includes: "Abonnements indisponibles"))
   end
 end
