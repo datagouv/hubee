@@ -74,7 +74,12 @@ module Portail
         teledossier_piece_path(delivery.id, attachment.id),
         class: "fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line fr-btn--icon-left",
         aria: {label: t("portail.deliveries.attachments.download_named", filename: attachment.filename)},
-        download: true
+        # Pas d'attribut `download` : il ferait enregistrer la réponse QUELLE QU'ELLE SOIT, et une
+        # page d'erreur finirait en fichier HTML sur le disque de l'agent — qui croirait tenir sa
+        # pièce. `Content-Disposition: attachment` suffit à déclencher le téléchargement en
+        # navigation classique, et laisse une vraie page s'afficher quand rien n'est remis.
+        # `turbo: false` : Turbo ne sait pas suivre une réponse qui n'est pas du HTML.
+        data: {turbo: false}
     end
 
     # Déclarative tant que la pièce n'est pas reçue : approximative vaut mieux qu'absente.

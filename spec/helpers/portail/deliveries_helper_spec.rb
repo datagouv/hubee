@@ -125,8 +125,11 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       page = Capybara.string(link)
       expect(page).to have_link("Télécharger",
         href: "/teledossiers/94b1b09d-b47f-4480-9b48-93b8b36108f2/pieces/a1111111-1111-1111-1111-111111111111")
-      expect(page).to have_css("a.fr-btn.fr-btn--sm[download][aria-label='Télécharger recue.pdf']")
+      expect(page).to have_css("a.fr-btn.fr-btn--sm[data-turbo='false'][aria-label='Télécharger recue.pdf']")
       expect(page).to have_no_css("p.fr-badge")
+      # Surtout pas `download` : le navigateur enregistrerait la réponse quelle qu'elle soit, et
+      # une page d'erreur finirait en fichier HTML sur le disque de l'agent.
+      expect(page).to have_no_css("a[download]")
     end
 
     it "shows the state of a deposit piece that is not received, as the reason" do
