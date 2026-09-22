@@ -13,7 +13,7 @@ module Portail
       authorize(@delivery, :show?)
 
       result = Attachments::Show.call(delivery: @delivery, attachment: @attachment,
-        membership: current_membership, agent: current_agent)
+        membership: current_membership)
       return render_failure(result.error) unless result.success?
 
       # `attachment` et un type neutre : le type annoncé par l'amont ne décide pas qu'un fichier

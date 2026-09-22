@@ -4,7 +4,7 @@ module Portail
   module Attachments
     class Show
       # Les octets, entièrement en mémoire, qui ne font que traverser : ni journal, ni magasin.
-      class FetchContent
+      class Download
         include Interactor
 
         def call
@@ -15,7 +15,7 @@ module Portail
           context.body = HubAPI::Attachments.download(delivery_id:, id: attachment_id,
             filename:, author:, siret: link.siret, insee_code: link.insee_code)
           # L'identifiant et pas le nom : la supervision tourne sans donnée personnelle.
-          Rails.logger.info("Pièce récupérée", delivery_id:, id: attachment_id, agent_id: context.agent.id)
+          Rails.logger.info("Pièce récupérée", delivery_id:, id: attachment_id, agent_id: agent.id)
         rescue HubAPI::Error => e
           context.fail!(error: failure_for(e))
         end
@@ -54,9 +54,11 @@ module Portail
 
         def link = context.membership.organization_link
 
+        def agent = context.membership.agent
+
         # Même signature que les autres événements écrits en amont. Jamais l'adresse en repli :
         # elle serait publiée chez le partenaire déposant.
-        def author = EventAuthor.for(context.agent)
+        def author = EventAuthor.for(agent)
 
         # Le nom BRUT, jamais l'assaini : la lecture V1 apparie par égalité stricte.
         def filename

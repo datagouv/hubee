@@ -7,7 +7,7 @@ module Portail
 
       # La pièce est déjà autorisée par le contrôleur. Rien ne part vers l'amont pour une pièce
       # sans contenu.
-      organize Show::EnsureReceivedState, Show::FetchContent
+      organize Show::EnsureReceivedState, Show::Download
     end
   end
 end
