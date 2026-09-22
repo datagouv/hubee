@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Attachments::Show::FetchContent do
+RSpec.describe Portail::Attachments::Show::Download do
   let(:delivery) { build(:portail_delivery) }
   let(:attachment) { build(:portail_attachment) }
   let(:agent) { create(:agent, first_name: "Alice", last_name: "Martin", email: "alice@exemple.gouv.fr") }
@@ -11,8 +11,8 @@ RSpec.describe Portail::Attachments::Show::FetchContent do
       organization_link: build(:organization_link, siret: "12345678901234", insee_code: "75056"))
   end
 
-  def fetch(attachment: self.attachment, agent: self.agent)
-    described_class.call(delivery: delivery, attachment: attachment, membership: membership, agent: agent)
+  def fetch(attachment: self.attachment, membership: self.membership)
+    described_class.call(delivery: delivery, attachment: attachment, membership: membership)
   end
 
   # Les identifiants viennent de l'inventaire servi, jamais de l'URL. L'auteur vient de la session,
@@ -32,10 +32,11 @@ RSpec.describe Portail::Attachments::Show::FetchContent do
   # L'émetteur du dossier lit l'auteur : sans nom, on n'écrit pas, donc on ne remet rien. Jamais
   # l'adresse en repli — elle serait publiée chez lui.
   it "serves nothing, and asks nothing of the upstream, for an agent without a name" do
-    nameless = create(:agent, first_name: nil, last_name: nil)
+    nameless = build(:membership, agent: create(:agent, first_name: nil, last_name: nil),
+      organization_link: build(:organization_link))
     expect(Portail::HubAPI::Attachments).not_to receive(:download)
 
-    result = fetch(agent: nameless)
+    result = fetch(membership: nameless)
 
     expect(result).to be_failure
     expect(result.error).to eq(:unknown_author)

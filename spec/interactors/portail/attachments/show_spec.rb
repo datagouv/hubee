@@ -14,7 +14,7 @@ RSpec.describe Portail::Attachments::Show do
       .and_return("octets".b)
 
     result = described_class.call(delivery: delivery, attachment: delivery.attachments.first,
-      membership: membership, agent: agent)
+      membership: membership)
 
     expect(result).to be_success
     expect(result.body).to eq("octets".b)
