@@ -66,14 +66,12 @@ module Portail
         class: ["fr-badge", "fr-badge--sm", ATTACHMENT_BADGES[attachment.state]].compact)
     end
 
-    # Le bouton quand la pièce se remet, sinon son état, qui est la raison. Sans télédossier, la
-    # pièce est celle d'un événement : elle n'a pas d'adresse.
-    # `download` : le navigateur reçoit le fichier lui-même, Turbo n'intercepte pas. Le nom
-    # accessible porte la pièce : un même intitulé par ligne ne suffit pas au RGAA.
     def delivery_attachment_name(attachment)
       attachment.filename.presence || Delivery::Attachment::FALLBACK_FILENAME
     end
 
+    # Le bouton quand la pièce se remet, sinon son état, qui est la raison. Sans télédossier, la
+    # pièce est celle d'un événement : elle n'a pas d'adresse.
     def delivery_attachment_access(attachment, delivery)
       return delivery_attachment_state(attachment) unless delivery && attachment.state_received?
 
@@ -84,7 +82,8 @@ module Portail
           filename: delivery_attachment_name(attachment))},
         # Surtout pas `download` : il enregistrerait la réponse quelle qu'elle soit, page d'erreur
         # comprise. `turbo: false` : Turbo ne sait pas suivre une réponse qui n'est pas du HTML.
-        data: {turbo: false}
+        # `refreshes_history` : le cadre de l'historique écoute ce marqueur, hors de sa portée.
+        data: {turbo: false, refreshes_history: true}
     end
 
     # Déclarative tant que la pièce n'est pas reçue : approximative vaut mieux qu'absente.

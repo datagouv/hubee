@@ -1,0 +1,59 @@
+<%# locals: (delivery:, src: nil) %>
+<%# L'adresse ne devient le `src` du cadre qu'au premier rafraîchissement : la porter au rendu
+    ferait recharger un cadre déjà rempli, soit un appel amont de plus à chaque affichage. %>
+<%= turbo_frame_tag "historique", refresh: "morph",
+      data: {controller: src && "delivery-history", delivery_history_src_value: src} do %>
+  <section class="fr-p-3w fr-mb-4w fr-border-default--grey">
+    <h2 class="fr-h4"><%= t(".history") %></h2>
+    <% if delivery.events.any? %>
+      <ol class="delivery-timeline">
+        <% delivery_events_by_month(delivery).each do |month, events| %>
+          <li>
+            <p class="delivery-timeline__month fr-text--sm fr-mb-2w">
+              <%= delivery_event_month(month) %>
+            </p>
+
+            <ol class="delivery-timeline__entries">
+              <% events.each do |event| %>
+                <li class="delivery-timeline__entry fr-p-2w fr-mb-2w">
+                  <p class="fr-text--xs fr-text-mention--grey fr-mb-1v">
+                    <%= delivery_event_time(event) %>
+                  </p>
+
+                  <p class="fr-mb-0"><%= delivery_event_sentence(event) %></p>
+
+                  <% if event.content.present? %>
+                    <p class="fr-mb-0"><%= event.content %></p>
+                  <% end %>
+
+                  <%# Seule lecture de `si_comment` : si la décision de l'afficher s'inverse, c'est ici. %>
+                  <% if event.si_comment.present? %>
+                    <p class="fr-text--sm fr-mb-0">
+                      <strong><%= t(".si_comment") %></strong> — <%= event.si_comment %>
+                    </p>
+                  <% end %>
+
+                  <% if event.attachments.any? %>
+                    <p class="fr-text--sm fr-mb-0">
+                      <%= t(".event_attachments") %> :
+                      <%= event.attachments.map(&:filename).join(", ") %>
+                    </p>
+                  <% end %>
+
+                  <%# En note, en gris : une conséquence de l'événement, pas l'événement. %>
+                  <% if delivery_event_broadcast?(event) %>
+                    <p class="fr-text--xs fr-text-mention--grey fr-mt-1w fr-mb-0">
+                      <em><%= t("portail.deliveries.events.broadcast") %></em>
+                    </p>
+                  <% end %>
+                </li>
+              <% end %>
+            </ol>
+          </li>
+        <% end %>
+      </ol>
+    <% else %>
+      <p class="fr-mb-0"><%= t(".history_empty") %></p>
+    <% end %>
+  </section>
+<% end %>

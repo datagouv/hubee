@@ -199,6 +199,7 @@ fr:
         added_attachments_empty: Aucune pièce n'a été ajoutée depuis le dépôt.
         # L'amont ne sert pas les fichiers : le dire évite de chercher un lien qui n'existe pas.
         attachments_notice: Les pièces se consultent depuis votre système d'information. HubEE en présente l'inventaire.
+      history:
         history: Historique
         history_empty: Aucun événement enregistré pour ce télédossier.
         si_comment: Commentaire à destination des SI

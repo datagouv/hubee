@@ -129,6 +129,32 @@ Fonctionnalité: Les télédossiers de l'organisation
     Quand il récupère directement la pièce "certificat.pdf" du télédossier "DGS-CERTDC-0000000000001-01"
     Alors il obtient le fichier "certificat.pdf" en pièce jointe
 
+  # Le rafraîchissement du cadre passe par Turbo et Stimulus : aucune spec ne les voit.
+  # Une visite de restauration rend l'instantané en cache sans requête : sans rattrapage, l'agent
+  # retrouverait l'historique d'avant son téléchargement.
+  @javascript
+  Scénario: Le retour par le bouton précédent redemande l'historique
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il quitte le télédossier
+    Et il revient par le bouton précédent
+    Alors l'historique a été redemandé au serveur
+
+  @javascript
+  Scénario: Le retour au premier plan redemande l'historique sans attendre le minuteur
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il télécharge la pièce "certificat.pdf"
+    Et il masque l'onglet puis y revient
+    Alors l'historique a été redemandé avant le premier minuteur
+
+  @javascript
+  Scénario: L'historique se met à jour sans que l'agent recharge la page
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il télécharge la pièce "certificat.pdf"
+    Alors l'historique porte "Alex MARTIN a téléchargé une pièce" sans rechargement
+
   # La trace écrite à l'amont revient dans l'historique que lit le portail : le type d'événement
   # qu'écrit la gem doit bien retomber sur la phrase du téléchargement, et pas sur le repli.
   Scénario: La récupération d'une pièce s'inscrit à l'historique du télédossier
