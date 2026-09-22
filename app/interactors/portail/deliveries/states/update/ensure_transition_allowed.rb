@@ -22,7 +22,7 @@ module Portail
 
           # Flux illisible : la table seule, l'amont tranchera.
           def offered
-            data_stream = HubAPI::DataStreams.fetch(delivery.data_stream.code)
+            data_stream = HubAPI::DataStreams.fetch(delivery.data_stream_code)
             Access::StateTransitions.offered_from(delivery.state, data_stream)
           end
 

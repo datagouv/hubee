@@ -10,7 +10,7 @@ module Portail
       # le scope.
       def readable?(membership, delivery)
         Access::OrganizationPerimeter.covers?(membership, delivery.recipient) &&
-          Access::DataStreamPerimeter.covers?(membership, delivery.data_stream.code) &&
+          Access::DataStreamPerimeter.covers?(membership, delivery.data_stream_code) &&
           Access::StatePerimeter.covers?(delivery.state)
       end
     end

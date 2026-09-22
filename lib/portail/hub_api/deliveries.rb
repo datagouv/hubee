@@ -86,7 +86,7 @@ module Portail
             id: summary.id,
             number: summary.number,
             state: summary.state.to_s,
-            data_stream: data_stream_from(summary.data_stream),
+            data_stream_code: summary.data_stream_code,
             recipient: recipient_from(summary.recipient),
             transmitted_at: summary.transmitted_at,
             updated_at: summary.updated_at
@@ -98,7 +98,7 @@ module Portail
             id: delivery.id,
             number: delivery.number,
             state: delivery.state.to_s,
-            data_stream: data_stream_from(delivery.data_stream),
+            data_stream_code: delivery.data_stream_code,
             recipient: recipient_from(delivery.recipient),
             transmitted_at: delivery.transmitted_at,
             updated_at: delivery.updated_at,
@@ -144,8 +144,6 @@ module Portail
         def metadata_from(metadata)
           metadata.transform_values { |value| value.is_a?(Symbol) ? value.to_s : value }
         end
-
-        def data_stream_from(data_stream) = Portail::DataStream::Summary.new(code: data_stream.code)
 
         def recipient_from(recipient)
           Portail::Delivery::Recipient.new(siret: recipient.siret, insee_code: recipient.code_insee)

@@ -28,7 +28,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
         "DGS-CERTDC-0000000000001-01", "DGS-CERTDC-0000000000002-01"
       )
       expect(list.deliveries.first).to have_attributes(state: "acknowledged")
-      expect(list.deliveries.first.data_stream.code).to eq("CERTDC")
+      expect(list.deliveries.first.data_stream_code).to eq("CERTDC")
       # `code_insee` en amont, `insee_code` ici : la couture vit à la frontière.
       expect(list.deliveries.first.recipient)
         .to eq(Portail::Delivery::Recipient.new(siret: siret, insee_code: insee_code))
@@ -167,7 +167,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
       expect(result).to have_attributes(
         number: "DGS-CERTDC-0000000000001-01", state: "acknowledged"
       )
-      expect(result.data_stream.code).to eq("CERTDC")
+      expect(result.data_stream_code).to eq("CERTDC")
       expect(result.recipient).to eq(Portail::Delivery::Recipient.new(siret: siret, insee_code: insee_code))
       expect(result.applicant).to be_a(Portail::Delivery::Applicant)
       expect(result.applicant.full_name).to eq("George DUBOIS")

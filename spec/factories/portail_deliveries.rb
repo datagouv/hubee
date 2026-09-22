@@ -27,13 +27,6 @@ FactoryBot.define do
     end
   end
 
-  factory :portail_data_stream_summary, class: "Portail::DataStream::Summary" do
-    skip_create
-    initialize_with { new(**attributes) }
-
-    code { "CERTDC" }
-  end
-
   factory :portail_pagination, class: "Portail::Pagination" do
     skip_create
     initialize_with { new(**attributes) }
@@ -47,15 +40,12 @@ FactoryBot.define do
     skip_create
     initialize_with { new(**attributes) }
 
-    transient do
-      data_stream_code { "CERTDC" }
-      membership { nil }
-    end
+    transient { membership { nil } }
 
     id { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
-    data_stream { build(:portail_data_stream_summary, code: data_stream_code) }
+    data_stream_code { "CERTDC" }
     recipient { build(:portail_recipient, membership: membership) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
@@ -95,15 +85,12 @@ FactoryBot.define do
     skip_create
     initialize_with { new(**attributes) }
 
-    transient do
-      data_stream_code { "CERTDC" }
-      membership { nil }
-    end
+    transient { membership { nil } }
 
     id { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
-    data_stream { build(:portail_data_stream_summary, code: data_stream_code) }
+    data_stream_code { "CERTDC" }
     recipient { build(:portail_recipient, membership: membership) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
@@ -144,10 +131,8 @@ FactoryBot.define do
     skip_create
     initialize_with { new(**attributes) }
 
-    transient { data_stream_code { "CERTDC" } }
-
     id { "550e8400-e29b-41d4-a716-446655440000" }
-    data_stream { build(:portail_data_stream_summary, code: data_stream_code) }
+    data_stream_code { "CERTDC" }
     # Sans intitulé par défaut : le cas nommé se pose explicitement, le repli sur le code est
     # le décor commun.
     data_stream_name { nil }
