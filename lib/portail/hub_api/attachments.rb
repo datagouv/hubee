@@ -9,10 +9,9 @@ module Portail
     # l'agent ne sont regardés ici : ce sont des décisions de l'appelant, prises avant l'appel.
     module Attachments
       class << self
-        # Deux appels amont sous un seul nom : les octets, puis la trace de leur récupération.
-        # `author:` obligatoire est ce qui annonce l'écriture, qu'une lecture n'aurait pas. L'ordre
-        # porte l'invariant : rien n'est tracé sans octets servis, rien n'est rendu sans trace.
-        # Soudure d'un manque de hub-api V1 : elle mourra à la couture, quand l'amont tracera seul.
+        # Deux appels amont sous un seul nom, et l'ordre porte l'invariant : rien n'est tracé sans
+        # octets servis, rien n'est rendu sans trace. Soudure d'un manque de hub-api V1, à retirer
+        # le jour où l'amont tracera seul.
         def download(delivery_id:, id:, filename:, author:, siret:, insee_code:,
           client: HubApiV1.client)
           content = fetch(delivery_id, id, client)
@@ -35,8 +34,7 @@ module Portail
           raise HubAPI.translated(e)
         end
 
-        # `notify: false` explicite : c'est une décision, pas un défaut hérité — prévenir le
-        # déposant à chaque lecture ferait du bruit chez lui, la trace suffit.
+        # `notify: false` explicite : c'est une décision, pas un défaut hérité.
         def record(delivery_id, filename, author, siret, insee_code, client)
           HubApiV1::V2::Delivery.record_attachment_download(
             id: delivery_id, filename: filename, author: author, siret: siret,

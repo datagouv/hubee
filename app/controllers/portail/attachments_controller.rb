@@ -12,8 +12,6 @@ module Portail
       # une pièce est celui de son télédossier, et la policy vérifie aussi l'organisation servie.
       authorize(@delivery, :show?)
 
-      # L'agent et son rattachement suivent : la récupération s'inscrit à l'historique du
-      # télédossier sous l'identité de la session, et dans le périmètre du rattachement.
       result = Attachments::Show.call(delivery: @delivery, attachment: @attachment,
         membership: current_membership, agent: current_agent)
       return render_failure(result.error) unless result.success?
@@ -55,18 +53,22 @@ module Portail
       not_found
     end
 
-    # Les mêmes pages que le détail pour deux issues sur trois, et une page à part pour le dossier
-    # plein : l'agent ne comprendrait pas une panne là où rien ne se réparera.
     def render_failure(error)
       case error
       when :not_found then not_found
       when :event_limit_reached then event_limit_reached
+      when :unknown_author then unknown_author
       else unavailable
       end
     end
 
-    # 409 : c'est l'état de la ressource qui s'oppose à la demande, sans la promesse de réessai
-    # que porterait un 503.
+    # Le compte de l'agent, pas le télédossier : 422 plutôt que 409.
+    def unknown_author
+      render("portail/errors/unknown_author", status: :unprocessable_content,
+        locals: {delivery_path: teledossier_path(@delivery.id)})
+    end
+
+    # 409 et non 503 : l'état de la ressource s'oppose à la demande, aucun réessai n'y changera rien.
     def event_limit_reached
       render("portail/errors/delivery_event_limit_reached", status: :conflict,
         locals: {delivery_path: teledossier_path(@delivery.id)})
