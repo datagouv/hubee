@@ -9,12 +9,10 @@ module Portail
     # l'agent ne sont regardés ici : ce sont des décisions de l'appelant, prises avant l'appel.
     module Attachments
       class << self
-        # Deux appels amont sous un seul nom : les octets, puis la trace de leur récupération à
-        # l'historique du télédossier. Le nom reste `download` — c'est ce que l'appelant demande —
-        # et c'est la SIGNATURE qui annonce l'écriture : `author:` n'aurait aucun sens pour une
-        # simple lecture. L'ordre porte l'invariant : rien n'est rendu si la trace échoue, et rien
-        # n'est tracé si l'amont n'a pas servi les octets. Cette soudure compense un manque de
-        # hub-api V1 ; elle mourra ici, à la couture, le jour où l'amont tracera seul.
+        # Deux appels amont sous un seul nom : les octets, puis la trace de leur récupération.
+        # `author:` obligatoire est ce qui annonce l'écriture, qu'une lecture n'aurait pas. L'ordre
+        # porte l'invariant : rien n'est tracé sans octets servis, rien n'est rendu sans trace.
+        # Soudure d'un manque de hub-api V1 : elle mourra à la couture, quand l'amont tracera seul.
         def download(delivery_id:, id:, filename:, author:, siret:, insee_code:,
           client: HubApiV1.client)
           content = fetch(delivery_id, id, client)
@@ -37,9 +35,8 @@ module Portail
           raise HubAPI.translated(e)
         end
 
-        # `notify: false`, explicite parce que c'est une décision et non un défaut hérité : la
-        # trace se lit dans l'historique, et prévenir le partenaire déposant à chaque récupération
-        # ferait du bruit chez lui pour une lecture.
+        # `notify: false` explicite : c'est une décision, pas un défaut hérité — prévenir le
+        # déposant à chaque lecture ferait du bruit chez lui, la trace suffit.
         def record(delivery_id, filename, author, siret, insee_code, client)
           HubApiV1::V2::Delivery.record_attachment_download(
             id: delivery_id, filename: filename, author: author, siret: siret,

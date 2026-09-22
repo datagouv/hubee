@@ -130,6 +130,14 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       expect(page).to have_no_css("a[download]")
     end
 
+    # RGAA : sans ça, le nom accessible du lien s'arrête à « Télécharger », identique à celui de
+    # toutes les autres pièces. Le repli est celui du fichier remis et de la trace.
+    it "names a piece the partner did not name after the shared fallback" do
+      link = helper.delivery_attachment_access(build(:portail_attachment, filename: ""), delivery)
+
+      expect(Capybara.string(link)).to have_css("a[aria-label='Télécharger piece']")
+    end
+
     it "shows the state of a deposit piece that is not received, as the reason" do
       badge = helper.delivery_attachment_access(build(:portail_attachment, state: "corrupted"), delivery)
 

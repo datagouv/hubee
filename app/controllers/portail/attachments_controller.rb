@@ -55,9 +55,8 @@ module Portail
       not_found
     end
 
-    # Les mêmes pages que le détail pour deux des trois issues — ce qui ne se livre pas est
-    # introuvable, le reste est en panne —, et une page à part pour le dossier plein : l'agent ne
-    # comprendrait pas une panne là où rien ne se réparera.
+    # Les mêmes pages que le détail pour deux issues sur trois, et une page à part pour le dossier
+    # plein : l'agent ne comprendrait pas une panne là où rien ne se réparera.
     def render_failure(error)
       case error
       when :not_found then not_found
@@ -66,10 +65,12 @@ module Portail
       end
     end
 
-    # L'amont ne peut plus rien inscrire à l'historique de ce télédossier, et le portail ne sert
-    # pas une pièce dont il ne peut pas garder trace. 409 : c'est l'état de la ressource qui s'y
-    # oppose, sans la promesse de réessai que porterait un 503.
-    def history_full = render("portail/errors/delivery_history_full", status: :conflict)
+    # 409 : c'est l'état de la ressource qui s'oppose à la demande, sans la promesse de réessai
+    # que porterait un 503.
+    def history_full
+      render("portail/errors/delivery_history_full", status: :conflict,
+        locals: {delivery_path: teledossier_path(@delivery.id)})
+    end
 
     # Le nom arrive verbatim du partenaire et finit sur le disque de l'agent. Les caractères de
     # contrôle et de mise en forme partent d'abord : un octet nul ferait lever `basename`, et

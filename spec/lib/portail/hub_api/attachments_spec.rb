@@ -71,6 +71,8 @@ RSpec.describe Portail::HubAPI::Attachments do
       expect(HubApiV1::V2::Attachment).to receive(:download).with(
         delivery_id: delivery_id, id: attachment_id, client: shared
       ).and_return("octets".b)
+      # `hash_including` : le hash complet est éprouvé par l'exemple précédent ; celui-ci ne porte
+      # que sur le client servi par défaut.
       expect(HubApiV1::V2::Delivery).to receive(:record_attachment_download)
         .with(hash_including(client: shared)).and_return(build_v2_event)
 
@@ -206,7 +208,7 @@ RSpec.describe Portail::HubAPI::Attachments do
     trace_errors.each do |situation, error|
       it "raises #{error[:translated].name.demodulize} for #{situation}, reported: #{error[:reported]}" do
         use_hub_api_fake_client
-        allow(HubApiV1::V2::Attachment).to receive(:download).and_return("octets".b)
+        expect(HubApiV1::V2::Attachment).to receive(:download).and_return("octets".b)
         expect(HubApiV1::V2::Delivery).to receive(:record_attachment_download).and_raise(error[:raised])
         if error[:reported]
           expect(Rails.error).to receive(:report).with(instance_of(error[:raised]), handled: true)

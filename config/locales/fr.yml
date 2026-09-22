@@ -251,6 +251,7 @@ fr:
         title: Pièce non remise — HubEE
         heading: Cette pièce ne peut pas être remise
         lead: "L'historique de ce télédossier a atteint le nombre maximal d'événements : la récupération de la pièce ne peut plus y être inscrite, et le fichier n'est donc pas remis. Réessayer n'y changera rien."
+        back_to_delivery: Retour au télédossier
       not_found:
         title: Page introuvable — HubEE
         heading: Page introuvable

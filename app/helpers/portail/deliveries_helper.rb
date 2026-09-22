@@ -70,18 +70,23 @@ module Portail
     # pièce est celle d'un événement : elle n'a pas d'adresse.
     # `download` : le navigateur reçoit le fichier lui-même, Turbo n'intercepte pas. Le nom
     # accessible porte la pièce : un même intitulé par ligne ne suffit pas au RGAA.
+    # Le nom du déposant, ou le repli quand il n'en a pas donné : l'agent lit partout celui que
+    # porteront le fichier remis et la trace écrite à l'historique.
+    def delivery_attachment_name(attachment)
+      attachment.filename.presence || Delivery::Attachment::FALLBACK_FILENAME
+    end
+
     def delivery_attachment_access(attachment, delivery)
       return delivery_attachment_state(attachment) unless delivery && attachment.state_received?
 
       link_to t("portail.deliveries.attachments.download"),
         teledossier_piece_path(delivery.id, attachment.id),
         class: "fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line fr-btn--icon-left",
-        aria: {label: t("portail.deliveries.attachments.download_named", filename: attachment.filename)},
-        # Pas d'attribut `download` : il ferait enregistrer la réponse QUELLE QU'ELLE SOIT, et une
-        # page d'erreur finirait en fichier HTML sur le disque de l'agent — qui croirait tenir sa
-        # pièce. `Content-Disposition: attachment` suffit à déclencher le téléchargement en
-        # navigation classique, et laisse une vraie page s'afficher quand rien n'est remis.
-        # `turbo: false` : Turbo ne sait pas suivre une réponse qui n'est pas du HTML.
+        aria: {label: t("portail.deliveries.attachments.download_named",
+          filename: delivery_attachment_name(attachment))},
+        # Pas d'attribut `download` : il ferait enregistrer la réponse quelle qu'elle soit, page
+        # d'erreur comprise, que l'agent prendrait pour sa pièce. `Content-Disposition` suffit à
+        # la remettre. `turbo: false` : Turbo ne sait pas suivre une réponse qui n'est pas du HTML.
         data: {turbo: false}
     end
 
