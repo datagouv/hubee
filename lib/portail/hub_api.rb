@@ -18,11 +18,6 @@ module Portail
     # l'autre promettrait un réessai qui n'aboutira peut-être jamais.
     class ContentUnavailable < Error; end
 
-    # L'historique du télédossier a atteint le plafond d'événements de l'amont : plus aucune trace
-    # ne peut y être inscrite. Ni une absence, ni une panne — un état durable du dossier, qu'un
-    # réessai ne lèvera pas. Le portail ne sert pas une pièce dont il ne peut pas garder trace.
-    class HistoryFull < Error; end
-
     # Paramètre refusé avant tout aller-retour réseau, typiquement un état ou une page trafiqués.
     # Montré à l'agent plutôt que corrigé en silence.
     class InvalidRequest < Error; end
@@ -48,7 +43,6 @@ module Portail
           AwaitingAttachmentsNotAllowed.new(error.message)
         when HubApiV1::V2::DeliveryEventLimitReachedError then EventLimitReached.new(error.message)
         when HubApiV1::V2::AttachmentUnavailableError then ContentUnavailable.new(error.message)
-        when HubApiV1::V2::DeliveryEventLimitReachedError then HistoryFull.new(error.message)
         when HubApiV1::InvalidArgumentError, HubApiV1::V2::InvalidArgumentError
           InvalidRequest.new(error.message)
         else

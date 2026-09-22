@@ -89,7 +89,7 @@ RSpec.describe Portail::HubAPI::Attachments do
 
       expect {
         described_class.download(delivery_id: delivery_id, id: attachment_id, **trace, client: client)
-      }.to raise_error(Portail::HubAPI::HistoryFull)
+      }.to raise_error(Portail::HubAPI::EventLimitReached)
     end
 
     # L'ordre est le contrat : sans octets, rien à tracer — une pièce que l'amont ne sert pas ne
@@ -189,8 +189,8 @@ RSpec.describe Portail::HubAPI::Attachments do
   describe "error translation of the trace" do
     trace_errors = {
       "a delivery whose history is full" => {
-        raised: HubApiV1::V2::DeliveryEventLimitReachedError, translated: Portail::HubAPI::HistoryFull,
-        reported: false
+        raised: HubApiV1::V2::DeliveryEventLimitReachedError,
+        translated: Portail::HubAPI::EventLimitReached, reported: false
       },
       # La garde de périmètre que le verbe rejoue avant d'écrire : le dossier a disparu, ou n'a
       # jamais été celui de cette organisation.

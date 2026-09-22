@@ -247,10 +247,10 @@ fr:
     errors:
       back_home: Retour à l'accueil
       stale_page: Cette page n'était plus à jour, elle a été rechargée.
-      delivery_history_full:
+      delivery_event_limit_reached:
         title: Pièce non remise — HubEE
         heading: Cette pièce ne peut pas être remise
-        lead: "L'historique de ce télédossier a atteint le nombre maximal d'événements : la récupération de la pièce ne peut plus y être inscrite, et le fichier n'est donc pas remis. Réessayer n'y changera rien."
+        lead: "Ce télédossier ne peut plus enregistrer d'événement, et HubEE ne remet pas une pièce dont il ne peut pas garder trace. Passez par le portail actuel pour la récupérer."
         back_to_delivery: Retour au télédossier
       not_found:
         title: Page introuvable — HubEE

@@ -88,14 +88,15 @@ RSpec.describe Portail::Attachments::Show::FetchContent do
 
   # État durable du dossier, pas incident : avertissement au journal, jamais de signalement, et une
   # issue à part — l'agent ne voit pas la même page selon la cause.
-  it "fails as history full, logged as a warning, when the upstream history is saturated" do
-    expect(Portail::HubAPI::Attachments).to receive(:download).and_raise(Portail::HubAPI::HistoryFull)
+  it "fails as event limit reached, logged as a warning, when the upstream history is saturated" do
+    expect(Portail::HubAPI::Attachments).to receive(:download)
+      .and_raise(Portail::HubAPI::EventLimitReached)
 
     result = nil
     events = capture_semantic_logger_events { result = fetch }
 
     expect(result).to be_failure
-    expect(result.error).to eq(:history_full)
+    expect(result.error).to eq(:event_limit_reached)
     expect(events).to include(be_a_semantic_logger_event(
       level: :warn, message: "Historique du télédossier saturé",
       payload_includes: {
