@@ -1009,11 +1009,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_text("Aucun événement enregistré pour ce télédossier.")
     end
 
-    it "renders the history with both ends of each state change" do
+    # Le texte que l'amont joint à un changement d'état ne dit que le statut d'arrivée, déjà
+    # dans la phrase : il ne s'affiche pas.
+    it "renders the history with both ends of each state change, without its upstream text" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
         build(:portail_delivery, events: [build(:portail_event,
-          event_type: "delivery.state_changed", content: "Dossier pris en charge",
+          event_type: "delivery.state_changed", content: "Changement du statut à SI_RECEIVED",
           metadata: {from_state: "transmitted", to_state: "acknowledged"})])
       )
 
@@ -1023,7 +1025,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       page = Capybara.string(response.body)
       expect(page).to have_text("George DUBOIS a modifié le statut : Nouveau → Reçu")
-      expect(page).to have_text("Dossier pris en charge")
+      expect(page).to have_no_text("Changement du statut à SI_RECEIVED")
     end
 
     it "opens a group per month in the history" do

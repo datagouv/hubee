@@ -120,8 +120,8 @@
 
                 <p class="fr-mb-0"><%= delivery_event_sentence(event) %></p>
 
-                <% if event.content.present? %>
-                  <p class="fr-mb-0"><%= event.content %></p>
+                <% if (message = delivery_event_message(event)) %>
+                  <p class="fr-mb-0"><%= message %></p>
                 <% end %>
 
                 <%# Seule lecture de `si_comment` : si la décision de l'afficher s'inverse, c'est ici. %>

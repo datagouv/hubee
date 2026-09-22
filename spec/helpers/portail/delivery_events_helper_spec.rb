@@ -165,6 +165,27 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
     end
   end
 
+  describe "#delivery_event_message" do
+    # Le texte d'un changement d'état ne dit que le statut d'arrivée, que la phrase donne déjà.
+    it "withholds the text of a state change" do
+      event = build(:portail_event, event_type: "delivery.state_changed", content: "Changement du statut à SI_RECEIVED")
+
+      expect(helper.delivery_event_message(event)).to be_nil
+    end
+
+    it "keeps the text of a message" do
+      event = build(:portail_event, event_type: "message.created", content: "Pièce manquante", metadata: {internal: false})
+
+      expect(helper.delivery_event_message(event)).to eq("Pièce manquante")
+    end
+
+    it "keeps nothing of an event without text" do
+      event = build(:portail_event, event_type: "message.created", content: "", metadata: {internal: false})
+
+      expect(helper.delivery_event_message(event)).to be_nil
+    end
+  end
+
   describe "#delivery_event_broadcast?" do
     # Une clé absente ne veut pas dire « diffusé ».
     it "only marks what the upstream says left the hub" do

@@ -50,6 +50,14 @@ module Portail
       end
     end
 
+    # Le texte d'un changement d'état ne dit que le statut, que la phrase donne déjà : il ne
+    # s'affiche pas. Les autres events portent un texte qui a sa valeur, le message envoyé.
+    def delivery_event_message(event)
+      return if event.event_type == "delivery.state_changed"
+
+      event.content.presence
+    end
+
     # `== false` et non `!` : la clé n'existe que sur les messages, absente ne veut pas dire
     # « diffusé ».
     def delivery_event_broadcast?(event) = event.metadata[:internal] == false
