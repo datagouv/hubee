@@ -242,8 +242,8 @@ RSpec.describe "Portail::Attachments", type: :request do
 
       get path
 
-      expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include("Contactez le support")
+      expect(response).to redirect_to("/teledossiers/#{delivery_id}")
+      expect(flash[:alert]).to include("Contactez le support")
     end
 
     # Ni introuvable ni en panne : le dossier est plein, la pièce n'est pas remise et réessayer
