@@ -241,6 +241,16 @@ def e2e_attachment(filename)
 end
 
 Quand("il télécharge la pièce {string}") do |filename|
+  # Le témoin ne survivrait pas à un rechargement du document : c'est lui qui prouve que le
+  # cadre s'est rafraîchi tout seul. L'horodatage sert aux scénarios qui mesurent le délai.
+  if Capybara.current_driver != :rack_test
+    page.execute_script(<<~JS)
+      window.pageJamaisRechargee = true
+      window.historiqueAvantClic = performance.getEntriesByType('resource')
+        .filter(e => e.name.includes('/historique')).length
+      window.clicTelechargement = performance.now()
+    JS
+  end
   within("tr", text: filename) { click_link "Télécharger" }
 end
 
@@ -322,6 +332,67 @@ end
 # scénarios n'ont pas à connaître le nombre.
 Étantdonné("l'historique du télédossier {string} est saturé") do |number|
   HubApiV1.client.saturate_case(e2e_delivery(number).id)
+end
+
+# Le compteur de requêtes survit à une visite de restauration, qui ne recharge pas le document :
+# c'est lui qui distingue un cadre rattrapé d'un cadre restauré tel quel.
+def requetes_historique
+  page.evaluate_script(
+    "performance.getEntriesByType('resource').filter(e => e.name.includes('/historique')).length"
+  )
+end
+
+Quand("il quitte le télédossier") do
+  @requetes_historique_avant = requetes_historique
+  click_link "Retour à la liste"
+  expect(page).to have_css("h1", text: "Les télédossiers de ma structure")
+end
+
+Quand("il revient par le bouton précédent") do
+  page.go_back
+end
+
+Alors("l'historique a été redemandé au serveur") do
+  # La restauration rend l'instantané sans requête : c'est le compteur qu'il faut attendre, pas
+  # la présence des lignes, qui sont déjà là.
+  Timeout.timeout(5) { sleep 0.1 until requetes_historique > @requetes_historique_avant }
+  expect(page).to have_css("turbo-frame#historique li.delivery-timeline__entry")
+end
+
+# Le navigateur ne laisse pas piloter sa visibilité : on redéfinit l'état et on émet l'événement.
+# Ce qui est éprouvé, c'est la réaction du contrôleur — l'émission par le navigateur ne l'est pas.
+Quand("il masque l'onglet puis y revient") do
+  page.execute_script(<<~JS)
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+  JS
+  expect(requetes_historique).to eq(page.evaluate_script("window.historiqueAvantClic"))
+
+  page.execute_script(<<~JS)
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+  JS
+end
+
+# Le délai est celui du navigateur, lu sur la requête elle-même : mesuré depuis Ruby, la latence
+# du pilote s'y ajouterait et le test cesserait de départager le retour du premier minuteur.
+Alors("l'historique a été redemandé avant le premier minuteur") do
+  base = page.evaluate_script("window.historiqueAvantClic")
+  Timeout.timeout(5) { sleep 0.05 until requetes_historique > base }
+
+  delai = page.evaluate_script(<<~JS)
+    (() => {
+      const e = performance.getEntriesByType('resource').filter(x => x.name.includes('/historique'))
+      return Math.round(e[e.length - 1].startTime - window.clicTelechargement)
+    })()
+  JS
+  expect(delai).to be < 2000
+end
+
+# Attente longue : le cadre se recharge à 2 s, 5 s puis 10 s après le clic.
+Alors("l'historique porte {string} sans rechargement") do |sentence|
+  using_wait_time(12) { expect(page).to have_css("li", text: sentence) }
+  expect(page.evaluate_script("window.pageJamaisRechargee")).to be(true)
 end
 
 Alors("l'historique porte {string}") do |sentence|

@@ -1009,6 +1009,24 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_text("Aucun événement enregistré pour ce télédossier.")
     end
 
+    # `complete` : le cadre porte son adresse de rechargement sans que Turbo aille la chercher
+    # au chargement de la page.
+    it "wraps the history in a frame Turbo can reload on its own" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      page = Capybara.string(response.body)
+      expect(page).to have_css(
+        "turbo-frame#historique[refresh='morph']" \
+        "[data-delivery-history-src-value='/teledossiers/#{delivery_id}/historique']"
+      )
+      # Pas de `src` au rendu : le cadre est déjà rempli, le porter ferait le recharger aussitôt.
+      expect(page).to have_no_css("turbo-frame#historique[src]")
+    end
+
     it "renders the history with both ends of each state change" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
