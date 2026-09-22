@@ -8,7 +8,7 @@ module Portail
       # Les flux que l'organisation reçoit par le portail, chacun une fois : ce que le filtre
       # propose quand aucune habilitation ne restreint le rattachement.
       def portal_data_stream_codes
-        subscriptions.select(&:readable_via_portal?).map { |subscription| subscription.data_stream.code }.uniq
+        subscriptions.select(&:readable_via_portal?).map(&:data_stream_code).uniq
       end
 
       # L'intitulé de chaque flux nommé, par code, quel que soit le canal : un intitulé ne
@@ -16,7 +16,7 @@ module Portail
       # l'écran.
       def data_stream_names
         subscriptions.select { |subscription| subscription.data_stream_name.present? }
-          .to_h { |subscription| [subscription.data_stream.code, subscription.data_stream_name] }
+          .to_h { |subscription| [subscription.data_stream_code, subscription.data_stream_name] }
       end
     end
   end

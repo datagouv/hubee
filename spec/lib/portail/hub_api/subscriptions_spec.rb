@@ -14,27 +14,27 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     it "translates the upstream subscriptions into portal models" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_subscription(build_v2_subscription(access_mode: :portal,
-        data_stream: HubApiV1::V2::DataStreamSummary.new(code: "CERTDC", name: "Certificat de décès électronique")))
+        data_stream_code: "CERTDC", data_stream_name: "Certificat de décès électronique"))
       client.add_subscription(build_v2_subscription(id: "sub-2", access_mode: :api, read_package: false,
-        data_stream: HubApiV1::V2::DataStreamSummary.new(code: "AEC", name: "Actes d'état civil")))
+        data_stream_code: "AEC", data_stream_name: "Actes d'état civil"))
 
       list = described_class.list(siret: siret, insee_code: insee_code, client: client)
 
       expect(list).to be_a(Portail::Subscription::List)
       expect(list.subscriptions).to all(be_a(Portail::Subscription))
-      expect(list.subscriptions.map { |subscription| subscription.data_stream.code }).to contain_exactly("CERTDC", "AEC")
-      expect(list.subscriptions.find { |subscription| subscription.data_stream.code == "CERTDC" }).to have_attributes(
+      expect(list.subscriptions.map { |subscription| subscription.data_stream_code }).to contain_exactly("CERTDC", "AEC")
+      expect(list.subscriptions.find { |subscription| subscription.data_stream_code == "CERTDC" }).to have_attributes(
         id: "550e8400-e29b-41d4-a716-446655440000", data_stream_name: "Certificat de décès électronique",
         read_package: true, create_package: false, access_mode: "portal"
       )
-      expect(list.subscriptions.find { |subscription| subscription.data_stream.code == "AEC" })
+      expect(list.subscriptions.find { |subscription| subscription.data_stream_code == "AEC" })
         .to have_attributes(data_stream_name: "Actes d'état civil", read_package: false, access_mode: "api")
     end
 
     # Un flux que l'amont ne nomme pas reste un abonnement entier : l'intitulé seul manque.
     it "leaves an unnamed data stream unnamed" do
       client = HubApiV1::Testing::FakeClient.new
-      client.add_subscription(build_v2_subscription(data_stream: HubApiV1::V2::DataStreamSummary.new(code: "CERTDC", name: nil)))
+      client.add_subscription(build_v2_subscription(data_stream_code: "CERTDC", data_stream_name: nil))
 
       list = described_class.list(siret: siret, insee_code: insee_code, client: client)
 
@@ -105,7 +105,7 @@ RSpec.describe Portail::HubAPI::Subscriptions do
       list = described_class.fetch(siret: siret, insee_code: insee_code)
 
       expect(list).to be_a(Portail::Subscription::List)
-      expect(list.subscriptions.map { |subscription| subscription.data_stream.code }).to eq(["CERTDC"])
+      expect(list.subscriptions.map { |subscription| subscription.data_stream_code }).to eq(["CERTDC"])
     end
 
     # Un appel par structure et par dix minutes, pour les flux proposés comme pour leurs noms, et
@@ -140,7 +140,7 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     # La clé porte la forme d'un abonnement : un membre ajouté met le cache précédent hors jeu.
     it "namespaces its cache key by the shape of what it stores" do
       expect(described_class::CACHE_NAMESPACE)
-        .to end_with("id-data_stream-data_stream_name-read_package-create_package-access_mode")
+        .to end_with("id-data_stream_code-data_stream_name-read_package-create_package-access_mode")
     end
 
     # Une panne de transport, seul cas où la classe de la gem se bouchonne : déjà signalée par la
