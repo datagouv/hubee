@@ -7,11 +7,11 @@ module Portail
     # `filename` reste celui du déposant, brut : c'est la clé d'appariement de la lecture V1, par
     # égalité stricte. L'assainir appartient au seul point qui l'écrit dans un en-tête.
     #
-    # Sous-classe, comme tout type du portail qui porte une constante : dans le bloc d'un
-    # `Data.define` nu, elle se poserait sur Portail::Delivery et resterait introuvable.
+    # Sous-classe : dans le bloc d'un `Data.define` nu, une constante se poserait sur
+    # Portail::Delivery et resterait introuvable.
     class Attachment < Data.define(:id, :filename, :content_type, :byte_size, :kind, :state)
-      # Quand rien du nom d'origine ne survit : à l'inventaire, sur le disque de l'agent et dans
-      # la trace. Une seule valeur — deux constantes finiraient par diverger.
+      # Une seule valeur pour l'inventaire, le fichier remis et la trace : deux constantes
+      # finiraient par diverger.
       FALLBACK_FILENAME = "piece"
 
       # Seul cet état a un contenu à remettre.

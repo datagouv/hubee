@@ -20,7 +20,7 @@ RSpec.describe Portail::Attachments::Show::FetchContent do
   it "fetches the content of the piece within its delivery, signed by the agent of the session" do
     expect(Portail::HubAPI::Attachments).to receive(:download).with(
       delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", id: "a1111111-1111-1111-1111-111111111111",
-      filename: "certificat.pdf", author: "Alice Martin", siret: "12345678901234", insee_code: "75056"
+      filename: "certificat.pdf", author: "Alice MARTIN", siret: "12345678901234", insee_code: "75056"
     ).and_return("octets".b)
 
     result = fetch
@@ -29,19 +29,21 @@ RSpec.describe Portail::Attachments::Show::FetchContent do
     expect(result.body).to eq("octets".b)
   end
 
+  # L'émetteur du dossier lit l'auteur : sans nom, on n'écrit pas, donc on ne remet rien. Jamais
+  # l'adresse en repli — elle serait publiée chez lui.
+  it "serves nothing, and asks nothing of the upstream, for an agent without a name" do
+    nameless = create(:agent, first_name: nil, last_name: nil)
+    expect(Portail::HubAPI::Attachments).not_to receive(:download)
+
+    result = fetch(agent: nameless)
+
+    expect(result).to be_failure
+    expect(result.error).to eq(:unknown_author)
+  end
+
   # `hash_including` dans les trois exemples qui suivent : le hash complet est éprouvé par
   # l'exemple ci-dessus, et chacun n'isole que la dimension qu'il fait varier.
   #
-  # Prénom et nom sont nullables en base, seule l'adresse est obligatoire. Le partenaire déposant
-  # lit le même historique : l'adresse d'un agent sans nom lui est donc visible, et c'est assumé.
-  it "signs the trace with the email address of an agent without a name" do
-    nameless = create(:agent, first_name: nil, last_name: nil, email: "sans.nom@exemple.gouv.fr")
-    expect(Portail::HubAPI::Attachments).to receive(:download)
-      .with(hash_including(author: "sans.nom@exemple.gouv.fr")).and_return("octets".b)
-
-    expect(fetch(agent: nameless)).to be_success
-  end
-
   # La trace porte le nom BRUT : la lecture V1 apparie l'événement à la pièce par égalité stricte.
   # Le nom assaini reste réservé au fichier posé sur le disque de l'agent.
   it "traces the filename as the partner wrote it, never the sanitised one" do

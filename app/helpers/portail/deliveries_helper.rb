@@ -67,8 +67,6 @@ module Portail
     # pièce est celle d'un événement : elle n'a pas d'adresse.
     # `download` : le navigateur reçoit le fichier lui-même, Turbo n'intercepte pas. Le nom
     # accessible porte la pièce : un même intitulé par ligne ne suffit pas au RGAA.
-    # Le nom du déposant, ou le repli quand il n'en a pas donné : l'agent lit partout celui que
-    # porteront le fichier remis et la trace écrite à l'historique.
     def delivery_attachment_name(attachment)
       attachment.filename.presence || Delivery::Attachment::FALLBACK_FILENAME
     end
@@ -81,9 +79,8 @@ module Portail
         class: "fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line fr-btn--icon-left",
         aria: {label: t("portail.deliveries.attachments.download_named",
           filename: delivery_attachment_name(attachment))},
-        # Pas d'attribut `download` : il ferait enregistrer la réponse quelle qu'elle soit, page
-        # d'erreur comprise, que l'agent prendrait pour sa pièce. `Content-Disposition` suffit à
-        # la remettre. `turbo: false` : Turbo ne sait pas suivre une réponse qui n'est pas du HTML.
+        # Surtout pas `download` : il enregistrerait la réponse quelle qu'elle soit, page d'erreur
+        # comprise. `turbo: false` : Turbo ne sait pas suivre une réponse qui n'est pas du HTML.
         data: {turbo: false}
     end
 

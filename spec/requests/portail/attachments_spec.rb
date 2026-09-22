@@ -36,7 +36,7 @@ RSpec.describe "Portail::Attachments", type: :request do
       # jusqu'à la frontière.
       expect(Portail::HubAPI::Attachments).to receive(:download)
         .with(delivery_id: delivery_id, id: attachment_id, filename: "certificat.pdf",
-          author: "Alex Martin", siret: link.siret, insee_code: link.insee_code)
+          author: "Alex MARTIN", siret: link.siret, insee_code: link.insee_code)
         .and_return("%PDF-1.7\n\xFF\xFE\x00binaire".b)
 
       get path
@@ -232,6 +232,18 @@ RSpec.describe "Portail::Attachments", type: :request do
 
       expect(response).to have_http_status(:service_unavailable)
       expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
+    end
+
+    it "renders a dedicated page for an agent whose account carries no name" do
+      agent = sign_in_member
+      agent.update!(first_name: nil, last_name: nil)
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+      expect(Portail::HubAPI::Attachments).not_to receive(:download)
+
+      get path
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("Contactez le support")
     end
 
     # Ni introuvable ni en panne : le dossier est plein, la pièce n'est pas remise et réessayer
