@@ -128,7 +128,9 @@ fr:
         errors:
           invalid_request: Ce changement d'état n'est pas possible depuis l'état actuel.
           awaiting_attachments_not_allowed: Ce flux n'autorise pas l'attente de compléments.
-          event_limit_reached: Ce télédossier ne peut plus enregistrer d'événement. Passez par le portail actuel.
+          # Refus de l'amont, pas d'un geste : la récupération d'une pièce le dit avec la même
+          # phrase, plus bas. Une seule source, deux vocabulaires.
+          event_limit_reached: &event_limit_reached Ce télédossier ne peut plus enregistrer d'événement. Contactez le support.
           unknown_author: "Votre compte ne porte ni prénom ni nom. Contactez le support, l'émetteur du dossier doit pouvoir identifier qui agit."
           rejected: Ce changement n'a pas pu être enregistré. Le support en est informé.
           not_found: Ce télédossier n'est plus accessible.
@@ -251,7 +253,7 @@ fr:
       delivery_event_limit_reached:
         title: Pièce non remise — HubEE
         heading: Cette pièce ne peut pas être remise
-        lead: "Ce télédossier ne peut plus enregistrer d'événement, et HubEE ne remet pas une pièce dont il ne peut pas garder trace. Passez par le portail actuel pour la récupérer."
+        lead: *event_limit_reached
         back_to_delivery: Retour au télédossier
       not_found:
         title: Page introuvable — HubEE
