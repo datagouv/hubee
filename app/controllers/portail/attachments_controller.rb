@@ -57,15 +57,10 @@ module Portail
       case error
       when :not_found then not_found
       when :event_limit_reached then event_limit_reached
-      when :unknown_author then unknown_author
+      when :unknown_author then redirect_to teledossier_path(@delivery.id),
+        alert: t("portail.deliveries.attachments.unknown_author")
       else unavailable
       end
-    end
-
-    # Le compte de l'agent, pas le télédossier : 422 plutôt que 409.
-    def unknown_author
-      render("portail/errors/unknown_author", status: :unprocessable_content,
-        locals: {delivery_path: teledossier_path(@delivery.id)})
     end
 
     # 409 et non 503 : l'état de la ressource s'oppose à la demande, aucun réessai n'y changera rien.

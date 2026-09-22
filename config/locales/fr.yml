@@ -89,6 +89,7 @@ fr:
       attachments:
         download: Télécharger
         download_named: "Télécharger %{filename}"
+        unknown_author: "Votre compte ne porte ni prénom ni nom. Contactez le support : l'émetteur du dossier doit pouvoir identifier qui a retiré la pièce."
       attachment_states:
         pending: En attente
         received: Reçue
@@ -247,11 +248,6 @@ fr:
     errors:
       back_home: Retour à l'accueil
       stale_page: Cette page n'était plus à jour, elle a été rechargée.
-      unknown_author:
-        title: Pièce non remise — HubEE
-        heading: Votre compte ne permet pas de récupérer une pièce
-        lead: "Votre compte ne porte ni prénom ni nom. Contactez le support : l'émetteur du dossier doit pouvoir identifier qui a retiré la pièce."
-        back_to_delivery: Retour au télédossier
       delivery_event_limit_reached:
         title: Pièce non remise — HubEE
         heading: Cette pièce ne peut pas être remise
