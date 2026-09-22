@@ -15,11 +15,11 @@ module Portail
           # La trace amont atteste que le portail a retiré le fichier ; celle-ci, que cet agent
           # l'a demandé. L'identifiant et pas le nom : la supervision tourne sans donnée personnelle.
           Rails.logger.info("Pièce récupérée", delivery_id:, id: attachment_id, agent_id: context.agent.id)
-        rescue HubAPI::HistoryFull
+        rescue HubAPI::EventLimitReached
           # L'amont ne peut plus rien inscrire sur ce dossier : un état durable, pas un incident,
           # et une issue à part — réessayer n'y changerait rien.
           Rails.logger.warn("Historique du télédossier saturé", delivery_id:, id: attachment_id)
-          context.fail!(error: :history_full)
+          context.fail!(error: :event_limit_reached)
         rescue HubAPI::NotFound
           # L'inventaire disait reçue, l'amont ne la sert plus : l'inventaire a vieilli.
           Rails.logger.info("Pièce non livrable", delivery_id:, id: attachment_id, reason: :gone_upstream)

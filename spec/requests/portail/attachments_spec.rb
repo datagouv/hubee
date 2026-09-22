@@ -239,7 +239,8 @@ RSpec.describe "Portail::Attachments", type: :request do
     it "renders a dedicated page when the history of the delivery is full" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
-      expect(Portail::HubAPI::Attachments).to receive(:download).and_raise(Portail::HubAPI::HistoryFull)
+      expect(Portail::HubAPI::Attachments).to receive(:download)
+        .and_raise(Portail::HubAPI::EventLimitReached)
 
       get path
 

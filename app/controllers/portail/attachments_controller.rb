@@ -61,15 +61,15 @@ module Portail
     def render_failure(error)
       case error
       when :not_found then not_found
-      when :history_full then history_full
+      when :event_limit_reached then event_limit_reached
       else unavailable
       end
     end
 
     # 409 : c'est l'état de la ressource qui s'oppose à la demande, sans la promesse de réessai
     # que porterait un 503.
-    def history_full
-      render("portail/errors/delivery_history_full", status: :conflict,
+    def event_limit_reached
+      render("portail/errors/delivery_event_limit_reached", status: :conflict,
         locals: {delivery_path: teledossier_path(@delivery.id)})
     end
 
