@@ -6,8 +6,10 @@ RSpec.describe Portail::Attachments::Show::FetchContent do
   let(:delivery) { build(:portail_delivery) }
   let(:attachment) { build(:portail_attachment) }
   let(:agent) { create(:agent, first_name: "Alice", last_name: "Martin", email: "alice@exemple.gouv.fr") }
-  let(:link) { build(:organization_link, siret: "12345678901234", insee_code: "75056") }
-  let(:membership) { build(:membership, agent: agent, organization_link: link) }
+  let(:membership) do
+    build(:membership, agent: agent,
+      organization_link: build(:organization_link, siret: "12345678901234", insee_code: "75056"))
+  end
 
   def fetch(attachment: self.attachment, agent: self.agent)
     described_class.call(delivery: delivery, attachment: attachment, membership: membership, agent: agent)
@@ -27,6 +29,9 @@ RSpec.describe Portail::Attachments::Show::FetchContent do
     expect(result.body).to eq("octets".b)
   end
 
+  # `hash_including` dans les trois exemples qui suivent : le hash complet est éprouvé par
+  # l'exemple ci-dessus, et chacun n'isole que la dimension qu'il fait varier.
+  #
   # Prénom et nom sont nullables en base, seule l'adresse est obligatoire. Le partenaire déposant
   # lit le même historique : l'adresse d'un agent sans nom lui est donc visible, et c'est assumé.
   it "signs the trace with the email address of an agent without a name" do

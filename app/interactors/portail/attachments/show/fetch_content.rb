@@ -12,9 +12,8 @@ module Portail
         def call
           context.body = HubAPI::Attachments.download(delivery_id:, id: attachment_id,
             filename:, author:, siret: link.siret, insee_code: link.insee_code)
-          # La trace amont atteste que le portail a retiré le fichier ; cette ligne-ci, que cet
-          # agent l'a demandé. L'identifiant, pas le nom : la supervision tourne sans donnée
-          # personnelle.
+          # La trace amont atteste que le portail a retiré le fichier ; celle-ci, que cet agent
+          # l'a demandé. L'identifiant et pas le nom : la supervision tourne sans donnée personnelle.
           Rails.logger.info("Pièce récupérée", delivery_id:, id: attachment_id, agent_id: context.agent.id)
         rescue HubAPI::HistoryFull
           # L'amont ne peut plus rien inscrire sur ce dossier : un état durable, pas un incident,
@@ -42,17 +41,15 @@ module Portail
         def link = context.membership.organization_link
 
         # « Prénom Nom », adresse en repli : les deux noms sont nullables en base, l'adresse non.
-        # C'est une règle du portail, jamais de la frontière — elle ne connaît ni l'agent ni la
-        # session.
+        # Règle du portail, jamais de la frontière, qui ne connaît ni l'agent ni la session.
         def author
           agent = context.agent
 
           [agent.first_name, agent.last_name].compact_blank.join(" ").presence || agent.email
         end
 
-        # Le nom BRUT du déposant, jamais l'assaini : la lecture V1 apparie l'événement à la pièce
-        # par égalité stricte. Vide, il retombe sur le repli du fichier remis — la ligne
-        # d'historique ne s'appariera alors à aucune pièce, conséquence connue et acceptée.
+        # Le nom BRUT du déposant, jamais l'assaini : la lecture V1 apparie par égalité stricte.
+        # Vide, il retombe sur le repli — la ligne ne s'appariera alors à aucune pièce, c'est su.
         def filename
           return context.attachment.filename if context.attachment.filename.present?
 

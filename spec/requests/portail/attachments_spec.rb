@@ -245,6 +245,10 @@ RSpec.describe "Portail::Attachments", type: :request do
 
       expect(response).to have_http_status(:conflict)
       expect(response.body).to include("Cette pièce ne peut pas être remise")
+      # L'agent venait d'un télédossier : le retour le ramène là, l'accueil ne vient qu'après.
+      page = Capybara.string(response.body)
+      expect(page).to have_link("Retour au télédossier", href: "/teledossiers/#{delivery_id}")
+      expect(page).to have_link("Retour à l'accueil", href: root_path)
     end
 
     it "renders a service unavailable page when the upstream fails on the content" do

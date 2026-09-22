@@ -857,6 +857,22 @@ RSpec.describe "Portail::Deliveries", type: :request do
     # attribut `download` : c'est `Content-Disposition` qui remet le fichier, et une page d'erreur
     # doit pouvoir s'afficher plutôt que de finir en fichier HTML. Le bouton est l'affordance :
     # pas d'étiquette à côté.
+    # Une anomalie de données amont, que l'agent ne doit pas lire comme une ligne vide : le même
+    # repli que le fichier remis et que la trace écrite à l'historique.
+    it "names a piece the partner did not name after the shared fallback" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, attachments: [build(:portail_attachment, filename: "")])
+      )
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      page = Capybara.string(response.body)
+      expect(page).to have_css("td", text: "piece")
+      expect(page).to have_css("a[aria-label='Télécharger piece']")
+    end
+
     it "offers a download on received deposit pieces only" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
