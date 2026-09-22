@@ -28,8 +28,16 @@ module Portail
           case error
           when HubAPI::EventLimitReached then saturated
           when HubAPI::NotFound then gone_upstream
+          when HubAPI::ContentUnavailable then content_unavailable
           else unavailable(error)
           end
+        end
+
+        # L'amont a répondu, sans les octets, et ne dit pas si la pièce est purgée ou son stockage
+        # en panne : ni une panne du service, ni une absence. L'agent doit lire cette nuance.
+        def content_unavailable
+          Rails.logger.warn("Pièce non remise", delivery_id:, id: attachment_id, reason: :content_unavailable)
+          :content_unavailable
         end
 
         def saturated

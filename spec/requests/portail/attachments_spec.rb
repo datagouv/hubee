@@ -276,8 +276,9 @@ RSpec.describe "Portail::Attachments", type: :request do
     end
 
     # L'amont n'a pas servi le contenu sans dire pourquoi : l'agent voit la pièce à l'inventaire,
-    # lui répondre « introuvable » contredirait son écran. Le mode dégradé existant, sans plus.
-    it "renders a service unavailable page when the upstream serves no content for the piece" do
+    # « introuvable » contredirait son écran et « service en panne » serait faux, l'amont a
+    # répondu. Une page qui dit ce qu'on sait, et le ramène au télédossier.
+    it "renders a dedicated page when the upstream serves no content for the piece" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
       expect(Portail::HubAPI::Attachments).to receive(:download)
@@ -286,7 +287,11 @@ RSpec.describe "Portail::Attachments", type: :request do
       get path
 
       expect(response).to have_http_status(:service_unavailable)
-      expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
+      page = Capybara.string(response.body)
+      expect(page).to have_css("h1", text: "Cette pièce n'a pas pu être remise")
+      expect(page).to have_text("contactez le support")
+      expect(page).to have_link("Retour au télédossier", href: "/teledossiers/#{delivery_id}")
+      expect(page).to have_no_text("momentanément indisponible")
     end
 
     # La matrice rôle × habilitation, sur la pièce et non déduite du détail : c'est ici que les

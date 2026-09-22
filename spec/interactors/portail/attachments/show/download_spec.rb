@@ -126,25 +126,40 @@ RSpec.describe Portail::Attachments::Show::Download do
     ))
   end
 
-  # Le contenu non servi est déjà journalisé par la frontière, la panne déjà signalée : ici,
-  # seulement le journal et l'échec, sous un même mode dégradé.
-  %w[ContentUnavailable Unavailable].each do |error|
-    it "fails as unavailable, logged, when the upstream raises #{error}" do
-      expect(Portail::HubAPI::Attachments).to receive(:download)
-        .and_raise(Portail::HubAPI.const_get(error))
+  # L'amont a répondu sans les octets, sans dire si la pièce est purgée ou son stockage en panne :
+  # une issue à part, ni la panne ni l'absence. Déjà journalisé par la frontière : avertissement.
+  it "fails as content unavailable, logged as a warning, when the upstream serves no content" do
+    expect(Portail::HubAPI::Attachments).to receive(:download).and_raise(Portail::HubAPI::ContentUnavailable)
 
-      result = nil
-      events = capture_semantic_logger_events { result = fetch }
+    result = nil
+    events = capture_semantic_logger_events { result = fetch }
 
-      expect(result).to be_failure
-      expect(result.error).to eq(:unavailable)
-      expect(events).to include(be_a_semantic_logger_event(
-        level: :error, message: "Pièce indisponible",
-        payload_includes: {
-          delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", id: "a1111111-1111-1111-1111-111111111111",
-          error: "Portail::HubAPI::#{error}"
-        }
-      ))
-    end
+    expect(result).to be_failure
+    expect(result.error).to eq(:content_unavailable)
+    expect(events).to include(be_a_semantic_logger_event(
+      level: :warn, message: "Pièce non remise",
+      payload_includes: {
+        delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", id: "a1111111-1111-1111-1111-111111111111",
+        reason: :content_unavailable
+      }
+    ))
+  end
+
+  # La panne est déjà signalée par la frontière : ici, seulement le journal et l'échec.
+  it "fails as unavailable, logged, when the upstream raises Unavailable" do
+    expect(Portail::HubAPI::Attachments).to receive(:download).and_raise(Portail::HubAPI::Unavailable)
+
+    result = nil
+    events = capture_semantic_logger_events { result = fetch }
+
+    expect(result).to be_failure
+    expect(result.error).to eq(:unavailable)
+    expect(events).to include(be_a_semantic_logger_event(
+      level: :error, message: "Pièce indisponible",
+      payload_includes: {
+        delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", id: "a1111111-1111-1111-1111-111111111111",
+        error: "Portail::HubAPI::Unavailable"
+      }
+    ))
   end
 end

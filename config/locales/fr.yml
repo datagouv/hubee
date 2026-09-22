@@ -253,6 +253,12 @@ fr:
         heading: Cette pièce ne peut pas être remise
         lead: *event_limit_reached
         back_to_delivery: Retour au télédossier
+      # Ni une panne, ni une absence : l'amont a répondu sans les octets et ne dit pas pourquoi.
+      attachment_content_unavailable:
+        title: Pièce non remise — HubEE
+        heading: Cette pièce n'a pas pu être remise
+        lead: Le télédossier la référence, mais son contenu n'est pas disponible. Réessayez plus tard ; si le problème persiste, contactez le support.
+        back_to_delivery: Retour au télédossier
       not_found:
         title: Page introuvable — HubEE
         heading: Page introuvable
