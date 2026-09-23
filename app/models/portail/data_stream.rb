@@ -6,7 +6,7 @@ module Portail
   #
   # Homonyme de ::DataStream, le modèle ActiveRecord : dans `module Portail`, un `DataStream` nu
   # résout vers cette constante-ci.
-  DataStream = Data.define(:code, :name, :allowed_states) do
+  DataStream = Data.define(:code, :name, :allowed_states, :v1) do
     # La liste arrive déjà résolue de l'amont : un flux jamais paramétré n'y autorise pas
     # l'attente de compléments.
     def allows?(state) = allowed_states.include?(state)
