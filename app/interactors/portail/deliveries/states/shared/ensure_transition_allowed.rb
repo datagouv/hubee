@@ -3,7 +3,7 @@
 module Portail
   module Deliveries
     module States
-      class Update
+      module Shared
         # La cible est-elle proposée depuis l'état courant, flux compris ? La même règle que la
         # liste des états proposés à l'agent sur la page du télédossier, une seule source. Vérifiée
         # avant d'écrire pour ne pas envoyer en amont un geste voué au refus.

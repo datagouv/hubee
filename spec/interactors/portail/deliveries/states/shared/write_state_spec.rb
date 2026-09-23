@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Deliveries::States::Update::WriteState do
+RSpec.describe Portail::Deliveries::States::Shared::WriteState do
   subject(:result) do
     described_class.call(membership: membership, delivery: delivery, state: "done",
       author: "Camille MARTIN")

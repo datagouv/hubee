@@ -3,7 +3,7 @@
 module Portail
   module Deliveries
     module States
-      class Update
+      module Shared
         # L'écriture. Le texte joint part vers l'émetteur du dossier, qui le lit : il nomme l'état
         # d'arrivée comme le fait déjà l'historique, pour ne pas dépareiller.
         class WriteState
