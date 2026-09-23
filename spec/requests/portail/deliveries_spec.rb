@@ -1318,6 +1318,30 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(Capybara.string(response.body)).to have_no_button("Enregistrer")
       end
 
+      it "offers to join a piece when the data stream takes one from the current state" do
+        sign_in_member
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_field("Pièce jointe (facultatif)", type: "file")
+        expect(page).to have_text("Formats acceptés : PDF, PNG. Taille maximale : 10 Mo.")
+        expect(page).to have_css("form[action$='/etat'][enctype='multipart/form-data']")
+      end
+
+      it "offers no piece when the data stream takes none from the current state" do
+        sign_in_member
+        stub_data_stream(build(:portail_data_stream, v1: build(:portail_data_stream_v1_rules, :without_attachments)))
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        # Positive : le formulaire existe, seul le champ fichier manque.
+        expect(Capybara.string(response.body)).to have_select("Nouvel état")
+        expect(Capybara.string(response.body)).to have_no_field("Pièce jointe (facultatif)")
+      end
+
       # Le bouton en ligne avec le champ. Le DSFR n'ayant pas de colonne « auto », une colonne
       # sans classe de palier repasse à la ligne — ce qui était le cas.
       it "keeps the field and its button on one line" do

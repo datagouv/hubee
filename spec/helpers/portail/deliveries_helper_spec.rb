@@ -208,6 +208,35 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     end
   end
 
+  describe "#delivery_v1_attachment_rules" do
+    let(:delivery) { build(:portail_delivery, state: "in_progress") }
+
+    it "offers the rules when the data stream takes a piece from the current state" do
+      data_stream = build(:portail_data_stream)
+
+      expect(helper.delivery_v1_attachment_rules(delivery, data_stream)).to eq(data_stream.v1)
+    end
+
+    it "offers nothing when the data stream takes no piece from the current state" do
+      data_stream = build(:portail_data_stream, v1: build(:portail_data_stream_v1_rules, :without_attachments))
+
+      expect(helper.delivery_v1_attachment_rules(delivery, data_stream)).to be_nil
+    end
+
+    it "offers nothing when the data stream could not be read" do
+      expect(helper.delivery_v1_attachment_rules(delivery, nil)).to be_nil
+    end
+  end
+
+  describe "#delivery_attachment_formats" do
+    it "names each format by its extension, and keeps a type it cannot name" do
+      rules = build(:portail_data_stream_v1_rules,
+        attachment_content_types: ["application/pdf", "image/png", "application/x-inconnu"])
+
+      expect(helper.delivery_attachment_formats(rules)).to eq("PDF, PNG, application/x-inconnu")
+    end
+  end
+
   describe "#delivery_attachment_kind" do
     it "names the kind of a piece that has one" do
       expect(helper.delivery_attachment_kind(build(:portail_attachment, kind: "VA_CertificatdeDeces")))
