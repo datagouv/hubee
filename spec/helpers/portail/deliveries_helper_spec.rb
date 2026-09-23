@@ -310,4 +310,15 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       expect(helper.delivery_receipt_state).to eq("acknowledged")
     end
   end
+
+  describe "#delivery_attachment_kind" do
+    it "names the kind of a piece that has one" do
+      expect(helper.delivery_attachment_kind(build(:portail_attachment, kind: "VA_CertificatdeDeces")))
+        .to eq("VA_CertificatdeDeces")
+    end
+
+    it "shows a dash for a piece without a kind" do
+      expect(helper.delivery_attachment_kind(build(:portail_attachment, kind: nil))).to eq("—")
+    end
+  end
 end
