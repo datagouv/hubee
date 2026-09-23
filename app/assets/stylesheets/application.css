@@ -47,7 +47,13 @@
 
 /* delivery-data-streams : les cases du filtre par flux (portail/deliveries/_filters).
    En colonnes plutôt qu'en liste : la liste verticale du DSFR s'allonge avec les dizaines de
-   flux d'une structure. Deux colonnes, trois à partir du point de rupture MD du DSFR. */
+   flux d'une structure. Deux colonnes, trois à partir du point de rupture MD du DSFR.
+   Alignées par le haut : le DSFR aligne sur la dernière ligne, et un nom de flux sur plusieurs
+   lignes faisait descendre sa case sous celles de ses voisines. */
+.delivery-data-streams {
+  align-items: flex-start;
+}
+
 .delivery-data-streams .fr-fieldset__element {
   flex: 0 0 50%;
 }
