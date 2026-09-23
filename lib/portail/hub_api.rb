@@ -30,6 +30,13 @@ module Portail
     # à l'agent lui épargne d'insister.
     class EventLimitReached < Error; end
 
+    # Trois refus d'une pièce : rien n'est publié, l'état ne bouge pas, l'agent change de fichier.
+    class AttachmentContentTypeNotAccepted < Error; end
+
+    class AttachmentInfected < Error; end
+
+    class AttachmentContentMismatch < Error; end
+
     class << self
       # La classe d'origine reste dans le message : c'est elle qui distingue une panne d'un refus
       # au journal. Les deux familles de refus : le client V1 et sa surcouche V2 ont chacun le leur.
@@ -38,10 +45,14 @@ module Portail
         when HubApiV1::V2::DeliveryNotFoundError, HubApiV1::V2::AttachmentNotFoundError,
           HubApiV1::V2::DataStreamNotFoundError
           NotFound.new(error.message)
-        # Deux refus de l'amont, pas deux incidents : ils ne passent donc pas par le rapporteur.
+        # Des refus de l'amont, pas des incidents : ils ne passent donc pas par le rapporteur.
         when HubApiV1::V2::AwaitingAttachmentsNotAllowedError
           AwaitingAttachmentsNotAllowed.new(error.message)
         when HubApiV1::V2::DeliveryEventLimitReachedError then EventLimitReached.new(error.message)
+        when HubApiV1::V2::AttachmentContentTypeNotAcceptedError
+          AttachmentContentTypeNotAccepted.new(error.message)
+        when HubApiV1::V2::AttachmentInfectedError then AttachmentInfected.new(error.message)
+        when HubApiV1::V2::AttachmentContentMismatchError then AttachmentContentMismatch.new(error.message)
         when HubApiV1::V2::AttachmentUnavailableError then ContentUnavailable.new(error.message)
         when HubApiV1::InvalidArgumentError, HubApiV1::V2::InvalidArgumentError
           InvalidRequest.new(error.message)
