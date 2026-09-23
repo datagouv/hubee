@@ -70,7 +70,7 @@ group :hub_api_v1 do
   if (path = ENV["HUB_API_V1_PATH"])
     gem "hub-api-v1", path: path, require: "hub_api_v1"
   else
-    gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", tag: "5.0.0", require: "hub_api_v1"
+    gem "hub-api-v1", git: "https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git", ref: "2b0e3f9ba825b9841a4541be7b90c8feaf243da5", require: "hub_api_v1"
   end
 end
 
