@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+# Chrome signale un nœud d'un document déjà remplacé, en pleine redirection, par une erreur
+# générique que Capybara ne rejoue pas : rejouée ici comme un élément périmé, elle attend la page.
+class PortailSeleniumDriver < Capybara::Selenium::Driver
+  def invalid_element_errors = super + [Selenium::WebDriver::Error::UnknownError]
+end
+
 # rack_test par défaut (rapide, sans navigateur) ; Selenium ne sert qu'aux scénarios
 # @javascript — capybara/cucumber bascule dessus via le tag.
 Capybara.register_driver :selenium_chrome_headless do |app|
@@ -17,7 +23,7 @@ Capybara.register_driver :selenium_chrome_headless do |app|
     service = Selenium::WebDriver::Service.chrome(path: "/usr/bin/chromedriver")
   end
 
-  Capybara::Selenium::Driver.new(app, browser: :chrome, options:, service:)
+  PortailSeleniumDriver.new(app, browser: :chrome, options:, service:)
 end
 
 Capybara.javascript_driver = :selenium_chrome_headless
