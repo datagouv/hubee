@@ -449,6 +449,115 @@ RSpec.describe Portail::HubAPI::Deliveries do
     end
   end
 
+  describe ".reply_with_attachment" do
+    let(:id) { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
+
+    def reply(client:)
+      described_class.reply_with_attachment(id: id, reply: portail_reply, author: "Camille MARTIN",
+        siret: siret, insee_code: insee_code, client: client)
+    end
+
+    def client_serving
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(state: :in_progress))
+      client
+    end
+
+    # La relecture prouve la publication au lieu de l'affirmer.
+    it "publishes the piece on the delivery history" do
+      client = client_serving
+
+      expect(reply(client: client).event_type).to eq("attachment.created")
+      delivery = described_class.find(id: id, siret: siret, insee_code: insee_code, client: client)
+      expect(delivery.events.flat_map(&:attachments).map { [it.filename, it.state] })
+        .to include(["decision.pdf", "received"])
+    end
+
+    it "leaves the delivery state untouched" do
+      client = client_serving
+
+      reply(client: client)
+
+      expect(described_class.find(id: id, siret: siret, insee_code: insee_code, client: client).state)
+        .to eq("in_progress")
+    end
+
+    # Hash complet : un paramètre inattendu doit se voir, un texte compris. L'émetteur est prévenu.
+    it "sends the piece, the caller identity and the notification upstream" do
+      client = HubApiV1::Testing::FakeClient.new
+      expect(HubApiV1::V2::Delivery).to receive(:reply_with_attachment).with(
+        id: id, filename: "decision.pdf", content_type: "application/pdf",
+        bytes: PortailUploads::PDF_BYTES, author: "Camille MARTIN",
+        siret: siret, code_insee: insee_code, notify: true, client: client
+      ).and_return(build_v2_event)
+
+      reply(client: client)
+    end
+
+    it "raises a named refusal when the data stream does not take the content type" do
+      client = client_serving
+      client.add_data_stream(build_v2_data_stream(code: "CERTDC",
+        v1: build_v2_data_stream_v1_rules(attachment_content_types: ["image/png"])))
+
+      expect { reply(client: client) }.to raise_error(Portail::HubAPI::AttachmentContentTypeNotAccepted)
+    end
+
+    # Le dépôt refusé est retiré : l'historique relu ne le porte plus.
+    it "raises a named refusal and leaves no trace when the upstream finds the piece infected" do
+      client = client_serving
+      client.infect_next_upload
+
+      expect { reply(client: client) }.to raise_error(Portail::HubAPI::AttachmentInfected)
+      expect(described_class.find(id: id, siret: siret, insee_code: insee_code, client: client).events
+        .flat_map(&:attachments)).to be_empty
+    end
+
+    it "raises a named refusal when the content does not match its declared type" do
+      client = client_serving
+      client.mismatch_next_upload
+
+      expect { reply(client: client) }.to raise_error(Portail::HubAPI::AttachmentContentMismatch)
+    end
+
+    it "raises a named refusal when the delivery can hold no further event" do
+      client = client_serving
+      client.saturate_case(id)
+
+      expect { reply(client: client) }.to raise_error(Portail::HubAPI::EventLimitReached)
+    end
+
+    it "raises a not found error for a delivery out of the declared perimeter" do
+      expect { reply(client: HubApiV1::Testing::FakeClient.new) }.to raise_error(Portail::HubAPI::NotFound)
+    end
+  end
+
+  describe "reply error translation" do
+    {
+      HubApiV1::V2::AttachmentContentTypeNotAcceptedError => [Portail::HubAPI::AttachmentContentTypeNotAccepted, false],
+      HubApiV1::V2::AttachmentInfectedError => [Portail::HubAPI::AttachmentInfected, false],
+      HubApiV1::V2::AttachmentContentMismatchError => [Portail::HubAPI::AttachmentContentMismatch, false],
+      HubApiV1::V2::DeliveryNotFoundError => [Portail::HubAPI::NotFound, false],
+      HubApiV1::V2::DeliveryEventLimitReachedError => [Portail::HubAPI::EventLimitReached, false],
+      HubApiV1::V2::InvalidArgumentError => [Portail::HubAPI::InvalidRequest, false],
+      HubApiV1::Client::Error => [Portail::HubAPI::Unavailable, true]
+    }.each do |raised, (translated, reported)|
+      it "raises #{translated.name.demodulize} for #{raised.name.demodulize}, reported: #{reported}" do
+        expect(HubApiV1::V2::Delivery).to receive(:reply_with_attachment).and_raise(raised)
+        if reported
+          expect(Rails.error).to receive(:report).with(instance_of(raised), handled: true)
+        else
+          expect(Rails.error).not_to receive(:report)
+        end
+
+        expect {
+          described_class.reply_with_attachment(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
+            reply: portail_reply, author: "Camille MARTIN", siret: siret, insee_code: insee_code,
+            client: HubApiV1::Testing::FakeClient.new)
+        }.to raise_error(translated)
+      end
+    end
+  end
+
   # Aucune exception de la gem ne doit survivre à cette couche, et un refus ne se signale pas comme
   # un incident.
   describe "state change error translation" do
