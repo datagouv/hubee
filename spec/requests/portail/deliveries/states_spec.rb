@@ -34,6 +34,10 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
     patch path, params: {etat: state}
   end
 
+  def update_state_with_piece(state = "done", piece: pdf_upload)
+    patch path, params: {etat: state, piece: piece}
+  end
+
   # La validation de la cible lit le flux du télédossier, permissif ici : les refus du flux sont
   # éprouvés sur l'organizer.
   before do
@@ -134,6 +138,65 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
+    context "with a piece" do
+      it "publishes the piece, moves the delivery and says both" do
+        sign_in_member
+        serve(times: 2)
+        expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).ordered.and_return(build(:portail_event))
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state).ordered.and_return(build(:portail_event))
+
+        update_state_with_piece
+        follow_redirect!
+
+        expect(Capybara.string(response.body)).to have_text("L'état du télédossier a été modifié et la pièce transmise")
+      end
+
+      it "refuses a format the data stream does not take, before anything leaves" do
+        sign_in_member
+        serve(times: 2)
+        expect(Portail::HubAPI::Deliveries).not_to receive(:reply_with_attachment)
+        expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+        update_state_with_piece(piece: pdf_upload(filename: "notes.txt", content_type: "text/plain", bytes: "notes".b))
+        follow_redirect!
+
+        expect(Capybara.string(response.body)).to have_text("Ce format de fichier n'est pas accepté")
+      end
+
+      {
+        Portail::HubAPI::AttachmentContentTypeNotAccepted => "Ce format de fichier n'est pas accepté",
+        Portail::HubAPI::AttachmentInfected => "refusé par l'analyse antivirus",
+        Portail::HubAPI::AttachmentContentMismatch => "ne correspond pas à son format",
+        Portail::HubAPI::Unavailable => "Vérifiez l'historique du télédossier avant de réessayer"
+      }.each do |raised, message|
+        it "leaves the state alone and says why when the upstream raises #{raised.name.demodulize}" do
+          sign_in_member
+          serve(times: 2)
+          expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).and_raise(raised)
+          expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+          update_state_with_piece
+          follow_redirect!
+
+          expect(Capybara.string(response.body)).to have_text(message)
+        end
+      end
+
+      it "says the piece left while the state stayed" do
+        sign_in_member
+        serve(times: 2)
+        expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).and_return(build(:portail_event))
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state).and_raise(Portail::HubAPI::EventLimitReached)
+
+        update_state_with_piece
+        follow_redirect!
+
+        expect(Capybara.string(response.body))
+          .to have_text("La pièce a été transmise, mais l'état du télédossier n'a pas changé")
+          .and have_text("ne peut plus enregistrer d'événement")
+      end
+    end
+
     # Rejouer un PATCH après connexion n'aurait pas de sens : le portail ne le mémorise pas.
     it "sends a visitor without a session back to the home page" do
       expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
@@ -231,6 +294,76 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
           payload_includes: {event: "Portail::Access::Refusal", reason: :out_of_perimeter,
                              path: path, agent_id: agent.id, membership_id: membership.id}
         ))
+      end
+    end
+
+    # Aucune combinaison ne se déduit d'une autre : la pièce a sa propre matrice.
+    context "writing perimeter with a piece" do
+      def expect_a_not_found_page
+        expect(Portail::HubAPI::Deliveries).not_to receive(:reply_with_attachment)
+
+        update_state_with_piece
+
+        expect(response).to have_http_status(:not_found)
+      end
+
+      def expect_the_piece_to_go_through
+        expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).and_return(build(:portail_event))
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state).and_return(build(:portail_event))
+
+        update_state_with_piece
+
+        expect(response).to redirect_to("/teledossiers/#{delivery_id}")
+      end
+
+      it "lets a habilitated member join a piece" do
+        sign_in_member
+        serve
+
+        expect_the_piece_to_go_through
+      end
+
+      it "refuses a member outside their habilitations" do
+        sign_in_member(data_stream_codes: ["AUTRE"])
+        serve
+
+        expect_a_not_found_page
+      end
+
+      it "refuses a member without any habilitation" do
+        sign_in_member(data_stream_codes: [])
+        serve
+
+        expect_a_not_found_page
+      end
+
+      it "lets a local administrator without habilitation join a piece" do
+        sign_in_local_administrator
+        serve
+
+        expect_the_piece_to_go_through
+      end
+
+      it "lets a local administrator habilitated on the data stream join a piece" do
+        sign_in_local_administrator(data_stream_codes: ["CERTDC"])
+        serve
+
+        expect_the_piece_to_go_through
+      end
+
+      it "refuses a local administrator outside their habilitations" do
+        sign_in_local_administrator(data_stream_codes: ["AUTRE"])
+        serve
+
+        expect_a_not_found_page
+      end
+
+      it "refuses a delivery of another organisation" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, :of_another_organisation, state: "in_progress"))
+
+        expect_a_not_found_page
       end
     end
   end

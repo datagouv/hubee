@@ -125,6 +125,8 @@ fr:
           refused: Changement du statut à REFUSED
           done: Changement du statut à DONE
         saved: L'état du télédossier a été modifié.
+        saved_with_attachment: L'état du télédossier a été modifié et la pièce transmise.
+        attachment_sent_state_unchanged: "La pièce a été transmise, mais l'état du télédossier n'a pas changé. %{reason} Vous pouvez relancer le seul changement d'état."
         errors:
           invalid_request: Ce changement d'état n'est pas possible depuis l'état actuel.
           awaiting_attachments_not_allowed: Ce flux n'autorise pas l'attente de compléments.
@@ -135,6 +137,14 @@ fr:
           rejected: Ce changement n'a pas pu être enregistré. Le support en est informé.
           not_found: Ce télédossier n'est plus accessible.
           unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
+          attachment_not_accepted: Ce flux n'accepte pas de pièce depuis l'état actuel du télédossier.
+          attachment_empty: Ce fichier est vide.
+          attachment_format: Ce format de fichier n'est pas accepté pour ce flux.
+          attachment_too_large: Ce fichier dépasse la taille maximale acceptée pour ce flux.
+          attachment_filename: Le nom de ce fichier est vide ou trop long.
+          attachment_infected: Ce fichier a été refusé par l'analyse antivirus. Rien n'a été transmis et l'état n'a pas changé.
+          attachment_content_mismatch: Le contenu de ce fichier ne correspond pas à son format. Rien n'a été transmis et l'état n'a pas changé.
+          attachment_unconfirmed: La transmission de la pièce n'a pas pu être confirmée. Vérifiez l'historique du télédossier avant de réessayer.
       errors:
         unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
         invalid_request: L'état, le filtre ou la page demandés n'existent pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
