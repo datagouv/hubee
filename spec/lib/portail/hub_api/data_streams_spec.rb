@@ -33,6 +33,20 @@ RSpec.describe Portail::HubAPI::DataStreams do
         .to eq(%w[transmitted acknowledged in_progress done refused closed integration_error])
     end
 
+    # Symbols en amont, String ici, comme pour les états autorisés.
+    it "translates the attachment rules the data stream carries from V1" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_data_stream(build_v2_data_stream(code: "CERTDC", v1: build_v2_data_stream_v1_rules(
+        attachment_states: %i[in_progress done], attachment_content_types: ["application/pdf"],
+        attachment_max_byte_size: 5_242_880
+      )))
+
+      expect(described_class.find(code: "CERTDC", client: client).v1).to eq(
+        Portail::DataStream::V1Rules.new(attachment_states: %w[in_progress done],
+          attachment_content_types: ["application/pdf"], attachment_max_byte_size: 5_242_880)
+      )
+    end
+
     it "keeps the name the upstream serves" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_data_stream(build_v2_data_stream(code: "CERTDC", name: "Certificat de décès électronique"))
@@ -85,10 +99,11 @@ RSpec.describe Portail::HubAPI::DataStreams do
       expect(client.requests.size).to eq(1)
     end
 
-    # La clé porte la forme du flux : un membre ajouté met le cache précédent hors jeu sans
-    # qu'on ait à y penser.
+    # La clé porte la forme du flux, règles comprises : un membre ajouté ici ou dans les règles met
+    # le cache précédent hors jeu.
     it "namespaces its cache key by the shape of what it stores" do
-      expect(described_class::CACHE_NAMESPACE).to end_with("code-name-allowed_states")
+      expect(described_class::CACHE_NAMESPACE)
+        .to end_with("code-name-allowed_states-v1/attachment_states-attachment_content_types-attachment_max_byte_size")
     end
 
     # Une heure : assez pour ne pas marteler l'amont, assez court pour qu'un paramétrage

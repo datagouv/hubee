@@ -163,9 +163,24 @@ FactoryBot.define do
     allowed_states {
       %w[transmitted acknowledged in_progress awaiting_attachments done refused closed integration_error]
     }
+    v1 { build(:portail_data_stream_v1_rules) }
 
     trait :without_awaiting_attachments do
       allowed_states { %w[transmitted acknowledged in_progress done refused closed integration_error] }
+    end
+  end
+
+  # Permissives, comme celles de la gem : un refus se construit exemple par exemple.
+  factory :portail_data_stream_v1_rules, class: "Portail::DataStream::V1Rules" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    attachment_states { %w[transmitted acknowledged in_progress awaiting_attachments done refused] }
+    attachment_content_types { ["application/pdf", "image/png"] }
+    attachment_max_byte_size { 10_485_760 }
+
+    trait :without_attachments do
+      attachment_states { [] }
     end
   end
 end

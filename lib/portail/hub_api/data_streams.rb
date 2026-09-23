@@ -12,9 +12,10 @@ module Portail
       # est sans conséquence pour l'agent.
       CACHE_TTL = 1.hour
 
-      # La valeur est sérialisée : un membre ajouté ou retiré casse la relecture de ce qui est déjà
-      # en cache. La clé porte la forme, le passé se met hors jeu tout seul.
-      CACHE_NAMESPACE = "portail/data_stream/#{Portail::DataStream.members.join("-")}"
+      # La valeur est sérialisée : un membre ajouté ou retiré, ici ou dans les règles, casse la
+      # relecture de ce qui est en cache. La clé porte la forme, le passé se met hors jeu tout seul.
+      CACHE_NAMESPACE = "portail/data_stream/#{Portail::DataStream.members.join("-")}/" \
+        "#{Portail::DataStream::V1Rules.members.join("-")}"
 
       class << self
         def find(code:, client: HubApiV1.client)
@@ -43,7 +44,16 @@ module Portail
           Portail::DataStream.new(
             code: data_stream.code,
             name: data_stream.name,
-            allowed_states: data_stream.allowed_states.map(&:to_s)
+            allowed_states: data_stream.allowed_states.map(&:to_s),
+            v1: v1_rules_from(data_stream.v1)
+          )
+        end
+
+        def v1_rules_from(rules)
+          Portail::DataStream::V1Rules.new(
+            attachment_states: rules.attachment_states.map(&:to_s),
+            attachment_content_types: rules.attachment_content_types,
+            attachment_max_byte_size: rules.attachment_max_byte_size
           )
         end
       end
