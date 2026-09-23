@@ -76,6 +76,9 @@ module Portail
       attachment.filename.presence || Delivery::Attachment::FALLBACK_FILENAME
     end
 
+    # Une pièce du service instructeur n'a pas de type métier.
+    def delivery_attachment_kind(attachment) = attachment.kind.presence || MISSING
+
     # Le lien quand la pièce se remet, sinon son état, qui est la raison. Sans télédossier, la
     # pièce est celle d'un événement : elle n'a pas d'adresse.
     # RGAA : le nom accessible porte la pièce, un même intitulé par ligne ne suffisant pas. Le nom
