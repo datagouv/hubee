@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Deliveries::States::Update::EnsureTransitionAllowed do
+RSpec.describe Portail::Deliveries::States::Shared::EnsureTransitionAllowed do
   subject(:result) { described_class.call(delivery: delivery, state: state) }
 
   let(:delivery) { build(:portail_delivery, state: "in_progress") }
