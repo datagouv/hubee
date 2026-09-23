@@ -11,7 +11,8 @@ module Portail
 
         result = States::Update.call(
           membership: current_membership, delivery: @delivery,
-          state: params[:etat].to_s, author: EventAuthor.for(current_agent)
+          state: params[:etat].to_s, author: EventAuthor.for(current_agent),
+          reply: Portail::Delivery::Reply.of(params[:piece])
         )
 
         # 303 et non 302 : la convention Rails après écriture, qui lève toute ambiguïté sur la
@@ -39,9 +40,18 @@ module Portail
       # un état qu'il aurait déduit. `raise: true` : un refus sans libellé doit exploser ici, pas
       # s'afficher en clé brute.
       def outcome(organizer_result)
-        return {notice: t("portail.deliveries.change_state.saved")} if organizer_result.success?
+        return {notice: saved_notice(organizer_result)} if organizer_result.success?
 
-        {alert: t("portail.deliveries.change_state.errors.#{organizer_result.error}", raise: true)}
+        reason = t("portail.deliveries.change_state.errors.#{organizer_result.error}", raise: true)
+        return {alert: reason} unless organizer_result.reply_sent
+
+        # Une réponse partie sans son état se dit : l'agent relance l'état seul, pas la réponse.
+        {alert: t("portail.deliveries.change_state.attachment_sent_state_unchanged", reason: reason)}
+      end
+
+      def saved_notice(organizer_result)
+        key = organizer_result.reply_sent ? "saved_with_attachment" : "saved"
+        t("portail.deliveries.change_state.#{key}")
       end
     end
   end
