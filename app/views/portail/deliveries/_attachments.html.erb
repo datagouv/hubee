@@ -21,7 +21,7 @@
             <% attachments.each do |attachment| %>
               <tr>
                 <td><%= delivery_attachment_name(attachment) %></td>
-                <td><%= attachment.kind %></td>
+                <td><%= delivery_attachment_kind(attachment) %></td>
                 <td><%= delivery_attachment_size(attachment) %></td>
                 <td><%= delivery_attachment_access(attachment, downloadable_from) %></td>
               </tr>

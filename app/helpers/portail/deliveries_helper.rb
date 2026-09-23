@@ -74,6 +74,9 @@ module Portail
       attachment.filename.presence || Delivery::Attachment::FALLBACK_FILENAME
     end
 
+    # Une pièce du service instructeur n'a pas de type métier.
+    def delivery_attachment_kind(attachment) = attachment.kind.presence || MISSING
+
     def delivery_attachment_access(attachment, delivery)
       return delivery_attachment_state(attachment) unless delivery && attachment.state_received?
 
