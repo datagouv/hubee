@@ -66,7 +66,8 @@
     où elles divergeront. %>
 <% offered = delivery_offered_states(@delivery, @data_stream) %>
 <% if offered.any? && policy(@delivery).update? %>
-  <%= render "state_form", delivery: @delivery, states: offered %>
+  <%= render "state_form", delivery: @delivery, states: offered,
+        v1_attachment_rules: delivery_v1_attachment_rules(@delivery, @data_stream) %>
 <% end %>
 
 <section class="fr-p-3w fr-mb-4w fr-border-default--grey">

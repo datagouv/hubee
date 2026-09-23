@@ -1,4 +1,4 @@
-<%# locals: (delivery:, states:) %>
+<%# locals: (delivery:, states:, v1_attachment_rules:) %>
 <%# Sous le récapitulatif, sans script : l'agent décide en gardant le dossier sous les yeux, et la
     confirmation tient dans les deux gestes, choisir puis enregistrer. %>
 <section class="fr-background-alt--grey fr-p-3w fr-mb-4w" aria-labelledby="state-heading">
@@ -8,7 +8,20 @@
       l'administration. Relié au champ par aria-describedby. %>
   <p id="state-notice" class="fr-hint-text fr-mb-2w"><%= t(".notice") %></p>
 
-  <%= form_with url: teledossier_etat_path(delivery.id), method: :patch do |form| %>
+  <%= form_with url: teledossier_etat_path(delivery.id), method: :patch, multipart: true do |form| %>
+    <%# Hors de la ligne du choix : le bouton reste aligné sur l'état, qui seul est requis. %>
+    <% if v1_attachment_rules %>
+      <div class="fr-upload-group fr-mb-2w">
+        <%= label_tag :piece, class: "fr-label" do %>
+          <%= t(".attachment_label") %>
+          <span class="fr-hint-text"><%= t(".attachment_hint",
+                formats: delivery_attachment_formats(v1_attachment_rules),
+                max: number_to_human_size(v1_attachment_rules.attachment_max_byte_size)) %></span>
+        <% end %>
+        <%= file_field_tag :piece, class: "fr-upload",
+              accept: v1_attachment_rules.attachment_content_types.join(",") %>
+      </div>
+    <% end %>
     <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
       <div class="fr-col-12 fr-col-md-6">
         <div class="fr-select-group">
