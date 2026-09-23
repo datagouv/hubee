@@ -72,7 +72,7 @@
   <%= delivery_retrieval_callout(@delivery, @data_stream) %>
   <% offered = delivery_offered_states(@delivery, @data_stream) %>
   <% if offered.any? %>
-    <%= render "state_form", delivery: @delivery, states: offered %>
+    <%= render "state_form", delivery: @delivery, states: offered, data_stream: @data_stream %>
   <% end %>
 <% end %>
 

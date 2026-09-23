@@ -56,6 +56,18 @@ module Portail
       render "portail/deliveries/retrieval_callout", delivery:, states:
     end
 
+    # Sans flux lisible, pas de champ : une réponse ne part que sur un accord explicite du flux.
+    def delivery_accepts_attachment?(delivery, data_stream)
+      data_stream.present? && data_stream.v1.allows_attachment_from?(delivery.state)
+    end
+
+    # L'extension parle à l'agent mieux que le type ; un type sans extension connue reste tel quel.
+    def delivery_attachment_formats(v1_attachment_rules)
+      v1_attachment_rules.attachment_content_types.map { |type|
+        Rack::Mime::MIME_TYPES.key(type)&.delete_prefix(".")&.upcase || type
+      }.join(", ")
+    end
+
     def delivery_state_badge(delivery)
       tag.p(delivery_state(delivery),
         class: ["fr-badge", STATE_BADGES[delivery.state]].compact)
