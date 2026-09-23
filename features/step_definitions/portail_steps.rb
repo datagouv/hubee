@@ -342,6 +342,28 @@ Quand("il finalise le traitement du télédossier") do
   click_button("Enregistrer")
 end
 
+Quand("il finalise le traitement du télédossier en joignant {string}") do |filename|
+  select("Traité", from: "Nouvel état")
+  attach_file("Pièce jointe (facultatif)", Rails.root.join("spec/fixtures/files", filename))
+  click_button("Enregistrer")
+end
+
+Étantdonné("l'analyse antivirus refusera le prochain fichier") do
+  HubApiV1.client.infect_next_upload
+end
+
+Alors("la pièce ajoutée {string} figure au détail") do |filename|
+  expect(page).to have_text(filename)
+end
+
+Alors("il voit que la pièce a été refusée par l'antivirus") do
+  expect(page).to have_text("refusé par l'analyse antivirus")
+end
+
+Alors("il ne voit pas le télédossier au statut {string}") do |state|
+  expect(page).to have_no_css(".fr-badge", text: state)
+end
+
 Alors("il voit le télédossier au statut {string}") do |state|
   expect(page).to have_css(".fr-badge", text: state)
 end
