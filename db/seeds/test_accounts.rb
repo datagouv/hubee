@@ -76,9 +76,10 @@ module Seeds
       Account.new(email: "bastien.ogier@sardinepq.fr", first_name: "Bastien", last_name: "Ogier",
         organization: :sardine, role: "local_administrator", data_stream_codes: [], scope: :local),
       # Membre et non administrateur local, pour que le filtrage par habilitation soit traversé
-      # sur les deux démarches en accès portail du socle.
+      # sur les trois démarches en accès portail du socle.
       Account.new(email: "socle@test.proconnect.gouv.fr", first_name: "Camille", last_name: "Socle",
-        organization: :socle, role: "member", data_stream_codes: %w[CERTDC EtatCivil], scope: :local)
+        organization: :socle, role: "member", data_stream_codes: %w[CERTDC EtatCivil recensementCitoyen],
+        scope: :local)
     ].freeze
 
     class << self
