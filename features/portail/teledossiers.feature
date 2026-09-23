@@ -124,6 +124,22 @@ Fonctionnalité: Les télédossiers de l'organisation
     Et l'historique porte le changement signé "Alex MARTIN"
     Et on ne lui propose plus de le marquer reçu
 
+  Scénario: L'agent joint une pièce en faisant avancer un télédossier
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il finalise le traitement du télédossier en joignant "decision.pdf"
+    Alors il voit le télédossier au statut "Traité"
+    Et l'historique porte "Alex MARTIN a déposé une pièce"
+    Et la pièce ajoutée "decision.pdf" figure au détail
+
+  Scénario: Une pièce refusée par l'antivirus laisse l'état intact
+    Étant donné il s'est connecté
+    Et l'analyse antivirus refusera le prochain fichier
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il finalise le traitement du télédossier en joignant "decision.pdf"
+    Alors il voit que la pièce a été refusée par l'antivirus
+    Et il voit le télédossier au statut "Nouveau"
+
   Scénario: Le détail inventorie les pièces et déroule l'historique
     Étant donné il s'est connecté
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
