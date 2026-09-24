@@ -2,7 +2,7 @@
 
 module Portail
   # La couche de traduction avec la gem cliente : le portail ne connaît que ses propres modèles
-  # et ces erreurs-ci.
+  # et ces erreurs-ci. Seule l'écriture locale d'une archive laisse passer les siennes.
   module HubAPI
     class Error < StandardError; end
 
