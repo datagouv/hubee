@@ -813,6 +813,21 @@ RSpec.describe "Portail::Deliveries", type: :request do
         .css("table tbody tr td:nth-child(3)").map { |cell| cell.text.strip }).to eq(["—"])
     end
 
+    # Le type de la récupération de toutes les pièces doit traverser la frontière jusqu'à
+    # l'historique affiché.
+    it "tells an all-attachments download in the history" do
+      sign_in_member
+      use_hub_api_fake_client.add_case(build_v2_delivery(
+        recipient: upstream_recipient,
+        events: [build_v2_event(event_type: :"attachment.all_downloaded")]
+      ))
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("George DUBOIS a téléchargé l'archive des pièces")
+    end
+
     it "shows the delivery metadata, applicant included" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
