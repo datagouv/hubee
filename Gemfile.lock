@@ -556,6 +556,7 @@ DEPENDENCIES
   rails-i18n
   rails_semantic_logger
   rspec-rails
+  rubyzip (~> 3.6)
   selenium-webdriver
   sentry-rails
   sentry-ruby

@@ -74,6 +74,9 @@ group :hub_api_v1 do
   end
 end
 
+# Archive zip des pièces d'un télédossier.
+gem "rubyzip", "~> 3.6", require: "zip"
+
 # Logs structurés (format logfmt conseillé par le CSIRT), remplace le logger Rails
 gem "rails_semantic_logger"
 
