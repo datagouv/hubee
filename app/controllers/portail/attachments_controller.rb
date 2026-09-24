@@ -18,7 +18,7 @@ module Portail
 
       # `attachment` et un type neutre : le type annoncé par l'amont ne décide pas qu'un fichier
       # s'ouvre dans l'onglet de l'agent. Le contenu ne fait que traverser, sous `no-store`.
-      send_data(result.body, filename: download_filename(@attachment),
+      send_data(result.body, filename: SafeFilename.for(@attachment.filename),
         type: "application/octet-stream", disposition: "attachment")
     end
 
@@ -75,16 +75,6 @@ module Portail
     def content_unavailable
       render("portail/errors/attachment_content_unavailable", status: :service_unavailable,
         locals: {delivery_path: teledossier_path(@delivery.id)})
-    end
-
-    # Le nom arrive verbatim du partenaire et finit sur le disque de l'agent. Les caractères de
-    # contrôle et de mise en forme partent d'abord : un octet nul ferait lever `basename`, et
-    # une inversion de sens d'écriture ferait passer un `.exe` pour un `.pdf`. Puis seul le
-    # dernier segment survit, antislash compris. Le modèle, lui, garde le nom brut.
-    def download_filename(attachment)
-      name = File.basename(attachment.filename.to_s.gsub(/[\p{Cc}\p{Cf}]/, "").tr("\\", "/"))
-
-      name.delete(".").blank? ? Delivery::Attachment::FALLBACK_FILENAME : name
     end
   end
 end
