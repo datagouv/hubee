@@ -67,7 +67,20 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
       follow_redirect!
 
       expect(response).to have_http_status(:success)
-      expect(Capybara.string(response.body)).to have_text("n'est pas possible depuis l'état actuel")
+      expect(Capybara.string(response.body)).to have_text("n'est plus possible")
+    end
+
+    # Un collègue l'a marqué reçu entre l'affichage et le clic : la table refuse, rien n'est réécrit.
+    it "refuses to mark received a delivery already received meanwhile, and says why it may be" do
+      sign_in_member
+      serve(state: "acknowledged", times: 2)
+      expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+      update_state("acknowledged")
+      follow_redirect!
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("a peut-être changé d'état entre-temps")
     end
 
     it "refuses a move with no state at all" do
@@ -79,7 +92,7 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
       follow_redirect!
 
       expect(response).to have_http_status(:success)
-      expect(Capybara.string(response.body)).to have_text("n'est pas possible depuis l'état actuel")
+      expect(Capybara.string(response.body)).to have_text("n'est plus possible")
     end
 
     {

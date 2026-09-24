@@ -17,6 +17,10 @@
 
 <h1><%= t(".heading", number: @delivery.number) %></h1>
 
+<% if policy(@delivery).update? && delivery_receipt_offered?(@delivery, @data_stream) %>
+  <%= render "receipt_callout", delivery: @delivery %>
+<% end %>
+
 <h2 class="fr-h4 fr-mt-4w"><%= t(".summary") %></h2>
 <%# Une seule largeur pour les cinq champs : les colonnes s'alignent d'une ligne à l'autre à
     toutes les largeurs. Les icônes DSFR se posent en `::before` par la classe, sans texte à

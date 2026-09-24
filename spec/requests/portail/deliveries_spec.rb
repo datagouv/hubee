@@ -1332,6 +1332,92 @@ RSpec.describe "Portail::Deliveries", type: :request do
       end
     end
 
+    # Le raccourci « Nouveau » → « Reçu » : un geste explicite, jamais un effet de l'ouverture.
+    context "receipt proposal" do
+      def open_detail(state: "transmitted")
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, state: state))
+        get "/teledossiers/#{delivery_id}"
+      end
+
+      it "offers a habilitated member to mark a new delivery as received, writing nothing on opening" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        callout = Capybara.string(response.body).find(".fr-callout")
+        expect(callout).to have_css("h2.fr-callout__title", text: "Accuser réception de ce télédossier")
+        expect(callout).to have_text("L'émetteur du dossier sera informé que vous l'avez reçu et verra votre nom.")
+        expect(callout).to have_css("form[action='/teledossiers/#{delivery_id}/etat'][method='post']")
+        expect(callout).to have_field("_method", type: :hidden, with: "patch")
+        expect(callout).to have_field("etat", type: :hidden, with: "acknowledged")
+        expect(callout).to have_button("Marquer comme reçu")
+      end
+
+      # Visible sans défiler, et entendue juste après le titre au lecteur d'écran.
+      it "places the proposal right under the title" do
+        sign_in_member
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        headings = Nokogiri::HTML(response.body).css("main h1, main h2").map { |heading| heading.text.strip }
+        expect(headings.first(3)).to eq(["Télédossier DGS-CERTDC-0000000000001-01", "Accuser réception de ce télédossier", "Récapitulatif"])
+      end
+
+      it "keeps the state form as it is alongside the proposal" do
+        sign_in_member
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_select("Nouvel état", with_options: ["Reçu", "Traité"])
+      end
+
+      it "does not offer the receipt on a delivery already past new" do
+        sign_in_member
+
+        open_detail(state: "acknowledged")
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_select("Nouvel état", with_options: ["En cours"])
+        expect(Capybara.string(response.body)).to have_no_button("Marquer comme reçu")
+      end
+
+      # Aucune combinaison ne se déduit d'une autre : un agent qui ne lit pas le dossier ne voit
+      # pas davantage la proposition.
+      {
+        "a habilitated member" => {role: :member, codes: ["CERTDC"], offered: true},
+        "a member outside their habilitations" => {role: :member, codes: ["AEC"], offered: false},
+        "a member without any habilitation" => {role: :member, codes: [], offered: false},
+        "a local administrator without habilitation" => {role: :local_administrator, codes: [], offered: true},
+        "a local administrator habilitated on the data stream" => {role: :local_administrator, codes: ["CERTDC"], offered: true},
+        "a local administrator outside their habilitations" => {role: :local_administrator, codes: ["AEC"], offered: false}
+      }.each do |agent, setup|
+        it "#{setup[:offered] ? "offers" : "does not offer"} the receipt to #{agent}" do
+          if setup[:role] == :member
+            sign_in_member(data_stream_codes: setup[:codes])
+          else
+            sign_in_local_administrator(data_stream_codes: setup[:codes])
+          end
+
+          open_detail
+
+          page = Capybara.string(response.body)
+          if setup[:offered]
+            expect(response).to have_http_status(:success)
+            expect(page).to have_button("Marquer comme reçu")
+          else
+            expect(response).to have_http_status(:not_found)
+            expect(page).to have_text("Page introuvable")
+            expect(page).to have_no_button("Marquer comme reçu")
+          end
+        end
+      end
+    end
+
     context "reading perimeter" do
       def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
 
