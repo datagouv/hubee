@@ -5,7 +5,8 @@ module Portail
     # L'inventaire d'une pièce, jamais son contenu, qui s'obtient par Portail::HubAPI::Attachments.
     # `state` compte : une pièce rejetée est une information que l'agent n'a nulle part ailleurs.
     # `filename` reste celui du déposant, brut : c'est la clé d'appariement de la lecture V1, par
-    # égalité stricte. L'assainir appartient au seul point qui l'écrit dans un en-tête.
+    # égalité stricte. L'assainir appartient à ce qui l'écrit sur le disque de l'agent : l'en-tête
+    # de la pièce seule, l'entrée de l'archive.
     #
     # Sous-classe : dans le bloc d'un `Data.define` nu, une constante se poserait sur
     # Portail::Delivery et resterait introuvable.
