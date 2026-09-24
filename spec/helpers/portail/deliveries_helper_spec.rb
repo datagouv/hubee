@@ -207,4 +207,30 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
         .to eq(%w[awaiting_attachments refused done])
     end
   end
+
+  # La table dit d'où « Reçu » s'atteint, éprouvée là : ici, qu'on la consulte flux compris.
+  describe "#delivery_receipt_offered?" do
+    it "offers the receipt on a new delivery" do
+      expect(helper.delivery_receipt_offered?(build(:portail_delivery, state: "transmitted"), build(:portail_data_stream)))
+        .to be(true)
+    end
+
+    it "does not offer the receipt on a delivery already past new" do
+      expect(helper.delivery_receipt_offered?(build(:portail_delivery, state: "acknowledged"), build(:portail_data_stream)))
+        .to be(false)
+    end
+
+    it "does not offer the receipt when the data stream withholds received" do
+      data_stream = build(:portail_data_stream, allowed_states: %w[transmitted in_progress done])
+
+      expect(helper.delivery_receipt_offered?(build(:portail_delivery, state: "transmitted"), data_stream))
+        .to be(false)
+    end
+  end
+
+  describe "#delivery_receipt_state" do
+    it "names the state a receipt moves the delivery to" do
+      expect(helper.delivery_receipt_state).to eq("acknowledged")
+    end
+  end
 end

@@ -342,6 +342,16 @@ Quand("il finalise le traitement du télédossier") do
   click_button("Enregistrer")
 end
 
+Quand("il le marque reçu") do
+  within(".fr-callout") { click_button("Marquer comme reçu") }
+end
+
+# Le badge dit déjà « Reçu » : l'absence du bouton n'est pas vide de sens.
+Alors("on ne lui propose plus de le marquer reçu") do
+  expect(page).to have_css(".fr-badge", text: "Reçu")
+  expect(page).to have_no_button("Marquer comme reçu")
+end
+
 Alors("il voit le télédossier au statut {string}") do |state|
   expect(page).to have_css(".fr-badge", text: state)
 end

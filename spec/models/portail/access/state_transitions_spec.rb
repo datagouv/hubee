@@ -83,4 +83,14 @@ RSpec.describe Portail::Access::StateTransitions do
       expect(described_class.offered_from("done", build(:portail_data_stream))).to eq([])
     end
   end
+
+  # Ce qui permet au détail de proposer l'accusé dès que « Reçu » figure parmi les états proposés.
+  describe "::RECEIPT" do
+    it "is offered from transmitted only" do
+      states = Portail::Access::StatePerimeter::SERVED_STATES
+
+      expect(states.select { |state| described_class.allowed_from(state).include?(described_class::RECEIPT) })
+        .to eq(%w[transmitted])
+    end
+  end
 end

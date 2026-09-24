@@ -13,6 +13,9 @@ module Portail
 
       NEVER_OFFERED = %w[closed].freeze
 
+      # Accuser réception : atteignable depuis « Nouveau » seul, la table ne revient jamais en arrière.
+      RECEIPT = "acknowledged"
+
       class << self
         # Tous les états postérieurs à l'état courant, moins ceux qu'on ne propose jamais. Un état
         # inconnu du cycle n'ouvre rien, ce qui couvre aussi les états hors périmètre.

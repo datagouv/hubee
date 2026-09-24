@@ -43,6 +43,12 @@ module Portail
       Access::StateTransitions.offered_from(delivery.state, data_stream)
     end
 
+    def delivery_receipt_offered?(delivery, data_stream)
+      delivery_offered_states(delivery, data_stream).include?(delivery_receipt_state)
+    end
+
+    def delivery_receipt_state = Access::StateTransitions::RECEIPT
+
     def delivery_state_badge(delivery)
       tag.p(delivery_state(delivery),
         class: ["fr-badge", STATE_BADGES[delivery.state]].compact)

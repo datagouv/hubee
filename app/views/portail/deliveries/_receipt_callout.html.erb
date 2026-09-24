@@ -1,0 +1,10 @@
+<%# locals: (delivery:) %>
+<div class="fr-callout fr-icon-information-line fr-mb-4w">
+  <h2 class="fr-callout__title"><%= t(".title") %></h2>
+  <p class="fr-callout__text"><%= t(".text") %></p>
+
+  <%= form_with url: teledossier_etat_path(delivery.id), method: :patch do |form| %>
+    <%= hidden_field_tag :etat, delivery_receipt_state, id: nil %>
+    <%= form.dsfr_submit t(".submit") %>
+  <% end %>
+</div>

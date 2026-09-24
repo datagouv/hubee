@@ -28,6 +28,14 @@ Fonctionnalité: Les télédossiers de l'organisation
     Alors il voit le télédossier au statut "Traité"
     Et l'historique porte le changement signé "Alex MARTIN"
 
+  Scénario: L'agent accuse réception d'un nouveau télédossier depuis son détail
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il le marque reçu
+    Alors il voit le télédossier au statut "Reçu"
+    Et l'historique porte le changement signé "Alex MARTIN"
+    Et on ne lui propose plus de le marquer reçu
+
   Scénario: Le détail inventorie les pièces et déroule l'historique
     Étant donné il s'est connecté
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"

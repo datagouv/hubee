@@ -109,6 +109,10 @@ fr:
         # La conséquence et non le mécanisme : ce qui compte est que la personne l'ait reçu.
         broadcast: Information transmise à la personne concernée.
         undated_month: Sans date
+      receipt_callout:
+        title: Accuser réception de ce télédossier
+        text: L'émetteur du dossier sera informé que vous l'avez reçu et verra votre nom.
+        submit: Marquer comme reçu
       state_form:
         heading: Faire avancer ce télédossier
         label: Nouvel état
@@ -126,7 +130,7 @@ fr:
           done: Changement du statut à DONE
         saved: L'état du télédossier a été modifié.
         errors:
-          invalid_request: Ce changement d'état n'est pas possible depuis l'état actuel.
+          invalid_request: "Ce changement d'état n'est plus possible : le télédossier a peut-être changé d'état entre-temps."
           awaiting_attachments_not_allowed: Ce flux n'autorise pas l'attente de compléments.
           # Refus de l'amont, pas d'un geste : la récupération d'une pièce le dit avec la même
           # phrase, plus bas. Une seule source, deux vocabulaires.
