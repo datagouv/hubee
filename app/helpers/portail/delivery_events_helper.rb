@@ -27,8 +27,8 @@ module Portail
       l(month, format: :month).capitalize
     end
 
-    # Une phrase, choisie par le type et la metadata : deux téléchargements ne se distinguent
-    # que par elle. Clés `_html` : `tag.strong` échappe l'auteur, qui vient de l'amont.
+    # Une phrase par type, et par metadata pour les messages. Clés `_html` : `tag.strong`
+    # échappe l'auteur, qui vient de l'amont.
     def delivery_event_sentence(event)
       author = tag.strong(event.author.presence || t("portail.deliveries.events.unknown_author"))
 
@@ -38,8 +38,9 @@ module Portail
           from: delivery_state_label(event.metadata[:from_state]),
           to: delivery_state_label(event.metadata[:to_state]))
       when "attachment.downloaded"
-        t("portail.deliveries.events.#{event.metadata[:bulk] ? "downloaded_all" : "downloaded"}_html",
-          author: author)
+        t("portail.deliveries.events.downloaded_html", author: author)
+      when "attachment.all_downloaded"
+        t("portail.deliveries.events.downloaded_all_html", author: author)
       when "message.created"
         t("portail.deliveries.events.#{event.metadata[:internal] ? "comment_added" : "message_sent"}_html",
           author: author)

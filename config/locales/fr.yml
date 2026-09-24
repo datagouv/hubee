@@ -101,7 +101,7 @@ fr:
         state_changed_html: "%{author} a modifié le statut : %{from} → %{to}"
         attachment_created_html: "%{author} a déposé une pièce"
         downloaded_html: "%{author} a téléchargé une pièce"
-        downloaded_all_html: "%{author} a téléchargé toutes les pièces"
+        downloaded_all_html: "%{author} a téléchargé l'archive des pièces"
         message_sent_html: "%{author} a envoyé un message"
         comment_added_html: "%{author} a ajouté un commentaire interne"
         unknown_html: "%{author} est intervenu sur le télédossier"

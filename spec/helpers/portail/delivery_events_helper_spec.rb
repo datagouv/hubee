@@ -128,15 +128,14 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
         .to start_with("Un auteur inconnu")
     end
 
-    # Seule la metadata distingue un téléchargement unitaire d'un téléchargement en masse.
-    it "tells a bulk download from a single one" do
+    it "tells an all-attachments download from a single one" do
       single = build(:portail_event, event_type: "attachment.downloaded", metadata: {})
-      bulk = build(:portail_event, event_type: "attachment.downloaded", metadata: {bulk: true})
+      all_downloaded = build(:portail_event, event_type: "attachment.all_downloaded", metadata: {})
 
       expect(Capybara.string(helper.delivery_event_sentence(single)).text)
         .to end_with("a téléchargé une pièce")
-      expect(Capybara.string(helper.delivery_event_sentence(bulk)).text)
-        .to end_with("a téléchargé toutes les pièces")
+      expect(Capybara.string(helper.delivery_event_sentence(all_downloaded)).text)
+        .to end_with("a téléchargé l'archive des pièces")
     end
 
     it "tells a sent message from an internal comment" do
