@@ -13,6 +13,9 @@ RSpec.describe Portail::SafeFilename do
       "a right-to-left override" => {input: "rapport‮fdp.exe", expected: "rapportfdp.exe"},
       "an accented filename" => {input: "décision n°1.pdf", expected: "décision n°1.pdf"},
       "dots only" => {input: "..", expected: "piece"},
+      # `basename` rend la barre elle-même : elle ne doit pas devenir le nom du fichier.
+      "a slash only" => {input: "/", expected: "piece"},
+      "a backslash only" => {input: "\\", expected: "piece"},
       "an empty filename" => {input: "", expected: "piece"},
       "no filename at all" => {input: nil, expected: "piece"}
     }

@@ -10,7 +10,7 @@ module Portail
       def for(name)
         safe = File.basename(name.to_s.gsub(/[\p{Cc}\p{Cf}]/, "").tr("\\", "/"))
 
-        safe.delete(".").blank? ? Delivery::Attachment::FALLBACK_FILENAME : safe
+        safe.delete("./").blank? ? Delivery::Attachment::FALLBACK_FILENAME : safe
       end
     end
   end
