@@ -6,6 +6,7 @@ module Portail
     # est le zip lui-même. Mêmes refus que la pièce seule.
     class ArchivesController < Portail::BaseController
       include NestedInDelivery
+      include DownloadRefusals
 
       # `send_data` chargerait l'archive entière ; sans `to_path`, le serveur ne la cherche pas sur
       # le disque et ce corps la lit par blocs. La frontière la rend rembobinée.
@@ -33,7 +34,10 @@ module Portail
         authorize(@delivery, :show?)
 
         result = Archives::Show.call(delivery: @delivery, membership: current_membership)
-        return render_failure(result.error) unless result.success?
+        unless result.success?
+          return render_failure(result.error, subject: :archive,
+            unknown_author_alert: "portail.deliveries.archives.unknown_author")
+        end
 
         send_archive(result.archive, result.archive_filename)
       end
@@ -57,30 +61,6 @@ module Portail
           ActionDispatch::Http::ContentDisposition.format(disposition: "attachment", filename:)
         headers["Content-Length"] = archive.size.to_s
         self.response_body = Body.new(archive)
-      end
-
-      def render_failure(error)
-        case error
-        when :not_found then not_found
-        when :event_limit_reached then event_limit_reached
-        when :content_unavailable then content_unavailable
-        when :unknown_author then redirect_to teledossier_path(@delivery.id),
-          alert: t("portail.deliveries.archives.unknown_author")
-        else unavailable
-        end
-      end
-
-      # 409 et non 503 : l'état de la ressource s'oppose à la demande, aucun réessai n'y changera rien.
-      def event_limit_reached
-        render("portail/errors/delivery_event_limit_reached", status: :conflict,
-          locals: {delivery_path: teledossier_path(@delivery.id), subject: :archive})
-      end
-
-      # 503, faute de savoir : l'amont ne distingue pas une pièce purgée d'un stockage en panne. La
-      # page le dit à l'agent au lieu d'annoncer un service qui ne répond pas.
-      def content_unavailable
-        render("portail/errors/attachment_content_unavailable", status: :service_unavailable,
-          locals: {delivery_path: teledossier_path(@delivery.id), subject: :archive})
       end
     end
   end
