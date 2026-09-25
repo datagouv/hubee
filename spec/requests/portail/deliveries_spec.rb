@@ -924,11 +924,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
       get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
-      section = Capybara.string(response.body).find("section", text: "Pièces du dépôt")
-      expect(section).to have_link("Télécharger 2 pièces reçues sur 3",
+      section = Capybara.string(response.body).find("section", text: "Pièces du télédossier")
+      # Le lien partage la ligne du titre, et l'aide la suit dans la même grille, sur toute la largeur.
+      heading_row = section.find("h2", text: "Pièces du télédossier").ancestor(".fr-grid-row")
+      expect(heading_row).to have_link("Télécharger 2 pièces reçues sur 3",
         href: "/teledossiers/#{delivery_id}/archive")
-      expect(section).to have_css("a[href$='/archive'][data-turbo='false']")
-      expect(section).to have_text("Sans les pièces non reçues")
+      expect(heading_row).to have_css("a[href$='/archive'][data-turbo='false'][aria-describedby='delivery-archive-hint']")
+      expect(heading_row).to have_css("p#delivery-archive-hint.fr-col-12", text: "Sans les pièces non reçues")
       expect(section.find("tr", text: "attendue.pdf")).to have_css("p.fr-badge", text: "En attente")
     end
 
@@ -993,7 +995,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(table).to have_no_css("a[href*='/pieces/']")
     end
 
-    it "keeps the pieces added later in their own section, with their provenance" do
+    it "keeps the pieces added later under their own subheading, with their provenance" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
         build(:portail_delivery,
@@ -1008,11 +1010,13 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
-      expect(page).to have_text("Pièces du dépôt")
-      expect(page).to have_text("depot.pdf")
-      expect(page).to have_text("Pièces ajoutées ensuite")
-      expect(page).to have_text("complement.pdf")
-      expect(page).to have_text("Camille MARTIN")
+      section = page.find("section", text: "Pièces du télédossier")
+      expect(section).to have_css("h2", text: "Pièces du télédossier")
+      expect(section).to have_text("depot.pdf")
+      expect(section).to have_css("h3", text: "Pièces ajoutées ensuite")
+      expect(section).to have_text("complement.pdf")
+      expect(section).to have_text("Camille MARTIN")
+      expect(page).to have_no_css("h2", text: "Pièces ajoutées ensuite")
     end
 
     # RGAA : chaque tableau porte un titre, et celui d'un inventaire d'event dit sa provenance.

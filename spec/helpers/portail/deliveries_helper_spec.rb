@@ -215,7 +215,7 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       page = Capybara.string(helper.delivery_archive_access(delivery_with("received", "pending")))
 
       expect(page).to have_css("a[aria-describedby='delivery-archive-hint']")
-      expect(page).to have_css("p#delivery-archive-hint.fr-hint-text",
+      expect(page).to have_css("p#delivery-archive-hint.fr-hint-text.fr-col-12",
         exact_text: "Sans les pièces non reçues : l'état de chacune figure dans le tableau.")
     end
 

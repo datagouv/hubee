@@ -297,7 +297,7 @@ Alors("il voit le détail du télédossier, demandeur compris") do
 end
 
 Alors("il voit l'inventaire des pièces et l'historique") do
-  expect(page).to have_css("h2", text: "Pièces du dépôt")
+  expect(page).to have_css("h2", text: "Pièces du télédossier")
   expect(page).to have_text("certificat.pdf")
   expect(page).to have_css("h2", text: "Historique")
   expect(page).to have_text("George DUBOIS a modifié le statut : Nouveau → Reçu")
