@@ -1,8 +1,16 @@
-#!/bin/bash -e
+#!/usr/bin/env ruby
+# frozen_string_literal: true
 
-# If running the rails server then create or migrate existing database
-if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
-fi
+abort "docker-entrypoint: no command given, for example ./bin/rails server" if ARGV.empty?
 
-exec "${@}"
+if ARGV.last(2) == ["./bin/rails", "server"]
+  system("./bin/rails", "db:prepare") || exit($?.exitstatus || 128 + $?.termsig)
+end
+
+# The [cmd, argv0] form never spawns /bin/sh, which the distroless image does not have.
+begin
+  exec([ARGV[0], ARGV[0]], *ARGV.drop(1))
+rescue SystemCallError => e
+  warn "docker-entrypoint: cannot run #{ARGV[0].inspect} (#{e.message}); pass each argument separately, there is no shell"
+  exit 127
+end
