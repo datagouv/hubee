@@ -24,8 +24,6 @@ module Portail
         end
       end
 
-      # Avant la lecture du télédossier : rien à lire pour une requête qui ne remet rien.
-      before_action :refuse_head, only: :show
       before_action :set_delivery, only: :show
 
       def show
@@ -43,12 +41,6 @@ module Portail
       end
 
       private
-
-      # 405 et non un 200 vide : assembler l'archive pour en donner les en-têtes la tracerait
-      # sans la remettre.
-      def refuse_head
-        head(:method_not_allowed, allow: "GET") if request.head?
-      end
 
       # Confiée d'abord à `Rack::TempfileReaper`, qui la supprime à la fermeture de la réponse ou
       # sur toute erreur qui la précède. `sending_file` après le type, comme `send_data` : avant,
