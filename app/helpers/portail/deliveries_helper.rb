@@ -72,25 +72,25 @@ module Portail
         class: ["fr-badge", "fr-badge--sm", ATTACHMENT_BADGES[attachment.state]].compact)
     end
 
-    # Le bouton quand la pièce se remet, sinon son état, qui est la raison. Sans télédossier, la
-    # pièce est celle d'un événement : elle n'a pas d'adresse.
-    # `download` : le navigateur reçoit le fichier lui-même, Turbo n'intercepte pas. Le nom
-    # accessible porte la pièce : un même intitulé par ligne ne suffit pas au RGAA.
     def delivery_attachment_name(attachment)
       attachment.filename.presence || Delivery::Attachment::FALLBACK_FILENAME
     end
 
+    # Le lien quand la pièce se remet, sinon son état, qui est la raison. Sans télédossier, la
+    # pièce est celle d'un événement : elle n'a pas d'adresse.
+    # RGAA : le nom accessible porte la pièce, un même intitulé par ligne ne suffisant pas. Le nom
+    # du fichier vient après le texte visible, que le nom accessible doit contenir d'un bloc.
     def delivery_attachment_access(attachment, delivery)
       return delivery_attachment_state(attachment) unless delivery && attachment.state_received?
 
-      link_to t("portail.deliveries.attachments.download"),
-        teledossier_piece_path(delivery.id, attachment.id),
-        class: "fr-btn fr-btn--sm fr-btn--secondary fr-icon-download-line fr-btn--icon-left",
-        aria: {label: t("portail.deliveries.attachments.download_named",
-          filename: delivery_attachment_name(attachment))},
+      link_to teledossier_piece_path(delivery.id, attachment.id),
+        class: "fr-link fr-link--download",
         # Surtout pas `download` : il enregistrerait la réponse quelle qu'elle soit, page d'erreur
         # comprise. `turbo: false` : Turbo ne sait pas suivre une réponse qui n'est pas du HTML.
-        data: {turbo: false}
+        data: {turbo: false} do
+        safe_join([t("portail.deliveries.attachments.download"),
+          tag.span(", #{delivery_attachment_name(attachment)}", class: "fr-sr-only")])
+      end
     end
 
     # L'archive ne remet que les pièces reçues : l'agent sait avant le clic combien, et sur quel

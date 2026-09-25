@@ -858,7 +858,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     # Seule une pièce reçue du dépôt se télécharge : les autres états restent listés sans lien,
     # et les pièces d'un événement n'ont pas d'adresse. Un lien ordinaire, hors Turbo, sans
     # attribut `download` : c'est `Content-Disposition` qui remet le fichier, et une page d'erreur
-    # doit pouvoir s'afficher plutôt que de finir en fichier HTML. Le bouton est l'affordance :
+    # doit pouvoir s'afficher plutôt que de finir en fichier HTML. Le lien est l'affordance :
     # pas d'étiquette à côté.
     # Une anomalie de données amont, que l'agent ne doit pas lire comme une ligne vide : le même
     # repli que le fichier remis et que la trace écrite à l'historique.
@@ -873,7 +873,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(response).to have_http_status(:success)
       page = Capybara.string(response.body)
       expect(page).to have_css("td", text: "piece")
-      expect(page).to have_css("a[aria-label='Télécharger piece']")
+      expect(page).to have_link(exact_text: "Télécharger, piece")
     end
 
     it "offers a download on received deposit pieces only" do
@@ -898,7 +898,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][data-turbo='false']")
       expect(page).to have_no_css("a[download]")
       # RGAA : des liens de même intitulé vers des cibles différentes se distinguent par leur nom accessible.
-      expect(page).to have_css("a[href$='/pieces/a1111111-1111-1111-1111-111111111111'][aria-label='Télécharger recue.pdf']")
+      expect(page).to have_link(exact_text: "Télécharger, recue.pdf",
+        href: "/teledossiers/#{delivery_id}/pieces/a1111111-1111-1111-1111-111111111111")
       expect(page.find("tr", text: "recue.pdf")).to have_no_css("p.fr-badge")
       expect(page).to have_text("attendue.pdf")
       expect(page).to have_text("complement.pdf")
@@ -947,8 +948,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
     end
 
     # La colonne « État » a disparu : c'est la dernière colonne qui dit pourquoi une pièce du
-    # dépôt ne se télécharge pas, par le badge de son état à la place du bouton.
-    it "explains why a deposit piece cannot be downloaded in place of the button" do
+    # dépôt ne se télécharge pas, par le badge de son état à la place du lien.
+    it "explains why a deposit piece cannot be downloaded in place of the link" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
         build(:portail_delivery, attachments: [
