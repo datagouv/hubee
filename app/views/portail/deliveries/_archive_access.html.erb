@@ -1,0 +1,12 @@
+<%# locals: (delivery:, label:, complete:) %>
+<div class="fr-mb-3w">
+  <%# Mêmes raisons que le lien d'une pièce : ni `download`, ni Turbo. Complète, l'archive n'a
+      besoin d'aucune aide : le détail « ZIP » dit déjà ce qu'elle est. La virgule masquée le
+      détache du libellé pour le lecteur d'écran. %>
+  <%= link_to safe_join([label, tag.span(",", class: "fr-sr-only"), " ", tag.span("ZIP", class: "fr-link__detail")]),
+        teledossier_archive_path(delivery.id), class: "fr-link fr-link--download",
+        aria: {describedby: ("delivery-archive-hint" unless complete)}, data: {turbo: false} %>
+  <% unless complete %>
+    <p id="delivery-archive-hint" class="fr-hint-text fr-mt-1w fr-mb-0"><%= t("portail.deliveries.archives.hint") %></p>
+  <% end %>
+</div>

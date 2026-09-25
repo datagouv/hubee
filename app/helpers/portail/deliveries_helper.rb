@@ -93,6 +93,23 @@ module Portail
         data: {turbo: false}
     end
 
+    # L'archive ne remet que les pièces reçues : l'agent sait avant le clic combien, et sur quel
+    # total, les autres restant lisibles dans le tableau avec leur état. Rien sans pièce reçue.
+    # Le détail tait la taille : on connaît la somme de celles des pièces, pas la taille compressée.
+    def delivery_archive_access(delivery)
+      received = delivery.received_attachments.size
+      return if received.zero?
+
+      total = delivery.attachments.size
+      complete = received == total
+      label = if complete
+        t("portail.deliveries.archives.download.complete", count: received)
+      else
+        t("portail.deliveries.archives.download.partial", count: received, total:)
+      end
+      render "portail/deliveries/archive_access", delivery:, label:, complete:
+    end
+
     # Déclarative tant que la pièce n'est pas reçue : approximative vaut mieux qu'absente.
     def delivery_attachment_size(attachment)
       return MISSING if attachment.byte_size.blank?
