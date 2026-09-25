@@ -9,21 +9,6 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
   let(:delivery_id) { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
   let(:path) { "/teledossiers/#{delivery_id}/archive" }
 
-  # Le cas standard du portail : un membre habilité sur le flux du télédossier servi.
-  def sign_in_member(data_stream_codes: ["CERTDC"])
-    agent = create(:agent, provider_sub: "sub-membre")
-    sign_in_via_proconnect(agent: agent)
-    membership = Membership.find_by!(agent: agent)
-    data_stream_codes.each { |code| create(:data_stream_access, membership: membership, data_stream_code: code) }
-    agent
-  end
-
-  def sign_in_local_administrator(data_stream_codes: [])
-    agent = sign_in_member(data_stream_codes: data_stream_codes)
-    Membership.find_by!(agent: agent).update!(role: "local_administrator")
-    agent
-  end
-
   # L'organisation de l'agent connecté, dans le vocabulaire de la gem : le fake filtre sur ce couple.
   def upstream_recipient
     build_v2_recipient(siret: ProConnectTestHelper::TEST_SIRET, code_insee: ProConnectTestHelper::TEST_INSEE_CODE)
@@ -49,15 +34,6 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
   end
 
   def events_requests(client) = client.requests_to("#{HubApiV1::Case::PATH}/#{delivery_id}/events")
-
-  # Le chemin du fichier temporaire, pour vérifier qu'il n'a pas survécu à la réponse.
-  def watch_tempfile_paths
-    paths = []
-    expect(Tempfile).to receive(:new).and_wrap_original do |new, *args, **options|
-      new.call(*args, **options).tap { |file| paths << file.path }
-    end
-    paths
-  end
 
   # rubyzip relit les noms en binaire, drapeau UTF-8 ou non.
   def entries(body)

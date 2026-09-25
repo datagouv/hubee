@@ -8,21 +8,6 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
   let(:delivery_id) { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
   let(:path) { "/teledossiers/#{delivery_id}/etat" }
 
-  # Le cas standard du portail : un membre habilité sur le flux du télédossier servi.
-  def sign_in_member(data_stream_codes: ["CERTDC"])
-    agent = create(:agent, provider_sub: "sub-membre")
-    sign_in_via_proconnect(agent: agent)
-    membership = Membership.find_by!(agent: agent)
-    data_stream_codes.each { |code| create(:data_stream_access, membership: membership, data_stream_code: code) }
-    agent
-  end
-
-  def sign_in_local_administrator(data_stream_codes: [])
-    agent = sign_in_member(data_stream_codes: data_stream_codes)
-    Membership.find_by!(agent: agent).update!(role: "local_administrator")
-    agent
-  end
-
   # `times: 2` quand l'exemple suit la redirection : le détail relit l'amont, c'est tout l'intérêt
   # de renvoyer l'agent dessus plutôt que d'afficher un état déduit.
   def serve(state: "in_progress", code: "CERTDC", times: 1)

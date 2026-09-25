@@ -9,21 +9,6 @@ RSpec.describe "Portail::Attachments", type: :request do
   let(:attachment_id) { "a1111111-1111-1111-1111-111111111111" }
   let(:path) { "/teledossiers/#{delivery_id}/pieces/#{attachment_id}" }
 
-  # Le cas standard du portail : un membre habilité sur le flux du télédossier servi.
-  def sign_in_member(data_stream_codes: ["CERTDC"])
-    agent = create(:agent, provider_sub: "sub-membre")
-    sign_in_via_proconnect(agent: agent)
-    membership = Membership.find_by!(agent: agent)
-    data_stream_codes.each { |code| create(:data_stream_access, membership: membership, data_stream_code: code) }
-    agent
-  end
-
-  def sign_in_local_administrator(data_stream_codes: [])
-    agent = sign_in_member(data_stream_codes: data_stream_codes)
-    Membership.find_by!(agent: agent).update!(role: "local_administrator")
-    agent
-  end
-
   describe "GET /teledossiers/:teledossier_id/pieces/:id" do
     # Le fichier tel quel, sous son nom d'origine, et jamais dans la page : un type neutre et
     # `attachment`, quel que soit le type que l'amont annonce. Aucun magasin sur le chemin.

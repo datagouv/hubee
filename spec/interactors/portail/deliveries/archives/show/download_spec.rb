@@ -41,14 +41,6 @@ RSpec.describe Portail::Deliveries::Archives::Show::Download do
     end
   end
 
-  def watch_tempfile_paths
-    paths = []
-    expect(Tempfile).to receive(:new).and_wrap_original do |new, *args, **options|
-      new.call(*args, **options).tap { |file| paths << file.path }
-    end
-    paths
-  end
-
   # Le nom suit l'heure du clic, à Paris ; la trace le porte et part signée de l'agent de la session.
   # Le journal donne les identifiants, pas les noms : la supervision tourne sans donnée personnelle.
   it "hands back the archive of the received pieces, named after the click, traced and logged once" do
