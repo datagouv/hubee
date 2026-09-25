@@ -5,21 +5,6 @@ require "rails_helper"
 # Ces exemples bouchonnent Portail::HubAPI et construisent des Portail::Delivery. La traduction
 # de la gem est éprouvée dans le spec de la frontière, la chaîne entière dans Cucumber.
 RSpec.describe "Portail::Deliveries", type: :request do
-  # Le cas standard du portail : un membre habilité sur le flux des télédossiers servis.
-  def sign_in_member(data_stream_codes: ["CERTDC"])
-    agent = create(:agent, provider_sub: "sub-membre")
-    sign_in_via_proconnect(agent: agent)
-    membership = Membership.find_by!(agent: agent)
-    data_stream_codes.each { |code| create(:data_stream_access, membership: membership, data_stream_code: code) }
-    agent
-  end
-
-  def sign_in_local_administrator(data_stream_codes: [])
-    agent = sign_in_member(data_stream_codes: data_stream_codes)
-    Membership.find_by!(agent: agent).update!(role: "local_administrator")
-    agent
-  end
-
   # Ce que la frontière rend, la page écrite à plat : les bouchons ne parlent que de ce qui
   # compte pour l'exemple.
   def upstream_list(deliveries: [], **page)

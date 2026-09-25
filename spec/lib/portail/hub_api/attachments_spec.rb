@@ -262,15 +262,6 @@ RSpec.describe Portail::HubAPI::Attachments do
       end
     end
 
-    # Le chemin du fichier temporaire, pour vérifier qu'il n'a pas survécu à un échec.
-    def watch_tempfile_paths
-      paths = []
-      expect(Tempfile).to receive(:new).and_wrap_original do |new, *args, **options|
-        new.call(*args, **options).tap { |file| paths << file.path }
-      end
-      paths
-    end
-
     context "with two received attachments" do
       let(:delivery) do
         build(:portail_delivery, id: delivery_id, attachments: [
