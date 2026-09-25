@@ -65,10 +65,15 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p 50022 -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
 
-          echo "=== Destroying app $DOKKU_APP ==="
+          echo "=== Stopping app $DOKKU_APP ==="
           if $SSH_DOKKU -- apps:exists "$DOKKU_APP" 2>/dev/null; then
-            $SSH_DOKKU -- apps:destroy "$DOKKU_APP" --force
+            $SSH_DOKKU -- ps:stop "$DOKKU_APP"
           fi
+
+          echo "=== Destroying database $DOKKU_APP ==="
           if $SSH_DOKKU -- postgres:exists "$DOKKU_APP" 2>/dev/null; then
+            if $SSH_DOKKU -- postgres:linked "$DOKKU_APP" "$DOKKU_APP" 2>/dev/null; then
+              $SSH_DOKKU -- postgres:unlink "$DOKKU_APP" "$DOKKU_APP" --no-restart
+            fi
             $SSH_DOKKU -- postgres:destroy "$DOKKU_APP" --force
           fi
