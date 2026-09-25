@@ -1,12 +1,24 @@
 # frozen_string_literal: true
 
 module Portail
-  # Les refus d'un téléchargement sous un télédossier, pièce seule ou archive : mêmes pages, mêmes
-  # statuts. Seuls le sujet nommé par la page et l'alerte du compte sans nom changent.
+  # Les refus d'un téléchargement sous un télédossier, pièce seule ou archive : même refus d'une
+  # requête HEAD, mêmes pages, mêmes statuts. Seuls le sujet nommé par la page et l'alerte du compte
+  # sans nom changent.
   module DownloadRefusals
     extend ActiveSupport::Concern
 
+    included do
+      # Avant la lecture du télédossier : rien à lire pour une requête qui ne remet rien.
+      before_action :refuse_head, only: :show
+    end
+
     private
+
+    # 405 et non un 200 vide : en donner les en-têtes obligerait à lire le contenu, donc à le
+    # tracer sans le remettre.
+    def refuse_head
+      head(:method_not_allowed, allow: "GET") if request.head?
+    end
 
     def render_failure(error, subject:, unknown_author_alert:)
       case error

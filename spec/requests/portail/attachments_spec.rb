@@ -49,6 +49,19 @@ RSpec.describe "Portail::Attachments", type: :request do
       expect(response.headers["Cache-Control"]).to eq("no-store")
     end
 
+    # Une requête HEAD ne remet rien : lire la pièce la tracerait pour un agent qui ne la reçoit pas.
+    it "refuses a HEAD request without reading the piece nor writing any trace" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).not_to receive(:find)
+      expect(Portail::HubAPI::Attachments).not_to receive(:download)
+
+      head path
+
+      expect(response).to have_http_status(:method_not_allowed)
+      expect(response.headers["Allow"]).to eq("GET")
+      expect(response.headers["Content-Disposition"]).to be_nil
+    end
+
     it "redirects a signed-out visitor to the home page" do
       get path
 

@@ -126,7 +126,7 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
 
     # Une requête HEAD ne remet rien : assembler l'archive la tracerait pour un agent qui ne la
     # reçoit pas.
-    it "refuses a HEAD request without reading any piece nor writing any trace" do
+    it "refuses a HEAD request without reading the delivery nor any piece nor writing any trace" do
       sign_in_member
       client = serve_delivery
       expect(Tempfile).not_to receive(:new)
@@ -136,8 +136,7 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
       expect(response).to have_http_status(:method_not_allowed)
       expect(response.headers["Allow"]).to eq("GET")
       expect(response.headers["Content-Disposition"]).to be_nil
-      expect(content_requests(client)).to be_empty
-      expect(events_requests(client)).to be_empty
+      expect(client.requests).to be_empty
     end
 
     it "redirects a signed-out visitor to the home page" do
