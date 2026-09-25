@@ -167,7 +167,7 @@ Fonctionnalité: Les télédossiers de l'organisation
     Et il s'est connecté
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000006-01"
     Alors la pièce "acte.pdf" est signalée "En attente"
-    Quand il télécharge l'archive "Télécharger 2 pièces reçues sur 3" le "23/09/2026 14:05"
+    Quand il télécharge l'archive "Télécharger 2 pièces reçues sur 3 (ZIP)" le "23/09/2026 14:05"
     Alors il obtient l'archive "20260923-14.05_DGS-CERTDC-0000000000006-01.zip" avec les pièces "certificat.pdf, flux.xml"
     Quand il se rend sur l'accueil
     Et il ouvre le télédossier "DGS-CERTDC-0000000000006-01"
@@ -185,5 +185,5 @@ Fonctionnalité: Les télédossiers de l'organisation
     Étant donné l'historique du télédossier "DGS-CERTDC-0000000000001-01" est saturé
     Et il s'est connecté
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
-    Et il télécharge l'archive "Télécharger l'archive de la pièce reçue"
+    Et il télécharge l'archive "Télécharger l'archive de la pièce reçue (ZIP)"
     Alors il voit que l'archive ne peut pas être remise

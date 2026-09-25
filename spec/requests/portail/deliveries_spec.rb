@@ -925,12 +925,15 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       expect(response).to have_http_status(:success)
       section = Capybara.string(response.body).find("section", text: "Pièces du télédossier")
-      # Le lien partage la ligne du titre, et l'aide la suit dans la même grille, sur toute la largeur.
+      # Le lien partage la ligne du titre, et l'aide le suit dans sa colonne, hors du lien.
       heading_row = section.find("h2", text: "Pièces du télédossier").ancestor(".fr-grid-row")
-      expect(heading_row).to have_link("Télécharger 2 pièces reçues sur 3",
+      expect(heading_row).to have_link(exact_text: "Télécharger 2 pièces reçues sur 3 (ZIP)",
         href: "/teledossiers/#{delivery_id}/archive")
       expect(heading_row).to have_css("a[href$='/archive'][data-turbo='false'][aria-describedby='delivery-archive-hint']")
-      expect(heading_row).to have_css("p#delivery-archive-hint.fr-col-12", text: "Sans les pièces non reçues")
+      expect(heading_row).to have_no_css("a[href$='/archive'] .fr-link__detail")
+      expect(heading_row).to have_css(".delivery-attachments__archive > a[href$='/archive'] + p#delivery-archive-hint",
+        text: "Sans les pièces non reçues")
+      expect(heading_row).to have_no_css("a #delivery-archive-hint")
       expect(section.find("tr", text: "attendue.pdf")).to have_css("p.fr-badge", text: "En attente")
     end
 
@@ -1483,7 +1486,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
-        expect(Capybara.string(response.body)).to have_link("Télécharger l'archive de la pièce reçue",
+        expect(Capybara.string(response.body)).to have_link(exact_text: "Télécharger l'archive de la pièce reçue (ZIP)",
           href: "/teledossiers/#{delivery_id}/archive")
       end
 

@@ -92,7 +92,9 @@ fr:
       archives:
         unknown_author: "Votre compte ne porte ni prénom ni nom. Contactez le support : l'émetteur du dossier doit pouvoir identifier qui a retiré les pièces."
         # Ce que l'agent recevra, dit avant le clic : le total ne s'ajoute que quand il en manque.
+        # Le format suit le libellé, à part : il reste sur la ligne de l'icône.
         download:
+          format: (ZIP)
           complete:
             one: Télécharger l'archive de la pièce reçue
             other: "Télécharger les %{count} pièces reçues"

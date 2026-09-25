@@ -98,3 +98,19 @@
     width: auto;
   }
 }
+
+/* Sans `fr-link__detail`, l'icône n'a plus à réserver sa ligne : elle reprend l'alignement d'une
+   icône de lien, et l'aide éventuelle vient juste sous le lien. Seul le `span` du libellé se
+   coupe : le format qui le suit reste sur la ligne de l'icône, qui ne part jamais seule. */
+.delivery-attachments__archive .fr-link--download {
+  white-space: nowrap;
+}
+
+.delivery-attachments__archive .fr-link--download > span {
+  white-space: normal;
+}
+
+.delivery-attachments__archive .fr-link--download::after {
+  margin-bottom: 0;
+  vertical-align: calc((0.75em - var(--icon-size)) * 0.5);
+}
