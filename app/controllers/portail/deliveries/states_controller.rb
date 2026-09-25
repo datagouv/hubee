@@ -4,6 +4,9 @@ module Portail
   module Deliveries
     # L'état d'un télédossier. Une seule action, et rien à rendre : la réponse est le détail relu.
     class StatesController < Portail::BaseController
+      include NestedInDelivery
+
+      # Ce qui ne se lit pas ne s'écrit pas.
       before_action :set_delivery, only: :update
 
       def update
@@ -20,20 +23,6 @@ module Portail
       end
 
       private
-
-      # Mêmes refus que le détail : ce qui ne se lit pas ne s'écrit pas. Un rendu ici coupe la
-      # chaîne, la vérification d'autorisation ne tourne pas : rien à lever.
-      def set_delivery
-        delivery_result = Deliveries::Show.call(membership: current_membership, id: params[:teledossier_id])
-
-        if delivery_result.success?
-          @delivery = delivery_result.delivery
-        elsif delivery_result.error == :not_found
-          not_found
-        else
-          unavailable
-        end
-      end
 
       # Succès comme refus renvoient au détail, qui relit l'amont : le portail n'affiche jamais
       # un état qu'il aurait déduit. `raise: true` : un refus sans libellé doit exploser ici, pas
