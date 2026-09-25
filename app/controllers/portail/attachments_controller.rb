@@ -4,6 +4,8 @@ module Portail
   # Le contenu d'une pièce d'un télédossier. Une seule action, et rien à rendre : la réponse est le
   # fichier lui-même.
   class AttachmentsController < Portail::BaseController
+    include NestedInDelivery
+
     # Un seul callback pour les deux : la pièce se cherche dans le télédossier, l'ordre est ici.
     before_action :set_delivery_and_attachment, only: :show
 
@@ -28,18 +30,6 @@ module Portail
     def set_delivery_and_attachment
       set_delivery
       set_attachment unless performed?
-    end
-
-    # Mêmes refus que le détail. Un rendu ici coupe la chaîne, la vérification d'autorisation ne
-    # tourne pas : rien à lever.
-    def set_delivery
-      result = Deliveries::Show.call(membership: current_membership, id: params[:teledossier_id])
-
-      if result.success?
-        @delivery = result.delivery
-      else
-        render_failure(result.error)
-      end
     end
 
     # Parmi les pièces du dépôt seulement : une pièce ajoutée ensuite vit sur son événement, hors

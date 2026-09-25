@@ -5,6 +5,8 @@ module Portail
     # L'archive des pièces reçues d'un télédossier. Une seule action, et rien à rendre : la réponse
     # est le zip lui-même. Mêmes refus que la pièce seule.
     class ArchivesController < Portail::BaseController
+      include NestedInDelivery
+
       # `send_data` chargerait l'archive entière ; sans `to_path`, le serveur ne la cherche pas sur
       # le disque et ce corps la lit par blocs. La frontière la rend rembobinée.
       class Body
@@ -42,18 +44,6 @@ module Portail
       # sans la remettre.
       def refuse_head
         head(:method_not_allowed, allow: "GET") if request.head?
-      end
-
-      # Mêmes refus que le détail. Un rendu ici coupe la chaîne, la vérification d'autorisation ne
-      # tourne pas : rien à lever.
-      def set_delivery
-        result = Deliveries::Show.call(membership: current_membership, id: params[:teledossier_id])
-
-        if result.success?
-          @delivery = result.delivery
-        else
-          render_failure(result.error)
-        end
       end
 
       # Confiée d'abord à `Rack::TempfileReaper`, qui la supprime à la fermeture de la réponse ou
