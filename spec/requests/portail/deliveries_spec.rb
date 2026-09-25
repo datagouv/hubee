@@ -905,6 +905,47 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_no_link(href: %r{/pieces/(a2222222|b2)})
     end
 
+    # L'archive ne contient que les pièces reçues du dépôt : une pièce d'événement ne compte ni
+    # dans ce qu'elle remet ni dans le total, et celle qui manque se lit dans le tableau.
+    it "offers the archive of the received deposit pieces, out of all the deposit pieces" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery,
+          attachments: [
+            build(:portail_attachment, id: "a1111111-1111-1111-1111-111111111111", filename: "recue.pdf"),
+            build(:portail_attachment, id: "a2222222-2222-2222-2222-222222222222", filename: "attendue.pdf", state: "pending"),
+            build(:portail_attachment, id: "a3333333-3333-3333-3333-333333333333", filename: "flux.xml")
+          ],
+          events: [build(:portail_event, event_type: "attachment.created", metadata: {},
+            attachments: [build(:portail_attachment, id: "b1111111-1111-1111-1111-111111111111", filename: "complement.pdf")])])
+      )
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      section = Capybara.string(response.body).find("section", text: "Pièces du dépôt")
+      expect(section).to have_link("Télécharger 2 pièces reçues sur 3",
+        href: "/teledossiers/#{delivery_id}/archive")
+      expect(section).to have_css("a[href$='/archive'][data-turbo='false']")
+      expect(section).to have_text("Sans les pièces non reçues")
+      expect(section.find("tr", text: "attendue.pdf")).to have_css("p.fr-badge", text: "En attente")
+    end
+
+    it "offers no archive when no deposit piece is received" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, attachments: [build(:portail_attachment, state: "pending")])
+      )
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      page = Capybara.string(response.body)
+      expect(page).to have_css("p.fr-badge", text: "En attente")
+      expect(page).to have_no_css("a[href$='/archive']")
+      expect(page).to have_no_text("ZIP")
+    end
+
     # La colonne « État » a disparu : c'est la dernière colonne qui dit pourquoi une pièce du
     # dépôt ne se télécharge pas, par le badge de son état à la place du bouton.
     it "explains why a deposit piece cannot be downloaded in place of the button" do
@@ -1431,11 +1472,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(Capybara.string(response.body)).to have_no_text("DGS-CERTDC-0000000000001-01")
       end
 
+      # La pièce reçue du télédossier par défaut : l'archive s'offre avec le détail.
       def expect_the_delivery_to_open
         get "/teledossiers/#{delivery_id}"
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
+        expect(Capybara.string(response.body)).to have_link("Télécharger l'archive de la pièce reçue",
+          href: "/teledossiers/#{delivery_id}/archive")
       end
 
       it "opens a delivery on a data stream the member is habilitated to" do

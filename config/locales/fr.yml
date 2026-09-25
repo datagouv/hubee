@@ -92,6 +92,15 @@ fr:
         unknown_author: "Votre compte ne porte ni prénom ni nom. Contactez le support : l'émetteur du dossier doit pouvoir identifier qui a retiré la pièce."
       archives:
         unknown_author: "Votre compte ne porte ni prénom ni nom. Contactez le support : l'émetteur du dossier doit pouvoir identifier qui a retiré les pièces."
+        # Ce que l'agent recevra, dit avant le clic : le total ne s'ajoute que quand il en manque.
+        download:
+          complete:
+            one: Télécharger l'archive de la pièce reçue
+            other: "Télécharger les %{count} pièces reçues"
+          partial:
+            one: "Télécharger %{count} pièce reçue sur %{total}"
+            other: "Télécharger %{count} pièces reçues sur %{total}"
+        hint: "Sans les pièces non reçues : l'état de chacune figure dans le tableau."
       attachment_states:
         pending: En attente
         received: Reçue
