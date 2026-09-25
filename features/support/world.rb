@@ -8,6 +8,7 @@ require "hub_api_v1/testing"
 
 World(FactoryBot::Syntax::Methods)
 World(HubApiV1::Testing::Factories)
+World(ActiveSupport::Testing::TimeHelpers)
 
 # Tout scénario connecté traverse l'API amont. Reposé à chaque scénario pour qu'aucun cas
 # ajouté par l'un ne fuite vers le suivant.
