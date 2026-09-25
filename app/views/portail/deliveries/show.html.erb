@@ -74,20 +74,24 @@
 <% end %>
 
 <section class="fr-p-3w fr-mb-4w fr-border-default--grey">
-  <h2 class="fr-h4"><%= t(".deposit_attachments") %></h2>
-  <% if @delivery.attachments.any? %>
+  <%# Le lien de l'archive suit le titre dans le DOM, à sa droite dès le point de rupture MD. %>
+  <div class="fr-grid-row fr-grid-row--gutters fr-mb-2w">
+    <div class="fr-col-12 fr-col-md">
+      <h2 class="fr-h4 fr-mb-0"><%= t(".attachments") %></h2>
+    </div>
     <%= delivery_archive_access(@delivery) %>
+  </div>
+  <% if @delivery.attachments.any? %>
+    <%# Caption « du dépôt » : elle distingue ce tableau de ceux des pièces ajoutées ensuite. %>
     <%= render "attachments", attachments: @delivery.attachments, caption: t(".deposit_attachments"),
           downloadable_from: @delivery %>
   <% else %>
-    <p class="fr-mb-0"><%= t(".deposit_attachments_empty") %></p>
+    <p><%= t(".deposit_attachments_empty") %></p>
   <% end %>
-</section>
 
-<%# Deux magasins en amont, deux sections : une pièce arrivée en cours d'instruction ne dit
-    pas la même chose qu'une pièce déposée d'emblée. %>
-<section class="fr-p-3w fr-mb-4w fr-border-default--grey">
-  <h2 class="fr-h4"><%= t(".added_attachments") %></h2>
+  <%# Deux magasins en amont, deux sous-parties : une pièce arrivée en cours d'instruction ne dit
+      pas la même chose qu'une pièce déposée d'emblée. %>
+  <h3 class="fr-h5 fr-mt-4w"><%= t(".added_attachments") %></h3>
   <% events_with_attachments = delivery_events_with_attachments(@delivery) %>
   <% if events_with_attachments.any? %>
     <% events_with_attachments.each do |event| %>

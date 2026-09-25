@@ -87,3 +87,14 @@
 .delivery-active-filters .fr-tags-group > li > .fr-tag {
   margin-bottom: 0;
 }
+
+/* delivery-attachments__archive : le lien de l'archive à droite du titre des pièces
+   (portail/deliveries/_archive_access). Le DSFR n'a pas de colonne à la largeur de son contenu :
+   dès le point de rupture MD, la colonne se réduit au lien et le titre prend le reste. */
+@media (min-width: 48em) {
+  .delivery-attachments__archive {
+    flex: 0 0 auto;
+    max-width: none;
+    width: auto;
+  }
+}
