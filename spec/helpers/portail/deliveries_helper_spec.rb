@@ -115,15 +115,22 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
   describe "#delivery_attachment_access" do
     let(:delivery) { build(:portail_delivery, id: "94b1b09d-b47f-4480-9b48-93b8b36108f2") }
 
-    # Le seul cas qui remet un contenu : une pièce reçue, portée par un télédossier. Le bouton est
-    # l'affordance, sans badge à côté ; RGAA : le nom accessible porte la pièce.
+    # Le seul cas qui remet un contenu : une pièce reçue, portée par un télédossier. Le lien est
+    # l'affordance, sans badge à côté ; RGAA : le nom accessible commence par le texte visible et
+    # finit par la pièce. Aucun détail : le nom du fichier dit déjà son extension, la taille a sa
+    # colonne.
     it "links to the download of a received deposit piece, named after the piece" do
       link = helper.delivery_attachment_access(build(:portail_attachment, filename: "recue.pdf"), delivery)
 
       page = Capybara.string(link)
       expect(page).to have_link("Télécharger",
         href: "/teledossiers/94b1b09d-b47f-4480-9b48-93b8b36108f2/pieces/a1111111-1111-1111-1111-111111111111")
-      expect(page).to have_css("a.fr-btn.fr-btn--sm[data-turbo='false'][aria-label='Télécharger recue.pdf']")
+      expect(page).to have_link(exact_text: "Télécharger, recue.pdf")
+      expect(page).to have_css("a.fr-link.fr-link--download[data-turbo='false']")
+      expect(page).to have_css("a span.fr-sr-only", exact_text: ", recue.pdf")
+      expect(page).to have_no_css(".fr-link__detail")
+      expect(page).to have_no_css("a[aria-label]")
+      expect(page).to have_no_css("a.fr-btn")
       expect(page).to have_no_css("p.fr-badge")
       # Surtout pas `download` : le navigateur enregistrerait la réponse quelle qu'elle soit, et
       # une page d'erreur finirait en fichier HTML sur le disque de l'agent.
@@ -135,7 +142,18 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     it "names a piece the partner did not name after the shared fallback" do
       link = helper.delivery_attachment_access(build(:portail_attachment, filename: ""), delivery)
 
-      expect(Capybara.string(link)).to have_css("a[aria-label='Télécharger piece']")
+      expect(Capybara.string(link)).to have_link(exact_text: "Télécharger, piece")
+    end
+
+    # Le nom vient du partenaire : il se lit comme du texte, jamais comme du balisage.
+    it "escapes the piece name in the accessible name" do
+      link = helper.delivery_attachment_access(
+        build(:portail_attachment, filename: "<img src=x onerror=alert(1)>.pdf"), delivery
+      )
+
+      page = Capybara.string(link)
+      expect(page).to have_link(exact_text: "Télécharger, <img src=x onerror=alert(1)>.pdf")
+      expect(page).to have_no_css("img")
     end
 
     it "shows the state of a deposit piece that is not received, as the reason" do

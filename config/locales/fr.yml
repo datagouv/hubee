@@ -88,7 +88,6 @@ fr:
         download: Téléchargement
       attachments:
         download: Télécharger
-        download_named: "Télécharger %{filename}"
         unknown_author: "Votre compte ne porte ni prénom ni nom. Contactez le support : l'émetteur du dossier doit pouvoir identifier qui a retiré la pièce."
       archives:
         unknown_author: "Votre compte ne porte ni prénom ni nom. Contactez le support : l'émetteur du dossier doit pouvoir identifier qui a retiré les pièces."
