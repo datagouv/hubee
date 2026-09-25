@@ -371,3 +371,65 @@ end
 Alors("il voit le flux nommé {string}") do |name|
   expect(page).to have_text(name)
 end
+
+# --- Archive des pièces ------------------------------------------------------------------------
+
+# Deux pièces reçues, dont un `.xml` qui doit partir comme les autres, et une en attente.
+E2E_PARTIALLY_RECEIVED_ATTACHMENTS = [
+  {id: "d1111111-1111-1111-1111-111111111111", filename: "certificat.pdf"},
+  {id: "d2222222-2222-2222-2222-222222222222", filename: "flux.xml", content_type: "application/xml"},
+  {id: "d3333333-3333-3333-3333-333333333333", filename: "acte.pdf", state: :pending}
+].freeze
+
+def e2e_archive_attachment(filename)
+  build_v2_attachment(E2E_PARTIALLY_RECEIVED_ATTACHMENTS.find { |attributes| attributes[:filename] == filename })
+end
+
+Étantdonné("l'API amont sert aussi un télédossier {string} dont deux pièces sur trois sont reçues") do |number|
+  attachments = E2E_PARTIALLY_RECEIVED_ATTACHMENTS.map { |attributes| build_v2_attachment(attributes) }
+  HubApiV1.client.add_case(e2e_delivery(number, data_package: build_v2_data_package(attachments:)))
+end
+
+Étantdonné("l'API amont sert aussi un télédossier {string} dont aucune pièce n'est reçue") do |number|
+  HubApiV1.client.add_case(e2e_delivery(number, data_package: build_v2_data_package(
+    attachments: [build_v2_attachment(filename: "acte.pdf", state: :pending)]
+  )))
+end
+
+Alors("la pièce {string} est signalée {string}") do |filename, state|
+  expect(page.find("tr", text: filename)).to have_css("p.fr-badge", text: state)
+end
+
+Quand("il télécharge l'archive {string}") do |label|
+  click_link label
+end
+
+# Le nom de l'archive porte la minute du clic, à l'heure de Paris.
+Quand("il télécharge l'archive {string} le {string}") do |label, instant|
+  travel_to(Time.find_zone("Europe/Paris").strptime(instant, "%d/%m/%Y %H:%M")) { click_link label }
+end
+
+Alors("il obtient l'archive {string} avec les pièces {string}") do |archive, filenames|
+  name = File.basename(archive, ".zip")
+  expect(page.response_headers["content-disposition"]).to eq(
+    "attachment; filename=\"#{archive}\"; filename*=UTF-8''#{archive}"
+  )
+  expect(page.response_headers["content-type"]).to eq("application/zip")
+  entries = Zip::File.open_buffer(StringIO.new(page.body.b)).entries
+    .map { |entry| [entry.name, entry.get_input_stream.read.b] }
+  expect(entries).to eq(filenames.split(", ").map do |filename|
+    ["#{name}/#{filename}", HubApiV1::Testing::Factories.attachment_body_for(e2e_archive_attachment(filename))]
+  end)
+end
+
+Alors("aucune archive n'est proposée") do
+  expect(page).to have_no_css("a[href$='/archive']")
+  expect(page).to have_no_text("ZIP")
+end
+
+Alors("il voit que l'archive ne peut pas être remise") do
+  expect(page.status_code).to eq(409)
+  expect(page.response_headers["content-type"]).to start_with("text/html")
+  expect(page.response_headers).not_to have_key("content-disposition")
+  expect(page).to have_css("h1", text: "L'archive ne peut pas être remise")
+end

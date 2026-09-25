@@ -159,3 +159,31 @@ Fonctionnalité: Les télédossiers de l'organisation
     Et il s'est connecté
     Quand il récupère directement la pièce "certificat.pdf" de ce télédossier
     Alors il obtient une page introuvable, sans que le dossier lui soit montré
+
+  # Une archive des seules pièces reçues, sous le nom que les agents classent déjà : l'agent sait
+  # avant le clic ce qui n'y sera pas, et l'état de la pièce manquante reste lisible dans le tableau.
+  Scénario: L'agent télécharge l'archive des pièces reçues depuis le détail
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000006-01" dont deux pièces sur trois sont reçues
+    Et il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000006-01"
+    Alors la pièce "acte.pdf" est signalée "En attente"
+    Quand il télécharge l'archive "Télécharger 2 pièces reçues sur 3" le "23/09/2026 14:05"
+    Alors il obtient l'archive "20260923-14.05_DGS-CERTDC-0000000000006-01.zip" avec les pièces "certificat.pdf, flux.xml"
+    Quand il se rend sur l'accueil
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000006-01"
+    Alors l'historique porte "Alex MARTIN a téléchargé l'archive des pièces"
+
+  Scénario: Un télédossier sans pièce reçue ne propose pas d'archive
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000007-01" dont aucune pièce n'est reçue
+    Et il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000007-01"
+    Alors la pièce "acte.pdf" est signalée "En attente"
+    Et aucune archive n'est proposée
+
+  # Un refus arrive en page, jamais en fichier enregistré sur le disque de l'agent.
+  Scénario: Une archive dont la récupération ne peut pas être tracée n'est pas remise
+    Étant donné l'historique du télédossier "DGS-CERTDC-0000000000001-01" est saturé
+    Et il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il télécharge l'archive "Télécharger l'archive de la pièce reçue"
+    Alors il voit que l'archive ne peut pas être remise
