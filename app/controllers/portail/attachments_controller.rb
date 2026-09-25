@@ -5,6 +5,7 @@ module Portail
   # fichier lui-même.
   class AttachmentsController < Portail::BaseController
     include NestedInDelivery
+    include DownloadRefusals
 
     # Un seul callback pour les deux : la pièce se cherche dans le télédossier, l'ordre est ici.
     before_action :set_delivery_and_attachment, only: :show
@@ -16,7 +17,10 @@ module Portail
 
       result = Attachments::Show.call(delivery: @delivery, attachment: @attachment,
         membership: current_membership)
-      return render_failure(result.error) unless result.success?
+      unless result.success?
+        return render_failure(result.error, subject: :attachment,
+          unknown_author_alert: "portail.deliveries.attachments.unknown_author")
+      end
 
       # `attachment` et un type neutre : le type annoncé par l'amont ne décide pas qu'un fichier
       # s'ouvre dans l'onglet de l'agent. Le contenu ne fait que traverser, sous `no-store`.
@@ -41,30 +45,6 @@ module Portail
 
       Rails.logger.info("Pièce non livrable", delivery_id: @delivery.id, id: params[:id], reason: :unknown)
       not_found
-    end
-
-    def render_failure(error)
-      case error
-      when :not_found then not_found
-      when :event_limit_reached then event_limit_reached
-      when :content_unavailable then content_unavailable
-      when :unknown_author then redirect_to teledossier_path(@delivery.id),
-        alert: t("portail.deliveries.attachments.unknown_author")
-      else unavailable
-      end
-    end
-
-    # 409 et non 503 : l'état de la ressource s'oppose à la demande, aucun réessai n'y changera rien.
-    def event_limit_reached
-      render("portail/errors/delivery_event_limit_reached", status: :conflict,
-        locals: {delivery_path: teledossier_path(@delivery.id), subject: :attachment})
-    end
-
-    # 503, faute de savoir : l'amont ne distingue pas une pièce purgée d'un stockage en panne. La
-    # page le dit à l'agent au lieu d'annoncer un service qui ne répond pas.
-    def content_unavailable
-      render("portail/errors/attachment_content_unavailable", status: :service_unavailable,
-        locals: {delivery_path: teledossier_path(@delivery.id), subject: :attachment})
     end
   end
 end
