@@ -178,8 +178,8 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
         attachments: states.map { |state| build(:portail_attachment, state:) })
     end
 
-    # Le compte dit ce que l'agent recevra ; le total ne s'ajoute que quand il en manque. La virgule
-    # masquée sépare, pour le lecteur d'écran, le libellé du détail « ZIP ».
+    # Le compte dit ce que l'agent recevra ; le total ne s'ajoute que quand il en manque. Le format
+    # fait partie du libellé, juste avant l'icône.
     it "counts the received pieces, and the total only when some are missing" do
       labels = {
         "a single received piece" => {states: %w[received], label: "Télécharger l'archive de la pièce reçue"},
@@ -192,31 +192,37 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
 
       labels.each do |name, example|
         expect(Capybara.string(helper.delivery_archive_access(delivery_with(*example[:states]))))
-          .to have_link(exact_text: "#{example[:label]}, ZIP"), name
+          .to have_link(exact_text: "#{example[:label]} (ZIP)"), name
       end
     end
 
     # Surtout pas `download` : une page d'erreur finirait en fichier sur le disque de l'agent. Tout
-    # est reçu : le détail « ZIP » suffit, aucune aide ne le répète.
-    it "links a DSFR download link to the archive, outside Turbo, detailed by its format" do
+    # est reçu : le libellé dit le format, rien ne s'affiche sous le lien.
+    it "links a DSFR download link to the archive, outside Turbo, its format in the label" do
       page = Capybara.string(helper.delivery_archive_access(delivery_with("received", "received")))
 
-      expect(page).to have_link("Télécharger les 2 pièces reçues",
+      expect(page).to have_link(exact_text: "Télécharger les 2 pièces reçues (ZIP)",
         href: "/teledossiers/94b1b09d-b47f-4480-9b48-93b8b36108f2/archive")
       expect(page).to have_css("a.fr-link.fr-link--download[data-turbo='false']")
-      expect(page).to have_css("a span.fr-link__detail", exact_text: "ZIP")
+      expect(page).to have_no_css("a .fr-link__detail")
+      expect(page).to have_no_css("a .fr-sr-only")
+      expect(page).to have_no_css(".delivery-attachments__archive > p")
       expect(page).to have_no_css("a[aria-describedby]")
       expect(page).to have_no_css(".fr-hint-text")
       expect(page).to have_no_css("a[download]")
       expect(page).to have_no_css("a[aria-label]")
     end
 
-    it "warns that the pieces not received stay out of the archive" do
+    # L'aide prend la place du détail : sous le lien, dans sa colonne, mais hors du lien.
+    it "warns under the link that the pieces not received stay out of the archive" do
       page = Capybara.string(helper.delivery_archive_access(delivery_with("received", "pending")))
 
+      expect(page).to have_link(exact_text: "Télécharger 1 pièce reçue sur 2 (ZIP)")
       expect(page).to have_css("a[aria-describedby='delivery-archive-hint']")
-      expect(page).to have_css("p#delivery-archive-hint.fr-hint-text.fr-col-12",
+      expect(page).to have_css(".delivery-attachments__archive > a + p#delivery-archive-hint.fr-hint-text",
         exact_text: "Sans les pièces non reçues : l'état de chacune figure dans le tableau.")
+      expect(page).to have_no_css("a #delivery-archive-hint")
+      expect(page).to have_no_css("a .fr-link__detail")
     end
 
     it "offers nothing without any received piece" do
