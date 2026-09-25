@@ -67,14 +67,14 @@ module Portail
     # 409 et non 503 : l'état de la ressource s'oppose à la demande, aucun réessai n'y changera rien.
     def event_limit_reached
       render("portail/errors/delivery_event_limit_reached", status: :conflict,
-        locals: {delivery_path: teledossier_path(@delivery.id)})
+        locals: {delivery_path: teledossier_path(@delivery.id), subject: :attachment})
     end
 
     # 503, faute de savoir : l'amont ne distingue pas une pièce purgée d'un stockage en panne. La
     # page le dit à l'agent au lieu d'annoncer un service qui ne répond pas.
     def content_unavailable
       render("portail/errors/attachment_content_unavailable", status: :service_unavailable,
-        locals: {delivery_path: teledossier_path(@delivery.id)})
+        locals: {delivery_path: teledossier_path(@delivery.id), subject: :attachment})
     end
   end
 end

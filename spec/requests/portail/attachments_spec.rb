@@ -243,7 +243,8 @@ RSpec.describe "Portail::Attachments", type: :request do
       get path
 
       expect(response).to redirect_to("/teledossiers/#{delivery_id}")
-      expect(flash[:alert]).to include("Contactez le support")
+      expect(flash[:alert]).to eq("Votre compte ne porte ni prénom ni nom. Contactez le support : " \
+        "l'émetteur du dossier doit pouvoir identifier qui a retiré la pièce.")
     end
 
     # Ni introuvable ni en panne : le dossier est plein, la pièce n'est pas remise et réessayer
@@ -257,9 +258,14 @@ RSpec.describe "Portail::Attachments", type: :request do
       get path
 
       expect(response).to have_http_status(:conflict)
-      expect(response.body).to include("Cette pièce ne peut pas être remise")
-      # L'agent venait d'un télédossier : le retour le ramène là, l'accueil ne vient qu'après.
+      expect(response.media_type).to eq("text/html")
+      expect(response.headers["Content-Disposition"]).to be_nil
       page = Capybara.string(response.body)
+      expect(page).to have_title("Pièce non remise — HubEE", exact: true)
+      expect(page).to have_css("h1", exact_text: "Cette pièce ne peut pas être remise")
+      expect(page).to have_css(".fr-text--lead",
+        exact_text: "Ce télédossier ne peut plus enregistrer d'événement. Contactez le support.")
+      # L'agent venait d'un télédossier : le retour le ramène là, l'accueil ne vient qu'après.
       expect(page).to have_link("Retour au télédossier", href: "/teledossiers/#{delivery_id}")
       expect(page).to have_link("Retour à l'accueil", href: root_path)
     end
@@ -272,6 +278,8 @@ RSpec.describe "Portail::Attachments", type: :request do
       get path
 
       expect(response).to have_http_status(:service_unavailable)
+      expect(response.media_type).to eq("text/html")
+      expect(response.headers["Content-Disposition"]).to be_nil
       expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
     end
 
@@ -287,9 +295,13 @@ RSpec.describe "Portail::Attachments", type: :request do
       get path
 
       expect(response).to have_http_status(:service_unavailable)
+      expect(response.media_type).to eq("text/html")
+      expect(response.headers["Content-Disposition"]).to be_nil
       page = Capybara.string(response.body)
-      expect(page).to have_css("h1", text: "Cette pièce n'a pas pu être remise")
-      expect(page).to have_text("contactez le support")
+      expect(page).to have_title("Pièce non remise — HubEE", exact: true)
+      expect(page).to have_css("h1", exact_text: "Cette pièce n'a pas pu être remise")
+      expect(page).to have_css(".fr-text--lead", exact_text: "Le télédossier la référence, mais son contenu " \
+        "n'est pas disponible. Réessayez plus tard ; si le problème persiste, contactez le support.")
       expect(page).to have_link("Retour au télédossier", href: "/teledossiers/#{delivery_id}")
       expect(page).to have_no_text("momentanément indisponible")
     end

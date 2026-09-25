@@ -17,6 +17,8 @@ Rails.application.routes.draw do
   # Le contenu d'une pièce, pas son inventaire : `pieces` n'a ni index ni page propre, la seule
   # réponse de cette adresse est le fichier.
   get "teledossiers/:teledossier_id/pieces/:id", to: "portail/attachments#show", as: :teledossier_piece
+  # Toutes les pièces reçues en un zip ; comme pour une pièce, la réponse est le fichier.
+  get "teledossiers/:teledossier_id/archive", to: "portail/deliveries/archives#show", as: :teledossier_archive
   # L'état, ressource singulière : un télédossier n'en a qu'un et on le remplace, d'où `update`.
   patch "teledossiers/:teledossier_id/etat", to: "portail/deliveries/states#update", as: :teledossier_etat
 
