@@ -8,7 +8,7 @@
 
 FROM gcr.io/distroless/base-debian13@sha256:0ebad3510af52aefe45045cc01b07564570be4feecf8d9f93d3a05d1b5f2f93b AS distroless
 
-FROM docker.io/library/ruby:4.0.7-slim@sha256:d10bdb076bb10d2261773ea20eadf4cdbde3346fc8f8db409856608b2d01b9c9 AS base
+FROM docker.io/library/ruby:4.0.7-slim@sha256:db9ddd17cc6ac603f2497d98ac5c88e4118908d6f9a45f2422ebee141f91e485 AS base
 
 # Rails app lives here
 WORKDIR /rails
