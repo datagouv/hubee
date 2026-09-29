@@ -12,9 +12,10 @@ module Portail
       def update
         authorize(@delivery)
 
-        result = States::Update.call(
+        reply = Portail::Delivery::Reply.of(params[:piece])
+        result = organizer_for(reply).call(
           membership: current_membership, delivery: @delivery,
-          state: params[:etat].to_s, author: EventAuthor.for(current_agent)
+          state: params[:etat].to_s, author: EventAuthor.for(current_agent), reply: reply
         )
 
         # 303 et non 302 : la convention Rails après écriture, qui lève toute ambiguïté sur la
@@ -24,13 +25,25 @@ module Portail
 
       private
 
+      # Avec une pièce, la réponse part avant l'état : un organizer par geste.
+      def organizer_for(reply) = reply ? States::UpdateWithReply : States::Update
+
       # Succès comme refus renvoient au détail, qui relit l'amont : le portail n'affiche jamais
       # un état qu'il aurait déduit. `raise: true` : un refus sans libellé doit exploser ici, pas
       # s'afficher en clé brute.
       def outcome(organizer_result)
-        return {notice: t("portail.deliveries.change_state.saved")} if organizer_result.success?
+        return {notice: saved_notice(organizer_result)} if organizer_result.success?
 
-        {alert: t("portail.deliveries.change_state.errors.#{organizer_result.error}", raise: true)}
+        reason = t("portail.deliveries.change_state.errors.#{organizer_result.error}", raise: true)
+        return {alert: reason} unless organizer_result.reply_event
+
+        # Une réponse publiée ne se retire pas : l'agent relance l'état seul, pas la réponse.
+        {alert: t("portail.deliveries.change_state.attachment_sent_state_unchanged", reason: reason)}
+      end
+
+      def saved_notice(organizer_result)
+        key = organizer_result.reply_event ? "saved_with_attachment" : "saved"
+        t("portail.deliveries.change_state.#{key}")
       end
     end
   end
