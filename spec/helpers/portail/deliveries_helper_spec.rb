@@ -203,7 +203,8 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
 
       expect(page).to have_link(exact_text: "Télécharger les 2 pièces reçues (ZIP)",
         href: "/teledossiers/94b1b09d-b47f-4480-9b48-93b8b36108f2/archive")
-      expect(page).to have_css("a.fr-link.fr-link--download[data-turbo='false']")
+      expect(page).to have_css("a.fr-link.fr-link--download.delivery-archive-link[data-turbo='false'] > span",
+        exact_text: "Télécharger les 2 pièces reçues")
       expect(page).to have_no_css("a .fr-link__detail")
       expect(page).to have_no_css("a .fr-sr-only")
       expect(page).to have_no_css(".delivery-attachments__archive > p")
