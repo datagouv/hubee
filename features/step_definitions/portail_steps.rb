@@ -368,6 +368,10 @@ Alors("il ne peut pas clore le télédossier") do
   expect(page).to have_no_select("Nouvel état", with_options: ["Clos"])
 end
 
+Alors("il ne peut pas encore décider du télédossier") do
+  expect(page).to have_select("Nouvel état", options: ["Reçu", "En attente de compléments"])
+end
+
 Alors("il voit le flux nommé {string}") do |name|
   expect(page).to have_text(name)
 end

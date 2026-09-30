@@ -40,7 +40,7 @@ module Portail
     def delivery_state(delivery) = delivery_state_label(delivery.state)
 
     def delivery_offered_states(delivery, data_stream)
-      Access::StateTransitions.offered_from(delivery.state, data_stream)
+      Access::StateTransitions.offered_from(delivery, data_stream)
     end
 
     def delivery_receipt_offered?(delivery, data_stream)

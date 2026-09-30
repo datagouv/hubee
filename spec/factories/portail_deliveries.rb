@@ -101,6 +101,17 @@ FactoryBot.define do
     trait :of_another_organisation do
       recipient { build(:portail_recipient, :of_another_organisation) }
     end
+
+    # Sans lui, la pièce reçue par défaut retient toute décision.
+    trait :retrieved do
+      events {
+        [
+          build(:portail_event),
+          build(:portail_event, id: "e2222222-2222-2222-2222-222222222222", event_type: "attachment.downloaded",
+            content: "certificat.pdf", metadata: {})
+        ]
+      }
+    end
   end
 
   factory :portail_delivery_list, class: "Portail::Delivery::List" do
@@ -158,8 +169,7 @@ FactoryBot.define do
 
     code { "CERTDC" }
     name { "Certificat de décès électronique" }
-    # Les états de l'amont, dans son ordre : la seule règle qui varie par flux est l'attente de
-    # compléments.
+    # Les états de l'amont, dans son ordre.
     allowed_states {
       %w[transmitted acknowledged in_progress awaiting_attachments done refused closed integration_error]
     }

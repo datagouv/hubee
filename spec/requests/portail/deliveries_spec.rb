@@ -1303,7 +1303,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     context "state change" do
       def open_detail(state: "in_progress")
         expect(Portail::HubAPI::Deliveries).to receive(:find)
-          .and_return(build(:portail_delivery, state: state))
+          .and_return(build(:portail_delivery, :retrieved, state: state))
         get "/teledossiers/#{delivery_id}"
       end
 
@@ -1358,6 +1358,17 @@ RSpec.describe "Portail::Deliveries", type: :request do
           .to have_select("Nouvel état", options: ["Refusé", "Traité"])
       end
 
+      it "offers no decision on a delivery never retrieved" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, state: "in_progress"))
+
+        get "/teledossiers/#{delivery_id}"
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_select("Nouvel état", options: ["En attente de compléments"])
+      end
+
       it "offers nothing on a delivery no move can leave" do
         sign_in_member
 
@@ -1385,7 +1396,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
     context "receipt proposal" do
       def open_detail(state: "transmitted")
         expect(Portail::HubAPI::Deliveries).to receive(:find)
-          .and_return(build(:portail_delivery, state: state))
+          .and_return(build(:portail_delivery, :retrieved, state: state))
         get "/teledossiers/#{delivery_id}"
       end
 

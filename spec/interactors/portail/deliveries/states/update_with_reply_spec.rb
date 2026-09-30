@@ -4,7 +4,7 @@ require "rails_helper"
 
 RSpec.describe Portail::Deliveries::States::UpdateWithReply do
   let(:membership) { create(:membership) }
-  let(:delivery) { build(:portail_delivery, state: "in_progress") }
+  let(:delivery) { build(:portail_delivery, :retrieved, state: "in_progress") }
 
   # La validation lit le flux du télédossier en amont : le client factice le sert, permissif.
   before { use_hub_api_fake_client.add_data_stream(build_v2_data_stream(code: "CERTDC")) }
