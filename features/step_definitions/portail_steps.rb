@@ -357,7 +357,7 @@ Quand("la pièce {string} du télédossier {string} passe « Reçue » entre-tem
 end
 
 Quand("il le marque reçu") do
-  within(".fr-callout") { click_button("Marquer comme reçu") }
+  within(".fr-callout", text: "Accuser réception") { click_button("Marquer comme reçu") }
 end
 
 # Le badge dit déjà « Reçu » : l'absence du bouton n'est pas vide de sens.
@@ -423,13 +423,16 @@ Alors("la pièce {string} est signalée {string}") do |filename, state|
   expect(page.find("tr", text: filename)).to have_css("p.fr-badge", text: state)
 end
 
+# L'archive sous les pièces : l'explication d'un dossier bloqué offre la même.
 Quand("il télécharge l'archive {string}") do |label|
-  click_link label
+  within(".delivery-attachments__archive") { click_link label }
 end
 
 # Le nom de l'archive porte la minute du clic, à l'heure de Paris.
 Quand("il télécharge l'archive {string} le {string}") do |label, instant|
-  travel_to(Time.find_zone("Europe/Paris").strptime(instant, "%d/%m/%Y %H:%M")) { click_link label }
+  travel_to(Time.find_zone("Europe/Paris").strptime(instant, "%d/%m/%Y %H:%M")) do
+    within(".delivery-attachments__archive") { click_link label }
+  end
 end
 
 Alors("il obtient l'archive {string} avec les pièces {string}") do |archive, filenames|

@@ -100,7 +100,7 @@
 }
 
 /* delivery-archive-link : le lien de l'archive (portail/deliveries/_archive_link), rendu par
-   _archive_access.
+   _archive_access et _retrieval_callout.
    Sans `fr-link__detail`, l'icône n'a plus à réserver sa ligne : elle reprend l'alignement d'une
    icône de lien, et l'aide éventuelle vient juste sous le lien. Seul le `span` du libellé se
    coupe : le format qui le suit reste sur la ligne de l'icône, qui ne part jamais seule. */

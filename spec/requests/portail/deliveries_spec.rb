@@ -1478,6 +1478,111 @@ RSpec.describe "Portail::Deliveries", type: :request do
       end
     end
 
+    # Le télédossier par défaut porte une pièce reçue et aucune récupération : il est bloqué.
+    context "retrieval explanation" do
+      def open_detail(delivery)
+        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery)
+        get "/teledossiers/#{delivery_id}"
+      end
+
+      def headings = Nokogiri::HTML(response.body).css("main h2").map { |heading| heading.text.strip }
+
+      # Lue avant le formulaire, visuellement et au lecteur d'écran : l'agent sait avant de choisir.
+      it "explains the missing decisions above the state form, which keeps offering the rest" do
+        sign_in_member
+
+        open_detail(build(:portail_delivery, state: "acknowledged"))
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_css(".fr-callout", text: "Les états « En cours », « Refusé » et « Traité » ne sont proposés")
+        expect(page).to have_link(exact_text: "Télécharger l'archive de la pièce reçue (ZIP)", count: 2)
+        expect(page).to have_select("Nouvel état", options: ["En attente de compléments"])
+        expect(headings).to include("Téléchargez une pièce pour faire avancer ce télédossier", "Faire avancer ce télédossier")
+        expect(headings.index("Téléchargez une pièce pour faire avancer ce télédossier"))
+          .to eq(headings.index("Faire avancer ce télédossier") - 1)
+      end
+
+      it "stands in place of the state form when nothing else is left to offer" do
+        sign_in_member
+
+        open_detail(build(:portail_delivery, state: "awaiting_attachments"))
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_css(".fr-callout", text: "Les états « Refusé » et « Traité » ne sont proposés")
+        expect(page).to have_no_select("Nouvel état")
+        expect(page).to have_no_button("Enregistrer")
+        expect(headings).not_to include("Faire avancer ce télédossier")
+      end
+
+      it "stands alone too when the data stream forbids the complements request" do
+        sign_in_member
+        stub_data_stream(build(:portail_data_stream, :without_awaiting_attachments))
+
+        open_detail(build(:portail_delivery, state: "in_progress"))
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_css(".fr-callout", text: "Les états « Refusé » et « Traité » ne sont proposés")
+        expect(page).to have_no_select("Nouvel état")
+      end
+
+      it "names only the decisions the data stream allows" do
+        sign_in_member
+        stub_data_stream(build(:portail_data_stream,
+          allowed_states: %w[transmitted acknowledged in_progress awaiting_attachments done closed integration_error]))
+
+        open_detail(build(:portail_delivery, state: "acknowledged"))
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body))
+          .to have_css(".fr-callout", text: "Les états « En cours » et « Traité » ne sont proposés")
+      end
+
+      it "leaves the state form alone once a piece is retrieved" do
+        sign_in_member
+
+        open_detail(build(:portail_delivery, :retrieved, state: "acknowledged"))
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_select("Nouvel état", with_options: ["En cours", "Traité"])
+        expect(page).to have_no_css(".fr-callout")
+        expect(headings).not_to include("Téléchargez une pièce pour faire avancer ce télédossier")
+      end
+
+      # Aucune combinaison ne se déduit d'une autre : l'explication suit la lecture du dossier.
+      {
+        "a habilitated member" => {role: :member, codes: ["CERTDC"], explained: true},
+        "a member outside their habilitations" => {role: :member, codes: ["AEC"], explained: false},
+        "a member without any habilitation" => {role: :member, codes: [], explained: false},
+        "a local administrator habilitated on the data stream" => {role: :local_administrator, codes: ["CERTDC"], explained: true},
+        "a local administrator without habilitation" => {role: :local_administrator, codes: [], explained: true},
+        "a local administrator outside their habilitations" => {role: :local_administrator, codes: ["AEC"], explained: false}
+      }.each do |agent, setup|
+        it "#{setup[:explained] ? "explains" : "does not explain"} the blocking to #{agent}" do
+          if setup[:role] == :member
+            sign_in_member(data_stream_codes: setup[:codes])
+          else
+            sign_in_local_administrator(data_stream_codes: setup[:codes])
+          end
+
+          open_detail(build(:portail_delivery, state: "acknowledged"))
+
+          page = Capybara.string(response.body)
+          if setup[:explained]
+            expect(response).to have_http_status(:success)
+            expect(page).to have_css(".fr-callout__title", text: "Téléchargez une pièce pour faire avancer ce télédossier")
+          else
+            expect(response).to have_http_status(:not_found)
+            expect(page).to have_text("Page introuvable")
+            expect(page).to have_no_text("Téléchargez une pièce pour faire avancer ce télédossier")
+          end
+        end
+      end
+    end
+
     context "reading perimeter" do
       def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
 
