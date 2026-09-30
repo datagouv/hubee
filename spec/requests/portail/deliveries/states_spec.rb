@@ -97,6 +97,32 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
       expect(Capybara.string(response.body)).to have_text("n'est plus possible")
     end
 
+    it "refuses a move the data stream withholds, naming the target state, without calling the upstream" do
+      sign_in_member
+      serve(times: 2)
+      stub_data_stream(build(:portail_data_stream, allowed_states: %w[transmitted acknowledged in_progress awaiting_attachments done closed]))
+      expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+      update_state("refused")
+      follow_redirect!
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body))
+        .to have_css(".fr-alert--error p", exact_text: "Ce flux n'autorise pas le statut « Refusé ».")
+    end
+
+    it "refuses a move to an unknown state without failing on its label" do
+      sign_in_member
+      serve(times: 2)
+      expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+      update_state("archived")
+      follow_redirect!
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("n'est plus possible")
+    end
+
     {
       Portail::HubAPI::EventLimitReached => "ne peut plus enregistrer d'événement",
       Portail::HubAPI::AwaitingAttachmentsNotAllowed => "n'autorise pas l'attente de compléments",
