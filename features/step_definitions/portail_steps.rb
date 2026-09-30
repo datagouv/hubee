@@ -98,11 +98,29 @@ end
   create(:data_stream_access, membership: Membership.find_by!(agent: @agent), data_stream_code: code)
 end
 
-# Le rôle ne tranche que la liste vide : les habilitations posées par le contexte sont retirées.
-Étantdonné("il est administrateur local sans habilitation") do
+# Le rattachement remplacé en entier : les habilitations posées par le contexte sont retirées.
+def e2e_membership_as(role, data_stream_codes)
   membership = Membership.find_by!(agent: @agent)
   membership.data_stream_accesses.destroy_all
-  membership.update!(role: "local_administrator")
+  data_stream_codes.each { |code| create(:data_stream_access, membership:, data_stream_code: code) }
+  membership.update!(role:)
+end
+
+# Sans habilitation, seul le rôle décide : l'administrateur local lit tout, le membre rien.
+Étantdonné("il est administrateur local sans habilitation") do
+  e2e_membership_as("local_administrator", [])
+end
+
+Étantdonné("il est membre sans habilitation") do
+  e2e_membership_as("member", [])
+end
+
+Étantdonné("il est membre habilité sur le seul flux {string}") do |code|
+  e2e_membership_as("member", [code])
+end
+
+Étantdonné("il est administrateur local habilité sur le seul flux {string}") do |code|
+  e2e_membership_as("local_administrator", [code])
 end
 
 # Les quatre natures : lisible par le portail (deux flux), par l'API, non lisible, autre
@@ -384,6 +402,55 @@ end
 
 Alors("il ne peut pas encore décider du télédossier") do
   expect(page).to have_select("Nouvel état", options: ["Reçu", "En attente de compléments"])
+end
+
+# --- Récupération avant décision ---------------------------------------------------------------
+
+Étantdonné("l'API amont sert aussi un télédossier {string} en attente de compléments") do |number|
+  HubApiV1.client.add_case(e2e_delivery(number, state: :awaiting_attachments))
+end
+
+# Hors de ce portail, la trace n'a pour marque que son auteur, qui n'est pas l'agent connecté.
+Étantdonné("l'API amont sert aussi un télédossier {string} dont {string} a téléchargé une pièce depuis le portail V1") do |number, author|
+  download = build_v2_event(id: "e2222222-2222-2222-2222-222222222222", event_type: :"attachment.downloaded",
+    author:, content: "certificat.pdf")
+  HubApiV1.client.add_case(e2e_delivery(number, events: [build_v2_event, download]))
+end
+
+Quand("il ouvre directement le télédossier {string}") do |number|
+  visit "/teledossiers/#{e2e_delivery(number).id}"
+end
+
+Quand("il télécharge l'archive proposée par l'explication") do
+  within(".fr-callout", text: "Téléchargez une pièce pour faire avancer ce télédossier") { click_link(href: %r{/archive\z}) }
+end
+
+Alors("on lui explique que les états {string} attendent une pièce téléchargée") do |states|
+  within(".fr-callout", text: "Téléchargez une pièce pour faire avancer ce télédossier") do
+    expect(page).to have_text("Les états #{states} ne sont proposés qu'une fois au moins une pièce jointe du télédossier téléchargée")
+    expect(page).to have_link(href: %r{/archive\z})
+  end
+end
+
+Alors("aucun changement d'état ne lui est proposé") do
+  expect(page).to have_css("h1", text: "Télédossier")
+  expect(page).to have_no_select("Nouvel état")
+  expect(page).to have_no_button("Enregistrer")
+end
+
+Alors("il peut décider du télédossier, sans explication") do
+  expect(page).to have_select("Nouvel état", with_options: ["En cours", "Refusé", "Traité"])
+  expect(page).to have_no_text("Téléchargez une pièce pour faire avancer ce télédossier")
+end
+
+Alors("il ne voit pas le télédossier {string} dans la liste") do |number|
+  expect(page).to have_css("h1", text: "Les télédossiers de ma structure")
+  expect(page).to have_no_link(number)
+end
+
+Alors("le télédossier lui reste fermé, explication incluse") do
+  expect(page).to have_text("Page introuvable")
+  expect(page).to have_no_text("Téléchargez une pièce pour faire avancer ce télédossier")
 end
 
 Alors("il est invité à télécharger d'abord une pièce du télédossier pour le passer au statut {string}") do |state|

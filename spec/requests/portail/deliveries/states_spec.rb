@@ -87,6 +87,19 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
           "au moins une pièce jointe du télédossier pour le passer au statut « Traité ».")
     end
 
+    it "records a complements request on a delivery never retrieved" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).twice
+        .and_return(build(:portail_delivery, state: "in_progress"))
+      expect(Portail::HubAPI::Deliveries).to receive(:change_state).and_return(build(:portail_event))
+
+      update_state("awaiting_attachments")
+      follow_redirect!
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("L'état du télédossier a été modifié")
+    end
+
     it "refuses a move with no state at all" do
       sign_in_member
       serve(times: 2)
