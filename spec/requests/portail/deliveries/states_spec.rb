@@ -72,7 +72,7 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
       expect(Capybara.string(response.body)).to have_text("a peut-être changé d'état entre-temps")
     end
 
-    it "refuses a decision on a delivery never retrieved, without calling the upstream" do
+    it "refuses a decision on a delivery never retrieved, naming the target state, without calling the upstream" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).twice
         .and_return(build(:portail_delivery, state: "in_progress"))
@@ -82,7 +82,9 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
       follow_redirect!
 
       expect(response).to have_http_status(:success)
-      expect(Capybara.string(response.body)).to have_text("a peut-être changé d'état entre-temps")
+      expect(Capybara.string(response.body))
+        .to have_css(".fr-alert--error p", exact_text: "Ce changement d'état n'est pas encore possible : téléchargez d'abord " \
+          "au moins une pièce jointe du télédossier pour le passer au statut « Traité ».")
     end
 
     it "refuses a move with no state at all" do
@@ -202,7 +204,7 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
         expect(Capybara.string(response.body)).to have_text("Ce format de fichier n'est pas accepté")
       end
 
-      it "refuses a decision on a delivery never retrieved, before anything leaves" do
+      it "refuses a decision on a delivery never retrieved, naming the target state, before anything leaves" do
         sign_in_member
         expect(Portail::HubAPI::Deliveries).to receive(:find).twice
           .and_return(build(:portail_delivery, state: "in_progress"))
@@ -213,7 +215,9 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
         follow_redirect!
 
         expect(response).to have_http_status(:success)
-        expect(Capybara.string(response.body)).to have_text("a peut-être changé d'état entre-temps")
+        expect(Capybara.string(response.body))
+          .to have_css(".fr-alert--error p", exact_text: "Ce changement d'état n'est pas encore possible : téléchargez d'abord " \
+            "au moins une pièce jointe du télédossier pour le passer au statut « Traité ».")
       end
 
       # Refus du portail lui-même, dits avant tout envoi : chacun a son libellé.
