@@ -23,6 +23,10 @@ Fonctionnalité: Les télédossiers de l'organisation
   Scénario: L'agent fait avancer un télédossier depuis son détail
     Étant donné il s'est connecté
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors il ne peut pas encore décider du télédossier
+    Quand il télécharge la pièce "certificat.pdf"
+    Et il se rend sur l'accueil
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
     Alors il ne peut pas clore le télédossier
     Quand il finalise le traitement du télédossier
     Alors il voit le télédossier au statut "Traité"

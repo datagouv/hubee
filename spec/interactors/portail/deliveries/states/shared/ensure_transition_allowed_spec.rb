@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe Portail::Deliveries::States::Shared::EnsureTransitionAllowed do
   subject(:result) { described_class.call(delivery: delivery, state: state) }
 
-  let(:delivery) { build(:portail_delivery, state: "in_progress") }
+  let(:delivery) { build(:portail_delivery, :retrieved, state: "in_progress") }
 
   # Le flux du télédossier, tel que l'amont le sert : permissif sauf mention contraire.
   def upstream_serves_a_data_stream(**overrides)
@@ -77,12 +77,58 @@ RSpec.describe Portail::Deliveries::States::Shared::EnsureTransitionAllowed do
     end
   end
 
+  context "when the delivery was never retrieved" do
+    context "when a decision is asked" do
+      it "refuses the change with the generic refusal" do
+        upstream_serves_a_data_stream
+
+        result = described_class.call(delivery: build(:portail_delivery, state: "in_progress"), state: "done")
+
+        expect(result.error).to eq(:invalid_request)
+      end
+
+      it "refuses the change with the generic refusal when the data stream cannot be read" do
+        use_hub_api_fake_client
+
+        result = described_class.call(delivery: build(:portail_delivery, state: "in_progress"), state: "done")
+
+        expect(result.error).to eq(:invalid_request)
+      end
+    end
+
+    context "when awaiting attachments is asked" do
+      it "lets the change through" do
+        upstream_serves_a_data_stream
+
+        result = described_class.call(delivery: build(:portail_delivery, state: "in_progress"), state: "awaiting_attachments")
+
+        expect(result).to be_a_success
+      end
+
+      it "refuses the change, as the data stream withholding it, when the data stream forbids it" do
+        upstream_serves_a_data_stream(allowed_states: HubApiV1::V2::Mapping::ORDERED_STATES - [:awaiting_attachments])
+
+        result = described_class.call(delivery: build(:portail_delivery, state: "in_progress"), state: "awaiting_attachments")
+
+        expect(result.error).to eq(:awaiting_attachments_not_allowed)
+      end
+    end
+
+    it "refuses a decision the table no longer offers as impossible" do
+      upstream_serves_a_data_stream
+
+      result = described_class.call(delivery: build(:portail_delivery, state: "refused"), state: "in_progress")
+
+      expect(result.error).to eq(:invalid_request)
+    end
+  end
+
   # Une cible que la table refuse reste une transition impossible, même si le flux la retient
   # aussi : c'est la table qui parle la première à l'agent.
   it "refuses a move the table does not offer as impossible, whatever the data stream" do
     upstream_serves_a_data_stream(allowed_states: HubApiV1::V2::Mapping::ORDERED_STATES - [:awaiting_attachments])
 
-    result = described_class.call(delivery: build(:portail_delivery, state: "done"), state: "awaiting_attachments")
+    result = described_class.call(delivery: build(:portail_delivery, :retrieved, state: "done"), state: "awaiting_attachments")
 
     expect(result.error).to eq(:invalid_request)
   end

@@ -272,16 +272,21 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
   # La règle vit dans Access::StateTransitions, éprouvée là : ici, seulement qu'on la consulte
   # avec ce que la vue a en main.
   describe "#delivery_offered_states" do
-    it "hands the table the state of the delivery and the data stream it was given" do
+    it "hands the table the delivery and the data stream it was given" do
       data_stream = build(:portail_data_stream, :without_awaiting_attachments)
 
-      expect(helper.delivery_offered_states(build(:portail_delivery, state: "in_progress"), data_stream))
+      expect(helper.delivery_offered_states(build(:portail_delivery, :retrieved, state: "in_progress"), data_stream))
         .to eq(%w[refused done])
     end
 
     it "offers the table when the data stream could not be read" do
-      expect(helper.delivery_offered_states(build(:portail_delivery, state: "in_progress"), nil))
+      expect(helper.delivery_offered_states(build(:portail_delivery, :retrieved, state: "in_progress"), nil))
         .to eq(%w[awaiting_attachments refused done])
+    end
+
+    it "withholds the decisions on a delivery never retrieved" do
+      expect(helper.delivery_offered_states(build(:portail_delivery, state: "in_progress"), build(:portail_data_stream)))
+        .to eq(%w[awaiting_attachments])
     end
   end
 

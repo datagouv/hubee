@@ -12,7 +12,7 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
   # de renvoyer l'agent dessus plutôt que d'afficher un état déduit.
   def serve(state: "in_progress", code: "CERTDC", times: 1)
     expect(Portail::HubAPI::Deliveries).to receive(:find).exactly(times).times
-      .and_return(build(:portail_delivery, state: state, data_stream_code: code))
+      .and_return(build(:portail_delivery, :retrieved, state: state, data_stream_code: code))
   end
 
   def update_state(state = "done")
@@ -66,6 +66,19 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
       expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
       update_state("acknowledged")
+      follow_redirect!
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("a peut-être changé d'état entre-temps")
+    end
+
+    it "refuses a decision on a delivery never retrieved, without calling the upstream" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).twice
+        .and_return(build(:portail_delivery, state: "in_progress"))
+      expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+      update_state("done")
       follow_redirect!
 
       expect(response).to have_http_status(:success)
@@ -161,6 +174,20 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
 
         expect(response).to have_http_status(:success)
         expect(Capybara.string(response.body)).to have_text("Ce format de fichier n'est pas accepté")
+      end
+
+      it "refuses a decision on a delivery never retrieved, before anything leaves" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:find).twice
+          .and_return(build(:portail_delivery, state: "in_progress"))
+        expect(Portail::HubAPI::Deliveries).not_to receive(:reply_with_attachment)
+        expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+        update_state_with_piece("done")
+        follow_redirect!
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_text("a peut-être changé d'état entre-temps")
       end
 
       # Refus du portail lui-même, dits avant tout envoi : chacun a son libellé.
