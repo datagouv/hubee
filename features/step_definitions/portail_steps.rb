@@ -172,9 +172,11 @@ end
 end
 
 # L'identifiant dérive du numéro : distinct par télédossier, lisible dans un échec.
+def e2e_delivery_id(number) = format("0a11c2f4-0000-4000-8000-%012d", number[/\d{13}/].to_i)
+
 def e2e_delivery(number, **attributes)
   build_v2_delivery(
-    id: format("0a11c2f4-0000-4000-8000-%012d", number[/\d{13}/].to_i), number: number,
+    id: e2e_delivery_id(number), number: number,
     state: :transmitted, recipient: e2e_recipient, **attributes
   )
 end
@@ -263,7 +265,7 @@ Quand("il télécharge la pièce {string}") do |filename|
 end
 
 Quand("il récupère directement la pièce {string} du télédossier {string}") do |filename, number|
-  visit "/teledossiers/#{e2e_delivery(number).id}/pieces/#{e2e_attachment(filename).id}"
+  visit "/teledossiers/#{e2e_delivery_id(number)}/pieces/#{e2e_attachment(filename).id}"
 end
 
 Quand("il récupère directement la pièce {string} de ce télédossier") do |filename|
@@ -339,7 +341,7 @@ end
 # Le plafond d'événements est un relevé de l'amont, pas un contrat : le fake sait le poser, les
 # scénarios n'ont pas à connaître le nombre.
 Étantdonné("l'historique du télédossier {string} est saturé") do |number|
-  HubApiV1.client.saturate_case(e2e_delivery(number).id)
+  HubApiV1.client.saturate_case(e2e_delivery_id(number))
 end
 
 Alors("l'historique porte {string}") do |sentence|
@@ -360,18 +362,11 @@ Quand("il finalise le traitement du télédossier") do
   click_button("Enregistrer")
 end
 
-# Le faux client n'offre pas de geste public pour l'arrivée d'une pièce (contrairement à
-# saturate_case) : l'état se pose directement dans ce qu'il sert.
 Quand("la pièce {string} du télédossier {string} passe « Reçue » entre-temps") do |filename, number|
-  cases = HubApiV1.client.instance_variable_get(:@cases)
-  index = cases.index { |delivery| delivery.number == number }
-  data_package = cases[index].data_package
-  attachments = data_package.attachments.map do |attachment|
-    next attachment unless attachment.filename == filename
-
-    attachment.with(state: :received)
-  end
-  cases[index] = cases[index].with(data_package: data_package.with(attachments:))
+  id = e2e_delivery_id(number)
+  delivery = HubApiV1::V2::Delivery.find(id:, siret: e2e_recipient.siret, code_insee: e2e_recipient.code_insee)
+  attachment = delivery.data_package.attachments.find { |candidate| candidate.filename == filename }
+  HubApiV1.client.receive_attachment(case_id: id, attachment_id: attachment.id)
 end
 
 Quand("il le marque reçu") do
@@ -418,7 +413,7 @@ end
 end
 
 Quand("il ouvre directement le télédossier {string}") do |number|
-  visit "/teledossiers/#{e2e_delivery(number).id}"
+  visit "/teledossiers/#{e2e_delivery_id(number)}"
 end
 
 Quand("il télécharge l'archive proposée par l'explication") do
