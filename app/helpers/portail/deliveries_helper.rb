@@ -49,6 +49,13 @@ module Portail
 
     def delivery_receipt_state = Access::StateTransitions::RECEIPT
 
+    def delivery_retrieval_callout(delivery, data_stream)
+      states = Access::StateTransitions.withheld_until_retrieved(delivery, data_stream)
+      return if states.empty?
+
+      render "portail/deliveries/retrieval_callout", delivery:, states:
+    end
+
     def delivery_state_badge(delivery)
       tag.p(delivery_state(delivery),
         class: ["fr-badge", STATE_BADGES[delivery.state]].compact)

@@ -291,6 +291,61 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     end
   end
 
+  describe "#delivery_retrieval_callout" do
+    it "names every decision withheld on a blocked delivery and offers the archive" do
+      page = Capybara.string(helper.delivery_retrieval_callout(build(:portail_delivery, state: "transmitted"),
+        build(:portail_data_stream)))
+
+      expect(page).to have_css(".fr-callout h2.fr-callout__title", text: "Téléchargez une pièce pour faire avancer ce télédossier")
+      expect(page).to have_css("p.fr-callout__text", text: "Les états « En cours », « Refusé » et « Traité » ne sont " \
+        "proposés qu'une fois au moins une pièce jointe du télédossier téléchargée, par vous ou un autre agent")
+      expect(page).to have_text("Une fois le téléchargement fait, actualisez la page.")
+      expect(page).to have_link(exact_text: "Télécharger l'archive de la pièce reçue (ZIP)",
+        href: "/teledossiers/94b1b09d-b47f-4480-9b48-93b8b36108f2/archive")
+      expect(page).to have_css("a.fr-link.fr-link--download.delivery-archive-link[data-turbo='false'] > span",
+        exact_text: "Télécharger l'archive de la pièce reçue")
+      expect(page).to have_no_css("a[aria-describedby]")
+      expect(page).to have_no_css("a[download]")
+    end
+
+    it "names the single decision a refused delivery still withholds" do
+      page = Capybara.string(helper.delivery_retrieval_callout(build(:portail_delivery, state: "refused"),
+        build(:portail_data_stream)))
+
+      expect(page).to have_css("p.fr-callout__text", text: "L'état « Traité » n'est proposé qu'une fois")
+    end
+
+    it "names only the decisions the data stream allows" do
+      data_stream = build(:portail_data_stream, allowed_states: %w[transmitted acknowledged in_progress done])
+
+      page = Capybara.string(helper.delivery_retrieval_callout(build(:portail_delivery, state: "transmitted"), data_stream))
+
+      expect(page).to have_css("p.fr-callout__text", text: "Les états « En cours » et « Traité » ne sont proposés")
+    end
+
+    it "counts the archive like the link of the pieces, missing ones included" do
+      delivery = build(:portail_delivery, attachments: [build(:portail_attachment), build(:portail_attachment, state: "pending")])
+
+      expect(Capybara.string(helper.delivery_retrieval_callout(delivery, build(:portail_data_stream))))
+        .to have_link(exact_text: "Télécharger 1 pièce reçue sur 2 (ZIP)")
+    end
+
+    # L'explication ne vaut que pour un blocage : un état absent pour une autre raison n'a rien à
+    # débloquer, et la dire là ferait chercher une récupération qui ne change rien.
+    {
+      "a retrieved delivery" => {state: "transmitted", traits: [:retrieved], attachment_state: "received"},
+      "a delivery without any received piece" => {state: "transmitted", traits: [], attachment_state: "pending"},
+      "a delivery no move can leave" => {state: "done", traits: [], attachment_state: "received"}
+    }.each do |name, setup|
+      it "explains nothing on #{name}" do
+        delivery = build(:portail_delivery, *setup[:traits], state: setup[:state],
+          attachments: [build(:portail_attachment, state: setup[:attachment_state])])
+
+        expect(helper.delivery_retrieval_callout(delivery, build(:portail_data_stream))).to be_nil
+      end
+    end
+  end
+
   # La table dit d'où « Reçu » s'atteint, éprouvée là : ici, qu'on la consulte flux compris.
   describe "#delivery_receipt_offered?" do
     it "offers the receipt on a new delivery" do

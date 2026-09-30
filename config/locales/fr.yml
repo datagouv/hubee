@@ -125,6 +125,13 @@ fr:
         title: Accuser réception de ce télédossier
         text: L'émetteur du dossier sera informé que vous l'avez reçu et verra votre nom.
         submit: Marquer comme reçu
+      retrieval_callout:
+        title: Téléchargez une pièce pour faire avancer ce télédossier
+        text:
+          one: "L'état %{states} n'est proposé qu'une fois au moins une pièce jointe du télédossier téléchargée, par vous ou un autre agent : une décision portée à l'émetteur repose sur un dossier lu."
+          other: "Les états %{states} ne sont proposés qu'une fois au moins une pièce jointe du télédossier téléchargée, par vous ou un autre agent : une décision portée à l'émetteur repose sur un dossier lu."
+        reload: Une fois le téléchargement fait, actualisez la page.
+        quoted_state: "« %{state} »"
       state_form:
         heading: Faire avancer ce télédossier
         label: Nouvel état

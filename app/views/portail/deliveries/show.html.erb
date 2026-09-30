@@ -68,9 +68,12 @@
 
 <%# La garde de droits coïncide aujourd'hui avec la lecture ; elle dit l'intention pour le jour
     où elles divergeront. %>
-<% offered = delivery_offered_states(@delivery, @data_stream) %>
-<% if offered.any? && policy(@delivery).update? %>
-  <%= render "state_form", delivery: @delivery, states: offered %>
+<% if policy(@delivery).update? %>
+  <%= delivery_retrieval_callout(@delivery, @data_stream) %>
+  <% offered = delivery_offered_states(@delivery, @data_stream) %>
+  <% if offered.any? %>
+    <%= render "state_form", delivery: @delivery, states: offered %>
+  <% end %>
 <% end %>
 
 <section class="fr-p-3w fr-mb-4w fr-border-default--grey">
