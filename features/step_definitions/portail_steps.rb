@@ -342,6 +342,20 @@ Quand("il finalise le traitement du télédossier") do
   click_button("Enregistrer")
 end
 
+# Le faux client n'offre pas de geste public pour l'arrivée d'une pièce (contrairement à
+# saturate_case) : l'état se pose directement dans ce qu'il sert.
+Quand("la pièce {string} du télédossier {string} passe « Reçue » entre-temps") do |filename, number|
+  cases = HubApiV1.client.instance_variable_get(:@cases)
+  index = cases.index { |delivery| delivery.number == number }
+  data_package = cases[index].data_package
+  attachments = data_package.attachments.map do |attachment|
+    next attachment unless attachment.filename == filename
+
+    attachment.with(state: :received)
+  end
+  cases[index] = cases[index].with(data_package: data_package.with(attachments:))
+end
+
 Quand("il le marque reçu") do
   within(".fr-callout") { click_button("Marquer comme reçu") }
 end
@@ -370,6 +384,11 @@ end
 
 Alors("il ne peut pas encore décider du télédossier") do
   expect(page).to have_select("Nouvel état", options: ["Reçu", "En attente de compléments"])
+end
+
+Alors("il est invité à télécharger d'abord une pièce du télédossier pour le passer au statut {string}") do |state|
+  expect(page).to have_css(".fr-alert--error p", exact_text: "Ce changement d'état n'est pas encore possible : " \
+    "téléchargez d'abord au moins une pièce jointe du télédossier pour le passer au statut « #{state} ».")
 end
 
 Alors("il voit le flux nommé {string}") do |name|
