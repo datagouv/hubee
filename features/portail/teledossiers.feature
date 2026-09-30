@@ -41,6 +41,81 @@ Fonctionnalité: Les télédossiers de l'organisation
     Alors il est invité à télécharger d'abord une pièce du télédossier pour le passer au statut "Traité"
     Et il voit le télédossier au statut "Nouveau"
 
+  # Le télédossier du contexte porte une pièce reçue et aucune récupération : il est bloqué.
+  Scénario: L'agent comprend avant de choisir pourquoi il ne peut pas encore décider
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors on lui explique que les états "« En cours », « Refusé » et « Traité »" attendent une pièce téléchargée
+    Et il ne peut pas encore décider du télédossier
+
+  Scénario: L'explication tient lieu de formulaire quand il ne reste rien à proposer
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000008-01" en attente de compléments
+    Et il s'est connecté
+    Quand il filtre sur l'état "En attente de compléments"
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000008-01"
+    Alors on lui explique que les états "« Refusé » et « Traité »" attendent une pièce téléchargée
+    Et aucun changement d'état ne lui est proposé
+
+  # Le détail relit l'historique à chaque ouverture : c'est en y revenant que les états reviennent.
+  Scénario: L'agent débloque le télédossier en téléchargeant une pièce
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il télécharge la pièce "certificat.pdf"
+    Et il se rend sur l'accueil
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors il peut décider du télédossier, sans explication
+
+  Scénario: L'agent débloque le télédossier par l'archive que lui offre l'explication
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il télécharge l'archive proposée par l'explication
+    Et il se rend sur l'accueil
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors l'historique porte "Alex MARTIN a téléchargé l'archive des pièces"
+    Et il peut décider du télédossier, sans explication
+
+  # Une récupération vaut quel que soit l'agent, et le portail d'où elle vient.
+  Scénario: Un télédossier récupéré par un autre agent depuis le portail V1 n'est pas bloqué
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000009-01" dont "Camille LEROY" a téléchargé une pièce depuis le portail V1
+    Et il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000009-01"
+    Alors l'historique porte "Camille LEROY a téléchargé une pièce"
+    Et il peut décider du télédossier, sans explication
+
+  Scénario: Un télédossier sans pièce reçue ne retient aucune décision
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000007-01" dont aucune pièce n'est reçue
+    Et il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000007-01"
+    Alors il peut décider du télédossier, sans explication
+
+  # Matrice rôle × habilitation, sur la liste et le détail : l'explication suit la lecture du
+  # dossier. Aucune ligne ne se déduit d'une autre.
+  Plan du scénario: L'explication s'offre à qui lit le télédossier bloqué : <rattachement>
+    Étant donné il est <rattachement>
+    Et il s'est connecté
+    Alors il voit le télédossier "DGS-CERTDC-0000000000001-01" dans la liste
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors on lui explique que les états "« En cours », « Refusé » et « Traité »" attendent une pièce téléchargée
+
+    Exemples:
+      | rattachement                                            |
+      | membre habilité sur le seul flux "CERTDC"               |
+      | administrateur local habilité sur le seul flux "CERTDC" |
+      | administrateur local sans habilitation                  |
+
+  Plan du scénario: Le télédossier bloqué reste fermé, explication incluse, à qui ne le lit pas : <rattachement>
+    Étant donné il est <rattachement>
+    Et il s'est connecté
+    Alors il ne voit pas le télédossier "DGS-CERTDC-0000000000001-01" dans la liste
+    Quand il ouvre directement le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors le télédossier lui reste fermé, explication incluse
+
+    Exemples:
+      | rattachement                                         |
+      | membre habilité sur le seul flux "AEC"               |
+      | membre sans habilitation                             |
+      | administrateur local habilité sur le seul flux "AEC" |
+
   Scénario: L'agent accuse réception d'un nouveau télédossier depuis son détail
     Étant donné il s'est connecté
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
