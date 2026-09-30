@@ -100,17 +100,19 @@ module Portail
     # total, les autres restant lisibles dans le tableau avec leur état. Rien sans pièce reçue.
     # Le détail tait la taille : on connaît la somme de celles des pièces, pas la taille compressée.
     def delivery_archive_access(delivery)
-      received = delivery.received_attachments.size
-      return if received.zero?
+      return if delivery.received_attachments.none?
 
-      total = delivery.attachments.size
-      complete = received == total
-      label = if complete
+      render "portail/deliveries/archive_access", delivery:, label: delivery_archive_label(delivery),
+        complete: delivery_archive_complete?(delivery)
+    end
+
+    def delivery_archive_label(delivery)
+      received = delivery.received_attachments.size
+      if delivery_archive_complete?(delivery)
         t("portail.deliveries.archives.download.complete", count: received)
       else
-        t("portail.deliveries.archives.download.partial", count: received, total:)
+        t("portail.deliveries.archives.download.partial", count: received, total: delivery.attachments.size)
       end
-      render "portail/deliveries/archive_access", delivery:, label:, complete:
     end
 
     # Déclarative tant que la pièce n'est pas reçue : approximative vaut mieux qu'absente.
@@ -134,6 +136,8 @@ module Portail
     end
 
     private
+
+    def delivery_archive_complete?(delivery) = delivery.received_attachments.size == delivery.attachments.size
 
     # Format long : le jour et l'année situent une transmission relue des semaines après.
     def delivery_time(value) = value ? l(value, format: :long) : MISSING
