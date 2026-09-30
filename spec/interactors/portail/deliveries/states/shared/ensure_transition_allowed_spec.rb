@@ -61,11 +61,10 @@ RSpec.describe Portail::Deliveries::States::Shared::EnsureTransitionAllowed do
       expect(result).to be_a_success
     end
 
-    # Le même refus que la gem rendrait à l'écriture, dit avant de rien envoyer.
     it "refuses the change, as the data stream withholding it, when the data stream forbids it" do
       upstream_serves_a_data_stream(allowed_states: HubApiV1::V2::Mapping::ORDERED_STATES - [:awaiting_attachments])
 
-      expect(result.error).to eq(:awaiting_attachments_not_allowed)
+      expect(result.error).to eq(:state_not_allowed_by_stream)
     end
 
     # Priver l'agent d'une action parce qu'une lecture accessoire a échoué serait pire que de lui
@@ -74,6 +73,19 @@ RSpec.describe Portail::Deliveries::States::Shared::EnsureTransitionAllowed do
       use_hub_api_fake_client
 
       expect(result).to be_a_success
+    end
+  end
+
+  # L'amont ne fait varier aujourd'hui que l'attente de compléments, le faux client aussi : le flux
+  # est servi tel que le portail le lit, pour ne pas en faire une règle.
+  context "when a decision is asked that the data stream withholds" do
+    let(:state) { "refused" }
+
+    it "refuses the change as the data stream withholding it" do
+      expect(Portail::HubAPI::DataStreams).to receive(:fetch).with("CERTDC")
+        .and_return(build(:portail_data_stream, allowed_states: %w[transmitted acknowledged in_progress done closed]))
+
+      expect(result.error).to eq(:state_not_allowed_by_stream)
     end
   end
 
@@ -110,7 +122,7 @@ RSpec.describe Portail::Deliveries::States::Shared::EnsureTransitionAllowed do
 
         result = described_class.call(delivery: build(:portail_delivery, state: "in_progress"), state: "awaiting_attachments")
 
-        expect(result.error).to eq(:awaiting_attachments_not_allowed)
+        expect(result.error).to eq(:state_not_allowed_by_stream)
       end
     end
 

@@ -34,7 +34,8 @@ module Portail
       def outcome(organizer_result)
         return {notice: saved_notice(organizer_result)} if organizer_result.success?
 
-        reason = t("portail.deliveries.change_state.errors.#{organizer_result.error}", raise: true)
+        reason = t("portail.deliveries.change_state.errors.#{organizer_result.error}",
+          state: helpers.delivery_state_label(organizer_result.state), raise: true)
         return {alert: reason} unless organizer_result.reply_event
 
         # Une réponse publiée ne se retire pas : l'agent relance l'état seul, pas la réponse.

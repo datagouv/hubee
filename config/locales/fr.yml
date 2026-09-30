@@ -146,6 +146,7 @@ fr:
         errors:
           invalid_request: "Ce changement d'état n'est plus possible : le télédossier a peut-être changé d'état entre-temps."
           awaiting_attachments_not_allowed: Ce flux n'autorise pas l'attente de compléments.
+          state_not_allowed_by_stream: Ce flux n'autorise pas le statut « %{state} ».
           # Refus de l'amont, pas d'un geste : la récupération d'une pièce le dit avec la même
           # phrase, plus bas. Une seule source, deux vocabulaires.
           event_limit_reached: &event_limit_reached Ce télédossier ne peut plus enregistrer d'événement. Contactez le support.
