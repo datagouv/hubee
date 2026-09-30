@@ -32,6 +32,15 @@ Fonctionnalité: Les télédossiers de l'organisation
     Alors il voit le télédossier au statut "Traité"
     Et l'historique porte le changement signé "Alex MARTIN"
 
+  Scénario: L'agent qui décide sur une page affichée avant l'arrivée d'une pièce apprend à la télécharger d'abord
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000007-01" dont aucune pièce n'est reçue
+    Et il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000007-01"
+    Et la pièce "acte.pdf" du télédossier "DGS-CERTDC-0000000000007-01" passe « Reçue » entre-temps
+    Et il finalise le traitement du télédossier
+    Alors il est invité à télécharger d'abord une pièce du télédossier pour le passer au statut "Traité"
+    Et il voit le télédossier au statut "Nouveau"
+
   Scénario: L'agent accuse réception d'un nouveau télédossier depuis son détail
     Étant donné il s'est connecté
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
