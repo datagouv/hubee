@@ -91,20 +91,20 @@ RSpec.describe Portail::Deliveries::States::Shared::EnsureTransitionAllowed do
 
   context "when the delivery was never retrieved" do
     context "when a decision is asked" do
-      it "refuses the change with the generic refusal" do
+      it "refuses the change as awaiting retrieval" do
         upstream_serves_a_data_stream
 
         result = described_class.call(delivery: build(:portail_delivery, state: "in_progress"), state: "done")
 
-        expect(result.error).to eq(:invalid_request)
+        expect(result.error).to eq(:attachments_not_retrieved)
       end
 
-      it "refuses the change with the generic refusal when the data stream cannot be read" do
+      it "refuses the change as awaiting retrieval when the data stream cannot be read" do
         use_hub_api_fake_client
 
         result = described_class.call(delivery: build(:portail_delivery, state: "in_progress"), state: "done")
 
-        expect(result.error).to eq(:invalid_request)
+        expect(result.error).to eq(:attachments_not_retrieved)
       end
     end
 

@@ -24,6 +24,8 @@ module Portail
           def refusal(data_stream)
             if Access::StateTransitions.withheld_by_stream(delivery.state, data_stream).include?(context.state)
               :state_not_allowed_by_stream
+            elsif Access::StateTransitions.withheld_until_retrieved(delivery, data_stream).include?(context.state)
+              :attachments_not_retrieved
             else
               :invalid_request
             end
