@@ -9,6 +9,11 @@ module Portail
   ) do
     def received_attachments = attachments.select(&:state_received?)
 
+    # Tout auteur, toute pièce : une seule récupération prouve la lecture.
+    def retrieved?
+      events.any? { |event| event.event_type.in?(%w[attachment.downloaded attachment.all_downloaded]) }
+    end
+
     # Paris explicitement, indépendamment du fuseau de l'application.
     def archive_filename
       "#{Time.current.in_time_zone("Europe/Paris").strftime("%Y%m%d-%H.%M")}_#{SafeFilename.for(number)}.zip"

@@ -20,6 +20,31 @@ RSpec.describe Portail::Delivery do
     end
   end
 
+  describe "#retrieved?" do
+    histories = {
+      "a single attachment download" => {event_types: %w[attachment.downloaded], retrieved: true},
+      "an archive download" => {event_types: %w[attachment.all_downloaded], retrieved: true},
+      "a download among other events" => {event_types: %w[delivery.state_changed attachment.downloaded message.created], retrieved: true},
+      "no download at all" => {event_types: %w[delivery.state_changed message.created], retrieved: false},
+      "an empty history" => {event_types: [], retrieved: false}
+    }
+
+    histories.each do |history, expectation|
+      it "is #{expectation[:retrieved]} with #{history}" do
+        events = expectation[:event_types].map { |event_type| build(:portail_event, event_type: event_type, metadata: {}) }
+
+        expect(build(:portail_delivery, events: events).retrieved?).to be(expectation[:retrieved])
+      end
+    end
+
+    # Une trace venue du portail V1 porte le nom d'un autre agent : elle vaut la nôtre.
+    it "is true with a download by another author" do
+      event = build(:portail_event, event_type: "attachment.downloaded", author: "Agent du portail V1", metadata: {})
+
+      expect(build(:portail_delivery, events: [event]).retrieved?).to be(true)
+    end
+  end
+
   describe "#archive_filename" do
     # La convention nomme l'heure de Paris, quel que soit le fuseau de l'instant courant.
     seasons = {
