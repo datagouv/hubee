@@ -34,16 +34,17 @@ RSpec.describe Portail::HubAPI::DataStreams do
     end
 
     # Symbols en amont, String ici, comme pour les états autorisés.
-    it "translates the attachment rules the data stream carries from V1" do
+    it "translates the rules the data stream carries from V1" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_data_stream(build_v2_data_stream(code: "CERTDC", v1: build_v2_data_stream_v1_rules(
         states_allowing_attachment: %i[in_progress done], attachment_content_types: ["application/pdf"],
-        attachment_max_byte_size: 5_242_880
+        attachment_max_byte_size: 5_242_880, allows_message_with_state_change: false
       )))
 
       expect(described_class.find(code: "CERTDC", client: client).v1).to eq(
         Portail::DataStream::V1Rules.new(states_allowing_attachment: %w[in_progress done],
-          attachment_content_types: ["application/pdf"], attachment_max_byte_size: 5_242_880)
+          attachment_content_types: ["application/pdf"], attachment_max_byte_size: 5_242_880,
+          allows_message_with_state_change: false)
       )
     end
 
@@ -103,7 +104,8 @@ RSpec.describe Portail::HubAPI::DataStreams do
     # le cache précédent hors jeu.
     it "namespaces its cache key by the shape of what it stores" do
       expect(described_class::CACHE_NAMESPACE)
-        .to end_with("code-name-allowed_states-v1/states_allowing_attachment-attachment_content_types-attachment_max_byte_size")
+        .to end_with("code-name-allowed_states-v1/" \
+          "states_allowing_attachment-attachment_content_types-attachment_max_byte_size-allows_message_with_state_change")
     end
 
     # Une heure : assez pour ne pas marteler l'amont, assez court pour qu'un paramétrage
