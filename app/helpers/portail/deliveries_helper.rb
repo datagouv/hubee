@@ -66,6 +66,10 @@ module Portail
       data_stream.present? && data_stream.v1.allows_attachment_from?(delivery.state)
     end
 
+    def delivery_accepts_message?(data_stream)
+      data_stream.present? && data_stream.v1.allows_message_with_state_change?
+    end
+
     # L'extension parle à l'agent mieux que le type ; un type sans extension connue reste tel quel.
     def delivery_attachment_formats(v1_attachment_rules)
       v1_attachment_rules.attachment_content_types.map { |type|
