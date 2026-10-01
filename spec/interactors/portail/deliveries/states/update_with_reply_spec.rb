@@ -28,6 +28,16 @@ RSpec.describe Portail::Deliveries::States::UpdateWithReply do
     expect(change_state_with_reply(state: "transmitted").error).to eq(:invalid_request)
   end
 
+  it "neither publishes nor moves when the message is refused" do
+    expect(Portail::HubAPI::Deliveries).not_to receive(:reply_with_attachment)
+    expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+    result = described_class.call(membership: membership, delivery: delivery, state: "done",
+      author: "Camille MARTIN", reply: portail_reply, message: "a" * 501)
+
+    expect(result.error).to eq(:message_too_long)
+  end
+
   it "leaves the state alone when the reply is refused" do
     expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).and_raise(Portail::HubAPI::AttachmentInfected)
     expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)

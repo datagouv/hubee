@@ -156,6 +156,16 @@ Fonctionnalité: Les télédossiers de l'organisation
     Et l'historique porte "Alex MARTIN a déposé une pièce"
     Et la pièce ajoutée "decision.pdf" figure au détail
 
+  Scénario: L'agent adresse un message à la personne concernée en faisant avancer un télédossier
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il télécharge la pièce "certificat.pdf"
+    Et il se rend sur l'accueil
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il finalise le traitement du télédossier avec le message "Votre demande est acceptée."
+    Alors il voit le télédossier au statut "Traité"
+    Et l'historique porte "Votre demande est acceptée."
+
   Scénario: Une pièce refusée par l'antivirus laisse l'état intact
     Étant donné il s'est connecté
     Et l'analyse antivirus refusera le prochain fichier

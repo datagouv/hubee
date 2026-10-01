@@ -436,6 +436,12 @@ Alors("il apprend que le télédossier a peut-être changé d'état entre-temps"
     "le télédossier a peut-être changé d'état entre-temps.")
 end
 
+Quand("il finalise le traitement du télédossier avec le message {string}") do |message|
+  select("Traité", from: "Nouvel état")
+  fill_in("Message à la personne concernée (facultatif)", with: message)
+  click_button("Enregistrer")
+end
+
 Quand("il finalise le traitement du télédossier en joignant {string}") do |filename|
   select("Traité", from: "Nouvel état")
   attach_file("Pièce jointe (facultatif)", Rails.root.join("spec/fixtures/files", filename))

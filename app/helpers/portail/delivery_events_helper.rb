@@ -51,12 +51,12 @@ module Portail
       end
     end
 
-    # Le texte d'un changement d'état ne dit que le statut, que la phrase donne déjà : il ne
-    # s'affiche pas. Les autres events portent un texte qui a sa valeur, le message envoyé.
-    def delivery_event_message(event)
-      return if event.event_type == "delivery.state_changed"
+    def delivery_event_message(event) = event.content.presence
 
-      event.content.presence
+    # Le même champ porte aussi un commentaire interne ou le nom de fichier d'une trace : seul ce
+    # qui part vers la personne concernée est mis en avant.
+    def delivery_event_addresses_applicant?(event)
+      event.event_type == "delivery.state_changed" || delivery_event_broadcast?(event)
     end
 
     # `== false` et non `!` : la clé n'existe que sur les messages, absente ne veut pas dire
