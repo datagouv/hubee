@@ -1,9 +1,9 @@
 GIT
   remote: https://gitlab.hubee.numerique.gouv.fr/hubee/v2/hub-api-v1.git
-  revision: 6effc37f3e4e24e85f9c2f6281be3cd0faeef7f2
-  tag: 5.3.0
+  revision: 2864e52e16f9ae89e66c67f9c35cf62a8e72935e
+  ref: 2864e52e16f9ae89e66c67f9c35cf62a8e72935e
   specs:
-    hub-api-v1 (5.3.0)
+    hub-api-v1 (5.4.0)
       activesupport (>= 7.0, < 10)
 
 GEM
@@ -96,7 +96,7 @@ GEM
     bindex (0.8.1)
     bootsnap (1.26.0)
       msgpack (~> 1.5)
-    brakeman (8.0.6)
+    brakeman (8.1.0)
       racc
     builder (3.3.0)
     bundler-audit (0.9.3)
