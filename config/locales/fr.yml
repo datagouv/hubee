@@ -145,15 +145,9 @@ fr:
         notice: L'émetteur du dossier en sera informé et verra votre nom.
         attachment_label: Pièce jointe (facultatif)
         attachment_hint: "Formats acceptés : %{formats}. Taille maximale : %{max}."
+        message_label: Message à la personne concernée (facultatif)
+        message_hint: "Transmis à l'émetteur du télédossier. %{max} caractères maximum."
       change_state:
-        # Le texte que lit l'émetteur du dossier. Il nomme le statut comme le fait déjà
-        # l'historique, pour ne pas dépareiller d'une ligne à l'autre.
-        event_messages:
-          acknowledged: Changement du statut à SI_RECEIVED
-          in_progress: Changement du statut à IN_PROGRESS
-          awaiting_attachments: Changement du statut à ADD_AWAITING
-          refused: Changement du statut à REFUSED
-          done: Changement du statut à DONE
         saved: L'état du télédossier a été modifié.
         saved_with_attachment: L'état du télédossier a été modifié et la pièce transmise.
         attachment_sent_state_unchanged: "La pièce a été transmise, mais l'état du télédossier n'a pas changé. %{reason} Vous pouvez relancer le seul changement d'état."
@@ -177,6 +171,8 @@ fr:
           attachment_infected: Ce fichier a été refusé par l'analyse antivirus. Rien n'a été transmis et l'état n'a pas changé.
           attachment_content_mismatch: Le contenu de ce fichier ne correspond pas à son format. Rien n'a été transmis et l'état n'a pas changé.
           attachment_unconfirmed: La transmission de la pièce n'a pas pu être confirmée. Vérifiez l'historique du télédossier avant de réessayer.
+          message_not_accepted: Ce flux n'accepte pas de message avec le changement d'état. Rien n'a été transmis.
+          message_too_long: Le message dépasse %{max} caractères. Rien n'a été transmis.
       errors:
         unavailable: Le service est momentanément indisponible. Réessayez dans quelques instants.
         invalid_request: L'état, le filtre ou la page demandés n'existent pas. Vérifiez l'adresse, ou revenez à l'accueil pour repartir de la liste.
@@ -242,6 +238,7 @@ fr:
         added_attachments_empty: Aucune pièce n'a été ajoutée depuis le dépôt.
         history: Historique
         history_empty: Aucun événement enregistré pour ce télédossier.
+        applicant_message: Message à la personne concernée
         si_comment: Commentaire à destination des SI
         event_attachments: Pièces apportées
     sessions:

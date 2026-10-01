@@ -4,8 +4,7 @@ module Portail
   module Deliveries
     module States
       module Shared
-        # L'écriture. Le texte joint part vers l'émetteur du dossier, qui le lit : il nomme l'état
-        # d'arrivée comme le fait déjà l'historique, pour ne pas dépareiller.
+        # L'écriture. Le message de l'agent, s'il en a écrit un, part vers l'émetteur du dossier.
         class WriteState
           include Interactor
 
@@ -14,19 +13,16 @@ module Portail
             # en panne : l'agent réessaierait sans que rien n'atteigne la supervision.
             return context.fail!(error: :unknown_author) if context.author.blank?
 
-            text = event_text
-            return missing_text if text.nil?
-
-            write_state(text)
+            write_state
           end
 
           private
 
-          def write_state(text)
+          def write_state
             link = context.membership.organization_link
             context.event = HubAPI::Deliveries.change_state(
               id: context.delivery.id, state: context.state, author: context.author,
-              message: text, siret: link.siret, insee_code: link.insee_code
+              message: context.message, siret: link.siret, insee_code: link.insee_code
             )
           rescue HubAPI::Error => e
             context.fail!(error: failure_for(e))
@@ -49,8 +45,8 @@ module Portail
             error
           end
 
-          # L'état est déjà filtré : ce refus vient d'un auteur trop long ou d'un rattachement
-          # malformé, un défaut du portail et non un geste de l'agent. Signalé, jamais rejoué.
+          # L'état et le message sont déjà filtrés : ce refus vient d'un auteur trop long ou d'un
+          # rattachement malformé, un défaut du portail et non un geste de l'agent. Signalé, jamais rejoué.
           def rejected(error)
             Rails.error.report(error, handled: true)
             Rails.logger.error("Changement d'état rejeté par l'amont", id: context.delivery.id,
@@ -61,16 +57,6 @@ module Portail
           def unavailable(error)
             Rails.logger.error("Changement d'état impossible — #{error.class} : #{error.message}")
             :unavailable
-          end
-
-          def event_text
-            I18n.t("portail.deliveries.change_state.event_messages.#{context.state}", default: nil)
-          end
-
-          # Plutôt échouer que publier « translation missing » à l'émetteur du dossier.
-          def missing_text
-            Rails.logger.error("Texte d'événement manquant", state: context.state)
-            context.fail!(error: :unavailable)
           end
         end
       end

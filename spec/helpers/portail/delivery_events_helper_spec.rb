@@ -165,9 +165,14 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
   end
 
   describe "#delivery_event_message" do
-    # Le texte d'un changement d'état ne dit que le statut d'arrivée, que la phrase donne déjà.
-    it "withholds the text of a state change" do
-      event = build(:portail_event, event_type: "delivery.state_changed", content: "Changement du statut à SI_RECEIVED")
+    it "keeps the text the agent sent with a state change" do
+      event = build(:portail_event, event_type: "delivery.state_changed", content: "Pièce illisible")
+
+      expect(helper.delivery_event_message(event)).to eq("Pièce illisible")
+    end
+
+    it "keeps nothing of a state change without text" do
+      event = build(:portail_event, event_type: "delivery.state_changed", content: nil)
 
       expect(helper.delivery_event_message(event)).to be_nil
     end
@@ -182,6 +187,25 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
       event = build(:portail_event, event_type: "message.created", content: "", metadata: {internal: false})
 
       expect(helper.delivery_event_message(event)).to be_nil
+    end
+  end
+
+  describe "#delivery_event_addresses_applicant?" do
+    it "marks the text of a state change and of a message sent to the person concerned" do
+      expect(helper.delivery_event_addresses_applicant?(build(:portail_event, event_type: "delivery.state_changed"))).to be(true)
+      expect(helper.delivery_event_addresses_applicant?(
+        build(:portail_event, event_type: "message.created", metadata: {internal: false})
+      )).to be(true)
+    end
+
+    # Un commentaire interne ou le nom de fichier d'une trace n'est adressé à personne.
+    it "leaves out an internal comment and a download trace" do
+      expect(helper.delivery_event_addresses_applicant?(
+        build(:portail_event, event_type: "message.created", metadata: {internal: true})
+      )).to be(false)
+      expect(helper.delivery_event_addresses_applicant?(
+        build(:portail_event, event_type: "attachment.downloaded", metadata: {})
+      )).to be(false)
     end
   end
 

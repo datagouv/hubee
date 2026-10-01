@@ -7,6 +7,14 @@ module Portail
     :id, :number, :state, :data_stream_code, :recipient, :transmitted_at, :updated_at,
     :applicant, :attachments, :events
   ) do
+    # `default:` : l'amont peut ajouter un état sans nous prévenir. `blank?` à part : I18n
+    # résoudrait la clé tronquée vers son parent, le Hash entier des libellés.
+    def self.state_label(state)
+      return if state.blank?
+
+      I18n.t("portail.deliveries.states.#{state}", default: nil)
+    end
+
     # Le dépôt d'abord : dans l'archive, ses pièces gardent leur nom face à une pièce ajoutée homonyme.
     def all_attachments = attachments + events.flat_map(&:attachments)
 

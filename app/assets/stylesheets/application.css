@@ -45,6 +45,11 @@
   background-color: var(--background-alt-grey);
 }
 
+/* Le texte d'un événement garde ses retours à la ligne. */
+.delivery-timeline__message {
+  white-space: pre-line;
+}
+
 /* delivery-data-streams : les cases du filtre par flux (portail/deliveries/_filters).
    En colonnes plutôt qu'en liste : la liste verticale du DSFR s'allonge avec les dizaines de
    flux d'une structure. Deux colonnes, trois à partir du point de rupture MD du DSFR.

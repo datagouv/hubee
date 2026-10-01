@@ -1067,13 +1067,11 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_text("Aucun événement enregistré pour ce télédossier.")
     end
 
-    # Le texte que l'amont joint à un changement d'état ne dit que le statut d'arrivée, déjà
-    # dans la phrase : il ne s'affiche pas.
-    it "renders the history with both ends of each state change, without its upstream text" do
+    it "renders the history with both ends of each state change and the message sent with it" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
         build(:portail_delivery, events: [build(:portail_event,
-          event_type: "delivery.state_changed", content: "Changement du statut à SI_RECEIVED",
+          event_type: "delivery.state_changed", content: "Dossier pris en charge",
           metadata: {from_state: "transmitted", to_state: "acknowledged"})])
       )
 
@@ -1083,7 +1081,38 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       page = Capybara.string(response.body)
       expect(page).to have_text("George DUBOIS a modifié le statut : Nouveau → Reçu")
-      expect(page).to have_no_text("Changement du statut à SI_RECEIVED")
+      expect(page).to have_css(".fr-highlight", text: "Message à la personne concernée")
+      expect(page).to have_css(".fr-highlight .delivery-timeline__message", exact_text: "Dossier pris en charge")
+    end
+
+    it "keeps the text of a download trace out of the highlight" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, events: [build(:portail_event,
+          event_type: "attachment.downloaded", content: "certificat.pdf", metadata: {})])
+      )
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      page = Capybara.string(response.body)
+      expect(page).to have_css(".delivery-timeline__message", exact_text: "certificat.pdf")
+      expect(page).to have_no_css(".fr-highlight")
+    end
+
+    # Le texte vient de l'agent ou de l'amont : il se relit tel quel, retours à la ligne compris,
+    # jamais interprété.
+    it "keeps the line breaks of a message and shows its markup as text" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery, events: [build(:portail_event, content: "Pièce illisible.\n<b>Merci</b>")])
+      )
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      message = Nokogiri::HTML(response.body).at_css(".delivery-timeline__message")
+      expect(message.inner_html).to eq("Pièce illisible.\n&lt;b&gt;Merci&lt;/b&gt;")
     end
 
     it "opens a group per month in the history" do
@@ -1411,17 +1440,40 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(Capybara.string(response.body)).to have_no_field("Pièce jointe (facultatif)")
       end
 
-      # Le bouton en ligne avec le champ. Le DSFR n'ayant pas de colonne « auto », une colonne
-      # sans classe de palier repasse à la ligne — ce qui était le cas.
-      it "keeps the field and its button on one line" do
+      it "offers a message to the person concerned when the data stream takes one" do
         sign_in_member
 
         open_detail
 
         expect(response).to have_http_status(:success)
-        cells = Nokogiri::HTML(response.body).css("form[action$='/etat'] .fr-grid-row > div")
-        expect(cells.map { |cell| cell["class"] })
-          .to eq(["fr-col-12 fr-col-md-6", "fr-col-12 fr-col-md-3"])
+        page = Capybara.string(response.body)
+        expect(page).to have_field("Message à la personne concernée (facultatif)", type: "textarea")
+        expect(page).to have_css("textarea[name='message'][maxlength='500']")
+        expect(page).to have_text("Transmis à l'émetteur du télédossier. 500 caractères maximum.")
+      end
+
+      it "offers no message when the data stream takes none" do
+        sign_in_member
+        stub_data_stream(build(:portail_data_stream, v1: build(:portail_data_stream_v1_rules, :without_message)))
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        # Positive : le formulaire existe, seul le champ message manque.
+        expect(Capybara.string(response.body)).to have_select("Nouvel état")
+        expect(Capybara.string(response.body)).to have_no_field("Message à la personne concernée (facultatif)")
+      end
+
+      # Dans l'ordre où l'agent décide : l'état, ce qu'il en dit, ce qu'il joint, puis l'envoi.
+      it "orders the state, the message, the piece, then the button" do
+        sign_in_member
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        controls = Nokogiri::HTML(response.body).css("form[action$='/etat'] select, form[action$='/etat'] textarea, " \
+          "form[action$='/etat'] input[type='file'], form[action$='/etat'] [type='submit']")
+        expect(controls.map { |control| control["name"] || control["type"] }).to eq(%w[etat message piece button])
       end
     end
 

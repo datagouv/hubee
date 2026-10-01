@@ -369,7 +369,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
     def change_state(client:, state: "done")
       described_class.change_state(id: id, state: state, author: "Camille MARTIN",
-        message: "Changement du statut à DONE", siret: siret, insee_code: insee_code, client: client)
+        message: "Pièce illisible", siret: siret, insee_code: insee_code, client: client)
     end
 
     # Le faux client déplace réellement le télédossier : la relecture prouve le déplacement au
@@ -400,11 +400,22 @@ RSpec.describe Portail::HubAPI::Deliveries do
     it "sends the delivery, the target state and the caller identity upstream" do
       client = HubApiV1::Testing::FakeClient.new
       expect(HubApiV1::V2::Delivery).to receive(:change_state).with(
-        id: id, state: :done, author: "Camille MARTIN", message: "Changement du statut à DONE",
+        id: id, state: :done, author: "Camille MARTIN", message: "Pièce illisible",
         siret: siret, code_insee: insee_code, notify: true, client: client
       ).and_return(build_v2_event)
 
       change_state(client: client)
+    end
+
+    # Sans saisie, rien n'est publié : la relecture ne porte aucun texte.
+    it "moves the delivery without any text when the agent wrote none" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_case(build_v2_delivery(state: :in_progress))
+
+      event = described_class.change_state(id: id, state: "done", author: "Camille MARTIN",
+        siret: siret, insee_code: insee_code, client: client)
+
+      expect(event.content).to be_nil
     end
 
     it "raises a not found error for a delivery out of the declared perimeter" do
@@ -594,7 +605,7 @@ RSpec.describe Portail::HubAPI::Deliveries do
 
         expect {
           described_class.change_state(id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", state: "done",
-            author: "Camille MARTIN", message: "Changement du statut à DONE",
+            author: "Camille MARTIN", message: "Pièce illisible",
             siret: siret, insee_code: insee_code, client: HubApiV1::Testing::FakeClient.new)
         }.to raise_error(error[:translated])
       end
