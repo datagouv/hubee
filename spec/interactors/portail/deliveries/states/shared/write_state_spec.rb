@@ -21,34 +21,23 @@ RSpec.describe Portail::Deliveries::States::Shared::WriteState do
     expect(result.event).to eq(event)
   end
 
-  # Le couple doit venir du rattachement : pris ailleurs, il ouvrirait une autre structure. Et le
-  # texte part vers l'émetteur du dossier, qui le lit.
-  it "writes within the organisation of the membership, under the agent name" do
+  # Le couple doit venir du rattachement : pris ailleurs, il ouvrirait une autre structure.
+  it "writes within the organisation of the membership, under the agent name, with their message" do
     expect(Portail::HubAPI::Deliveries).to receive(:change_state).with(
       id: delivery.id, state: "done", author: "Camille MARTIN",
-      message: "Changement du statut à DONE", siret: "22770001000019", insee_code: "77372"
+      message: "Pièce illisible", siret: "22770001000019", insee_code: "77372"
     ).and_return(build(:portail_event))
 
-    result
+    described_class.call(membership: membership, delivery: delivery, state: "done",
+      author: "Camille MARTIN", message: "Pièce illisible")
   end
 
-  # Le texte part vers l'émetteur : chaque cible offerte doit en avoir un, et le sien.
-  {
-    "acknowledged" => "Changement du statut à SI_RECEIVED",
-    "in_progress" => "Changement du statut à IN_PROGRESS",
-    "awaiting_attachments" => "Changement du statut à ADD_AWAITING",
-    "refused" => "Changement du statut à REFUSED",
-    "done" => "Changement du statut à DONE"
-  }.each do |state, message|
-    it "names the #{state} move the way the existing history does" do
-      # hash_including : le hash complet est asserté une fois plus haut, seul le couple varie ici.
-      expect(Portail::HubAPI::Deliveries).to receive(:change_state)
-        .with(hash_including(state: state, message: message))
-        .and_return(build(:portail_event))
+  # hash_including : le hash complet est asserté juste au-dessus, seul le message varie ici.
+  it "publishes no text when the agent wrote none" do
+    expect(Portail::HubAPI::Deliveries).to receive(:change_state)
+      .with(hash_including(message: nil)).and_return(build(:portail_event))
 
-      described_class.call(membership: membership, delivery: delivery, state: state,
-        author: "Camille MARTIN")
-    end
+    result
   end
 
   # Un auteur vide passerait la garde de la gem en « paramètre refusé », qu'on afficherait en
@@ -60,18 +49,6 @@ RSpec.describe Portail::Deliveries::States::Shared::WriteState do
       author: "")
 
     expect(result.error).to eq(:unknown_author)
-  end
-
-  # Plutôt échouer que publier « translation missing » dans l'historique que lit l'émetteur.
-  # Inatteignable depuis l'organizer aujourd'hui, la table refuse « clos » avant : garde du jour
-  # où un état entrerait dans le cycle sans son texte.
-  it "refuses before writing when the move carries no text" do
-    expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
-
-    result = described_class.call(membership: membership, delivery: delivery, state: "closed",
-      author: "Camille MARTIN")
-
-    expect(result.error).to eq(:unavailable)
   end
 
   {

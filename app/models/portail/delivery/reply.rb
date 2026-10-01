@@ -2,7 +2,7 @@
 
 module Portail
   class Delivery
-    # La réponse que l'agent joint au télédossier : en V2, un paquet enfant porteur d'une pièce.
+    # La pièce de l'agent : en V2, un paquet enfant sans texte (le message est un StateMessage).
     # Le type se lit dans le contenu, le nom ne précisant qu'un contenu sans signature.
     class Reply < Data.define(:filename, :content_type, :byte_size, :file)
       MAX_FILENAME_LENGTH = 255

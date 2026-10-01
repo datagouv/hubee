@@ -8,19 +8,19 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
   let(:delivery_id) { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
   let(:path) { "/teledossiers/#{delivery_id}/etat" }
 
-  # `times: 2` quand l'exemple suit la redirection : le détail relit l'amont, c'est tout l'intérêt
-  # de renvoyer l'agent dessus plutôt que d'afficher un état déduit.
+  # `times: 2` quand l'exemple suit la redirection d'un succès : le détail relit l'amont. Un refus
+  # rend le détail tel que lu en tête de requête.
   def serve(state: "in_progress", code: "CERTDC", times: 1)
     expect(Portail::HubAPI::Deliveries).to receive(:find).exactly(times).times
       .and_return(build(:portail_delivery, :retrieved, state: state, data_stream_code: code))
   end
 
-  def update_state(state = "done")
-    patch path, params: {etat: state}
+  def update_state(state = "done", message: nil)
+    patch path, params: {etat: state, message: message}.compact
   end
 
-  def update_state_with_piece(state = "done", piece: pdf_upload)
-    patch path, params: {etat: state, piece: piece}
+  def update_state_with_piece(state = "done", piece: pdf_upload, message: nil)
+    patch path, params: {etat: state, piece: piece, message: message}.compact
   end
 
   # La validation de la cible lit le flux du télédossier, permissif ici : les refus du flux sont
@@ -49,39 +49,36 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
 
     it "refuses a move the table does not offer, without calling the upstream" do
       sign_in_member
-      serve(times: 2)
+      serve
       expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
       update_state("transmitted")
-      follow_redirect!
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(Capybara.string(response.body)).to have_text("n'est plus possible")
     end
 
     # Un collègue l'a marqué reçu entre l'affichage et le clic : la table refuse, rien n'est réécrit.
     it "refuses to mark received a delivery already received meanwhile, and says why it may be" do
       sign_in_member
-      serve(state: "acknowledged", times: 2)
+      serve(state: "acknowledged")
       expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
       update_state("acknowledged")
-      follow_redirect!
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(Capybara.string(response.body)).to have_text("a peut-être changé d'état entre-temps")
     end
 
     it "refuses a decision on a delivery never retrieved, naming the target state, without calling the upstream" do
       sign_in_member
-      expect(Portail::HubAPI::Deliveries).to receive(:find).twice
+      expect(Portail::HubAPI::Deliveries).to receive(:find).once
         .and_return(build(:portail_delivery, state: "in_progress"))
       expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
       update_state("done")
-      follow_redirect!
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(Capybara.string(response.body))
         .to have_css(".fr-alert--error p", exact_text: "Ce changement d'état n'est pas encore possible : téléchargez d'abord " \
           "au moins une pièce jointe du télédossier pour le passer au statut « Traité ».")
@@ -102,39 +99,36 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
 
     it "refuses a move with no state at all" do
       sign_in_member
-      serve(times: 2)
+      serve
       expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
       patch path, params: {etat: ""}
-      follow_redirect!
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(Capybara.string(response.body)).to have_text("n'est plus possible")
     end
 
     it "refuses a move the data stream withholds, naming the target state, without calling the upstream" do
       sign_in_member
-      serve(times: 2)
+      serve
       stub_data_stream(build(:portail_data_stream, allowed_states: %w[transmitted acknowledged in_progress awaiting_attachments done closed]))
       expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
       update_state("refused")
-      follow_redirect!
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(Capybara.string(response.body))
         .to have_css(".fr-alert--error p", exact_text: "Ce flux n'autorise pas le statut « Refusé ».")
     end
 
     it "refuses a move to an unknown state without failing on its label" do
       sign_in_member
-      serve(times: 2)
+      serve
       expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
       update_state("archived")
-      follow_redirect!
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(Capybara.string(response.body)).to have_text("n'est plus possible")
     end
 
@@ -147,13 +141,12 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
     }.each do |raised, message|
       it "shows a message rather than an error page when the upstream raises #{raised.name.demodulize}" do
         sign_in_member
-        serve(times: 2)
+        serve
         expect(Portail::HubAPI::Deliveries).to receive(:change_state).and_raise(raised)
 
         update_state
-        follow_redirect!
 
-        expect(response).to have_http_status(:success)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(Capybara.string(response.body)).to have_text(message)
       end
     end
@@ -162,13 +155,12 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
     it "refuses an agent with no name to sign with, and says so" do
       agent = sign_in_member
       agent.update!(first_name: nil, last_name: nil)
-      serve(times: 2)
+      serve
       expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
       update_state
-      follow_redirect!
 
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(Capybara.string(response.body)).to have_text("ne porte ni prénom ni nom")
     end
 
@@ -190,14 +182,107 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
+    # hash_including : seul le message varie ici, le contrat complet est asserté sur WriteState et
+    # sur HubAPI::Deliveries.
+    context "with a message" do
+      it "sends what the agent wrote along with the move" do
+        sign_in_member
+        serve(times: 2)
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state)
+          .with(hash_including(message: "Pièce illisible, merci de la renvoyer."))
+          .and_return(build(:portail_event))
+
+        update_state(message: "  Pièce illisible, merci de la renvoyer.  ")
+        follow_redirect!
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_text("L'état du télédossier a été modifié")
+      end
+
+      # Des blancs ne sont pas un message : rien à refuser, même sur un flux qui n'en prend pas.
+      it "sends no message when the agent wrote only blanks" do
+        sign_in_member
+        serve
+        stub_data_stream(build(:portail_data_stream, v1: build(:portail_data_stream_v1_rules, :without_message)))
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state)
+          .with(hash_including(message: nil)).and_return(build(:portail_event))
+
+        update_state(message: "  \r\n ")
+
+        expect(response).to have_http_status(:see_other)
+      end
+
+      it "keeps the message in the form when the move fails, to try again" do
+        sign_in_member
+        serve
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state).and_raise(Portail::HubAPI::Unavailable)
+
+        update_state(message: "Pièce illisible")
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(Capybara.string(response.body))
+          .to have_field("Message à la personne concernée (facultatif)", with: "Pièce illisible")
+      end
+
+      it "refuses a message the data stream does not take, before anything leaves" do
+        sign_in_member
+        serve
+        stub_data_stream(build(:portail_data_stream, v1: build(:portail_data_stream_v1_rules, :without_message)))
+        expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+        update_state(message: "Pièce illisible")
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(Capybara.string(response.body)).to have_css(".fr-alert--error p",
+          exact_text: "Ce flux n'accepte pas de message avec le changement d'état. Rien n'a été transmis.")
+      end
+
+      it "refuses a message over 500 characters, before anything leaves" do
+        sign_in_member
+        serve
+        expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+        update_state(message: "a" * 501)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(Capybara.string(response.body))
+          .to have_css(".fr-alert--error p", exact_text: "Le message dépasse 500 caractères. Rien n'a été transmis.")
+      end
+
+      # En vraie requête, `message[texte]=…` arrive en ActionController::Parameters, pas en Hash.
+      it "carries no message from a nested form" do
+        sign_in_member
+        serve
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state)
+          .with(hash_including(message: nil)).and_return(build(:portail_event))
+
+        patch path, params: {etat: "done", message: {texte: "Pièce illisible"}}
+
+        expect(response).to have_http_status(:see_other)
+      end
+
+      it "neither publishes the piece nor moves when the message is refused" do
+        sign_in_member
+        serve
+        expect(Portail::HubAPI::Deliveries).not_to receive(:reply_with_attachment)
+        expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+        update_state_with_piece(message: "a" * 501)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(Capybara.string(response.body)).to have_text("Le message dépasse 500 caractères")
+      end
+    end
+
     context "with a piece" do
-      it "publishes the piece, moves the delivery and says both" do
+      it "publishes the piece, moves the delivery with the message and says both" do
         sign_in_member
         serve(times: 2)
         expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).ordered.and_return(build(:portail_event))
-        expect(Portail::HubAPI::Deliveries).to receive(:change_state).ordered.and_return(build(:portail_event))
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state).ordered
+          .with(hash_including(message: "Décision jointe")).and_return(build(:portail_event))
 
-        update_state_with_piece
+        update_state_with_piece(message: "Décision jointe")
         follow_redirect!
 
         expect(response).to have_http_status(:success)
@@ -206,28 +291,26 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
 
       it "refuses a format the data stream does not take, before anything leaves" do
         sign_in_member
-        serve(times: 2)
+        serve
         expect(Portail::HubAPI::Deliveries).not_to receive(:reply_with_attachment)
         expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
         update_state_with_piece(piece: pdf_upload(filename: "notes.txt", content_type: "text/plain", bytes: "notes".b))
-        follow_redirect!
 
-        expect(response).to have_http_status(:success)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(Capybara.string(response.body)).to have_text("Ce format de fichier n'est pas accepté")
       end
 
       it "refuses a decision on a delivery never retrieved, naming the target state, before anything leaves" do
         sign_in_member
-        expect(Portail::HubAPI::Deliveries).to receive(:find).twice
+        expect(Portail::HubAPI::Deliveries).to receive(:find).once
           .and_return(build(:portail_delivery, state: "in_progress"))
         expect(Portail::HubAPI::Deliveries).not_to receive(:reply_with_attachment)
         expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
         update_state_with_piece("done")
-        follow_redirect!
 
-        expect(response).to have_http_status(:success)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(Capybara.string(response.body))
           .to have_css(".fr-alert--error p", exact_text: "Ce changement d'état n'est pas encore possible : téléchargez d'abord " \
             "au moins une pièce jointe du télédossier pour le passer au statut « Traité ».")
@@ -240,14 +323,13 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
       }.each do |refused, setup|
         it "refuses #{refused} before anything leaves" do
           sign_in_member
-          serve(times: 2)
+          serve
           expect(Portail::HubAPI::Deliveries).not_to receive(:reply_with_attachment)
           expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
           update_state_with_piece(piece: pdf_upload(**setup[:piece]))
-          follow_redirect!
 
-          expect(response).to have_http_status(:success)
+          expect(response).to have_http_status(:unprocessable_content)
           expect(Capybara.string(response.body)).to have_text(setup[:message])
         end
       end
@@ -260,31 +342,45 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
       }.each do |raised, message|
         it "leaves the state alone and says why when the upstream raises #{raised.name.demodulize}" do
           sign_in_member
-          serve(times: 2)
+          serve
           expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).and_raise(raised)
           expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
 
           update_state_with_piece
-          follow_redirect!
 
-          expect(response).to have_http_status(:success)
+          expect(response).to have_http_status(:unprocessable_content)
           expect(Capybara.string(response.body)).to have_text(message)
         end
       end
 
       it "says the piece left while the state stayed" do
         sign_in_member
-        serve(times: 2)
+        serve
         expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).and_return(build(:portail_event))
         expect(Portail::HubAPI::Deliveries).to receive(:change_state).and_raise(Portail::HubAPI::EventLimitReached)
 
         update_state_with_piece
-        follow_redirect!
 
-        expect(response).to have_http_status(:success)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(Capybara.string(response.body))
           .to have_text("La pièce a été transmise, mais l'état du télédossier n'a pas changé")
           .and have_text("ne peut plus enregistrer d'événement")
+      end
+
+      # Le message voyage avec l'état : resté en route, il doit être ressaisi, sinon la pièce
+      # arriverait seule.
+      it "keeps the message in the form when the piece left while the state stayed" do
+        sign_in_member
+        serve
+        expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).and_return(build(:portail_event))
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state).and_raise(Portail::HubAPI::EventLimitReached)
+
+        update_state_with_piece(message: "Décision jointe")
+
+        expect(response).to have_http_status(:unprocessable_content)
+        page = Capybara.string(response.body)
+        expect(page).to have_text("Vous pouvez relancer le seul changement d'état.")
+        expect(page).to have_field("Message à la personne concernée (facultatif)", with: "Décision jointe")
       end
     end
 

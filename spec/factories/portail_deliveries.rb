@@ -188,9 +188,14 @@ FactoryBot.define do
     states_allowing_attachment { %w[transmitted acknowledged in_progress awaiting_attachments done refused] }
     attachment_content_types { ["application/pdf", "image/png"] }
     attachment_max_byte_size { 10_485_760 }
+    allows_message_with_state_change { true }
 
     trait :without_attachments do
       states_allowing_attachment { [] }
+    end
+
+    trait :without_message do
+      allows_message_with_state_change { false }
     end
   end
 end

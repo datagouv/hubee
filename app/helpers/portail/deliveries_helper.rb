@@ -29,13 +29,7 @@ module Portail
       "deleted" => nil
     }.freeze
 
-    # `default:` : l'amont peut ajouter un état sans nous prévenir. `blank?` à part : I18n
-    # résoudrait la clé tronquée vers son parent, le Hash entier des libellés.
-    def delivery_state_label(state)
-      return MISSING if state.blank?
-
-      t("portail.deliveries.states.#{state}", default: MISSING)
-    end
+    def delivery_state_label(state) = Portail::Delivery.state_label(state) || MISSING
 
     def delivery_state(delivery) = delivery_state_label(delivery.state)
 
@@ -59,6 +53,10 @@ module Portail
     # Sans flux lisible, pas de champ : une réponse ne part que sur un accord explicite du flux.
     def delivery_accepts_attachment?(delivery, data_stream)
       data_stream.present? && data_stream.v1.allows_attachment_from?(delivery.state)
+    end
+
+    def delivery_accepts_message?(data_stream)
+      data_stream.present? && data_stream.v1.allows_message_with_state_change?
     end
 
     # L'extension parle à l'agent mieux que le type ; un type sans extension connue reste tel quel.

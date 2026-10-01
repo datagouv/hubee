@@ -18,7 +18,7 @@
 <h1><%= t(".heading", number: @delivery.number) %></h1>
 
 <% if policy(@delivery).update? && delivery_receipt_offered?(@delivery, @data_stream) %>
-  <%= render "receipt_callout", delivery: @delivery %>
+  <%= render "portail/deliveries/receipt_callout", delivery: @delivery %>
 <% end %>
 
 <h2 class="fr-h4 fr-mt-4w"><%= t(".summary") %></h2>
@@ -72,7 +72,7 @@
   <%= delivery_retrieval_callout(@delivery, @data_stream) %>
   <% offered = delivery_offered_states(@delivery, @data_stream) %>
   <% if offered.any? %>
-    <%= render "state_form", delivery: @delivery, states: offered, data_stream: @data_stream %>
+    <%= render "portail/deliveries/state_form", delivery: @delivery, states: offered, data_stream: @data_stream, message: @state_message %>
   <% end %>
 <% end %>
 
@@ -86,7 +86,7 @@
   </div>
   <% if @delivery.attachments.any? %>
     <%# Caption « du dépôt » : elle distingue ce tableau de ceux des pièces ajoutées ensuite. %>
-    <%= render "attachments", attachments: @delivery.attachments, caption: t(".deposit_attachments"),
+    <%= render "portail/deliveries/attachments", attachments: @delivery.attachments, caption: t(".deposit_attachments"),
           downloadable_from: @delivery %>
   <% else %>
     <p><%= t(".deposit_attachments_empty") %></p>
@@ -103,7 +103,7 @@
         — <%= event.author.presence || t("portail.deliveries.events.unknown_author") %>
       </p>
       <%# La provenance dans la caption : plusieurs inventaires se suivent ici. %>
-      <%= render "attachments", attachments: event.attachments,
+      <%= render "portail/deliveries/attachments", attachments: event.attachments,
             caption: "#{t(".added_attachments")} — #{delivery_event_time(event)}" %>
     <% end %>
   <% else %>
@@ -131,7 +131,14 @@
                 <p class="fr-mb-0"><%= delivery_event_sentence(event) %></p>
 
                 <% if (message = delivery_event_message(event)) %>
-                  <p class="fr-mb-0"><%= message %></p>
+                  <% if delivery_event_addresses_applicant?(event) %>
+                    <div class="fr-highlight fr-ml-0 fr-my-1w">
+                      <p class="fr-text--xs fr-text--bold fr-mb-1v"><%= t(".applicant_message") %></p>
+                      <p class="delivery-timeline__message fr-text--sm fr-mb-0"><%= message %></p>
+                    </div>
+                  <% else %>
+                    <p class="delivery-timeline__message fr-mb-0"><%= message %></p>
+                  <% end %>
                 <% end %>
 
                 <%# Seule lecture de `si_comment` : si la décision de l'afficher s'inverse, c'est ici. %>
