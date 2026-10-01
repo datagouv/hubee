@@ -3,6 +3,19 @@
 require "rails_helper"
 
 RSpec.describe Portail::Delivery do
+  describe ".state_label" do
+    it "names a state the portal knows" do
+      expect(described_class.state_label("done")).to eq("Traité")
+    end
+
+    # Le repli d'affichage appartient à l'écran : ici, l'absence reste une absence.
+    it "names nothing for a missing, empty or unlabelled state" do
+      expect(described_class.state_label(nil)).to be_nil
+      expect(described_class.state_label("")).to be_nil
+      expect(described_class.state_label("integration_error")).to be_nil
+    end
+  end
+
   describe "#received_attachments" do
     it "keeps the received deposit attachments, in their order" do
       first = build(:portail_attachment, id: "a1111111-1111-1111-1111-111111111111")

@@ -379,6 +379,12 @@ Alors("on ne lui propose plus de le marquer reçu") do
   expect(page).to have_no_button("Marquer comme reçu")
 end
 
+Quand("il finalise le traitement du télédossier avec le message {string}") do |message|
+  select("Traité", from: "Nouvel état")
+  fill_in("Message à la personne concernée (facultatif)", with: message)
+  click_button("Enregistrer")
+end
+
 Quand("il finalise le traitement du télédossier en joignant {string}") do |filename|
   select("Traité", from: "Nouvel état")
   attach_file("Pièce jointe (facultatif)", Rails.root.join("spec/fixtures/files", filename))

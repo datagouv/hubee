@@ -10,6 +10,7 @@ module Portail
         # La transition se vérifie contre l'état courant, relu au moment d'écrire : une page
         # vieillie qui soumet une cible devenue inatteignable se voit refuser par la table.
         organize Shared::EnsureTransitionAllowed,
+          Shared::EnsureMessageAccepted,
           Shared::WriteState
       end
     end
