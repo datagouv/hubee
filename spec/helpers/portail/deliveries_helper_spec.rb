@@ -410,6 +410,22 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     end
   end
 
+  describe "#delivery_accepts_message?" do
+    it "offers a message when the data stream takes one with a state change" do
+      expect(helper.delivery_accepts_message?(build(:portail_data_stream))).to be(true)
+    end
+
+    it "offers no message when the data stream takes none" do
+      data_stream = build(:portail_data_stream, v1: build(:portail_data_stream_v1_rules, :without_message))
+
+      expect(helper.delivery_accepts_message?(data_stream)).to be(false)
+    end
+
+    it "offers no message when the data stream could not be read" do
+      expect(helper.delivery_accepts_message?(nil)).to be(false)
+    end
+  end
+
   describe "#delivery_attachment_formats" do
     it "names each format by its extension, and keeps a type it cannot name" do
       rules = build(:portail_data_stream_v1_rules,

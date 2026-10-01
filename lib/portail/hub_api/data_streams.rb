@@ -53,7 +53,8 @@ module Portail
           Portail::DataStream::V1Rules.new(
             states_allowing_attachment: rules.states_allowing_attachment.map(&:to_s),
             attachment_content_types: rules.attachment_content_types,
-            attachment_max_byte_size: rules.attachment_max_byte_size
+            attachment_max_byte_size: rules.attachment_max_byte_size,
+            allows_message_with_state_change: rules.allows_message_with_state_change?
           )
         end
       end
