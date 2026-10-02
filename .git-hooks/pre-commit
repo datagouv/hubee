@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+unset GIT_INDEX_FILE
+
 export DB_HOST="${DB_HOST:-localhost}"
 
 bin/ci

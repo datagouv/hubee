@@ -9,8 +9,10 @@ module Portail
   ) do
     def received_attachments = attachments.select(&:state_received?)
 
-    # Une pièce par son identifiant, du dépôt ou apportée ensuite : l'événement qui la porte ne
-    # regarde que la frontière amont.
+    # Une pièce par son identifiant, du dépôt ou apportée ensuite. La recherche fouille les
+    # événements parce que la V1 y range les pièces ajoutées : c'est la seule fuite de cette
+    # structure, et elle ne rend que la pièce. L'événement qui la porte ne regarde que la frontière
+    # amont. En V2, la même recherche ira dans les paquets enfants, sans toucher l'appelant.
     def find_attachment(id)
       attachments.find { |attachment| attachment.id == id } ||
         events.flat_map(&:attachments).find { |attachment| attachment.id == id }
