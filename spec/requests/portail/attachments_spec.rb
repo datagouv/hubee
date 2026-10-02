@@ -334,15 +334,15 @@ RSpec.describe "Portail::Attachments", type: :request do
     # La matrice rôle × habilitation, sur la pièce et non déduite du détail : c'est ici que les
     # octets partiraient. Le refus tombe avant tout appel de contenu.
     {
-      "a deposit piece" => ->(code) { build(:portail_delivery, data_stream_code: code) },
-      "a piece added by an event" => lambda { |code|
-        build(:portail_delivery, data_stream_code: code, attachments: [],
+      "a deposit piece" => ->(code, **attributes) { build(:portail_delivery, data_stream_code: code, **attributes) },
+      "a piece added by an event" => lambda { |code, **attributes|
+        build(:portail_delivery, data_stream_code: code, attachments: [], **attributes,
           events: [build(:portail_event, id: "e2222222-2222-2222-2222-222222222222",
             event_type: "attachment.created", metadata: {}, attachments: [build(:portail_attachment, id: "a1111111-1111-1111-1111-111111111111")])])
       }
     }.each do |kind, delivery_for|
       context "reading perimeter of #{kind}" do
-        define_method(:delivery_on) { |code| instance_exec(code, &delivery_for) }
+        define_method(:delivery_on) { |code, **attributes| instance_exec(code, **attributes, &delivery_for) }
 
         # La même page qu'une pièce inexistante : distinguer les deux révélerait l'existence d'une
         # télédossier hors périmètre.
@@ -354,6 +354,17 @@ RSpec.describe "Portail::Attachments", type: :request do
           expect(response).to have_http_status(:not_found)
           expect(Capybara.string(response.body)).to have_text("Page introuvable")
           expect(Capybara.string(response.body)).to have_no_text("DGS-CERTDC-0000000000001-01")
+        end
+
+        # Seul le journal sépare un refus d'une pièce introuvable : sans lui, une pièce que la
+        # recherche perdrait passerait pour refusée.
+        def expect_a_refusal
+          events = capture_semantic_logger_events { expect_a_not_found_page }
+
+          expect(events).to include(be_a_semantic_logger_event(
+            level: :info, message: "Décision d'accès",
+            payload_includes: {event: "Portail::Access::Refusal", reason: :out_of_perimeter, path: path}
+          ))
         end
 
         def expect_the_piece_to_be_served
@@ -398,33 +409,33 @@ RSpec.describe "Portail::Attachments", type: :request do
           sign_in_member(data_stream_codes: [])
           expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
-          expect_a_not_found_page
+          expect_a_refusal
         end
 
         # L'accès à une pièce est celui de son télédossier : un état non servi ferme aussi les octets.
         it "refuses a piece of a delivery in a state the portal does not serve" do
           sign_in_member(data_stream_codes: ["CERTDC"])
           expect(Portail::HubAPI::Deliveries).to receive(:find)
-            .and_return(build(:portail_delivery, state: "integration_error"))
+            .and_return(delivery_on("CERTDC", state: "integration_error"))
 
-          expect_a_not_found_page
+          expect_a_refusal
         end
 
         # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.
         it "refuses a piece of a delivery the upstream served for another organisation" do
           sign_in_member(data_stream_codes: ["CERTDC"])
           expect(Portail::HubAPI::Deliveries).to receive(:find)
-            .and_return(build(:portail_delivery, :of_another_organisation))
+            .and_return(delivery_on("CERTDC", recipient: build(:portail_recipient, :of_another_organisation)))
 
-          expect_a_not_found_page
+          expect_a_refusal
         end
 
         it "refuses a local administrator on a piece of a delivery served for another organisation" do
           sign_in_local_administrator
           expect(Portail::HubAPI::Deliveries).to receive(:find)
-            .and_return(build(:portail_delivery, :of_another_organisation))
+            .and_return(delivery_on("CERTDC", recipient: build(:portail_recipient, :of_another_organisation)))
 
-          expect_a_not_found_page
+          expect_a_refusal
         end
 
         it "serves any piece of their organisation to a local administrator without habilitation" do
@@ -445,7 +456,7 @@ RSpec.describe "Portail::Attachments", type: :request do
           sign_in_local_administrator(data_stream_codes: ["AEC"])
           expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
-          expect_a_not_found_page
+          expect_a_refusal
         end
       end
     end
