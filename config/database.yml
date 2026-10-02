@@ -37,6 +37,8 @@ production:
     port: "<%= ENV["DATABASE_PORT"] %>"
     # Sans ça, libpq garde le premier hôte joignable, standby en lecture seule compris.
     target_session_attrs: primary
+    # Par hôte : un primaire tombé qui ne répond plus bloquerait plus d'une minute avant l'hôte suivant.
+    connect_timeout: 5
     username: "<%= ENV["DATABASE_USERNAME"] %>"
     password: "<%= ENV["DATABASE_PASSWORD"] %>"
     database: hubee_production
