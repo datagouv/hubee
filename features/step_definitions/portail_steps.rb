@@ -410,6 +410,32 @@ Alors("on ne lui propose plus de le marquer reçu") do
   expect(page).to have_no_button("Marquer comme reçu")
 end
 
+Quand("il en commence l'instruction") do
+  within(".fr-callout", text: "Commencer l'instruction") { click_button("Passer en cours") }
+end
+
+# L'accusé, lui, est proposé : la page n'est pas vide de propositions, seulement de celle-ci.
+Alors("on ne lui propose pas encore d'en commencer l'instruction") do
+  expect(page).to have_button("Marquer comme reçu")
+  expect(page).to have_no_button("Passer en cours")
+end
+
+Alors("on ne lui propose plus d'en commencer l'instruction") do
+  expect(page).to have_css(".fr-badge", text: "En cours")
+  expect(page).to have_no_button("Passer en cours")
+end
+
+# Par la gem, comme le ferait un autre portail : la page de l'agent n'en sait rien.
+Quand("{string} passe le télédossier {string} au statut « Traité » entre-temps") do |author, number|
+  HubApiV1::V2::Delivery.change_state(id: e2e_delivery_id(number), state: :done, author:,
+    message: "Changement du statut à DONE", siret: e2e_recipient.siret, code_insee: e2e_recipient.code_insee)
+end
+
+Alors("il apprend que le télédossier a peut-être changé d'état entre-temps") do
+  expect(page).to have_css(".fr-alert--error p", exact_text: "Ce changement d'état n'est plus possible : " \
+    "le télédossier a peut-être changé d'état entre-temps.")
+end
+
 Quand("il finalise le traitement du télédossier en joignant {string}") do |filename|
   select("Traité", from: "Nouvel état")
   attach_file("Pièce jointe (facultatif)", Rails.root.join("spec/fixtures/files", filename))

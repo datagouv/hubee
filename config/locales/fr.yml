@@ -121,10 +121,15 @@ fr:
         # La conséquence et non le mécanisme : ce qui compte est que la personne l'ait reçu.
         broadcast: Information transmise à la personne concernée.
         undated_month: Sans date
-      receipt_callout:
-        title: Accuser réception de ce télédossier
-        text: L'émetteur du dossier sera informé que vous l'avez reçu et verra votre nom.
-        submit: Marquer comme reçu
+      state_callout:
+        acknowledged:
+          title: Accuser réception de ce télédossier
+          text: L'émetteur du dossier sera informé que vous l'avez reçu et verra votre nom.
+          submit: Marquer comme reçu
+        in_progress:
+          title: Commencer l'instruction de ce télédossier
+          text: L'émetteur du dossier sera informé que vous l'instruisez et verra votre nom.
+          submit: Passer en cours
       retrieval_callout:
         title: Téléchargez une pièce pour faire avancer ce télédossier
         text:
