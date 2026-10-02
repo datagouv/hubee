@@ -974,8 +974,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(row).to have_no_css("a[href$='/pieces/a3333333-3333-3333-3333-333333333333']")
     end
 
-    # Le même rendu que le dépôt, à l'adresse de l'événement : nom, format et poids en colonnes, un
-    # nom accessible propre à chaque pièce. Une pièce non reçue garde son état à la place du lien.
+    # Le même rendu et la même adresse que le dépôt : nom, format et poids en colonnes, un nom
+    # accessible propre à chaque pièce. Une pièce non reçue garde son état à la place du lien.
     it "offers a download on the received pieces of each event only, rendered as the deposit ones" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
