@@ -12,7 +12,7 @@ module Portail
           # n'écrit pas, donc on ne remet rien. Même règle que le changement d'état.
           return context.fail!(error: :unknown_author) if author.blank?
 
-          context.body = HubAPI::Attachments.download(delivery_id:, id: attachment_id,
+          context.body = HubAPI::Attachments.download(delivery: context.delivery, id: attachment_id,
             filename:, author:, siret: link.siret, insee_code: link.insee_code)
           # L'identifiant et pas le nom : la supervision tourne sans donnée personnelle.
           Rails.logger.info("Pièce récupérée", delivery_id:, id: attachment_id, agent_id: agent.id)

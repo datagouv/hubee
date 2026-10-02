@@ -19,7 +19,7 @@ RSpec.describe Portail::Attachments::Show::Download do
   # jamais d'un paramètre de requête : aucun agent ne peut tracer sous une autre identité.
   it "fetches the content of the piece within its delivery, signed by the agent of the session" do
     expect(Portail::HubAPI::Attachments).to receive(:download).with(
-      delivery_id: "94b1b09d-b47f-4480-9b48-93b8b36108f2", id: "a1111111-1111-1111-1111-111111111111",
+      delivery: delivery, id: "a1111111-1111-1111-1111-111111111111",
       filename: "certificat.pdf", author: "Alice MARTIN", siret: "12345678901234", insee_code: "75056"
     ).and_return("octets".b)
 

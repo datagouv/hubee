@@ -20,6 +20,27 @@ RSpec.describe Portail::Delivery do
     end
   end
 
+  describe "#find_attachment" do
+    let(:deposited) { build(:portail_attachment, id: "a1111111-1111-1111-1111-111111111111") }
+    let(:added) { build(:portail_attachment, id: "b1111111-1111-1111-1111-111111111111") }
+    let(:delivery) do
+      build(:portail_delivery, attachments: [deposited],
+        events: [build(:portail_event, attachments: []), build(:portail_event, attachments: [added])])
+    end
+
+    it "finds a deposit piece by its identifier" do
+      expect(delivery.find_attachment(deposited.id)).to eq(deposited)
+    end
+
+    it "finds a piece added by an event by its identifier" do
+      expect(delivery.find_attachment(added.id)).to eq(added)
+    end
+
+    it "finds nothing for an identifier the delivery does not carry" do
+      expect(delivery.find_attachment("c3333333-3333-3333-3333-333333333333")).to be_nil
+    end
+  end
+
   describe "#retrieved?" do
     histories = {
       "a single attachment download" => {event_types: %w[attachment.downloaded], retrieved: true},
