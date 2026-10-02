@@ -35,6 +35,8 @@ production:
     <<: *default
     host: "<%= ENV["DATABASE_HOST"] %>"
     port: "<%= ENV["DATABASE_PORT"] %>"
+    # Sans ça, libpq garde le premier hôte joignable, standby en lecture seule compris.
+    target_session_attrs: primary
     username: "<%= ENV["DATABASE_USERNAME"] %>"
     password: "<%= ENV["DATABASE_PASSWORD"] %>"
     database: hubee_production
