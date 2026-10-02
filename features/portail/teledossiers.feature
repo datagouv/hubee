@@ -264,6 +264,32 @@ Fonctionnalité: Les télédossiers de l'organisation
     Quand il récupère directement la pièce "certificat.pdf" du télédossier "DGS-CERTDC-0000000000001-01"
     Alors il voit que la pièce ne peut pas être remise
 
+  # Le complément arrive par un événement de l'émetteur : il se télécharge comme une pièce du
+  # dépôt ; celui encore en attente n'a pas de lien.
+  Scénario: L'agent télécharge une pièce ajoutée par l'émetteur
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000008-01" complété par l'émetteur de "complement.pdf", et de "annexe.pdf" encore en attente
+    Et il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000008-01"
+    Alors la pièce "annexe.pdf" est signalée "En attente"
+    Quand il télécharge la pièce "complement.pdf"
+    Alors il obtient le fichier "complement.pdf" en pièce jointe
+    Quand il se rend sur l'accueil
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000008-01"
+    Alors l'historique porte le téléchargement de "complement.pdf" par "Alex MARTIN"
+
+  # La pièce que l'agent vient de joindre est reçue dès la fin du dépôt : il la relit aussitôt.
+  Scénario: L'agent relit la pièce qu'il a jointe à son changement d'état
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il télécharge la pièce "certificat.pdf"
+    Et il se rend sur l'accueil
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il finalise le traitement du télédossier en joignant "decision.pdf"
+    Et il télécharge la pièce "decision.pdf"
+    Alors il obtient en pièce jointe le fichier "decision.pdf" qu'il a joint
+    Quand il ouvre directement le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors l'historique porte le téléchargement de "decision.pdf" par "Alex MARTIN"
+
   Scénario: Une pièce hors habilitation reste fermée
     Étant donné l'API amont sert aussi un télédossier sur un flux non habilité
     Et il s'est connecté

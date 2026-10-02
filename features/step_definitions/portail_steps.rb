@@ -255,9 +255,16 @@ Quand("il ouvre directement ce télédossier") do
 end
 
 # Les télédossiers servis par l'amont portent la pièce par défaut de la gem, dont le client
-# bouchonné sert des octets déterministes de la taille annoncée.
+# bouchonné sert des octets déterministes de la taille annoncée ; un complément ajoute celles de son événement.
 def e2e_attachment(filename)
-  build_v2_data_package.attachments.find { |attachment| attachment.filename == filename }
+  build_v2_data_package.attachments.find { |attachment| attachment.filename == filename } ||
+    @added_attachments&.fetch(filename)
+end
+
+def expect_attachment_disposition(filename)
+  expect(page.response_headers["content-disposition"]).to eq(
+    "attachment; filename=\"#{filename}\"; filename*=UTF-8''#{filename}"
+  )
 end
 
 Quand("il télécharge la pièce {string}") do |filename|
@@ -331,11 +338,35 @@ end
 # Le fichier tel que l'amont le sert, sous son nom, en pièce jointe et jamais dans la page.
 Alors("il obtient le fichier {string} en pièce jointe") do |filename|
   attachment = e2e_attachment(filename)
-  expect(page.response_headers["content-disposition"]).to eq(
-    "attachment; filename=\"#{filename}\"; filename*=UTF-8''#{filename}"
-  )
+  expect_attachment_disposition(filename)
   expect(page.response_headers["content-type"]).to start_with("application/octet-stream")
   expect(page.body.b).to eq(HubApiV1::Testing::Factories.attachment_body_for(attachment))
+end
+
+# Un complément arrive par un événement de dépôt de pièce de l'émetteur, pas dans le dépôt.
+Étantdonné("l'API amont sert aussi un télédossier {string} complété par l'émetteur de {string}, et de {string} encore en attente") do |number, received, pending|
+  @added_attachments = [
+    build_v2_attachment(id: "b1111111-1111-4111-8111-111111111111", filename: received, kind: nil),
+    build_v2_attachment(id: "b2222222-2222-4222-8222-222222222222", filename: pending, kind: nil, state: :pending)
+  ].index_by(&:filename)
+  HubApiV1.client.add_case(e2e_delivery(number, events: [build_v2_event(
+    id: "e1111111-1111-4111-8111-111111111111", event_type: :"attachment.created", author: "Camille LEROY",
+    content: "Complément", attachments: @added_attachments.values
+  )]))
+end
+
+# Les octets mêmes que l'agent a déposés, relus chez l'amont.
+Alors("il obtient en pièce jointe le fichier {string} qu'il a joint") do |filename|
+  expect_attachment_disposition(filename)
+  expect(page.response_headers["content-type"]).to start_with("application/octet-stream")
+  expect(page.body.b).to eq(Rails.root.join("spec/fixtures/files", filename).binread)
+end
+
+# La trace porte le nom de la pièce, tel que déclaré : c'est lui que la lecture V1 apparie.
+Alors("l'historique porte le téléchargement de {string} par {string}") do |filename, author|
+  expect(page).to have_css("li.delivery-timeline__entry", text: "#{author} a téléchargé une pièce") { |entry|
+    entry.has_css?("p", exact_text: filename)
+  }
 end
 
 # Le plafond d'événements est un relevé de l'amont, pas un contrat : le fake sait le poser, les
@@ -517,9 +548,7 @@ end
 
 Alors("il obtient l'archive {string} avec les pièces {string}") do |archive, filenames|
   name = File.basename(archive, ".zip")
-  expect(page.response_headers["content-disposition"]).to eq(
-    "attachment; filename=\"#{archive}\"; filename*=UTF-8''#{archive}"
-  )
+  expect_attachment_disposition(archive)
   expect(page.response_headers["content-type"]).to eq("application/zip")
   entries = Zip::File.open_buffer(StringIO.new(page.body.b)).entries
     .map { |entry| [entry.name, entry.get_input_stream.read.b] }
