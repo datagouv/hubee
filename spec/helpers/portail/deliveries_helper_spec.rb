@@ -162,14 +162,6 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       expect(Capybara.string(badge)).to have_css("p.fr-badge.fr-badge--sm.fr-badge--error", text: "Corrompue")
       expect(Capybara.string(badge)).to have_no_link
     end
-
-    # Une pièce d'événement n'a pas d'adresse : reçue ou non, seul son état se montre.
-    it "shows only the state of a piece without a delivery to download it from" do
-      badge = helper.delivery_attachment_access(build(:portail_attachment), nil)
-
-      expect(Capybara.string(badge)).to have_css("p.fr-badge.fr-badge--success", text: "Reçue")
-      expect(Capybara.string(badge)).to have_no_link
-    end
   end
 
   describe "#delivery_archive_access" do

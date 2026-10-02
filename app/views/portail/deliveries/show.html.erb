@@ -87,7 +87,7 @@
   <% if @delivery.attachments.any? %>
     <%# Caption « du dépôt » : elle distingue ce tableau de ceux des pièces ajoutées ensuite. %>
     <%= render "attachments", attachments: @delivery.attachments, caption: t(".deposit_attachments"),
-          downloadable_from: @delivery %>
+          delivery: @delivery %>
   <% else %>
     <p><%= t(".deposit_attachments_empty") %></p>
   <% end %>
@@ -104,7 +104,7 @@
       </p>
       <%# La provenance dans la caption : plusieurs inventaires se suivent ici. %>
       <%= render "attachments", attachments: event.attachments,
-            caption: "#{t(".added_attachments")} — #{delivery_event_time(event)}" %>
+            caption: "#{t(".added_attachments")} — #{delivery_event_time(event)}", delivery: @delivery %>
     <% end %>
   <% else %>
     <p class="fr-mb-0"><%= t(".added_attachments_empty") %></p>
