@@ -876,16 +876,14 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_link(exact_text: "Télécharger, piece")
     end
 
-    it "offers a download on received deposit pieces only" do
+    it "offers a download on received deposit pieces, and not on pending ones" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
         build(:portail_delivery,
           attachments: [
             build(:portail_attachment, id: "a1111111-1111-1111-1111-111111111111", filename: "recue.pdf"),
             build(:portail_attachment, id: "a2222222-2222-2222-2222-222222222222", filename: "attendue.pdf", state: "pending")
-          ],
-          events: [build(:portail_event, event_type: "attachment.created", metadata: {},
-            attachments: [build(:portail_attachment, id: "b2", filename: "complement.pdf")])])
+          ])
       )
 
       get "/teledossiers/#{delivery_id}"
@@ -902,8 +900,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         href: "/teledossiers/#{delivery_id}/pieces/a1111111-1111-1111-1111-111111111111")
       expect(page.find("tr", text: "recue.pdf")).to have_no_css("p.fr-badge")
       expect(page).to have_text("attendue.pdf")
-      expect(page).to have_text("complement.pdf")
-      expect(page).to have_no_link(href: %r{/pieces/(a2222222|b2)})
+      expect(page).to have_no_link(href: %r{/pieces/a2222222})
     end
 
     # L'archive ne contient que les pièces reçues du dépôt : une pièce d'événement ne compte ni
@@ -977,13 +974,19 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(row).to have_no_css("a[href$='/pieces/a3333333-3333-3333-3333-333333333333']")
     end
 
-    # Une pièce d'événement n'a pas d'adresse : la dernière colonne ne porte que son état.
-    it "shows only the state of an event piece in the download column" do
+    # Le même rendu que le dépôt, à l'adresse de l'événement : nom, format et poids en colonnes, un
+    # nom accessible propre à chaque pièce. Une pièce non reçue garde son état à la place du lien.
+    it "offers a download on the received pieces of each event only, rendered as the deposit ones" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
         build(:portail_delivery, attachments: [],
-          events: [build(:portail_event, event_type: "attachment.created", metadata: {},
-            attachments: [build(:portail_attachment, id: "b2", filename: "complement.pdf")])])
+          events: [build(:portail_event, id: "e2222222-2222-2222-2222-222222222222", event_type: "attachment.created",
+            metadata: {}, attachments: [
+              build(:portail_attachment, id: "b1111111-1111-1111-1111-111111111111", filename: "complement.pdf",
+                byte_size: 2048),
+              build(:portail_attachment, id: "b2222222-2222-2222-2222-222222222222", filename: "attendu.pdf",
+                state: "pending")
+            ])])
       )
 
       get "/teledossiers/#{delivery_id}"
@@ -992,10 +995,16 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       table = Capybara.string(response.body).find("table", text: "complement.pdf")
       expect(table).to have_css("thead th", text: "Téléchargement")
-      expect(table).to have_no_css("thead th", text: "État")
-      expect(table).to have_css("td:last-child p.fr-badge.fr-badge--sm.fr-badge--success", text: "Reçue")
-      expect(table).to have_no_link("Télécharger")
-      expect(table).to have_no_css("a[href*='/pieces/']")
+      received = table.find("tr", text: "complement.pdf")
+      expect(received).to have_css("td", text: "2 ko")
+      expect(received).to have_css("td", text: "VA_CertificatdeDeces")
+      expect(received).to have_link(exact_text: "Télécharger, complement.pdf",
+        href: "/teledossiers/#{delivery_id}/pieces/b1111111-1111-1111-1111-111111111111")
+      expect(received).to have_css("td:last-child a.fr-link.fr-link--download[data-turbo='false']")
+      expect(received).to have_no_css("a[download]")
+      pending_row = table.find("tr", text: "attendu.pdf")
+      expect(pending_row).to have_css("td:last-child p.fr-badge.fr-badge--sm", text: "En attente")
+      expect(pending_row).to have_no_link
     end
 
     it "keeps the pieces added later under their own subheading, with their provenance" do
@@ -1711,6 +1720,80 @@ RSpec.describe "Portail::Deliveries", type: :request do
           payload_includes: {event: "Portail::Access::Refusal", reason: :out_of_perimeter,
                              path: "/teledossiers/#{delivery_id}", agent_id: agent.id}
         ))
+      end
+    end
+
+    # La matrice rôle × habilitation sur le lien d'une pièce ajoutée, non déduite de l'archive ni
+    # des pièces du dépôt.
+    context "reading perimeter of the added pieces" do
+      let(:event_piece_path) do
+        "/teledossiers/#{delivery_id}/pieces/b1111111-1111-1111-1111-111111111111"
+      end
+
+      def delivery_with_event_piece_on(code)
+        build(:portail_delivery, data_stream_code: code,
+          events: [build(:portail_event, id: "e2222222-2222-2222-2222-222222222222",
+            event_type: "attachment.created", metadata: {},
+            attachments: [build(:portail_attachment, id: "b1111111-1111-1111-1111-111111111111",
+              filename: "complement.pdf")])])
+      end
+
+      def expect_the_event_piece_link
+        get "/teledossiers/#{delivery_id}"
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_link(exact_text: "Télécharger, complement.pdf",
+          href: event_piece_path)
+      end
+
+      def expect_no_page_nor_link
+        get "/teledossiers/#{delivery_id}"
+
+        expect(response).to have_http_status(:not_found)
+        expect(Capybara.string(response.body)).to have_text("Page introuvable")
+        expect(Capybara.string(response.body)).to have_no_link(href: event_piece_path)
+      end
+
+      it "links the piece of an event for a member habilitated on its data stream" do
+        sign_in_member(data_stream_codes: ["CERTDC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_with_event_piece_on("CERTDC"))
+
+        expect_the_event_piece_link
+      end
+
+      it "links the piece of an event for a local administrator habilitated on its data stream" do
+        sign_in_local_administrator(data_stream_codes: ["CERTDC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_with_event_piece_on("CERTDC"))
+
+        expect_the_event_piece_link
+      end
+
+      it "links the piece of an event for a local administrator without habilitation" do
+        sign_in_local_administrator
+        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_with_event_piece_on("CERTDC"))
+
+        expect_the_event_piece_link
+      end
+
+      it "shows neither the delivery nor the link to a member habilitated on another data stream" do
+        sign_in_member(data_stream_codes: ["AEC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_with_event_piece_on("CERTDC"))
+
+        expect_no_page_nor_link
+      end
+
+      it "shows neither the delivery nor the link to a member without habilitation" do
+        sign_in_member(data_stream_codes: [])
+        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_with_event_piece_on("CERTDC"))
+
+        expect_no_page_nor_link
+      end
+
+      it "shows neither the delivery nor the link to a local administrator outside their habilitations" do
+        sign_in_local_administrator(data_stream_codes: ["AEC"])
+        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_with_event_piece_on("CERTDC"))
+
+        expect_no_page_nor_link
       end
     end
   end

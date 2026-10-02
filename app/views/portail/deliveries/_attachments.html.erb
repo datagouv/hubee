@@ -1,8 +1,7 @@
-<%# locals: (attachments:, caption:, downloadable_from: nil) %>
-<%# Un inventaire, dont seules les pièces reçues d'un dépôt se téléchargent : `downloadable_from`
-    est le télédossier, donné pour le dépôt seulement, les pièces d'un événement n'ayant pas
-    d'adresse. La caption, exigée par le RGAA, est masquée : la section qui appelle porte déjà
-    le titre. %>
+<%# locals: (attachments:, caption:, delivery:) %>
+<%# Un inventaire, dont seules les pièces reçues se téléchargent, du dépôt comme ajoutées ensuite :
+    `delivery` est le télédossier qui les porte. La caption, exigée par le RGAA, est masquée : la
+    section qui appelle porte déjà le titre. %>
 <div class="fr-table fr-table--bordered fr-table--no-caption">
   <div class="fr-table__wrapper">
     <div class="fr-table__container">
@@ -23,7 +22,7 @@
                 <td><%= delivery_attachment_name(attachment) %></td>
                 <td><%= delivery_attachment_kind(attachment) %></td>
                 <td><%= delivery_attachment_size(attachment) %></td>
-                <td><%= delivery_attachment_access(attachment, downloadable_from) %></td>
+                <td><%= delivery_attachment_access(attachment, delivery) %></td>
               </tr>
             <% end %>
           </tbody>

@@ -98,12 +98,12 @@ module Portail
     # Une pièce du service instructeur n'a pas de type métier.
     def delivery_attachment_kind(attachment) = attachment.kind.presence || MISSING
 
-    # Le lien quand la pièce se remet, sinon son état, qui est la raison. Sans télédossier, la
-    # pièce est celle d'un événement : elle n'a pas d'adresse.
+    # Le lien quand la pièce se remet, sinon son état, qui est la raison. Une pièce ajoutée
+    # ensuite s'adresse comme une pièce du dépôt : l'événement qui la porte ne regarde pas l'agent.
     # RGAA : le nom accessible porte la pièce, un même intitulé par ligne ne suffisant pas. Le nom
     # du fichier vient après le texte visible, que le nom accessible doit contenir d'un bloc.
     def delivery_attachment_access(attachment, delivery)
-      return delivery_attachment_state(attachment) unless delivery && attachment.state_received?
+      return delivery_attachment_state(attachment) unless attachment.state_received?
 
       link_to teledossier_piece_path(delivery.id, attachment.id),
         class: "fr-link fr-link--download",
