@@ -24,6 +24,19 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
       ]), **overrides))
   end
 
+  # Une pièce reçue au dépôt, une ajoutée reçue sous le même nom, une ajoutée en attente.
+  def serve_delivery_with_added_pieces(client = use_hub_api_fake_client, **overrides)
+    client.add_case(build_v2_delivery(id: delivery_id, recipient: upstream_recipient,
+      data_package: build_v2_data_package(attachments: [
+        build_v2_attachment(id: "a1111111-1111-1111-1111-111111111111", filename: "certificat.pdf")
+      ]),
+      events: [build_v2_event(id: "e2222222-2222-2222-2222-222222222222", event_type: :"attachment.created",
+        attachments: [
+          build_v2_attachment(id: "d4444444-4444-4444-4444-444444444444", filename: "certificat.pdf"),
+          build_v2_attachment(id: "f5555555-5555-5555-5555-555555555555", filename: "annexe.pdf", state: :pending)
+        ])], **overrides))
+  end
+
   def history(client)
     HubApiV1::V2::Delivery.find(id: delivery_id, siret: ProConnectTestHelper::TEST_SIRET,
       code_insee: ProConnectTestHelper::TEST_INSEE_CODE, client: client).events
@@ -70,6 +83,39 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
         event_type: :"attachment.all_downloaded", content: "20260923-14.05_DGS-CERTDC-0000000000001-01.zip",
         author: "Alex MARTIN"
       ))
+    end
+
+    # Les pièces ajoutées suivent celles du dépôt sans en écraser aucune, sous une seule trace.
+    it "hands over the received pieces added by the history after those of the deposit, traced once" do
+      sign_in_member
+      client = serve_delivery_with_added_pieces
+      client.add_attachment_content(attachment_id: "a1111111-1111-1111-1111-111111111111", body: "deposit".b)
+      client.add_attachment_content(attachment_id: "d4444444-4444-4444-4444-444444444444", body: "added".b)
+      previous_events = history(client)
+
+      travel_to(Time.utc(2026, 9, 23, 12, 5)) { get path }
+
+      expect(response).to have_http_status(:success)
+      expect(entries(response.body)).to eq([
+        ["20260923-14.05_DGS-CERTDC-0000000000001-01/certificat.pdf", "deposit".b],
+        ["20260923-14.05_DGS-CERTDC-0000000000001-01/certificat-1.pdf", "added".b]
+      ])
+      expect(history(client) - previous_events).to contain_exactly(have_attributes(
+        event_type: :"attachment.all_downloaded", content: "20260923-14.05_DGS-CERTDC-0000000000001-01.zip"
+      ))
+    end
+
+    it "hands over a delivery whose only received piece was added" do
+      sign_in_member
+      use_hub_api_fake_client.add_case(build_v2_delivery(id: delivery_id, recipient: upstream_recipient,
+        data_package: build_v2_data_package(attachments: []),
+        events: [build_v2_event(id: "e2222222-2222-2222-2222-222222222222", event_type: :"attachment.created",
+          attachments: [build_v2_attachment(id: "d4444444-4444-4444-4444-444444444444", filename: "complement.pdf")])]))
+
+      get path
+
+      expect(response).to have_http_status(:success)
+      expect(entries(response.body).map { |name, _| File.basename(name) }).to eq(["complement.pdf"])
     end
 
     # Le contenu ne fait que traverser : l'archive ne survit pas à son envoi.
@@ -271,12 +317,12 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
 
         expect(response).to have_http_status(:success)
         expect(response.media_type).to eq("application/zip")
-        expect(entries(response.body).size).to eq(2)
+        expect(entries(response.body).map { |name, _| File.basename(name) }).to eq(%w[certificat.pdf certificat-1.pdf])
       end
 
       it "serves the archive of a delivery on a data stream the member is habilitated to" do
         sign_in_member(data_stream_codes: ["CERTDC"])
-        serve_delivery
+        serve_delivery_with_added_pieces
 
         expect_the_archive_to_be_served
       end
@@ -285,7 +331,7 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
       # des adresses, sur le canal CSIRT.
       it "refuses a member on a delivery outside their habilitations, logs and alerts" do
         agent = sign_in_member(data_stream_codes: ["AEC"])
-        client = serve_delivery
+        client = serve_delivery_with_added_pieces
         expect(Sentry).to receive(:capture_message).with(
           "Accès refusé hors périmètre sur #{path}", level: :warning, extra: hash_including(agent_id: agent.id)
         )
@@ -302,19 +348,19 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
       it "refuses a member without any habilitation" do
         sign_in_member(data_stream_codes: [])
 
-        expect_a_not_found_page(serve_delivery)
+        expect_a_not_found_page(serve_delivery_with_added_pieces)
       end
 
       it "serves any delivery of their organisation to a local administrator without habilitation" do
         sign_in_local_administrator
-        serve_delivery
+        serve_delivery_with_added_pieces
 
         expect_the_archive_to_be_served
       end
 
       it "serves the archive inside the habilitations of a local administrator" do
         sign_in_local_administrator(data_stream_codes: ["CERTDC"])
-        serve_delivery
+        serve_delivery_with_added_pieces
 
         expect_the_archive_to_be_served
       end
@@ -322,13 +368,13 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
       it "refuses a local administrator on a delivery outside their habilitations" do
         sign_in_local_administrator(data_stream_codes: ["AEC"])
 
-        expect_a_not_found_page(serve_delivery)
+        expect_a_not_found_page(serve_delivery_with_added_pieces)
       end
 
       it "refuses a delivery in a state the portal does not serve" do
         sign_in_member(data_stream_codes: ["CERTDC"])
 
-        expect_a_not_found_page(serve_delivery(state: :integration_error))
+        expect_a_not_found_page(serve_delivery_with_added_pieces(state: :integration_error))
       end
 
       # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée, pour
