@@ -115,22 +115,21 @@ module Portail
       end
     end
 
-    # L'archive ne remet que les pièces reçues : l'agent sait avant le clic combien, et sur quel
-    # total, les autres restant lisibles dans le tableau avec leur état. Rien sans pièce reçue.
-    # Le détail tait la taille : on connaît la somme de celles des pièces, pas la taille compressée.
+    # L'agent sait avant le clic combien de pièces reçues, et sur quel total. La taille est tue :
+    # on connaît la somme de celles des pièces, pas la taille compressée.
     def delivery_archive_access(delivery)
-      return if delivery.received_attachments.none?
+      return if delivery.all_received_attachments.none?
 
       render "portail/deliveries/archive_access", delivery:, label: delivery_archive_label(delivery),
         complete: delivery_archive_complete?(delivery)
     end
 
     def delivery_archive_label(delivery)
-      received = delivery.received_attachments.size
+      received = delivery.all_received_attachments.size
       if delivery_archive_complete?(delivery)
         t("portail.deliveries.archives.download.complete", count: received)
       else
-        t("portail.deliveries.archives.download.partial", count: received, total: delivery.attachments.size)
+        t("portail.deliveries.archives.download.partial", count: received, total: delivery.all_attachments.size)
       end
     end
 
@@ -156,7 +155,7 @@ module Portail
 
     private
 
-    def delivery_archive_complete?(delivery) = delivery.received_attachments.size == delivery.attachments.size
+    def delivery_archive_complete?(delivery) = delivery.all_received_attachments.size == delivery.all_attachments.size
 
     # Format long : le jour et l'année situent une transmission relue des semaines après.
     def delivery_time(value) = value ? l(value, format: :long) : MISSING

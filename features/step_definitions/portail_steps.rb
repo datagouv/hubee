@@ -515,12 +515,14 @@ E2E_PARTIALLY_RECEIVED_ATTACHMENTS = [
   {id: "d3333333-3333-3333-3333-333333333333", filename: "acte.pdf", state: :pending}
 ].freeze
 
+# Le décor partiel quand le scénario le sert : ses noms reprennent ceux du dépôt par défaut.
 def e2e_archive_attachment(filename)
-  build_v2_attachment(E2E_PARTIALLY_RECEIVED_ATTACHMENTS.find { |attributes| attributes[:filename] == filename })
+  @partially_received_attachments&.dig(filename) || e2e_attachment(filename)
 end
 
 Étantdonné("l'API amont sert aussi un télédossier {string} dont deux pièces sur trois sont reçues") do |number|
   attachments = E2E_PARTIALLY_RECEIVED_ATTACHMENTS.map { |attributes| build_v2_attachment(attributes) }
+  @partially_received_attachments = attachments.index_by(&:filename)
   HubApiV1.client.add_case(e2e_delivery(number, data_package: build_v2_data_package(attachments:)))
 end
 

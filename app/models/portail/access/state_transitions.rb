@@ -54,6 +54,8 @@ module Portail
           allowed_from(state).select { |target| data_stream.nil? || data_stream.allows?(target) }
         end
 
+        # Le dépôt seul : une pièce ajoutée peut être la réponse de l'agent, que rien ne distingue
+        # d'un complément de l'émetteur.
         def awaiting_retrieval?(delivery) = delivery.received_attachments.any? && !delivery.retrieved?
       end
     end

@@ -101,7 +101,7 @@ fr:
           partial:
             one: "Télécharger %{count} pièce reçue sur %{total}"
             other: "Télécharger %{count} pièces reçues sur %{total}"
-        hint: "Sans les pièces non reçues : l'état de chacune figure dans le tableau."
+        hint: "Sans les pièces non reçues : l'état de chacune figure dans les tableaux."
       attachment_states:
         pending: En attente
         received: Reçue

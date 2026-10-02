@@ -309,6 +309,17 @@ Fonctionnalité: Les télédossiers de l'organisation
     Et il ouvre le télédossier "DGS-CERTDC-0000000000006-01"
     Alors l'historique porte "Alex MARTIN a téléchargé l'archive des pièces"
 
+  # Le complément de l'émetteur part avec le dépôt ; celui encore en attente compte dans le total.
+  Scénario: L'archive reprend les pièces ajoutées reçues
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000008-01" complété par l'émetteur de "complement.pdf", et de "annexe.pdf" encore en attente
+    Et il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000008-01"
+    Et il télécharge l'archive "Télécharger 2 pièces reçues sur 3 (ZIP)" le "02/10/2026 14:05"
+    Alors il obtient l'archive "20261002-14.05_DGS-CERTDC-0000000000008-01.zip" avec les pièces "certificat.pdf, complement.pdf"
+    Quand il se rend sur l'accueil
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000008-01"
+    Alors l'historique porte "Alex MARTIN a téléchargé l'archive des pièces"
+
   Scénario: Un télédossier sans pièce reçue ne propose pas d'archive
     Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000007-01" dont aucune pièce n'est reçue
     Et il s'est connecté
