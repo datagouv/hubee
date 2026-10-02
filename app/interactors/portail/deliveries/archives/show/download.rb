@@ -17,7 +17,7 @@ module Portail
             context.archive = HubAPI::Attachments.download_all(delivery: context.delivery,
               archive_filename: context.archive_filename, author:, siret: link.siret, insee_code: link.insee_code)
             Rails.logger.info("Pièces récupérées en archive", delivery_id:, agent_id: agent.id,
-              attachment_ids: context.delivery.received_attachments.map(&:id))
+              attachment_ids: context.delivery.all_received_attachments.map(&:id))
           rescue HubAPI::Error => e
             context.fail!(error: failure_for(e))
           end

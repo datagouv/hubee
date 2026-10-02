@@ -108,6 +108,7 @@ RSpec.describe Portail::Access::StateTransitions do
         "no attachment at all" => {
           attachments: [], events: [], offered: %w[acknowledged in_progress awaiting_attachments refused done]
         },
+        # Une pièce ajoutée peut être la réponse de l'agent : elle ne retient aucune décision.
         "a received attachment in a complement only" => {
           attachments: [{state: "pending"}],
           events: [{event_type: "attachment.created", content: "complement.pdf", metadata: {},

@@ -903,9 +903,9 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(page).to have_no_link(href: %r{/pieces/a2222222})
     end
 
-    # L'archive ne contient que les pièces reçues du dépôt : une pièce d'événement ne compte ni
-    # dans ce qu'elle remet ni dans le total, et celle qui manque se lit dans le tableau.
-    it "offers the archive of the received deposit pieces, out of all the deposit pieces" do
+    # Le total compte les pièces du dépôt et les pièces ajoutées ; celle qui manque se lit dans
+    # les tableaux.
+    it "offers the archive of the received pieces, deposited and added, out of all of them" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
         build(:portail_delivery,
@@ -924,7 +924,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       section = Capybara.string(response.body).find("section", text: "Pièces du télédossier")
       # Le lien partage la ligne du titre, et l'aide le suit dans sa colonne, hors du lien.
       heading_row = section.find("h2", text: "Pièces du télédossier").ancestor(".fr-grid-row")
-      expect(heading_row).to have_link(exact_text: "Télécharger 2 pièces reçues sur 3 (ZIP)",
+      expect(heading_row).to have_link(exact_text: "Télécharger 3 pièces reçues sur 4 (ZIP)",
         href: "/teledossiers/#{delivery_id}/archive")
       expect(heading_row).to have_css("a[href$='/archive'][data-turbo='false'][aria-describedby='delivery-archive-hint']")
       expect(heading_row).to have_no_css("a[href$='/archive'] .fr-link__detail")
@@ -934,7 +934,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(section.find("tr", text: "attendue.pdf")).to have_css("p.fr-badge", text: "En attente")
     end
 
-    it "offers no archive when no deposit piece is received" do
+    it "offers no archive when no piece is received" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
         build(:portail_delivery, attachments: [build(:portail_attachment, state: "pending")])

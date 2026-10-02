@@ -685,5 +685,92 @@ RSpec.describe Portail::HubAPI::Attachments do
       }.to raise_error(Portail::HubAPI::InvalidRequest)
       expect(client.requests).to be_empty
     end
+
+    context "with pieces added by the history" do
+      let(:event_id) { "e2222222-2222-2222-2222-222222222222" }
+      let(:added_id) { "d4c3b2a1-6e5f-4a7b-8c9d-0e1f2a3b4c5d" }
+
+      # Les mêmes pièces des deux côtés de la frontière : servies par le fake, lues par le portail.
+      def serve(client, deposited: [], added: [])
+        client.add_case(build_v2_delivery(id: delivery_id,
+          recipient: build_v2_recipient(siret: trace[:siret], code_insee: trace[:insee_code]),
+          data_package: build_v2_data_package(attachments: deposited.map { |piece| build_v2_attachment(piece) }),
+          events: [build_v2_event(id: event_id, event_type: :"attachment.created",
+            attachments: added.map { |piece| build_v2_attachment(piece) })]))
+        build(:portail_delivery, id: delivery_id, attachments: deposited.map { |piece| portail_attachment(piece) },
+          events: [build(:portail_event, id: event_id, attachments: added.map { |piece| portail_attachment(piece) })])
+      end
+
+      def portail_attachment(piece)
+        build(:portail_attachment, **piece, state: piece.fetch(:state, :received).to_s)
+      end
+
+      it "returns the deposit pieces then the received added ones, each from its own route" do
+        client = HubApiV1::Testing::FakeClient.new
+        pending_id = "b0000000-0000-0000-0000-000000000000"
+        delivery = serve(client, deposited: [{id: attachment_id, filename: "certificat.pdf"}],
+          added: [{id: added_id, filename: "complement.pdf"}, {id: pending_id, filename: "annexe.pdf", state: :pending}])
+        client.add_attachment_content(attachment_id: attachment_id, body: "deposit".b)
+        client.add_attachment_content(attachment_id: added_id, body: "added".b)
+
+        archive = described_class.download_all(delivery: delivery, **archive_trace, client: client)
+
+        expect(entries_of(archive)).to eq([
+          {name: "20260923-14.05_DOSSIER-42/certificat.pdf", body: "deposit".b},
+          {name: "20260923-14.05_DOSSIER-42/complement.pdf", body: "added".b}
+        ])
+        expect(client.requests_to(content_path(added_id))).to be_empty
+        expect(client.requests.map(&:path)).to all(satisfy { |path| !path.end_with?(pending_id) })
+      ensure
+        archive&.close!
+      end
+
+      # Hash complet sur la route : seule celle de l'événement sert la pièce, puis une seule trace.
+      it "archives a delivery whose only received piece was added, through the event that carries it" do
+        client = HubApiV1::Testing::FakeClient.new
+        delivery = build(:portail_delivery, id: delivery_id, attachments: [],
+          events: [build(:portail_event, id: event_id, attachments: [build(:portail_attachment, id: added_id)])])
+        expect(HubApiV1::V2::Attachment).not_to receive(:download)
+        expect(HubApiV1::V2::Attachment).to receive(:download_from_event).with(
+          delivery_id: delivery_id, event_id: event_id, id: added_id, client: client
+        ).ordered.and_return("octets".b)
+        expect(HubApiV1::V2::Delivery).to receive(:record_all_attachments_download).ordered.and_return(build_v2_event)
+
+        described_class.download_all(delivery: delivery, **archive_trace, client: client).close!
+      end
+
+      # Le dépôt passe d'abord et garde son nom ; la pièce ajoutée homonyme prend le suffixe.
+      it "keeps both pieces when an added one bears the name of a deposit piece" do
+        client = HubApiV1::Testing::FakeClient.new
+        delivery = serve(client, deposited: [{id: attachment_id, filename: "certificat.pdf"}],
+          added: [{id: added_id, filename: "Certificat.pdf"}])
+        client.add_attachment_content(attachment_id: attachment_id, body: "deposit".b)
+        client.add_attachment_content(attachment_id: added_id, body: "added".b)
+
+        archive = described_class.download_all(delivery: delivery, **archive_trace, client: client)
+
+        expect(entries_of(archive)).to eq([
+          {name: "20260923-14.05_DOSSIER-42/certificat.pdf", body: "deposit".b},
+          {name: "20260923-14.05_DOSSIER-42/Certificat-1.pdf", body: "added".b}
+        ])
+      ensure
+        archive&.close!
+      end
+
+      # Pas d'archive partielle, d'où que vienne la pièce manquante.
+      it "stops at an added piece the upstream does not serve, untraced, and deletes the archive" do
+        client = use_hub_api_fake_client
+        delivery = serve(client, deposited: [{id: attachment_id}], added: [{id: added_id}])
+        stub_hub_api_v2_attachment_downloaded(attachment_id)
+        stub_hub_api_v2_event_attachment_unavailable(delivery_id: delivery_id, event_id: event_id, id: added_id)
+        paths = watch_tempfile_paths
+
+        expect {
+          described_class.download_all(delivery: delivery, **archive_trace)
+        }.to raise_error(Portail::HubAPI::ContentUnavailable)
+        expect(client.requests_to(events_path)).to be_empty
+        expect(File.exist?(paths.first)).to be(false)
+      end
+    end
   end
 end

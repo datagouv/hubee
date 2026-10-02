@@ -3,12 +3,28 @@
 require "rails_helper"
 
 RSpec.describe Portail::Delivery do
+  describe "#all_attachments" do
+    it "lists the deposit pieces, then those added by the history, in its order" do
+      deposited = build(:portail_attachment, id: "a1111111-1111-1111-1111-111111111111")
+      first_added = build(:portail_attachment, id: "b1111111-1111-1111-1111-111111111111")
+      last_added = build(:portail_attachment, id: "b2222222-2222-2222-2222-222222222222")
+      delivery = build(:portail_delivery, attachments: [deposited], events: [
+        build(:portail_event, attachments: [first_added]),
+        build(:portail_event, attachments: []),
+        build(:portail_event, attachments: [last_added])
+      ])
+
+      expect(delivery.all_attachments).to eq([deposited, first_added, last_added])
+    end
+  end
+
   describe "#received_attachments" do
-    it "keeps the received deposit attachments, in their order" do
+    it "keeps the received deposit pieces only, in their order" do
       first = build(:portail_attachment, id: "a1111111-1111-1111-1111-111111111111")
       pending = build(:portail_attachment, id: "a2222222-2222-2222-2222-222222222222", state: "pending")
       last = build(:portail_attachment, id: "a3333333-3333-3333-3333-333333333333")
-      delivery = build(:portail_delivery, attachments: [first, pending, last])
+      delivery = build(:portail_delivery, attachments: [first, pending, last],
+        events: [build(:portail_event, attachments: [build(:portail_attachment, id: "b1111111-1111-1111-1111-111111111111")])])
 
       expect(delivery.received_attachments).to eq([first, last])
     end
@@ -17,6 +33,34 @@ RSpec.describe Portail::Delivery do
       delivery = build(:portail_delivery, attachments: [build(:portail_attachment, state: "rejected")])
 
       expect(delivery.received_attachments).to eq([])
+    end
+  end
+
+  describe "#all_received_attachments" do
+    it "keeps the received pieces, deposited then added, in their order" do
+      first = build(:portail_attachment, id: "a1111111-1111-1111-1111-111111111111")
+      pending = build(:portail_attachment, id: "a2222222-2222-2222-2222-222222222222", state: "pending")
+      added = build(:portail_attachment, id: "b1111111-1111-1111-1111-111111111111")
+      added_pending = build(:portail_attachment, id: "b2222222-2222-2222-2222-222222222222", state: "pending")
+      delivery = build(:portail_delivery, attachments: [first, pending],
+        events: [build(:portail_event, attachments: [added, added_pending])])
+
+      expect(delivery.all_received_attachments).to eq([first, added])
+    end
+
+    it "keeps the added pieces when no deposit piece is received" do
+      added = build(:portail_attachment, id: "b1111111-1111-1111-1111-111111111111")
+      delivery = build(:portail_delivery, attachments: [build(:portail_attachment, state: "rejected")],
+        events: [build(:portail_event, attachments: [added])])
+
+      expect(delivery.all_received_attachments).to eq([added])
+    end
+
+    it "is empty when no piece is received" do
+      delivery = build(:portail_delivery, attachments: [build(:portail_attachment, state: "rejected")],
+        events: [build(:portail_event, attachments: [build(:portail_attachment, state: "pending")])])
+
+      expect(delivery.all_received_attachments).to eq([])
     end
   end
 

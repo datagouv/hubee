@@ -165,9 +165,10 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
   end
 
   describe "#delivery_archive_access" do
-    def delivery_with(*states)
+    def delivery_with(*states, added: [])
       build(:portail_delivery, id: "94b1b09d-b47f-4480-9b48-93b8b36108f2",
-        attachments: states.map { |state| build(:portail_attachment, state:) })
+        attachments: states.map { |state| build(:portail_attachment, state:) },
+        events: [build(:portail_event, attachments: added.map { |state| build(:portail_attachment, state:) })])
     end
 
     # Le compte dit ce que l'agent recevra ; le total ne s'ajoute que quand il en manque. Le format
@@ -186,6 +187,28 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
         expect(Capybara.string(helper.delivery_archive_access(delivery_with(*example[:states]))))
           .to have_link(exact_text: "#{example[:label]} (ZIP)"), name
       end
+    end
+
+    # Une pièce ajoutée compte comme une pièce du dépôt, reçue ou manquante.
+    it "counts the pieces added by the history with those of the deposit" do
+      labels = {
+        "an added piece received" => {states: %w[received], added: %w[received],
+                                      label: "Télécharger les 2 pièces reçues"},
+        "an added piece missing" => {states: %w[received], added: %w[pending],
+                                     label: "Télécharger 1 pièce reçue sur 2"}
+      }
+
+      labels.each do |name, example|
+        expect(Capybara.string(helper.delivery_archive_access(delivery_with(*example[:states], added: example[:added]))))
+          .to have_link(exact_text: "#{example[:label]} (ZIP)"), name
+      end
+    end
+
+    it "offers the archive when the only received piece was added" do
+      page = Capybara.string(helper.delivery_archive_access(delivery_with("pending", added: %w[received])))
+
+      expect(page).to have_link(exact_text: "Télécharger 1 pièce reçue sur 2 (ZIP)",
+        href: "/teledossiers/94b1b09d-b47f-4480-9b48-93b8b36108f2/archive")
     end
 
     # Surtout pas `download` : une page d'erreur finirait en fichier sur le disque de l'agent. Tout
@@ -213,7 +236,7 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       expect(page).to have_link(exact_text: "Télécharger 1 pièce reçue sur 2 (ZIP)")
       expect(page).to have_css("a[aria-describedby='delivery-archive-hint']")
       expect(page).to have_css(".delivery-attachments__archive > a + p#delivery-archive-hint.fr-hint-text",
-        exact_text: "Sans les pièces non reçues : l'état de chacune figure dans le tableau.")
+        exact_text: "Sans les pièces non reçues : l'état de chacune figure dans les tableaux.")
       expect(page).to have_no_css("a #delivery-archive-hint")
       expect(page).to have_no_css("a .fr-link__detail")
     end
