@@ -1461,6 +1461,21 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(headings.first(3)).to eq(["Télédossier DGS-CERTDC-0000000000001-01", "Accuser réception de ce télédossier", "Récapitulatif"])
       end
 
+      # Le cas courant : une pièce reçue que personne n'a encore téléchargée. L'accusé reste sous le
+      # titre, l'explication du blocage plus bas.
+      it "offers the receipt above the retrieval explanation on a new delivery nobody has retrieved" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, state: "transmitted"))
+
+        get "/teledossiers/#{delivery_id}"
+
+        expect(response).to have_http_status(:success)
+        titles = Nokogiri::HTML(response.body).css(".fr-callout__title").map { |title| title.text.strip }
+        expect(titles).to eq(["Accuser réception de ce télédossier", "Téléchargez une pièce pour faire avancer ce télédossier"])
+        expect(Capybara.string(response.body)).to have_no_button("Passer en cours")
+      end
+
       it "keeps the state form as it is alongside the proposal" do
         sign_in_member
 
@@ -1708,7 +1723,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(response).to have_http_status(:success)
         page = Capybara.string(response.body)
         expect(page).to have_select("Nouvel état", with_options: ["En cours", "Traité"])
-        expect(page).to have_css(".fr-callout", count: 1, text: "Commencer l'instruction de ce télédossier")
+        expect(page).to have_css(".fr-callout", count: 1)
+        expect(page).to have_css(".fr-callout__title", text: "Commencer l'instruction de ce télédossier")
         expect(headings).not_to include("Téléchargez une pièce pour faire avancer ce télédossier")
       end
 

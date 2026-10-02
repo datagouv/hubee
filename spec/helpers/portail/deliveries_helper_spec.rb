@@ -358,7 +358,7 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
       "a retrieved delivery already in progress" => {state: "in_progress", traits: [:retrieved], proposed: nil},
       "a retrieved delivery awaiting attachments" => {state: "awaiting_attachments", traits: [:retrieved], proposed: nil}
     }.each do |name, setup|
-      it "proposes #{setup[:proposed].inspect} on #{name}" do
+      it "proposes #{setup[:proposed] || "nothing"} on #{name}" do
         delivery = build(:portail_delivery, *setup[:traits], state: setup[:state],
           **setup.slice(:attachments))
         data_stream = build(:portail_data_stream, **setup.slice(:allowed_states))
