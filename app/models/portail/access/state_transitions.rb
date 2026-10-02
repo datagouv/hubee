@@ -16,6 +16,9 @@ module Portail
       # Accuser réception : atteignable depuis « Nouveau » seul, la table ne revient jamais en arrière.
       RECEIPT = "acknowledged"
 
+      # Commencer l'instruction : atteignable depuis « Nouveau » et « Reçu ».
+      INSTRUCTION = "in_progress"
+
       # Ce qui ne se décide pas sans avoir lu le dossier ; demander des compléments n'est pas décider.
       RETRIEVAL_REQUIRED = %w[in_progress refused done].freeze
 

@@ -1418,9 +1418,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
     # Le raccourci « Nouveau » → « Reçu » : un geste explicite, jamais un effet de l'ouverture.
     context "receipt proposal" do
+      # Sans pièce, ni explication de blocage ni proposition d'instruire : l'accusé est seul.
       def open_detail(state: "transmitted")
         expect(Portail::HubAPI::Deliveries).to receive(:find)
-          .and_return(build(:portail_delivery, :retrieved, state: state))
+          .and_return(build(:portail_delivery, state: state, attachments: []))
         get "/teledossiers/#{delivery_id}"
       end
 
@@ -1449,6 +1450,21 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(response).to have_http_status(:success)
         headings = Nokogiri::HTML(response.body).css("main h1, main h2").map { |heading| heading.text.strip }
         expect(headings.first(3)).to eq(["Télédossier DGS-CERTDC-0000000000001-01", "Accuser réception de ce télédossier", "Récapitulatif"])
+      end
+
+      # Le cas courant : une pièce reçue que personne n'a encore téléchargée. L'accusé reste sous le
+      # titre, l'explication du blocage plus bas.
+      it "offers the receipt above the retrieval explanation on a new delivery nobody has retrieved" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, state: "transmitted"))
+
+        get "/teledossiers/#{delivery_id}"
+
+        expect(response).to have_http_status(:success)
+        titles = Nokogiri::HTML(response.body).css(".fr-callout__title").map { |title| title.text.strip }
+        expect(titles).to eq(["Accuser réception de ce télédossier", "Téléchargez une pièce pour faire avancer ce télédossier"])
+        expect(Capybara.string(response.body)).to have_no_button("Passer en cours")
       end
 
       it "keeps the state form as it is alongside the proposal" do
@@ -1497,6 +1513,132 @@ RSpec.describe "Portail::Deliveries", type: :request do
             expect(response).to have_http_status(:not_found)
             expect(page).to have_text("Page introuvable")
             expect(page).to have_no_button("Marquer comme reçu")
+          end
+        end
+      end
+    end
+
+    # Le passage « En cours » d'un dossier lu : un geste explicite, jamais un effet de la récupération.
+    context "instruction proposal" do
+      def open_detail(state: "acknowledged", traits: [:retrieved])
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, *traits, state: state))
+        get "/teledossiers/#{delivery_id}"
+      end
+
+      it "offers a habilitated member to start instructing a retrieved delivery, writing nothing on opening" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).not_to receive(:change_state)
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        callout = Capybara.string(response.body).find(".fr-callout")
+        expect(callout).to have_css("h2.fr-callout__title", text: "Commencer l'instruction de ce télédossier")
+        expect(callout).to have_text("L'émetteur du dossier sera informé que vous l'instruisez et verra votre nom.")
+        expect(callout).to have_css("form[action='/teledossiers/#{delivery_id}/etat'][method='post']")
+        expect(callout).to have_field("_method", type: :hidden, with: "patch")
+        expect(callout).to have_field("etat", type: :hidden, with: "in_progress")
+        expect(callout).to have_button("Passer en cours")
+      end
+
+      # Deux mises en avant sous le titre se disputeraient l'attention : la plus avancée l'emporte.
+      it "offers it on a retrieved new delivery in place of the receipt, still in the state form" do
+        sign_in_member
+
+        open_detail(state: "transmitted")
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_css(".fr-callout", count: 1)
+        expect(page).to have_button("Passer en cours")
+        expect(page).to have_no_button("Marquer comme reçu")
+        expect(page).to have_select("Nouvel état", with_options: ["Reçu", "En cours"])
+      end
+
+      it "places the proposal right under the title" do
+        sign_in_member
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        headings = Nokogiri::HTML(response.body).css("main h1, main h2").map { |heading| heading.text.strip }
+        expect(headings.first(3))
+          .to eq(["Télédossier DGS-CERTDC-0000000000001-01", "Commencer l'instruction de ce télédossier", "Récapitulatif"])
+      end
+
+      it "does not offer it before any piece is retrieved" do
+        sign_in_member
+
+        open_detail(traits: [])
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_text("Téléchargez une pièce pour faire avancer ce télédossier")
+        expect(page).to have_no_button("Passer en cours")
+      end
+
+      it "does not offer it on a delivery without any piece" do
+        sign_in_member
+        expect(Portail::HubAPI::Deliveries).to receive(:find)
+          .and_return(build(:portail_delivery, state: "acknowledged", attachments: []))
+
+        get "/teledossiers/#{delivery_id}"
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_select("Nouvel état", with_options: ["En cours"])
+        expect(page).to have_no_button("Passer en cours")
+      end
+
+      it "does not offer it on a delivery already in progress" do
+        sign_in_member
+
+        open_detail(state: "in_progress")
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_select("Nouvel état", with_options: ["Traité"])
+        expect(page).to have_no_button("Passer en cours")
+      end
+
+      it "does not offer it when the data stream withholds in progress" do
+        sign_in_member
+        stub_data_stream(build(:portail_data_stream, allowed_states: %w[transmitted acknowledged done refused closed]))
+
+        open_detail
+
+        expect(response).to have_http_status(:success)
+        page = Capybara.string(response.body)
+        expect(page).to have_select("Nouvel état", with_options: ["Traité"])
+        expect(page).to have_no_button("Passer en cours")
+      end
+
+      {
+        "a habilitated member" => {role: :member, codes: ["CERTDC"], offered: true},
+        "a member outside their habilitations" => {role: :member, codes: ["AEC"], offered: false},
+        "a member without any habilitation" => {role: :member, codes: [], offered: false},
+        "a local administrator without habilitation" => {role: :local_administrator, codes: [], offered: true},
+        "a local administrator habilitated on the data stream" => {role: :local_administrator, codes: ["CERTDC"], offered: true},
+        "a local administrator outside their habilitations" => {role: :local_administrator, codes: ["AEC"], offered: false}
+      }.each do |agent, setup|
+        it "#{setup[:offered] ? "offers" : "does not offer"} it to #{agent}" do
+          if setup[:role] == :member
+            sign_in_member(data_stream_codes: setup[:codes])
+          else
+            sign_in_local_administrator(data_stream_codes: setup[:codes])
+          end
+
+          open_detail
+
+          page = Capybara.string(response.body)
+          if setup[:offered]
+            expect(response).to have_http_status(:success)
+            expect(page).to have_button("Passer en cours")
+          else
+            expect(response).to have_http_status(:not_found)
+            expect(page).to have_text("Page introuvable")
+            expect(page).to have_no_button("Passer en cours")
           end
         end
       end
@@ -1564,7 +1706,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
           .to have_css(".fr-callout", text: "Les états « En cours » et « Traité » ne sont proposés")
       end
 
-      it "leaves the state form alone once a piece is retrieved" do
+      it "gives way to the instruction proposal once a piece is retrieved" do
         sign_in_member
 
         open_detail(build(:portail_delivery, :retrieved, state: "acknowledged"))
@@ -1572,7 +1714,8 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(response).to have_http_status(:success)
         page = Capybara.string(response.body)
         expect(page).to have_select("Nouvel état", with_options: ["En cours", "Traité"])
-        expect(page).to have_no_css(".fr-callout")
+        expect(page).to have_css(".fr-callout", count: 1)
+        expect(page).to have_css(".fr-callout__title", text: "Commencer l'instruction de ce télédossier")
         expect(headings).not_to include("Téléchargez une pièce pour faire avancer ce télédossier")
       end
 
