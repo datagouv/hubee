@@ -9,7 +9,7 @@ module Portail
           include Interactor
 
           def call
-            return if context.delivery.received_attachments.any?
+            return if context.delivery.all_received_attachments.any?
 
             Rails.logger.info("Archive non livrable",
               delivery_id: context.delivery.id, reason: :no_received_attachment)
