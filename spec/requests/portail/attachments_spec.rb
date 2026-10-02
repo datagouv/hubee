@@ -15,12 +15,13 @@ RSpec.describe "Portail::Attachments", type: :request do
     it "serves a received piece under its original filename, as a download, out of any store" do
       agent = sign_in_member
       link = Membership.find_by!(agent: agent).organization_link
-      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+      delivery = build(:portail_delivery)
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery)
       # La récupération part signée de l'agent de la session — le nom que ProConnect a servi à la
       # connexion — et bornée au périmètre de son rattachement : la chaîne entière, du cookie
       # jusqu'à la frontière.
       expect(Portail::HubAPI::Attachments).to receive(:download)
-        .with(delivery_id: delivery_id, id: attachment_id, filename: "certificat.pdf",
+        .with(delivery: delivery, id: attachment_id, filename: "certificat.pdf",
           author: "Alex MARTIN", siret: link.siret, insee_code: link.insee_code)
         .and_return("%PDF-1.7\n\xFF\xFE\x00binaire".b)
 
@@ -167,20 +168,46 @@ RSpec.describe "Portail::Attachments", type: :request do
       expect(Capybara.string(response.body)).to have_text("Page introuvable")
     end
 
-    # Une pièce ajoutée en cours d'instruction vit sur son événement : hors périmètre, donc
-    # introuvable par cette adresse même si l'amont la servirait.
-    it "renders a not found page for a piece carried by an event, not by the deposit" do
-      sign_in_member
-      attachment = build(:portail_attachment, id: "e2222222-2222-2222-2222-222222222222")
-      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
-        build(:portail_delivery, events: [build(:portail_event, attachments: [attachment])])
-      )
-      expect(Portail::HubAPI::Attachments).not_to receive(:download)
+    # Une pièce ajoutée en cours d'instruction vit sur son événement, que l'adresse ne nomme pas :
+    # le télédossier lu la retrouve, et la frontière amont choisit sa route.
+    it "serves a received piece added by an event through the same address as a deposit piece" do
+      agent = sign_in_member
+      link = Membership.find_by!(agent: agent).organization_link
+      piece = build(:portail_attachment, id: "b1111111-1111-1111-1111-111111111111", filename: "complement.pdf")
+      delivery = build(:portail_delivery, attachments: [],
+        events: [build(:portail_event, id: "e2222222-2222-2222-2222-222222222222",
+          event_type: "attachment.created", metadata: {}, attachments: [piece])])
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery)
+      expect(Portail::HubAPI::Attachments).to receive(:download)
+        .with(delivery: delivery, id: piece.id, filename: "complement.pdf", author: "Alex MARTIN",
+          siret: link.siret, insee_code: link.insee_code)
+        .and_return("octets".b)
 
-      get "/teledossiers/#{delivery_id}/pieces/e2222222-2222-2222-2222-222222222222"
+      get "/teledossiers/#{delivery_id}/pieces/#{piece.id}"
 
-      expect(response).to have_http_status(:not_found)
-      expect(Capybara.string(response.body)).to have_text("Page introuvable")
+      expect(response).to have_http_status(:success)
+      expect(response.body).to eq("octets")
+      expect(response.headers["Content-Disposition"]).to include('filename="complement.pdf"')
+    end
+
+    %w[pending corrupted rejected deleted quarantined].each do |state|
+      it "renders a not found page for a #{state} piece added by an event, without calling the upstream" do
+        sign_in_member
+        piece = build(:portail_attachment, id: "b1111111-1111-1111-1111-111111111111", state: state)
+        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+          build(:portail_delivery, attachments: [], events: [build(:portail_event, attachments: [piece])])
+        )
+        expect(Portail::HubAPI::Attachments).not_to receive(:download)
+
+        events = capture_semantic_logger_events { get "/teledossiers/#{delivery_id}/pieces/#{piece.id}" }
+
+        expect(response).to have_http_status(:not_found)
+        expect(Capybara.string(response.body)).to have_text("Page introuvable")
+        expect(events).to include(be_a_semantic_logger_event(
+          level: :info, message: "Pièce non livrable",
+          payload_includes: {delivery_id: delivery_id, id: piece.id, reason: :not_received}
+        ))
+      end
     end
 
     # Les identifiants viennent de l'URL et finissent au journal, en champs, avec le motif.
@@ -306,111 +333,120 @@ RSpec.describe "Portail::Attachments", type: :request do
 
     # La matrice rôle × habilitation, sur la pièce et non déduite du détail : c'est ici que les
     # octets partiraient. Le refus tombe avant tout appel de contenu.
-    context "reading perimeter" do
-      def delivery_on(code) = build(:portail_delivery, data_stream_code: code)
+    {
+      "a deposit piece" => ->(code) { build(:portail_delivery, data_stream_code: code) },
+      "a piece added by an event" => lambda { |code|
+        build(:portail_delivery, data_stream_code: code, attachments: [],
+          events: [build(:portail_event, id: "e2222222-2222-2222-2222-222222222222",
+            event_type: "attachment.created", metadata: {}, attachments: [build(:portail_attachment, id: "a1111111-1111-1111-1111-111111111111")])])
+      }
+    }.each do |kind, delivery_for|
+      context "reading perimeter of #{kind}" do
+        define_method(:delivery_on) { |code| instance_exec(code, &delivery_for) }
 
-      # La même page qu'une pièce inexistante : distinguer les deux révélerait l'existence d'une
-      # télédossier hors périmètre.
-      def expect_a_not_found_page
-        expect(Portail::HubAPI::Attachments).not_to receive(:download)
+        # La même page qu'une pièce inexistante : distinguer les deux révélerait l'existence d'une
+        # télédossier hors périmètre.
+        def expect_a_not_found_page
+          expect(Portail::HubAPI::Attachments).not_to receive(:download)
 
-        get path
+          get path
 
-        expect(response).to have_http_status(:not_found)
-        expect(Capybara.string(response.body)).to have_text("Page introuvable")
-        expect(Capybara.string(response.body)).to have_no_text("DGS-CERTDC-0000000000001-01")
-      end
+          expect(response).to have_http_status(:not_found)
+          expect(Capybara.string(response.body)).to have_text("Page introuvable")
+          expect(Capybara.string(response.body)).to have_no_text("DGS-CERTDC-0000000000001-01")
+        end
 
-      def expect_the_piece_to_be_served
-        expect(Portail::HubAPI::Attachments).to receive(:download).and_return("octets".b)
+        def expect_the_piece_to_be_served
+          expect(Portail::HubAPI::Attachments).to receive(:download).and_return("octets".b)
 
-        get path
+          get path
 
-        expect(response).to have_http_status(:success)
-        expect(response.body).to eq("octets")
-      end
+          expect(response).to have_http_status(:success)
+          expect(response.body).to eq("octets")
+        end
 
-      it "serves a piece of a delivery on a data stream the member is habilitated to" do
-        sign_in_member(data_stream_codes: ["CERTDC"])
-        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
+        it "serves a piece of a delivery on a data stream the member is habilitated to" do
+          sign_in_member(data_stream_codes: ["CERTDC"])
+          expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
-        expect_the_piece_to_be_served
-      end
+          expect_the_piece_to_be_served
+        end
 
-      # Seul le journal distingue un refus d'une inexistence, et c'est lui qui laisse voir un
-      # agent qui forge des adresses. Éprouvé jusqu'à l'appel au logger, sur le canal CSIRT.
-      it "refuses a member on a piece outside their habilitations, logs and alerts" do
-        agent = sign_in_member(data_stream_codes: ["AEC"])
-        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
-        expect(Sentry).to receive(:capture_message).with(
-          "Accès refusé hors périmètre sur #{path}",
-          level: :warning, extra: hash_including(agent_id: agent.id)
-        )
+        # Seul le journal distingue un refus d'une inexistence, et c'est lui qui laisse voir un
+        # agent qui forge des adresses. Éprouvé jusqu'à l'appel au logger, sur le canal CSIRT.
+        it "refuses a member on a piece outside their habilitations, logs and alerts" do
+          agent = sign_in_member(data_stream_codes: ["AEC"])
+          expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
+          expect(Sentry).to receive(:capture_message).with(
+            "Accès refusé hors périmètre sur #{path}",
+            level: :warning, extra: hash_including(agent_id: agent.id)
+          )
 
-        events = capture_semantic_logger_events { expect_a_not_found_page }
+          events = capture_semantic_logger_events { expect_a_not_found_page }
 
-        membership = Membership.find_by!(agent: agent)
-        expect(events).to include(be_a_semantic_logger_event(
-          level: :info, message: "Décision d'accès",
-          payload_includes: {
-            event: "Portail::Access::Refusal", reason: :out_of_perimeter, path: path,
-            agent_id: agent.id, membership_id: membership.id, ip_address: "127.0.0.1"
-          }
-        ))
-      end
+          membership = Membership.find_by!(agent: agent)
+          expect(events).to include(be_a_semantic_logger_event(
+            level: :info, message: "Décision d'accès",
+            payload_includes: {
+              event: "Portail::Access::Refusal", reason: :out_of_perimeter, path: path,
+              agent_id: agent.id, membership_id: membership.id, ip_address: "127.0.0.1"
+            }
+          ))
+        end
 
-      it "refuses a member without any habilitation" do
-        sign_in_member(data_stream_codes: [])
-        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
+        it "refuses a member without any habilitation" do
+          sign_in_member(data_stream_codes: [])
+          expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
-        expect_a_not_found_page
-      end
+          expect_a_not_found_page
+        end
 
-      # L'accès à une pièce est celui de son télédossier : un état non servi ferme aussi les octets.
-      it "refuses a piece of a delivery in a state the portal does not serve" do
-        sign_in_member(data_stream_codes: ["CERTDC"])
-        expect(Portail::HubAPI::Deliveries).to receive(:find)
-          .and_return(build(:portail_delivery, state: "integration_error"))
+        # L'accès à une pièce est celui de son télédossier : un état non servi ferme aussi les octets.
+        it "refuses a piece of a delivery in a state the portal does not serve" do
+          sign_in_member(data_stream_codes: ["CERTDC"])
+          expect(Portail::HubAPI::Deliveries).to receive(:find)
+            .and_return(build(:portail_delivery, state: "integration_error"))
 
-        expect_a_not_found_page
-      end
+          expect_a_not_found_page
+        end
 
-      # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.
-      it "refuses a piece of a delivery the upstream served for another organisation" do
-        sign_in_member(data_stream_codes: ["CERTDC"])
-        expect(Portail::HubAPI::Deliveries).to receive(:find)
-          .and_return(build(:portail_delivery, :of_another_organisation))
+        # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.
+        it "refuses a piece of a delivery the upstream served for another organisation" do
+          sign_in_member(data_stream_codes: ["CERTDC"])
+          expect(Portail::HubAPI::Deliveries).to receive(:find)
+            .and_return(build(:portail_delivery, :of_another_organisation))
 
-        expect_a_not_found_page
-      end
+          expect_a_not_found_page
+        end
 
-      it "refuses a local administrator on a piece of a delivery served for another organisation" do
-        sign_in_local_administrator
-        expect(Portail::HubAPI::Deliveries).to receive(:find)
-          .and_return(build(:portail_delivery, :of_another_organisation))
+        it "refuses a local administrator on a piece of a delivery served for another organisation" do
+          sign_in_local_administrator
+          expect(Portail::HubAPI::Deliveries).to receive(:find)
+            .and_return(build(:portail_delivery, :of_another_organisation))
 
-        expect_a_not_found_page
-      end
+          expect_a_not_found_page
+        end
 
-      it "serves any piece of their organisation to a local administrator without habilitation" do
-        sign_in_local_administrator
-        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
+        it "serves any piece of their organisation to a local administrator without habilitation" do
+          sign_in_local_administrator
+          expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
-        expect_the_piece_to_be_served
-      end
+          expect_the_piece_to_be_served
+        end
 
-      it "serves a piece inside the habilitations of a local administrator" do
-        sign_in_local_administrator(data_stream_codes: ["CERTDC"])
-        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
+        it "serves a piece inside the habilitations of a local administrator" do
+          sign_in_local_administrator(data_stream_codes: ["CERTDC"])
+          expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
-        expect_the_piece_to_be_served
-      end
+          expect_the_piece_to_be_served
+        end
 
-      it "refuses a local administrator on a piece outside their habilitations" do
-        sign_in_local_administrator(data_stream_codes: ["AEC"])
-        expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
+        it "refuses a local administrator on a piece outside their habilitations" do
+          sign_in_local_administrator(data_stream_codes: ["AEC"])
+          expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
-        expect_a_not_found_page
+          expect_a_not_found_page
+        end
       end
     end
   end

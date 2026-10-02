@@ -11,11 +11,18 @@ module Portail
         # Deux appels amont sous un seul nom, et l'ordre porte l'invariant : rien n'est tracé sans
         # octets servis, rien n'est rendu sans trace. Soudure d'un manque de hub-api V1, à retirer
         # le jour où l'amont tracera seul. Ni l'état de la pièce, ni sa taille, ni les droits de
-        # l'agent ne sont regardés : décisions de l'appelant, prises avant l'appel.
-        def download(delivery_id:, id:, filename:, author:, siret:, insee_code:,
-          client: HubApiV1.client)
-          content = fetch(delivery_id, id, client)
-          record(delivery_id, filename, author, siret, insee_code, client)
+        # l'agent ne sont regardés : décisions de l'appelant, prises avant l'appel. `delivery` doit
+        # être celui qui porte la pièce : l'amont sert une pièce ajoutée par un événement sur une
+        # autre route, et c'est ici, nulle part ailleurs, que l'événement se retrouve.
+        def download(delivery:, id:, filename:, author:, siret:, insee_code:, client: HubApiV1.client)
+          content = fetch(delivery.id, id) do
+            if (event = event_carrying(delivery, id))
+              HubApiV1::V2::Attachment.download_from_event(delivery_id: delivery.id, event_id: event.id, id:, client:)
+            else
+              HubApiV1::V2::Attachment.download(delivery_id: delivery.id, id:, client:)
+            end
+          end
+          record(delivery.id, filename, author, siret, insee_code, client)
           content
         end
 
@@ -42,17 +49,23 @@ module Portail
 
         private
 
+        def event_carrying(delivery, id)
+          delivery.events.find { |event| event.attachments.any? { |attachment| attachment.id == id } }
+        end
+
         # Rendue à l'allocateur dès son écriture : la pièce suivante ne s'ajoute pas à elle en mémoire.
         def add_content(archive, delivery_id, attachment, client)
-          content = fetch(delivery_id, attachment.id, client)
+          content = fetch(delivery_id, attachment.id) do
+            HubApiV1::V2::Attachment.download(delivery_id:, id: attachment.id, client:)
+          end
           archive.add(attachment.filename, content)
           content.clear unless content.frozen?
         end
 
         # Les octets tels que l'amont les sert, en BINARY et entièrement en mémoire. Ils traversent
-        # sans être ni conservés ni journalisés.
-        def fetch(delivery_id, id, client)
-          HubApiV1::V2::Attachment.download(delivery_id: delivery_id, id: id, client: client)
+        # sans être ni conservés ni journalisés. Le bloc est l'appel de la route qui les sert.
+        def fetch(delivery_id, id)
+          yield
         rescue HubApiV1::V2::AttachmentUnavailableError => e
           # L'amont rend la même réponse pour une pièce purgée et pour une panne de la route :
           # seule la fréquence de cette ligne distingue l'une de l'autre. Message stable, à compter.

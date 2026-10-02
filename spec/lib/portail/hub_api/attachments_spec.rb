@@ -71,6 +71,10 @@ RSpec.describe Portail::HubAPI::Attachments do
   }
 
   describe ".download" do
+    let(:delivery) do
+      build(:portail_delivery, id: delivery_id, attachments: [build(:portail_attachment, id: attachment_id)])
+    end
+
     # Des octets qui ne sont pas de l'UTF-8 valide : un ré-encodage en route se verrait.
     it "returns the bytes of the attachment untouched" do
       client = HubApiV1::Testing::FakeClient.new
@@ -78,7 +82,7 @@ RSpec.describe Portail::HubAPI::Attachments do
       body = "%PDF-1.7\n\xFF\xFE\x00binaire".b
       client.add_attachment_content(attachment_id: attachment_id, body: body)
 
-      content = described_class.download(delivery_id: delivery_id, id: attachment_id, **trace, client: client)
+      content = described_class.download(delivery: delivery, id: attachment_id, **trace, client: client)
 
       expect(content).to eq(body)
       expect(content.encoding).to eq(Encoding::BINARY)
@@ -90,7 +94,7 @@ RSpec.describe Portail::HubAPI::Attachments do
       client = HubApiV1::Testing::FakeClient.new
       add_served_case(client)
 
-      described_class.download(delivery_id: delivery_id, id: attachment_id, **trace, client: client)
+      described_class.download(delivery: delivery, id: attachment_id, **trace, client: client)
 
       history = HubApiV1::V2::Delivery.find(id: delivery_id, siret: trace[:siret],
         code_insee: trace[:insee_code], client: client).events
@@ -110,7 +114,7 @@ RSpec.describe Portail::HubAPI::Attachments do
         siret: "12345678901234", code_insee: "75056", notify: false, client: client
       ).and_return(build_v2_event)
 
-      described_class.download(delivery_id: delivery_id, id: attachment_id, **trace, client: client)
+      described_class.download(delivery: delivery, id: attachment_id, **trace, client: client)
     end
 
     it "hands the gem its shared client when none is injected" do
@@ -123,7 +127,7 @@ RSpec.describe Portail::HubAPI::Attachments do
       expect(HubApiV1::V2::Delivery).to receive(:record_attachment_download)
         .with(hash_including(client: shared)).and_return(build_v2_event)
 
-      described_class.download(delivery_id: delivery_id, id: attachment_id, **trace)
+      described_class.download(delivery: delivery, id: attachment_id, **trace)
     end
 
     # « Pas de trace, pas de fichier » : l'écriture refusée, l'appelant n'obtient rien. Le dossier
@@ -135,7 +139,7 @@ RSpec.describe Portail::HubAPI::Attachments do
       expect(Rails.error).not_to receive(:report)
 
       expect {
-        described_class.download(delivery_id: delivery_id, id: attachment_id, **trace, client: client)
+        described_class.download(delivery: delivery, id: attachment_id, **trace, client: client)
       }.to raise_error(Portail::HubAPI::EventLimitReached)
     end
 
@@ -147,7 +151,7 @@ RSpec.describe Portail::HubAPI::Attachments do
       expect(HubApiV1::V2::Delivery).not_to receive(:record_attachment_download)
 
       expect {
-        described_class.download(delivery_id: delivery_id, id: attachment_id, **trace)
+        described_class.download(delivery: delivery, id: attachment_id, **trace)
       }.to raise_error(Portail::HubAPI::ContentUnavailable)
     end
 
@@ -162,7 +166,7 @@ RSpec.describe Portail::HubAPI::Attachments do
       expect(Rails.error).not_to receive(:report)
 
       expect {
-        described_class.download(delivery_id: delivery_id, id: missing_id, **trace, client: client)
+        described_class.download(delivery: delivery, id: missing_id, **trace, client: client)
       }.to raise_error(Portail::HubAPI::NotFound)
     end
 
@@ -170,7 +174,7 @@ RSpec.describe Portail::HubAPI::Attachments do
       client = HubApiV1::Testing::FakeClient.new
 
       expect {
-        described_class.download(delivery_id: delivery_id, id: "..", **trace, client: client)
+        described_class.download(delivery: delivery, id: "..", **trace, client: client)
       }.to raise_error(Portail::HubAPI::InvalidRequest)
       expect(client.requests).to be_empty
     end
@@ -184,7 +188,7 @@ RSpec.describe Portail::HubAPI::Attachments do
         delivery_id: delivery_id, attachment_id: attachment_id)
 
       expect {
-        described_class.download(delivery_id: delivery_id, id: attachment_id, **trace)
+        described_class.download(delivery: delivery, id: attachment_id, **trace)
       }.to raise_error(Portail::HubAPI::ContentUnavailable)
     end
 
@@ -199,7 +203,7 @@ RSpec.describe Portail::HubAPI::Attachments do
         end
 
         expect {
-          described_class.download(delivery_id: delivery_id, id: attachment_id, **trace)
+          described_class.download(delivery: delivery, id: attachment_id, **trace)
         }.to raise_error(error[:translated])
       end
     end
@@ -216,7 +220,135 @@ RSpec.describe Portail::HubAPI::Attachments do
         end
 
         expect {
-          described_class.download(delivery_id: delivery_id, id: attachment_id, **trace)
+          described_class.download(delivery: delivery, id: attachment_id, **trace)
+        }.to raise_error(error[:translated])
+      end
+    end
+  end
+
+  describe ".download, for an attachment added by an event" do
+    let(:event_id) { "e2222222-2222-2222-2222-222222222222" }
+    let(:delivery) do
+      build(:portail_delivery, id: delivery_id, attachments: [],
+        events: [build(:portail_event, id: event_id, attachments: [build(:portail_attachment, id: attachment_id)])])
+    end
+
+    # La pièce sur un événement du dossier, aucune au dépôt : seule la route de l'événement la sert.
+    def add_case_with_event_piece(client)
+      client.add_case(build_v2_delivery(id: delivery_id,
+        recipient: build_v2_recipient(siret: trace[:siret], code_insee: trace[:insee_code]),
+        data_package: build_v2_data_package(attachments: []),
+        events: [build_v2_event(id: event_id, event_type: :"attachment.created",
+          attachments: [build_v2_attachment(id: attachment_id)])]))
+    end
+
+    it "returns the bytes of the event attachment untouched" do
+      client = HubApiV1::Testing::FakeClient.new
+      add_case_with_event_piece(client)
+      body = "%PDF-1.7\n\xFF\xFE\x00binaire".b
+      client.add_attachment_content(attachment_id: attachment_id, body: body)
+
+      content = described_class.download(delivery: delivery, id: attachment_id, **trace, client: client)
+
+      expect(content).to eq(body)
+      expect(content.encoding).to eq(Encoding::BINARY)
+    end
+
+    # La trace d'une pièce du dépôt, telle quelle : la lecture V1 apparie l'une et l'autre par le
+    # nom brut.
+    it "records the retrieval in the history of the delivery under the raw filename" do
+      client = HubApiV1::Testing::FakeClient.new
+      add_case_with_event_piece(client)
+
+      described_class.download(delivery: delivery, id: attachment_id,
+        **trace, filename: "Décision n°1 (signée).pdf", client: client)
+
+      history = HubApiV1::V2::Delivery.find(id: delivery_id, siret: trace[:siret],
+        code_insee: trace[:insee_code], client: client).events
+      expect(history.last).to have_attributes(event_type: :"attachment.downloaded",
+        content: "Décision n°1 (signée).pdf", author: "Alice Martin")
+    end
+
+    # Hash complet : un paramètre inattendu doit se voir.
+    it "sends the three identifiers to the upstream, then the same trace as a deposit piece" do
+      client = HubApiV1::Testing::FakeClient.new
+      expect(HubApiV1::V2::Attachment).to receive(:download_from_event).with(
+        delivery_id: delivery_id, event_id: event_id, id: attachment_id, client: client
+      ).ordered.and_return("octets".b)
+      expect(HubApiV1::V2::Delivery).to receive(:record_attachment_download).with(
+        id: delivery_id, filename: "certificat.pdf", author: "Alice Martin",
+        siret: "12345678901234", code_insee: "75056", notify: false, client: client
+      ).ordered.and_return(build_v2_event)
+
+      described_class.download(delivery: delivery, id: attachment_id,
+        **trace, client: client)
+    end
+
+    # Par bouchons : saturer le dossier du fake en remplacerait l'historique, événement de la pièce
+    # compris.
+    it "serves nothing when the history of the delivery is full" do
+      use_hub_api_fake_client
+      stub_hub_api_v2_event_attachment_downloaded(delivery_id: delivery_id, event_id: event_id, id: attachment_id)
+      stub_hub_api_v2_attachment_download_limit_reached(delivery_id)
+
+      expect {
+        described_class.download(delivery: delivery, id: attachment_id,
+          **trace)
+      }.to raise_error(Portail::HubAPI::EventLimitReached)
+    end
+
+    it "writes no trace when the content itself could not be served" do
+      use_hub_api_fake_client
+      stub_hub_api_v2_event_attachment_unavailable(delivery_id: delivery_id, event_id: event_id, id: attachment_id)
+      expect(HubApiV1::V2::Delivery).not_to receive(:record_attachment_download)
+      expect(Rails.logger).to receive(:warn).with("Contenu de pièce non servi par l'amont",
+        delivery_id: delivery_id, attachment_id: attachment_id)
+
+      expect {
+        described_class.download(delivery: delivery, id: attachment_id,
+          **trace)
+      }.to raise_error(Portail::HubAPI::ContentUnavailable)
+    end
+
+    # Hash complet sur la route : parmi plusieurs événements, celui qui porte la pièce, et lui seul.
+    it "asks the upstream for the event that carries the attachment among the others" do
+      other = build(:portail_event, id: "e3333333-3333-3333-3333-333333333333",
+        attachments: [build(:portail_attachment, id: "d4c3b2a1-6e5f-4a7b-8c9d-0e1f2a3b4c5d")])
+      delivery = build(:portail_delivery, id: delivery_id, attachments: [],
+        events: [other, build(:portail_event, id: event_id, attachments: [build(:portail_attachment, id: attachment_id)])])
+      client = HubApiV1::Testing::FakeClient.new
+      expect(HubApiV1::V2::Attachment).to receive(:download_from_event).with(
+        delivery_id: delivery_id, event_id: event_id, id: attachment_id, client: client
+      ).and_return("octets".b)
+      expect(HubApiV1::V2::Delivery).to receive(:record_attachment_download).and_return(build_v2_event)
+
+      described_class.download(delivery: delivery, id: attachment_id, **trace, client: client)
+    end
+
+    it "refuses an event identifier that is not a UUID before any upstream call" do
+      delivery = build(:portail_delivery, id: delivery_id, attachments: [],
+        events: [build(:portail_event, id: "../attachments", attachments: [build(:portail_attachment, id: attachment_id)])])
+      client = HubApiV1::Testing::FakeClient.new
+
+      expect {
+        described_class.download(delivery: delivery, id: attachment_id, **trace, client: client)
+      }.to raise_error(Portail::HubAPI::InvalidRequest)
+      expect(client.requests).to be_empty
+    end
+
+    content_errors.each do |situation, error|
+      it "raises #{error[:translated].name.demodulize} for #{situation}, reported: #{error[:reported]}" do
+        use_hub_api_fake_client
+        expect(HubApiV1::V2::Attachment).to receive(:download_from_event).and_raise(error[:raised])
+        if error[:reported]
+          expect(Rails.error).to receive(:report).with(instance_of(error[:raised]), handled: true)
+        else
+          expect(Rails.error).not_to receive(:report)
+        end
+
+        expect {
+          described_class.download(delivery: delivery, id: attachment_id,
+            **trace)
         }.to raise_error(error[:translated])
       end
     end

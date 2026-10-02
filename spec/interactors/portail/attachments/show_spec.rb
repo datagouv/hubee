@@ -9,7 +9,7 @@ RSpec.describe Portail::Attachments::Show do
     membership = build(:membership, agent: agent,
       organization_link: build(:organization_link, siret: "12345678901234", insee_code: "75056"))
     expect(Portail::HubAPI::Attachments).to receive(:download)
-      .with(delivery_id: delivery.id, id: "a1111111-1111-1111-1111-111111111111",
+      .with(delivery: delivery, id: "a1111111-1111-1111-1111-111111111111",
         filename: "certificat.pdf", author: "Alice MARTIN", siret: "12345678901234", insee_code: "75056")
       .and_return("octets".b)
 

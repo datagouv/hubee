@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Portail
-  # Le contenu d'une pièce d'un télédossier. Une seule action, et rien à rendre : la réponse est le
-  # fichier lui-même.
+  # Le contenu d'une pièce d'un télédossier, du dépôt ou ajoutée ensuite. Une seule action, et rien
+  # à rendre : la réponse est le fichier lui-même.
   class AttachmentsController < Portail::BaseController
     include NestedInDelivery
     include DownloadRefusals
@@ -36,11 +36,10 @@ module Portail
       set_attachment unless performed?
     end
 
-    # Parmi les pièces du dépôt seulement : une pièce ajoutée ensuite vit sur son événement, hors
-    # de cette adresse. Un identifiant que le télédossier ne porte pas, malformé compris, vaut
-    # introuvable, sans rien à autoriser ni à demander à l'amont.
+    # Un identifiant que le télédossier ne porte pas, malformé compris, vaut introuvable, sans rien
+    # à autoriser ni à demander à l'amont.
     def set_attachment
-      @attachment = @delivery.attachments.find { |candidate| candidate.id == params[:id] }
+      @attachment = @delivery.find_attachment(params[:id])
       return if @attachment
 
       Rails.logger.info("Pièce non livrable", delivery_id: @delivery.id, id: params[:id], reason: :unknown)
