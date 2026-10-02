@@ -43,11 +43,16 @@ module Portail
       Access::StateTransitions.offered_from(delivery, data_stream)
     end
 
-    def delivery_receipt_offered?(delivery, data_stream)
-      delivery_offered_states(delivery, data_stream).include?(delivery_receipt_state)
+    # Une seule proposition à la fois. Sans pièce reçue, la table offre « En cours » sans lecture :
+    # la proposition attend, elle, une récupération.
+    def delivery_proposed_state(delivery, data_stream)
+      offered = delivery_offered_states(delivery, data_stream)
+      if delivery.retrieved? && offered.include?(Access::StateTransitions::INSTRUCTION)
+        Access::StateTransitions::INSTRUCTION
+      elsif offered.include?(Access::StateTransitions::RECEIPT)
+        Access::StateTransitions::RECEIPT
+      end
     end
-
-    def delivery_receipt_state = Access::StateTransitions::RECEIPT
 
     def delivery_retrieval_callout(delivery, data_stream)
       states = Access::StateTransitions.withheld_until_retrieved(delivery, data_stream)

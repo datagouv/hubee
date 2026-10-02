@@ -124,6 +124,27 @@ Fonctionnalité: Les télédossiers de l'organisation
     Et l'historique porte le changement signé "Alex MARTIN"
     Et on ne lui propose plus de le marquer reçu
 
+  Scénario: L'agent commence l'instruction d'un télédossier dont il a téléchargé une pièce
+    Étant donné il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Alors on ne lui propose pas encore d'en commencer l'instruction
+    Quand il télécharge la pièce "certificat.pdf"
+    Et il se rend sur l'accueil
+    Et il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
+    Et il en commence l'instruction
+    Alors il voit le télédossier au statut "En cours"
+    Et l'historique porte le changement signé "Alex MARTIN"
+    Et on ne lui propose plus d'en commencer l'instruction
+
+  Scénario: L'agent qui commence l'instruction d'un télédossier décidé entre-temps n'en réécrit pas l'état
+    Étant donné l'API amont sert aussi un télédossier "DGS-CERTDC-0000000000009-01" dont "Camille LEROY" a téléchargé une pièce depuis le portail V1
+    Et il s'est connecté
+    Quand il ouvre le télédossier "DGS-CERTDC-0000000000009-01"
+    Et "Camille LEROY" passe le télédossier "DGS-CERTDC-0000000000009-01" au statut « Traité » entre-temps
+    Et il en commence l'instruction
+    Alors il apprend que le télédossier a peut-être changé d'état entre-temps
+    Et il voit le télédossier au statut "Traité"
+
   Scénario: L'agent joint une pièce en faisant avancer un télédossier
     Étant donné il s'est connecté
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"

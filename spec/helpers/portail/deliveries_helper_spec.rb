@@ -346,29 +346,33 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     end
   end
 
-  # La table dit d'où « Reçu » s'atteint, éprouvée là : ici, qu'on la consulte flux compris.
-  describe "#delivery_receipt_offered?" do
-    it "offers the receipt on a new delivery" do
-      expect(helper.delivery_receipt_offered?(build(:portail_delivery, state: "transmitted"), build(:portail_data_stream)))
-        .to be(true)
-    end
+  # La table dit d'où chaque état s'atteint, éprouvée là : ici, laquelle des deux propositions
+  # l'emporte, flux et récupération compris.
+  describe "#delivery_proposed_state" do
+    without_in_progress = %w[transmitted acknowledged done refused closed]
+    without_received = %w[transmitted in_progress done refused closed]
+    {
+      "a retrieved new delivery, in place of the receipt" =>
+        {state: "transmitted", traits: [:retrieved], proposed: "in_progress"},
+      "a retrieved received delivery" => {state: "acknowledged", traits: [:retrieved], proposed: "in_progress"},
+      "a new delivery nobody has retrieved" => {state: "transmitted", traits: [], proposed: "acknowledged"},
+      "a new delivery without any piece" => {state: "transmitted", traits: [], attachments: [], proposed: "acknowledged"},
+      "a received delivery without any piece" => {state: "acknowledged", traits: [], attachments: [], proposed: nil},
+      "a received delivery nobody has retrieved" => {state: "acknowledged", traits: [], proposed: nil},
+      "a retrieved new delivery whose data stream withholds in progress" =>
+        {state: "transmitted", traits: [:retrieved], allowed_states: without_in_progress, proposed: "acknowledged"},
+      "a new delivery whose data stream withholds received" =>
+        {state: "transmitted", traits: [], allowed_states: without_received, proposed: nil},
+      "a retrieved delivery already in progress" => {state: "in_progress", traits: [:retrieved], proposed: nil},
+      "a retrieved delivery awaiting attachments" => {state: "awaiting_attachments", traits: [:retrieved], proposed: nil}
+    }.each do |name, setup|
+      it "proposes #{setup[:proposed].inspect} on #{name}" do
+        delivery = build(:portail_delivery, *setup[:traits], state: setup[:state],
+          **setup.slice(:attachments))
+        data_stream = build(:portail_data_stream, **setup.slice(:allowed_states))
 
-    it "does not offer the receipt on a delivery already past new" do
-      expect(helper.delivery_receipt_offered?(build(:portail_delivery, state: "acknowledged"), build(:portail_data_stream)))
-        .to be(false)
-    end
-
-    it "does not offer the receipt when the data stream withholds received" do
-      data_stream = build(:portail_data_stream, allowed_states: %w[transmitted in_progress done])
-
-      expect(helper.delivery_receipt_offered?(build(:portail_delivery, state: "transmitted"), data_stream))
-        .to be(false)
-    end
-  end
-
-  describe "#delivery_receipt_state" do
-    it "names the state a receipt moves the delivery to" do
-      expect(helper.delivery_receipt_state).to eq("acknowledged")
+        expect(helper.delivery_proposed_state(delivery, data_stream)).to eq(setup[:proposed])
+      end
     end
   end
 

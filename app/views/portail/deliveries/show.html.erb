@@ -17,8 +17,8 @@
 
 <h1><%= t(".heading", number: @delivery.number) %></h1>
 
-<% if policy(@delivery).update? && delivery_receipt_offered?(@delivery, @data_stream) %>
-  <%= render "receipt_callout", delivery: @delivery %>
+<% if policy(@delivery).update? && (proposed_state = delivery_proposed_state(@delivery, @data_stream)) %>
+  <%= render "state_callout", delivery: @delivery, state: proposed_state %>
 <% end %>
 
 <h2 class="fr-h4 fr-mt-4w"><%= t(".summary") %></h2>

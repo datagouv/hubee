@@ -225,4 +225,14 @@ RSpec.describe Portail::Access::StateTransitions do
         .to eq(%w[transmitted])
     end
   end
+
+  # Ce qui borne la proposition de commencer l'instruction aux deux états d'avant la lecture.
+  describe "::INSTRUCTION" do
+    it "is offered from transmitted and acknowledged only" do
+      states = Portail::Access::StatePerimeter::SERVED_STATES
+
+      expect(states.select { |state| described_class.allowed_from(state).include?(described_class::INSTRUCTION) })
+        .to eq(%w[transmitted acknowledged])
+    end
+  end
 end
