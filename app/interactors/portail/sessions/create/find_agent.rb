@@ -13,8 +13,9 @@ module Portail
           # faire échouer la recherche puis la comparaison.
           email = Agent.normalize_value_for(:email, context.info.email)
 
-          # Le `sub` identifie l'agent une fois rattaché ; l'adresse ne sert qu'au tout
-          # premier rattachement, celui d'un agent enrôlé jamais connecté.
+          # L'adresse rattache aussi un agent déjà lié à un autre `sub`, et c'est voulu :
+          # ProConnect attribue un `sub` par fournisseur d'identité, en changer ne doit
+          # pas bloquer l'agent.
           agent = Agent.find_by(provider_sub: context.claims[:sub]) || Agent.find_by(email:)
           context.fail!(error: :unknown_agent) if agent.nil?
 

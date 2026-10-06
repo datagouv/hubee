@@ -28,7 +28,7 @@ end
     )
   )
   allow(Portail::ProConnect::TokenVerifier).to receive(:call)
-    .and_return(sub: "sub-e2e", amr: ["mfa"], acr: "eidas1")
+    .and_return(sub: @agent.provider_sub, amr: ["mfa"], acr: "eidas1")
   # La déconnexion revient chez nous plutôt que de partir vers un ProConnect inexistant.
   allow(Portail::ProConnect::Client).to receive(:logout_url).and_return("/")
 end

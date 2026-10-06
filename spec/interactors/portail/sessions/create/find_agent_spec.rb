@@ -24,9 +24,8 @@ RSpec.describe Portail::Sessions::Create::FindAgent do
     end
   end
 
-  # Premier rapprochement d'un agent enrôlé, ou retour après un changement de fournisseur
-  # d'identité — qui change le sub sans changer la personne.
-  context "when no agent matches the sub but one holds the email" do
+  # Retour après un changement de fournisseur d'identité, qui change le sub.
+  context "when no agent matches the sub but one holds the email under another sub" do
     it "resolves that agent without binding the sub yet" do
       agent = create(:agent, provider_sub: "sub-other", email: "new@example.gouv.fr")
 
