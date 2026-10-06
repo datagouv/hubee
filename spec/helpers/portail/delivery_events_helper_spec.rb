@@ -190,35 +190,25 @@ RSpec.describe Portail::DeliveryEventsHelper, type: :helper do
     end
   end
 
-  describe "#delivery_event_addresses_applicant?" do
+  describe "#delivery_event_for_applicant?" do
     it "marks the text of a state change and of a message sent to the person concerned" do
-      expect(helper.delivery_event_addresses_applicant?(build(:portail_event, event_type: "delivery.state_changed"))).to be(true)
-      expect(helper.delivery_event_addresses_applicant?(
+      expect(helper.delivery_event_for_applicant?(build(:portail_event, event_type: "delivery.state_changed"))).to be(true)
+      expect(helper.delivery_event_for_applicant?(
         build(:portail_event, event_type: "message.created", metadata: {internal: false})
       )).to be(true)
     end
 
-    # Un commentaire interne ou le nom de fichier d'une trace n'est adressé à personne.
-    it "leaves out an internal comment and a download trace" do
-      expect(helper.delivery_event_addresses_applicant?(
+    # Une clé absente ne veut pas dire « diffusé » ; un nom de fichier de trace n'est adressé à personne.
+    it "leaves out an internal comment, a message the upstream never said was sent and a download trace" do
+      expect(helper.delivery_event_for_applicant?(
         build(:portail_event, event_type: "message.created", metadata: {internal: true})
       )).to be(false)
-      expect(helper.delivery_event_addresses_applicant?(
+      expect(helper.delivery_event_for_applicant?(
+        build(:portail_event, event_type: "message.created", metadata: {})
+      )).to be(false)
+      expect(helper.delivery_event_for_applicant?(
         build(:portail_event, event_type: "attachment.downloaded", metadata: {})
       )).to be(false)
-    end
-  end
-
-  describe "#delivery_event_broadcast?" do
-    # Une clé absente ne veut pas dire « diffusé ».
-    it "only marks what the upstream says left the hub" do
-      sent = build(:portail_event, metadata: {internal: false})
-      internal = build(:portail_event, metadata: {internal: true})
-      state_change = build(:portail_event, metadata: {from_state: "transmitted"})
-
-      expect(helper.delivery_event_broadcast?(sent)).to be(true)
-      expect(helper.delivery_event_broadcast?(internal)).to be(false)
-      expect(helper.delivery_event_broadcast?(state_change)).to be(false)
     end
   end
 

@@ -1133,38 +1133,34 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("Samedi 10/01 - 16:16")
     end
 
-    # Seulement quand l'amont le promet : un changement d'état n'a rien transmis à personne.
-    it "notes what actually reached the applicant, and nothing else" do
+    it "highlights a message sent to the person concerned like the text of a state change" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
-        build(:portail_delivery, events: [
-          build(:portail_event, event_type: "message.created", metadata: {internal: false})
-        ])
+        build(:portail_delivery, events: [build(:portail_event,
+          event_type: "message.created", content: "Merci de compléter", metadata: {internal: false})])
       )
 
       get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
-
-      expect(Capybara.string(response.body))
-        .to have_text("Information transmise à la personne concernée.")
+      page = Capybara.string(response.body)
+      expect(page).to have_css(".fr-highlight", text: "Message à la personne concernée")
+      expect(page).to have_css(".fr-highlight .delivery-timeline__message", exact_text: "Merci de compléter")
     end
 
-    it "stays silent about a broadcast the upstream never claimed" do
+    it "keeps an internal comment out of the highlight" do
       sign_in_member
       expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
-        build(:portail_delivery, events: [
-          build(:portail_event, event_type: "message.created", metadata: {internal: true})
-        ])
+        build(:portail_delivery, events: [build(:portail_event,
+          event_type: "message.created", content: "Pièce B illisible", metadata: {internal: true})])
       )
 
       get "/teledossiers/#{delivery_id}"
 
       expect(response).to have_http_status(:success)
-
-      # Assertion négative seule : la note absente est tout l'objet de l'exemple.
-      expect(Capybara.string(response.body))
-        .to have_no_text("Information transmise à la personne concernée.")
+      page = Capybara.string(response.body)
+      expect(page).to have_css(".delivery-timeline__message", exact_text: "Pièce B illisible")
+      expect(page).to have_no_css(".fr-highlight")
     end
 
     # Le garde-fou de la décision d'afficher `si_comment` : si elle s'inverse, c'est lui qui tombe.
