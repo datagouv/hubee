@@ -53,15 +53,11 @@ module Portail
 
     def delivery_event_message(event) = event.content.presence
 
-    # Le même champ porte aussi un commentaire interne ou le nom de fichier d'une trace : seul ce
-    # qui part vers la personne concernée est mis en avant.
-    def delivery_event_addresses_applicant?(event)
-      event.event_type == "delivery.state_changed" || delivery_event_broadcast?(event)
+    # Le même champ porte aussi un commentaire interne ou le nom de fichier d'une trace. `== false`
+    # et non `!` : la clé n'existe que sur les messages, absente ne veut pas dire « diffusé ».
+    def delivery_event_for_applicant?(event)
+      event.event_type == "delivery.state_changed" || event.metadata[:internal] == false
     end
-
-    # `== false` et non `!` : la clé n'existe que sur les messages, absente ne veut pas dire
-    # « diffusé ».
-    def delivery_event_broadcast?(event) = event.metadata[:internal] == false
 
     # Le jour de la semaine situe l'événement dans une instruction étalée sur plusieurs jours.
     def delivery_event_time(event)

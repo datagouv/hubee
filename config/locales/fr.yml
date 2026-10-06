@@ -118,8 +118,6 @@ fr:
         comment_added_html: "%{author} a ajouté un commentaire interne"
         unknown_html: "%{author} est intervenu sur le télédossier"
         unknown_author: Un auteur inconnu
-        # La conséquence et non le mécanisme : ce qui compte est que la personne l'ait reçu.
-        broadcast: Information transmise à la personne concernée.
         undated_month: Sans date
       state_callout:
         acknowledged:

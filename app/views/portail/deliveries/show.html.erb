@@ -1,3 +1,4 @@
+<%# Rendue aussi par StatesController sur un refus : les partiels se nomment par leur chemin complet. %>
 <% content_for :title, t(".title", number: @delivery.number) %>
 
 <%# Le bouton de repli est requis : sur petit écran, le DSFR réduit le fil à ce seul contrôle. %>
@@ -131,7 +132,7 @@
                 <p class="fr-mb-0"><%= delivery_event_sentence(event) %></p>
 
                 <% if (message = delivery_event_message(event)) %>
-                  <% if delivery_event_addresses_applicant?(event) %>
+                  <% if delivery_event_for_applicant?(event) %>
                     <div class="fr-highlight fr-ml-0 fr-my-1w">
                       <p class="fr-text--xs fr-text--bold fr-mb-1v"><%= t(".applicant_message") %></p>
                       <p class="delivery-timeline__message fr-text--sm fr-mb-0"><%= message %></p>
@@ -152,13 +153,6 @@
                   <p class="fr-text--sm fr-mb-0">
                     <%= t(".event_attachments") %> :
                     <%= event.attachments.map(&:filename).join(", ") %>
-                  </p>
-                <% end %>
-
-                <%# En note, en gris : une conséquence de l'événement, pas l'événement. %>
-                <% if delivery_event_broadcast?(event) %>
-                  <p class="fr-text--xs fr-text-mention--grey fr-mt-1w fr-mb-0">
-                    <em><%= t("portail.deliveries.events.broadcast") %></em>
                   </p>
                 <% end %>
               </li>
