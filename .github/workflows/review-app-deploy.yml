@@ -75,7 +75,7 @@ jobs:
             DATABASE_PORT="${hostport#*:}" \
             DATABASE_NAME="${dsn##*/}" \
             RAILS_MAX_THREADS="2" \
-            solid_queue_in_puma="5" \
+            SOLID_QUEUE_IN_PUMA="true" \
             SECRET_KEY_BASE="${{ secrets.DOKKU_SECRET_KEY_BASE }}" \
             PROCONNECT_DOMAIN="${{ secrets.DOKKU_PROCONNECT_DOMAIN }}" \
             PROCONNECT_CLIENT_ID="${{ secrets.DOKKU_PROCONNECT_CLIENT_ID }}" \
