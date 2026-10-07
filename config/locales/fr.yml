@@ -54,6 +54,24 @@ fr:
         home: Accueil
         signed_in_as: "Connecté en tant que %{name} (%{email})"
         sign_out: Se déconnecter
+      # Objets sans accent : certains clients mail les abîment, et ils servent à trier la boîte.
+      beta_notice:
+        title: Le portail HubEE est en version bêta.
+        subject_siret: "SIRET %{siret}"
+        support:
+          line_html: "Un problème ? %{link}."
+          link: Signaler un problème
+          subject: "[Portail HubEE V2] Support"
+          prompt: "Décrivez votre problème :"
+        feedback:
+          line_html: "Un avis, positif ou négatif ? %{link}. Dans les deux cas, vous pouvez aussi écrire à %{email}."
+          link: Partager un retour
+          subject: "[Portail HubEE V2] Retour"
+          prompt: "Votre retour, positif ou négatif :"
+        context:
+          agent: "Agent : %{name} (%{email})"
+          siret: "SIRET : %{siret}"
+          page: "Page : %{url}"
       footer:
         home_title: Retour à l'accueil du site — HubEE — République Française
         description: HubEE — Plateforme d'échange sécurisé de fichiers entre administrations.
