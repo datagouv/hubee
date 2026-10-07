@@ -47,7 +47,7 @@ fr:
         menu: Menu
         footer: Pied de page
       header:
-        home_title: Accueil — HubEE
+        home_title: Accueil - HubEE
         menu: Menu
         close: Fermer
         nav_label: Menu principal
@@ -73,8 +73,8 @@ fr:
           siret: "SIRET : %{siret}"
           page: "Page : %{url}"
       footer:
-        home_title: Retour à l'accueil du site — HubEE — République Française
-        description: HubEE — Plateforme d'échange sécurisé de fichiers entre administrations.
+        home_title: Retour à l'accueil du site - HubEE - République Française
+        description: HubEE - Plateforme d'échange sécurisé de fichiers entre administrations.
         new_window: "%{site} - nouvelle fenêtre"
         accessibility: "Accessibilité : non conforme"
         legal: Mentions légales
@@ -227,7 +227,7 @@ fr:
         updated_at: Mise à jour le
         applicant: Demandeur
       index:
-        title: Mes télédossiers — HubEE
+        title: Mes télédossiers - HubEE
         heading: Les télédossiers de ma structure
         caption: "Télédossiers à l'état « %{state} »"
         total:
@@ -240,7 +240,7 @@ fr:
           # Le motif est dans le flash : la page ne dit que la conséquence.
           upstream: Les télédossiers de votre structure n'ont pas pu être affichés.
       show:
-        title: "Télédossier %{number} — HubEE"
+        title: "Télédossier %{number} - HubEE"
         heading: "Télédossier %{number}"
         back: Retour à la liste
         breadcrumb: Fil d'Ariane
@@ -251,6 +251,9 @@ fr:
         deposit_attachments: Pièces du dépôt
         deposit_attachments_empty: Aucune pièce n'accompagnait le dépôt.
         added_attachments: Pièces ajoutées ensuite
+        # L'heure porte déjà un tiret : la date se sépare autrement que par « - ».
+        added_attachments_caption: "Pièces ajoutées ensuite (%{time})"
+        added_by: "%{time}, par %{author}"
         added_attachments_empty: Aucune pièce n'a été ajoutée depuis le dépôt.
         history: Historique
         history_empty: Aucun événement enregistré pour ce télédossier.
@@ -265,17 +268,17 @@ fr:
       expired: Votre session a expiré, reconnectez-vous pour continuer.
       second_factor_required: "Vos droits ont changé : votre compte exige désormais une authentification renforcée."
       step_up:
-        title: Authentification renforcée — HubEE
+        title: Authentification renforcée - HubEE
         heading: Une authentification renforcée est requise
         body: "Votre compte donne accès à des fonctions sensibles : y entrer demande un second facteur d'authentification, en plus de votre mot de passe."
-        what_to_expect: ProConnect va vous redemander votre adresse électronique, puis un code fourni par votre méthode de double authentification — et vous guidera pour en mettre une en place si vous n'en avez pas encore. C'est normal, votre connexion n'a pas échoué.
+        what_to_expect: ProConnect va vous redemander votre adresse électronique, puis un code fourni par votre méthode de double authentification. Si vous n'en avez pas encore, il vous guidera pour en mettre une en place. C'est normal, votre connexion n'a pas échoué.
         call_to_action: Cliquez sur le bouton ci-dessous et suivez les étapes jusqu'au bout. Vous reviendrez ensuite automatiquement sur HubEE.
       create:
         signed_in: Vous êtes connecté.
       destroy:
         provider_unavailable: Vous êtes déconnecté du portail. ProConnect étant momentanément indisponible, votre session ProConnect reste ouverte.
       denied:
-        title: Accès refusé — HubEE
+        title: Accès refusé - HubEE
         authenticated_with: "Adresse utilisée : %{email}"
         support_html: "Si vous pensez qu'il s'agit d'une erreur ou si vous avez besoin d'aide, écrivez à %{email} en précisant l'heure de votre tentative."
         switch_account_hint: Réessayer avec un autre compte vous déconnectera d'abord de ProConnect.
@@ -297,7 +300,7 @@ fr:
           heading: Votre adresse ne correspond pas à votre compte
           body: "L'adresse de votre compte ProConnect n'est plus celle enregistrée par HubEE. Par précaution, l'accès est suspendu : demandez sa mise à jour à votre administration, puis reconnectez-vous."
       failure:
-        title: Échec de la connexion — HubEE
+        title: Échec de la connexion - HubEE
         heading: La connexion a échoué
         body: Une erreur est survenue pendant l'authentification. Aucune session n'a été ouverte. Vous pouvez réessayer.
         support_html: "Si le problème persiste, écrivez à %{email} en précisant l'heure de votre tentative."
@@ -307,37 +310,37 @@ fr:
       # `subject` : la pièce seule ou l'archive, qui vaut pour une pièce comme pour plusieurs.
       delivery_event_limit_reached:
         attachment:
-          title: Pièce non remise — HubEE
+          title: Pièce non remise - HubEE
           heading: Cette pièce ne peut pas être remise
         archive:
-          title: Archive non remise — HubEE
+          title: Archive non remise - HubEE
           heading: L'archive ne peut pas être remise
         lead: *event_limit_reached
         back_to_delivery: Retour au télédossier
       # Ni une panne, ni une absence : l'amont a répondu sans les octets et ne dit pas pourquoi.
       attachment_content_unavailable:
         attachment:
-          title: Pièce non remise — HubEE
+          title: Pièce non remise - HubEE
           heading: Cette pièce n'a pas pu être remise
           lead: Le télédossier la référence, mais son contenu n'est pas disponible. Réessayez plus tard ; si le problème persiste, contactez le support.
         archive:
-          title: Archive non remise — HubEE
+          title: Archive non remise - HubEE
           heading: L'archive n'a pas pu être remise
           lead: "L'une des pièces reçues n'est pas disponible : l'archive n'est remise que si elle les contient toutes. Réessayez plus tard ; si le problème persiste, contactez le support."
         back_to_delivery: Retour au télédossier
       not_found:
-        title: Page introuvable — HubEE
+        title: Page introuvable - HubEE
         heading: Page introuvable
         lead: La page que vous cherchez n'existe pas ou a été déplacée.
       unprocessable_entity:
-        title: Requête invalide — HubEE
+        title: Requête invalide - HubEE
         heading: Requête invalide
         lead: La requête n'a pas pu être traitée.
       internal_server_error:
-        title: Erreur serveur — HubEE
+        title: Erreur serveur - HubEE
         heading: Une erreur est survenue
         lead: Le service rencontre un problème technique. Merci de réessayer ultérieurement.
       service_unavailable:
-        title: Service indisponible — HubEE
+        title: Service indisponible - HubEE
         heading: Service momentanément indisponible
         lead: Un service dont dépend cette page ne répond pas. Réessayez dans quelques instants.
