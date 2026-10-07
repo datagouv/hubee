@@ -120,6 +120,9 @@ group :development, :test do
   gem "faker"
 
   gem "dotenv"
+
+  # Livrée avec Ruby mais hors bundle : le générateur de l'import bêta la charge sous RSpec
+  gem "csv", require: false
 end
 
 group :test do
