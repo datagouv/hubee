@@ -100,12 +100,12 @@
   <% if events_with_attachments.any? %>
     <% events_with_attachments.each do |event| %>
       <p class="fr-text--sm fr-text-mention--grey fr-mb-1w">
-        <%= delivery_event_time(event) %>
-        — <%= event.author.presence || t("portail.deliveries.events.unknown_author") %>
+        <%= t(".added_by", time: delivery_event_time(event),
+              author: event.author.presence || t("portail.deliveries.events.unknown_author").downcase_first) %>
       </p>
       <%# La provenance dans la caption : plusieurs inventaires se suivent ici. %>
       <%= render "portail/deliveries/attachments", attachments: event.attachments,
-            caption: "#{t(".added_attachments")} — #{delivery_event_time(event)}", delivery: @delivery %>
+            caption: t(".added_attachments_caption", time: delivery_event_time(event)), delivery: @delivery %>
     <% end %>
   <% else %>
     <p class="fr-mb-0"><%= t(".added_attachments_empty") %></p>
@@ -145,7 +145,7 @@
                 <%# Seule lecture de `si_comment` : si la décision de l'afficher s'inverse, c'est ici. %>
                 <% if event.si_comment.present? %>
                   <p class="fr-text--sm fr-mb-0">
-                    <strong><%= t(".si_comment") %></strong> — <%= event.si_comment %>
+                    <strong><%= t(".si_comment") %></strong> : <%= event.si_comment %>
                   </p>
                 <% end %>
 

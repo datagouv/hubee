@@ -286,7 +286,7 @@ RSpec.describe "Portail::Attachments", type: :request do
       expect(response.media_type).to eq("text/html")
       expect(response.headers["Content-Disposition"]).to be_nil
       page = Capybara.string(response.body)
-      expect(page).to have_title("Pièce non remise — HubEE", exact: true)
+      expect(page).to have_title("Pièce non remise - HubEE", exact: true)
       expect(page).to have_css("h1", exact_text: "Cette pièce ne peut pas être remise")
       expect(page).to have_css(".fr-text--lead",
         exact_text: "Ce télédossier ne peut plus enregistrer d'événement. Contactez le support.")
@@ -323,7 +323,7 @@ RSpec.describe "Portail::Attachments", type: :request do
       expect(response.media_type).to eq("text/html")
       expect(response.headers["Content-Disposition"]).to be_nil
       page = Capybara.string(response.body)
-      expect(page).to have_title("Pièce non remise — HubEE", exact: true)
+      expect(page).to have_title("Pièce non remise - HubEE", exact: true)
       expect(page).to have_css("h1", exact_text: "Cette pièce n'a pas pu être remise")
       expect(page).to have_css(".fr-text--lead", exact_text: "Le télédossier la référence, mais son contenu " \
         "n'est pas disponible. Réessayez plus tard ; si le problème persiste, contactez le support.")

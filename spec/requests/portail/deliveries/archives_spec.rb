@@ -247,7 +247,7 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
       expect(response.media_type).to eq("text/html")
       expect(response.headers["Content-Disposition"]).to be_nil
       page = Capybara.string(response.body)
-      expect(page).to have_title("Archive non remise — HubEE", exact: true)
+      expect(page).to have_title("Archive non remise - HubEE", exact: true)
       expect(page).to have_css("h1", exact_text: "L'archive n'a pas pu être remise")
       expect(page).to have_css(".fr-text--lead", exact_text: "L'une des pièces reçues n'est pas disponible : " \
         "l'archive n'est remise que si elle les contient toutes. Réessayez plus tard ; si le problème persiste, " \
@@ -271,7 +271,7 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
       expect(response.media_type).to eq("text/html")
       expect(response.headers["Content-Disposition"]).to be_nil
       page = Capybara.string(response.body)
-      expect(page).to have_title("Archive non remise — HubEE", exact: true)
+      expect(page).to have_title("Archive non remise - HubEE", exact: true)
       expect(page).to have_css("h1", exact_text: "L'archive ne peut pas être remise")
       expect(page).to have_css(".fr-text--lead",
         exact_text: "Ce télédossier ne peut plus enregistrer d'événement. Contactez le support.")

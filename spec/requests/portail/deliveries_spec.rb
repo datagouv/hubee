@@ -1048,8 +1048,25 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       captions = Nokogiri::HTML(response.body).css("table caption").map { |c| c.text.strip }
       expect(captions).to contain_exactly(
-        "Pièces du dépôt", "Pièces ajoutées ensuite — Samedi 10/01 - 16:16"
+        "Pièces du dépôt", "Pièces ajoutées ensuite (Samedi 10/01 - 16:16)"
       )
+      # L'heure porte déjà un tiret : la date et l'auteur se séparent autrement.
+      expect(Capybara.string(response.body)).to have_text("Samedi 10/01 - 16:16, par George DUBOIS")
+    end
+
+    it "names an unknown author in the middle of the line" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(
+        build(:portail_delivery,
+          events: [build(:portail_event, event_type: "attachment.created", metadata: {}, author: nil,
+            created_at: Time.zone.local(2026, 1, 10, 16, 16),
+            attachments: [build(:portail_attachment, id: "b2")])])
+      )
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("Samedi 10/01 - 16:16, par un auteur inconnu")
     end
 
     it "says so plainly when nothing was attached at all" do
@@ -1176,8 +1193,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(response).to have_http_status(:success)
 
       page = Capybara.string(response.body)
-      expect(page).to have_text("Commentaire à destination des SI")
-      expect(page).to have_text("retry #2 après timeout passerelle")
+      expect(page).to have_text("Commentaire à destination des SI : retry #2 après timeout passerelle")
     end
 
     it "situates the delivery with a breadcrumb and states it at a glance" do
