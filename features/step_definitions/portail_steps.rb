@@ -78,6 +78,7 @@ Alors("la page porte le socle DSFR complet") do
 
   # Landmark main + contenu de la page d'accueil
   expect(page).to have_css("main#content[role='main']")
+  expect(page).to have_css("main#content .fr-notice", text: "Le portail HubEE est en version bêta.")
   expect(page).to have_content("Portail HubEE")
 
   # Pied de page / landmark contentinfo + liens légaux obligatoires DSFR
