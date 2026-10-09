@@ -9,7 +9,7 @@
 # The tag lets Renovate follow the digest; the build pins the digest alone.
 FROM gcr.io/distroless/base-debian13:latest@sha256:389cad21f73e4c37b94ffe5b13736d5a92bd5bd3c6c6b38c2be1c881e14ba2bd AS distroless
 
-FROM docker.io/library/ruby:4.0.7-slim@sha256:d10bdb076bb10d2261773ea20eadf4cdbde3346fc8f8db409856608b2d01b9c9 AS base
+FROM docker.io/library/ruby:4.0.7-slim@sha256:ba6a00593739f9cb66de80ad2e395a93a52a13635867ee32918ba0ec083b1ff6 AS base
 
 # Rails app lives here
 WORKDIR /rails
