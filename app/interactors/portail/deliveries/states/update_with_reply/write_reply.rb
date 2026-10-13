@@ -23,6 +23,9 @@ module Portail
               id: context.delivery.id, reply: context.reply, author: context.author,
               siret: link.siret, insee_code: link.insee_code
             )
+            # La pièce est publiée : sans identifiant renvoyé, la ligne part quand même.
+            Rails.logger.info("Pièce déposée", delivery_id: context.delivery.id,
+              id: context.reply_event.attachments.first&.id, agent_id: context.membership.agent_id)
           rescue HubAPI::Error => e
             context.fail!(error: failure_for(e))
           end

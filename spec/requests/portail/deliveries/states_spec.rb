@@ -302,6 +302,22 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
         expect(Capybara.string(response.body)).to have_text("L'état du télédossier a été modifié et la pièce transmise")
       end
 
+      it "logs the move with the piece masked, its name included" do
+        sign_in_member
+        serve
+        expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).ordered.and_return(build(:portail_event))
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state).ordered.and_return(build(:portail_event))
+
+        events = capture_semantic_logger_events do
+          update_state_with_piece(piece: pdf_upload(filename: "acte_DUPONT_Jean.pdf"))
+        end
+
+        expect(response).to have_http_status(:see_other)
+        expect(events).to include(be_a_semantic_logger_event(message: "Completed #update", payload_includes: {
+          params: {"etat" => "done", "piece" => "[FILTERED]", "teledossier_id" => delivery_id}
+        }))
+      end
+
       it "refuses a format the data stream does not take, before anything leaves" do
         sign_in_member
         serve
