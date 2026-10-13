@@ -199,6 +199,19 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
         expect(Capybara.string(response.body)).to have_text("L'état du télédossier a été modifié")
       end
 
+      it "logs the move with the message masked" do
+        sign_in_member
+        serve
+        expect(Portail::HubAPI::Deliveries).to receive(:change_state).and_return(build(:portail_event))
+
+        events = capture_semantic_logger_events { update_state(message: "Acte de M. Jean Dupont illisible") }
+
+        expect(response).to have_http_status(:see_other)
+        expect(events).to include(be_a_semantic_logger_event(message: "Completed #update", payload_includes: {
+          params: {"etat" => "done", "message" => "[FILTERED]", "teledossier_id" => delivery_id}
+        }))
+      end
+
       # Des blancs ne sont pas un message : rien à refuser, même sur un flux qui n'en prend pas.
       it "sends no message when the agent wrote only blanks" do
         sign_in_member
