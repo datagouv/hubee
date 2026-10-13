@@ -6,7 +6,8 @@
 # docker build -t hubee .
 # docker run -d -p 80:3000 -e SECRET_KEY_BASE=<...> -e DATABASE_HOST=<...> -e DATABASE_PORT=<...> -e DATABASE_USERNAME=<...> -e DATABASE_PASSWORD=<...> --name hubee hubee
 
-FROM gcr.io/distroless/base-debian13@sha256:0ebad3510af52aefe45045cc01b07564570be4feecf8d9f93d3a05d1b5f2f93b AS distroless
+# The tag lets Renovate follow the digest; the build pins the digest alone.
+FROM gcr.io/distroless/base-debian13:latest@sha256:389cad21f73e4c37b94ffe5b13736d5a92bd5bd3c6c6b38c2be1c881e14ba2bd AS distroless
 
 FROM docker.io/library/ruby:4.0.7-slim@sha256:d10bdb076bb10d2261773ea20eadf4cdbde3346fc8f8db409856608b2d01b9c9 AS base
 
