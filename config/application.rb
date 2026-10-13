@@ -55,9 +55,13 @@ module Hubee
     config.log_tags = {request_id: :request_id, ip_address: :remote_ip}
 
     # Une requête, une ligne : la ligne de fin de requête reprend ce que Rails écrit à part
-    # (config/initializers/request_log.rb), et les appenders retirent la ligne à part.
+    # (config/initializers/request_log.rb), et les appenders retirent la ligne à part. Celle d'une
+    # route inconnue ne porte que la pile du routeur.
     redundant_metrics = %w[rails.controller.redirect_to rails.controller.halted_callback]
-    config.x.log_filter = ->(log) { !redundant_metrics.include?(log.metric) }
+    redundant_exceptions = [ActionController::RoutingError]
+    config.x.log_filter = ->(log) do
+      !redundant_metrics.include?(log.metric) && redundant_exceptions.none? { log.exception.is_a?(it) }
+    end
 
     # config.eager_load_paths << Rails.root.join("extras")
 

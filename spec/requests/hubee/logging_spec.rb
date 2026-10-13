@@ -86,6 +86,26 @@ RSpec.describe "Request logging", type: :request do
       payload_includes: {location: "https://proconnect.test/session/end?id_token_hint=[FILTERED]"}))
   end
 
+  it "logs an unknown route as a single completed line with the requested path, method and error" do
+    # En test, Rails rend sa page de débogage ; la production rend la page d'erreur.
+    env_config = Rails.application.env_config
+    detailed = env_config["action_dispatch.show_detailed_exceptions"]
+    lines = lines_logged_during do
+      env_config["action_dispatch.show_detailed_exceptions"] = false
+      post "/inconnue?origine=spec"
+    ensure
+      env_config["action_dispatch.show_detailed_exceptions"] = detailed
+    end
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.body).to include("Page introuvable")
+    expect(lines_of_the_response(lines)).to contain_exactly(a_string_including(
+      %(message="Completed #not_found"), "status=404", %(path="/inconnue"), %(method="POST"),
+      %(exception_class="ActionController::RoutingError"),
+      %(exception_message="No route matches [POST] \\"/inconnue\\"")
+    ))
+  end
+
   # Toute autre exception garde sa ligne, pile comprise.
   it "drops only the lines carried by the completed line" do
     filter = Rails.application.config.x.log_filter
@@ -101,5 +121,6 @@ RSpec.describe "Request logging", type: :request do
     expect(filter.call(entry.call(exception: ActionController::BadRequest.new))).to be(true)
     expect(filter.call(entry.call(metric: "rails.controller.redirect_to"))).to be(false)
     expect(filter.call(entry.call(metric: "rails.controller.halted_callback"))).to be(false)
+    expect(filter.call(entry.call(exception: ActionController::RoutingError.new("No route")))).to be(false)
   end
 end
