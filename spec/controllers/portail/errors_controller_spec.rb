@@ -54,4 +54,20 @@ RSpec.describe Portail::ErrorsController, type: :controller do
       expect(response.body).to include("Une erreur est survenue")
     end
   end
+
+  it "renders every error page without querying the database, even for a signed-in agent" do
+    session[:provider_session_id] = create(:provider_session).id
+    queries = []
+    record_query = ->(*, payload) { queries << payload[:sql] unless payload[:name] == "SCHEMA" }
+
+    ActiveSupport::Notifications.subscribed(record_query, "sql.active_record") do
+      get :not_found
+      get :unprocessable_entity
+      get :internal_server_error
+    end
+
+    expect(response).to have_http_status(:internal_server_error)
+    expect(response.body).to include("Une erreur est survenue")
+    expect(queries).to eq([])
+  end
 end
