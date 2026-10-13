@@ -106,6 +106,37 @@ RSpec.describe "Request logging", type: :request do
     ))
   end
 
+  # Doorkeeper rattrape une erreur sur un jeton demandé sans grant_type.
+  it "carries the exception handled by rescue_from on the completed line, the only one left" do
+    lines = lines_logged_during { post "/api/oauth/token" }
+
+    expect(response).to have_http_status(:bad_request)
+    expect(response.parsed_body).to include("error" => "invalid_request")
+    expect(lines_of_the_response(lines)).to contain_exactly(a_string_including(
+      %(message="Completed #create"), "status=400",
+      %(rescued_exception_class="Doorkeeper::Errors::MissingRequiredParameter"),
+      %(rescued_exception_message="grant_type"), "rescued_exception_backtrace="
+    ))
+  end
+
+  it "logs a stale CSRF token as a single completed line" do
+    # Désactivée en test, active en production.
+    forgery_protection = ActionController::Base.allow_forgery_protection
+    lines = lines_logged_during do
+      ActionController::Base.allow_forgery_protection = true
+      post "/connexion/proconnect"
+    ensure
+      ActionController::Base.allow_forgery_protection = forgery_protection
+    end
+
+    expect(response).to redirect_to(root_path)
+    expect(lines_of_the_response(lines)).to contain_exactly(a_string_including(
+      %(message="Completed #start"),
+      %(rescued_exception_class="ActionController::InvalidAuthenticityToken"),
+      %(rescued_exception_message="Can't verify CSRF token authenticity.")
+    ))
+  end
+
   # Toute autre exception garde sa ligne, pile comprise.
   it "drops only the lines carried by the completed line" do
     filter = Rails.application.config.x.log_filter
@@ -122,5 +153,6 @@ RSpec.describe "Request logging", type: :request do
     expect(filter.call(entry.call(metric: "rails.controller.redirect_to"))).to be(false)
     expect(filter.call(entry.call(metric: "rails.controller.halted_callback"))).to be(false)
     expect(filter.call(entry.call(exception: ActionController::RoutingError.new("No route")))).to be(false)
+    expect(filter.call(entry.call(metric: "rails.controller.rescue_from_callback"))).to be(false)
   end
 end
