@@ -4,6 +4,11 @@
 # les contrôleurs, y compris ceux des gems (Doorkeeper, /up) : config.x.log_filter retire les
 # lignes à part pour tous.
 module RequestLog
+  # Rails renvoie l'exception traitée, qui peut être la cause de celle levée.
+  def rescue_with_handler(exception)
+    @rescued_exception = super
+  end
+
   private
 
   def halted_callback_hook(filter, name)
@@ -30,6 +35,11 @@ module RequestLog
     append_replayed_request(payload)
     payload[:location] = response.filtered_location if response.redirect?
     payload[:halted_callback] = @halted_callback.to_s if @halted_callback
+    return unless @rescued_exception
+
+    payload[:rescued_exception_class] = @rescued_exception.class.name
+    payload[:rescued_exception_message] = @rescued_exception.message
+    payload[:rescued_exception_backtrace] = @rescued_exception.backtrace&.first&.delete_prefix("#{Rails.root}/")
   end
 end
 

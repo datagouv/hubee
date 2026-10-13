@@ -57,11 +57,14 @@ module Hubee
     # Une requête, une ligne : la ligne de fin de requête reprend ce que Rails écrit à part
     # (config/initializers/request_log.rb), et les appenders retirent la ligne à part. Celle d'une
     # route inconnue ne porte que la pile du routeur.
-    redundant_metrics = %w[rails.controller.redirect_to rails.controller.halted_callback]
+    redundant_metrics = %w[rails.controller.redirect_to rails.controller.halted_callback
+      rails.controller.rescue_from_callback]
     redundant_exceptions = [ActionController::RoutingError]
     config.x.log_filter = ->(log) do
       !redundant_metrics.include?(log.metric) && redundant_exceptions.none? { log.exception.is_a?(it) }
     end
+    # Mot pour mot le message de l'exception levée ensuite, déjà journalisée.
+    config.action_controller.log_warning_on_csrf_failure = false
 
     # config.eager_load_paths << Rails.root.join("extras")
 
