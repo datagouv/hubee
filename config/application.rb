@@ -54,6 +54,11 @@ module Hubee
     config.action_dispatch.ip_spoofing_check = false
     config.log_tags = {request_id: :request_id, ip_address: :remote_ip}
 
+    # Une requête, une ligne : la ligne de fin de requête reprend ce que Rails écrit à part
+    # (config/initializers/request_log.rb), et les appenders retirent la ligne à part.
+    redundant_metrics = %w[rails.controller.redirect_to rails.controller.halted_callback]
+    config.x.log_filter = ->(log) { !redundant_metrics.include?(log.metric) }
+
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Don't generate system test files.

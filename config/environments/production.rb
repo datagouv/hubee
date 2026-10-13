@@ -42,7 +42,7 @@ Rails.application.configure do
   # rails_semantic_logger remplace la stack de log ; l'appender `add` est créé dans
   # tous les process (web, jobs, rake), pas seulement en mode serveur.
   config.rails_semantic_logger.appenders do |appenders|
-    appenders.add(io: $stdout, formatter: :logfmt)
+    appenders.add(io: $stdout, formatter: :logfmt, filter: config.x.log_filter)
   end
 
   # Change to "debug" to log everything (including potentially personally-identifiable information!).
