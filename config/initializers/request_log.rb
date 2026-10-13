@@ -11,10 +11,23 @@ module RequestLog
     super
   end
 
+  # Rails rejoue la requête vers la page d'erreur en GET : on reprend ce qui avait été demandé,
+  # et l'exception qui y a répondu.
+  def append_replayed_request(payload)
+    exception = request.get_header("action_dispatch.exception")
+    return unless exception
+
+    payload[:path] = request.original_fullpath
+    payload[:method] = request.get_header("action_dispatch.original_request_method")
+    payload[:exception_class] = exception.class.name
+    payload[:exception_message] = exception.message
+  end
+
   # `filtered_location`, comme la ligne que Rails écrivait : filter_parameters s'applique aux
   # paramètres de l'URL.
   def append_info_to_payload(payload)
     super
+    append_replayed_request(payload)
     payload[:location] = response.filtered_location if response.redirect?
     payload[:halted_callback] = @halted_callback.to_s if @halted_callback
   end
