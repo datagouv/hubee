@@ -16,6 +16,17 @@ RSpec.describe Portail::ErrorsController, type: :controller do
       expect(response.body).to include("Page introuvable")
       expect(response.body).to include("fr-footer")
     end
+
+    # Le format vient de l'extension de l'URL d'origine : `/backup.zip` arrive ici en `zip`.
+    %i[zip gzip json xml].each do |format|
+      it "renders the DSFR 404 page in HTML for a #{format} request" do
+        get :not_found, format: format
+
+        expect(response).to have_http_status(:not_found)
+        expect(response.media_type).to eq("text/html")
+        expect(response.body).to include("Page introuvable")
+      end
+    end
   end
 
   describe "GET #unprocessable_entity" do
@@ -32,6 +43,14 @@ RSpec.describe Portail::ErrorsController, type: :controller do
       get :internal_server_error
 
       expect(response).to have_http_status(:internal_server_error)
+      expect(response.body).to include("Une erreur est survenue")
+    end
+
+    it "renders the DSFR 500 page in HTML for a non-HTML format" do
+      get :internal_server_error, format: :json
+
+      expect(response).to have_http_status(:internal_server_error)
+      expect(response.media_type).to eq("text/html")
       expect(response.body).to include("Une erreur est survenue")
     end
   end
