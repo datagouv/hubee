@@ -16,6 +16,8 @@ Rails.application.config.filter_parameters += [
 #                 personnelle, stable dans le temps.
 #   message       le message joint à un changement d'état, saisi librement : il peut
 #                 nommer un usager.
+#   piece         la pièce jointe à un changement d'état, dont le nom de fichier peut
+#                 nommer un usager.
 #
 # La correspondance est partielle : `code` masquerait aussi un futur `postal_code`.
-Rails.application.config.filter_parameters += [:code, :provider_sub, :message]
+Rails.application.config.filter_parameters += [:code, :provider_sub, :message, :piece]

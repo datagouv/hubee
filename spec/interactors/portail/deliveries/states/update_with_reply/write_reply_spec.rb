@@ -26,6 +26,19 @@ RSpec.describe Portail::Deliveries::States::UpdateWithReply::WriteReply do
     expect(publish.reply_event).to eq(event)
   end
 
+  it "logs the deposit with the agent, the delivery and the piece, never its name" do
+    event = build(:portail_event, event_type: "attachment.created",
+      attachments: [build(:portail_attachment, id: "b2222222-2222-2222-2222-222222222222")])
+    expect(Portail::HubAPI::Deliveries).to receive(:reply_with_attachment).and_return(event)
+
+    events = capture_semantic_logger_events { publish }
+
+    expect(events).to include(be_a_semantic_logger_event(
+      level: :info, message: "Pièce déposée",
+      payload: {delivery_id: delivery.id, id: "b2222222-2222-2222-2222-222222222222", agent_id: membership.agent_id}
+    ))
+  end
+
   it "refuses before publishing when the agent has no name to sign with" do
     expect(Portail::HubAPI::Deliveries).not_to receive(:reply_with_attachment)
 
