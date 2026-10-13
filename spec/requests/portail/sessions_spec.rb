@@ -678,4 +678,22 @@ RSpec.describe "Portail::Sessions", type: :request do
       expect(session[:proconnect_step_up]).to be_nil
     end
   end
+
+  describe "what the logs keep of the ProConnect exchange" do
+    # Le state reste lisible : sans la session du navigateur qui l'a reçu, il ne permet rien.
+    it "masks the nonce and the address on the way to ProConnect" do
+      expect(Portail::ProConnect::Client).to receive(:authorization).and_return(
+        Portail::ProConnect::Client::Authorization.new(
+          url: "https://proconnect.test/api/v2/authorize?login_hint=agent%40exemple.gouv.fr&nonce=n1&siret_hint=13002526500013&state=s1",
+          state: "s1", nonce: "n1"
+        )
+      )
+
+      events = capture_semantic_logger_events { post proconnect_authorization_path }
+
+      expect(events).to include(be_a_semantic_logger_event(message: "Completed #start", payload_includes: {
+        location: "https://proconnect.test/api/v2/authorize?login_hint=[FILTERED]&nonce=[FILTERED]&siret_hint=13002526500013&state=s1"
+      }))
+    end
+  end
 end
