@@ -47,6 +47,13 @@ module Hubee
 
     # Pages d'erreur rendues par l'application (layout DSFR) plutôt que les pages statiques
     config.exceptions_app = routes
+
+    # `ip_address`, la clé du contexte des événements. Le contrôle ne compare que Client-IP et
+    # X-Forwarded-For, sans écarter un X-Forwarded-For forgé seul : il privait d'IP la requête
+    # suspecte. Rails retient l'adresse ajoutée par le proxy, fiable s'il réécrit ces en-têtes.
+    config.action_dispatch.ip_spoofing_check = false
+    config.log_tags = {request_id: :request_id, ip_address: :remote_ip}
+
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Don't generate system test files.
