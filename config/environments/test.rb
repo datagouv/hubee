@@ -63,7 +63,8 @@ Rails.application.configure do
   # Logs au format logfmt (format conseillé par le CSIRT), écrits dans log/test.log :
   # on exerce la vraie sérialisation logfmt sans polluer la sortie RSpec.
   config.rails_semantic_logger.appenders do |appenders|
-    appenders.add(file_name: Rails.root.join("log/test.log").to_s, formatter: :logfmt)
+    appenders.add(file_name: Rails.root.join("log/test.log").to_s, formatter: :logfmt,
+      filter: config.x.log_filter)
   end
 
   # Une clé manquante rend « translation missing » dans la page au lieu d'échouer : un

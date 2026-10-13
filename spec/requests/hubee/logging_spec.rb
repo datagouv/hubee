@@ -64,4 +64,42 @@ RSpec.describe "Request logging", type: :request do
     expect(decision.scan("request_id=").size).to eq(1)
     expect(decision.scan("ip_address=").size).to eq(1)
   end
+
+  it "carries the redirect and the halting filter on the completed line, the only one left" do
+    lines = lines_logged_during { get "/teledossiers" }
+
+    expect(response).to redirect_to(root_path)
+    expect(lines_of_the_response(lines)).to contain_exactly(a_string_including(
+      %(message="Completed #index"), "status=302", %(location="http://www.example.com/"),
+      %(halted_callback="require_authentication")
+    ))
+  end
+
+  it "masks the parameters of a redirect location, as Rails did" do
+    sign_in_via_proconnect(agent: create(:agent))
+    expect(Portail::ProConnect::Client).to receive(:logout_url)
+      .and_return("https://proconnect.test/session/end?id_token_hint=jeton-d-identite")
+
+    events = capture_semantic_logger_events { delete "/logout" }
+
+    expect(events).to include(be_a_semantic_logger_event(message: "Completed #destroy",
+      payload_includes: {location: "https://proconnect.test/session/end?id_token_hint=[FILTERED]"}))
+  end
+
+  # Toute autre exception garde sa ligne, pile comprise.
+  it "drops only the lines carried by the completed line" do
+    filter = Rails.application.config.x.log_filter
+    entry = ->(metric: nil, exception: nil) do
+      SemanticLogger::Log.new("Rails", :info).tap do |log|
+        log.metric = metric
+        log.exception = exception
+      end
+    end
+
+    expect(filter.call(entry.call(metric: "rails.controller.process_action"))).to be(true)
+    expect(filter.call(entry.call(exception: ActiveRecord::RecordNotFound.new))).to be(true)
+    expect(filter.call(entry.call(exception: ActionController::BadRequest.new))).to be(true)
+    expect(filter.call(entry.call(metric: "rails.controller.redirect_to"))).to be(false)
+    expect(filter.call(entry.call(metric: "rails.controller.halted_callback"))).to be(false)
+  end
 end
