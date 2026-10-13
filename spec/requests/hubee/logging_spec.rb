@@ -154,5 +154,6 @@ RSpec.describe "Request logging", type: :request do
     expect(filter.call(entry.call(metric: "rails.controller.halted_callback"))).to be(false)
     expect(filter.call(entry.call(exception: ActionController::RoutingError.new("No route")))).to be(false)
     expect(filter.call(entry.call(metric: "rails.controller.rescue_from_callback"))).to be(false)
+    expect(filter.call(entry.call(metric: "rails.controller.send_data"))).to be(false)
   end
 end
