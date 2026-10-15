@@ -8,9 +8,9 @@ module Portail
       class << self
         # Un SIRET seul ne désigne pas une organisation : plusieurs peuvent le porter, seul le
         # code INSEE les sépare.
-        def covers?(membership, recipient)
+        def covers?(membership, organization)
           link = membership.organization_link
-          recipient.siret == link.siret && recipient.insee_code == link.insee_code
+          organization.siret == link.siret && organization.insee_code == link.insee_code
         end
       end
     end
