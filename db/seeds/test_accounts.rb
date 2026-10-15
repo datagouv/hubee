@@ -82,20 +82,47 @@ module Seeds
         scope: :local)
     ].freeze
 
+    # Les comptes qu'un développeur se crée sur sa propre boîte, hors du catalogue pour ne pas
+    # publier son adresse. Une adresse par compte ProConnect : pas de `sub` partagé comme avec
+    # FIA1 (l'outil de test ProConnect des adresses @test.proconnect.gouv.fr).
+    PERSONAL_ORGANIZATION = :rochefourchat
+    PERSONAL_PROFILES = [
+      {tag: "agtetatcivil", role: "member", data_stream_codes: ["EtatCivil"]},
+      {tag: "agtsensible", role: "member", data_stream_codes: [:sensitive_2]},
+      {tag: "admetatcivil", role: "local_administrator", data_stream_codes: ["EtatCivil"]},
+      {tag: "admtotal", role: "local_administrator", data_stream_codes: []}
+    ].freeze
+
     class << self
       def accounts(scopes) = ACCOUNTS.select { |account| scopes.include?(account.scope) }
 
-      # Ce que les comptes retenus attendent de l'environnement, et qu'il ne déclare pas.
-      def missing_variables(scopes)
-        accounts(scopes).flat_map(&:data_stream_codes).grep(Symbol).uniq
+      # Sans prénom ni nom : ProConnect les écrit à la première connexion.
+      def personal_accounts(email)
+        local_part, domain = email.to_s.strip.downcase.match(/\A([^@+\s]+)@([^@\s]+)\z/)&.captures
+        raise ArgumentError, "adresse sans sous-adressage attendue : #{email.inspect}" if local_part.nil?
+
+        PERSONAL_PROFILES.map do |profile|
+          profile => {tag:, role:, data_stream_codes:}
+          Account.new(email: "#{local_part}+#{tag}#{PERSONAL_ORGANIZATION}@#{domain}", first_name: nil, last_name: nil,
+            organization: PERSONAL_ORGANIZATION, role:, data_stream_codes:, scope: :deployed)
+        end
+      end
+
+      def missing_variables(scopes) = missing_variables_for(accounts(scopes))
+
+      # Ce que les comptes attendent de l'environnement, et qu'il ne déclare pas.
+      def missing_variables_for(accounts)
+        accounts.flat_map(&:data_stream_codes).grep(Symbol).uniq
           .map { |code| SENSITIVE_CODE_VARIABLES.fetch(code) }
           .reject { |name| ENV[name].present? }
       end
 
-      # Renvoie les rattachements écrits, dans l'ordre du catalogue, pour que l'appelant en rende
-      # compte. Les comptes dont un code sensible manque en sont absents.
-      def apply!(scopes)
-        accounts(scopes).filter_map do |account|
+      def apply!(scopes) = enrol!(accounts(scopes))
+
+      # Renvoie les rattachements écrits, dans l'ordre reçu, pour que l'appelant en rende compte.
+      # Les comptes dont un code sensible manque en sont absents.
+      def enrol!(accounts)
+        accounts.filter_map do |account|
           data_stream_codes = resolve_data_stream_codes(account.data_stream_codes)
           next if data_stream_codes.nil?
 
