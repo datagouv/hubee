@@ -52,6 +52,7 @@ fr:
         close: Fermer
         nav_label: Menu principal
         home: Accueil
+        subscriptions: Abonnements
         signed_in_as: "Connecté en tant que %{name} (%{email})"
         sign_out: Se déconnecter
       # Objets sans accent : certains clients mail les abîment, et ils servent à trier la boîte.
@@ -304,6 +305,25 @@ fr:
         heading: La connexion a échoué
         body: Une erreur est survenue pendant l'authentification. Aucune session n'a été ouverte. Vous pouvez réessayer.
         support_html: "Si le problème persiste, écrivez à %{email} en précisant l'heure de votre tentative."
+    subscriptions:
+      access_modes:
+        portal: Portail
+        api: API
+      activity:
+        active: Actif
+        inactive: Inactif
+      index:
+        title: Abonnements - HubEE
+        heading: Les abonnements de ma structure
+        lead: Les démarches dont votre structure reçoit les télédossiers, et par quel canal.
+        caption: Abonnements de la structure
+        fields:
+          data_stream: Démarche
+          access_mode: Accès
+          activity: État
+        empty: Votre structure n'a aucun abonnement.
+        failures:
+          unavailable: La liste des abonnements est momentanément indisponible. Réessayez dans quelques instants.
     errors:
       back_home: Retour à l'accueil
       stale_page: Cette page n'était plus à jour, elle a été rechargée.

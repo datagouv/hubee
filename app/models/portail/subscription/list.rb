@@ -18,6 +18,13 @@ module Portail
         subscriptions.select { |subscription| subscription.data_stream_name.present? }
           .to_h { |subscription| [subscription.data_stream_code, subscription.data_stream_name] }
       end
+
+      # Pour une lecture humaine : sans accent ni casse, sinon « État civil » passerait après « Z ».
+      def by_data_stream_name
+        subscriptions.sort_by do |subscription|
+          I18n.transliterate(subscription.data_stream_display_name).downcase
+        end
+      end
     end
   end
 end

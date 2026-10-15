@@ -603,3 +603,25 @@ Alors("il voit que l'archive ne peut pas être remise") do
   expect(page.response_headers).not_to have_key("content-disposition")
   expect(page).to have_css("h1", text: "L'archive ne peut pas être remise")
 end
+
+Quand("il ouvre les abonnements depuis le menu") do
+  within("nav.fr-nav") { click_link "Abonnements" }
+end
+
+Alors("il ne voit pas les abonnements dans le menu") do
+  within("nav.fr-nav") { expect(page).not_to have_link("Abonnements") }
+end
+
+Quand("il ouvre directement l'adresse des abonnements") do
+  visit "/abonnements"
+end
+
+Alors("les abonnements listés sont :") do |table|
+  expect(page).to have_css("h1", text: "Les abonnements de ma structure")
+  rows = page.all("table tbody tr").map { |row| row.all("td").map { |cell| cell.text.strip } }
+  expect(rows).to eq(table.rows)
+end
+
+Alors("il obtient une page introuvable") do
+  expect(page).to have_text("Page introuvable")
+end

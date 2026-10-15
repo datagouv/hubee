@@ -5,11 +5,15 @@ module Portail
   # d'accès, pas de statut. Le flux y est référencé par son code, comme sur un télédossier, et son
   # nom voyage à plat : l'amont ne le sert qu'avec l'abonnement. Homonyme de ::Subscription, le
   # modèle ActiveRecord : dans `module Portail`, un `Subscription` nu résout vers cette constante-ci.
-  class Subscription < Data.define(:id, :data_stream_code, :data_stream_name, :read_package, :create_package, :access_mode)
+  # L'abonnée est celle que l'amont a servie, confrontée au rattachement par la policy.
+  class Subscription < Data.define(:id, :subscriber, :data_stream_code, :data_stream_name, :read_package, :create_package, :access_mode)
     PORTAL_ACCESS = "portal"
 
     # Ce qui fait proposer un flux au filtre : l'organisation le reçoit, et par le portail.
     # L'amont ne sert pour l'heure que les dossiers de ces abonnements-là.
     def readable_via_portal? = read_package && access_mode == PORTAL_ACCESS
+
+    # Ce par quoi l'écran désigne le flux, comme data_stream_label : le code quand le nom manque.
+    def data_stream_display_name = data_stream_name || data_stream_code
   end
 end

@@ -11,4 +11,12 @@ RSpec.describe Portail::Subscription do
       expect(build(:portail_subscription, access_mode: "api")).not_to be_readable_via_portal
     end
   end
+
+  describe "#data_stream_display_name" do
+    it "is the data stream name, the code standing in for a missing one" do
+      expect(build(:portail_subscription, data_stream_code: "AEC", data_stream_name: "État civil").data_stream_display_name)
+        .to eq("État civil")
+      expect(build(:portail_subscription, data_stream_code: "AEC").data_stream_display_name).to eq("AEC")
+    end
+  end
 end

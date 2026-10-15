@@ -31,6 +31,17 @@ RSpec.describe Portail::HubAPI::Subscriptions do
         .to have_attributes(data_stream_name: "Actes d'état civil", read_package: false, access_mode: "api")
     end
 
+    # L'organisation servie voyage avec l'abonnement : la policy la confronte au rattachement.
+    it "carries the organisation the upstream served" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_subscription(build_v2_subscription)
+
+      list = described_class.list(siret: siret, insee_code: insee_code, client: client)
+
+      expect(list.subscriptions.first.subscriber)
+        .to eq(Portail::Organization.new(siret: siret, insee_code: insee_code))
+    end
+
     # Un flux que l'amont ne nomme pas reste un abonnement entier : l'intitulé seul manque.
     it "leaves an unnamed data stream unnamed" do
       client = HubApiV1::Testing::FakeClient.new
@@ -140,7 +151,7 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     # La clé porte la forme d'un abonnement : un membre ajouté met le cache précédent hors jeu.
     it "namespaces its cache key by the shape of what it stores" do
       expect(described_class::CACHE_NAMESPACE)
-        .to end_with("id-data_stream_code-data_stream_name-read_package-create_package-access_mode")
+        .to end_with("id-subscriber-data_stream_code-data_stream_name-read_package-create_package-access_mode")
     end
 
     # Une panne de transport, seul cas où la classe de la gem se bouchonne : déjà signalée par la
