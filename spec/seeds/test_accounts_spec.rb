@@ -84,6 +84,50 @@ RSpec.describe Seeds::TestAccounts do
     end
   end
 
+  describe ".personal_accounts" do
+    it "derives four Rochefourchat accounts from a personal mailbox, by sub-addressing" do
+      accounts = described_class.personal_accounts("prenom.nom@numerique.gouv.fr")
+
+      expect(accounts.map { |account| [account.email, account.organization, account.role, account.data_stream_codes] })
+        .to eq([
+          ["prenom.nom+agtetatcivilrochefourchat@numerique.gouv.fr", :rochefourchat, "member", ["EtatCivil"]],
+          ["prenom.nom+agtsensiblerochefourchat@numerique.gouv.fr", :rochefourchat, "member", [:sensitive_2]],
+          ["prenom.nom+admetatcivilrochefourchat@numerique.gouv.fr", :rochefourchat, "local_administrator", ["EtatCivil"]],
+          ["prenom.nom+admtotalrochefourchat@numerique.gouv.fr", :rochefourchat, "local_administrator", []]
+        ])
+    end
+
+    it "rejects an address that is already sub-addressed or is not an address" do
+      expect { described_class.personal_accounts("prenom.nom+agt@numerique.gouv.fr") }.to raise_error(ArgumentError)
+      expect { described_class.personal_accounts("prenom.nom") }.to raise_error(ArgumentError)
+    end
+  end
+
+  describe ".enrol!" do
+    it "enrols the given accounts, leaving names to ProConnect" do
+      memberships = with_sensitive_codes("PREMIER", "SECOND") do
+        described_class.enrol!(described_class.personal_accounts("prenom.nom@numerique.gouv.fr"))
+      end
+
+      expect(memberships.map { |membership| [membership.agent.email, membership.data_stream_codes] }).to eq([
+        ["prenom.nom+agtetatcivilrochefourchat@numerique.gouv.fr", ["EtatCivil"]],
+        ["prenom.nom+agtsensiblerochefourchat@numerique.gouv.fr", ["SECOND"]],
+        ["prenom.nom+admetatcivilrochefourchat@numerique.gouv.fr", ["EtatCivil"]],
+        ["prenom.nom+admtotalrochefourchat@numerique.gouv.fr", []]
+      ])
+      expect(Agent.pluck(:first_name, :last_name).uniq).to eq([[nil, nil]])
+    end
+  end
+
+  describe ".missing_variables_for" do
+    it "names the sensitive code variables the given accounts need and the environment does not declare" do
+      with_sensitive_codes("PREMIER", nil) do
+        expect(described_class.missing_variables_for(described_class.personal_accounts("prenom.nom@numerique.gouv.fr")))
+          .to eq(["SEED_SENSITIVE_DATA_STREAM_CODE_2"])
+      end
+    end
+  end
+
   describe ".missing_variables" do
     it "names the sensitive code variables the selected accounts need and the environment does not declare" do
       with_sensitive_codes("PREMIER", nil) do

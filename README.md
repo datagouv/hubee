@@ -57,6 +57,14 @@ Les codes des flux sensibles ne sont pas dans ce dépôt public : le catalogue l
 
 Il imprime le périmètre effectif et la MFA attendue de chaque compte : un `voit rien` signale une habilitation manquante, un `sans MFA` inattendu un code absent de `SENSITIVE_DATA_STREAM_CODES`.
 
+Pour se créer des comptes sur sa propre boîte sans publier son adresse dans le catalogue :
+
+```bash
+bin/rails "test_accounts:personal[prenom.nom@numerique.gouv.fr]"
+```
+
+La tâche enrôle quatre comptes sur Rochefourchat, par sous-adressage : `+agtetatcivilrochefourchat` (membre, `EtatCivil`), `+agtsensiblerochefourchat` (membre, second code sensible), `+admetatcivilrochefourchat` (administrateur local, `EtatCivil`) et `+admtotalrochefourchat` (administrateur local, voit tout). Chaque adresse a son propre compte ProConnect, qui fournit prénom et nom à la première connexion. Hors poste de développement, elle exige `SEED_TEST_ACCOUNTS=true`, comme le semis.
+
 ### 4. Lancer les tests
 
 ```bash
