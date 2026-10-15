@@ -57,6 +57,12 @@
           <li class="fr-nav__item">
             <%= link_to t(".home"), root_path, class: "fr-nav__link", "aria-current": (current_page?(root_path) ? "page" : nil) %>
           </li>
+          <%# La policy et non le rôle : le lien n'apparaît que là où la page s'ouvre. %>
+          <% if agent_signed_in? && policy(Portail::Subscription).index? %>
+            <li class="fr-nav__item">
+              <%= link_to t(".subscriptions"), abonnements_path, class: "fr-nav__link", "aria-current": (current_page?(abonnements_path) ? "page" : nil) %>
+            </li>
+          <% end %>
         </ul>
       </nav>
     </div>

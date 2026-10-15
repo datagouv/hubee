@@ -21,6 +21,8 @@ Rails.application.routes.draw do
   get "teledossiers/:teledossier_id/archive", to: "portail/deliveries/archives#show", as: :teledossier_archive
   # L'état, ressource singulière : un télédossier n'en a qu'un et on le remplace, d'où `update`.
   patch "teledossiers/:teledossier_id/etat", to: "portail/deliveries/states#update", as: :teledossier_etat
+  # Les abonnements de l'organisation, réservés à l'administrateur local.
+  get "abonnements", to: "portail/subscriptions#index", as: :abonnements
 
   # =============================================================================
   # API V2 — GELÉE LE 2026-06-12

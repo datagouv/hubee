@@ -40,4 +40,17 @@ RSpec.describe Portail::Subscription::List do
       expect(build(:portail_subscription_list, subscriptions: []).data_stream_names).to eq({})
     end
   end
+
+  describe "#by_data_stream_name" do
+    # Lue par un humain : l'intitulé décide, le code le remplace quand il manque, et un accent
+    # ou une majuscule ne renvoie pas une démarche en fin de liste.
+    it "orders the subscriptions by data stream name, the code standing in for a missing one" do
+      etat_civil = build(:portail_subscription, data_stream_code: "AEC", data_stream_name: "État civil")
+      deces = build(:portail_subscription, id: "sub-2", data_stream_code: "CERTDC", data_stream_name: "certificat de décès")
+      unnamed = build(:portail_subscription, id: "sub-3", data_stream_code: "DEMO", data_stream_name: nil)
+      list = build(:portail_subscription_list, subscriptions: [unnamed, etat_civil, deces])
+
+      expect(list.by_data_stream_name).to eq([deces, unnamed, etat_civil])
+    end
+  end
 end

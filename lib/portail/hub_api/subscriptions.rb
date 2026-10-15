@@ -43,6 +43,9 @@ module Portail
         def subscription_from(subscription)
           Portail::Subscription.new(
             id: subscription.id,
+            subscriber: Portail::Organization.new(
+              siret: subscription.organization.siret, insee_code: subscription.organization.code_insee
+            ),
             data_stream_code: subscription.data_stream_code,
             data_stream_name: subscription.data_stream_name,
             read_package: subscription.read_package,

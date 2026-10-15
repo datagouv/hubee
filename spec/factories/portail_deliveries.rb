@@ -142,7 +142,10 @@ FactoryBot.define do
     skip_create
     initialize_with { new(**attributes) }
 
+    transient { membership { nil } }
+
     id { "550e8400-e29b-41d4-a716-446655440000" }
+    subscriber { build(:portail_organization, membership: membership) }
     data_stream_code { "CERTDC" }
     # Sans intitulé par défaut : le cas nommé se pose explicitement, le repli sur le code est
     # le décor commun.
@@ -150,6 +153,10 @@ FactoryBot.define do
     read_package { true }
     create_package { false }
     access_mode { "portal" }
+
+    trait :of_another_organisation do
+      subscriber { build(:portail_organization, :of_another_organisation) }
+    end
   end
 end
 
