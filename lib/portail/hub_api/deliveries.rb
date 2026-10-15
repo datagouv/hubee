@@ -99,7 +99,7 @@ module Portail
             number: summary.number,
             state: summary.state.to_s,
             data_stream_code: summary.data_stream_code,
-            recipient: recipient_from(summary.recipient),
+            recipient: organization_from(summary.recipient),
             transmitted_at: summary.transmitted_at,
             updated_at: summary.updated_at
           )
@@ -111,7 +111,7 @@ module Portail
             number: delivery.number,
             state: delivery.state.to_s,
             data_stream_code: delivery.data_stream_code,
-            recipient: recipient_from(delivery.recipient),
+            recipient: organization_from(delivery.recipient),
             transmitted_at: delivery.transmitted_at,
             updated_at: delivery.updated_at,
             applicant: applicant_from(delivery.data_package&.applicant),
@@ -157,8 +157,8 @@ module Portail
           metadata.transform_values { |value| value.is_a?(Symbol) ? value.to_s : value }
         end
 
-        def recipient_from(recipient)
-          Portail::Delivery::Recipient.new(siret: recipient.siret, insee_code: recipient.code_insee)
+        def organization_from(organization)
+          Portail::Organization.new(siret: organization.siret, insee_code: organization.code_insee)
         end
 
         def applicant_from(applicant)

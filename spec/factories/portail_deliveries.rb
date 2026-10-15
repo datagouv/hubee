@@ -12,7 +12,7 @@ FactoryBot.define do
 
   # Par défaut l'organisation de l'agent des request specs : ce que l'amont sert doit lui
   # appartenir. `membership:` prend l'organisation d'un rattachement donné.
-  factory :portail_recipient, class: "Portail::Delivery::Recipient" do
+  factory :portail_organization, class: "Portail::Organization" do
     skip_create
     initialize_with { new(**attributes) }
 
@@ -46,12 +46,12 @@ FactoryBot.define do
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
     data_stream_code { "CERTDC" }
-    recipient { build(:portail_recipient, membership: membership) }
+    recipient { build(:portail_organization, membership: membership) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
 
     trait :of_another_organisation do
-      recipient { build(:portail_recipient, :of_another_organisation) }
+      recipient { build(:portail_organization, :of_another_organisation) }
     end
   end
 
@@ -91,7 +91,7 @@ FactoryBot.define do
     number { "DGS-CERTDC-0000000000001-01" }
     state { "acknowledged" }
     data_stream_code { "CERTDC" }
-    recipient { build(:portail_recipient, membership: membership) }
+    recipient { build(:portail_organization, membership: membership) }
     transmitted_at { 2.hours.ago }
     updated_at { 1.hour.ago }
     applicant { build(:portail_applicant) }
@@ -99,7 +99,7 @@ FactoryBot.define do
     events { [build(:portail_event)] }
 
     trait :of_another_organisation do
-      recipient { build(:portail_recipient, :of_another_organisation) }
+      recipient { build(:portail_organization, :of_another_organisation) }
     end
 
     # Sans lui, la pièce reçue par défaut retient toute décision.

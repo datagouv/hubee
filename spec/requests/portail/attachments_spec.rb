@@ -425,7 +425,7 @@ RSpec.describe "Portail::Attachments", type: :request do
         it "refuses a piece of a delivery the upstream served for another organisation" do
           sign_in_member(data_stream_codes: ["CERTDC"])
           expect(Portail::HubAPI::Deliveries).to receive(:find)
-            .and_return(delivery_on("CERTDC", recipient: build(:portail_recipient, :of_another_organisation)))
+            .and_return(delivery_on("CERTDC", recipient: build(:portail_organization, :of_another_organisation)))
 
           expect_a_refusal
         end
@@ -433,7 +433,7 @@ RSpec.describe "Portail::Attachments", type: :request do
         it "refuses a local administrator on a piece of a delivery served for another organisation" do
           sign_in_local_administrator
           expect(Portail::HubAPI::Deliveries).to receive(:find)
-            .and_return(delivery_on("CERTDC", recipient: build(:portail_recipient, :of_another_organisation)))
+            .and_return(delivery_on("CERTDC", recipient: build(:portail_organization, :of_another_organisation)))
 
           expect_a_refusal
         end
