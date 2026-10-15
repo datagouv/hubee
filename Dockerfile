@@ -7,7 +7,8 @@
 # docker run -d -p 80:3000 -e SECRET_KEY_BASE=<...> -e DATABASE_HOST=<...> -e DATABASE_PORT=<...> -e DATABASE_USERNAME=<...> -e DATABASE_PASSWORD=<...> --name hubee hubee
 
 # The tag lets Renovate follow the digest; the build pins the digest alone.
-FROM gcr.io/distroless/base-debian13:latest@sha256:389cad21f73e4c37b94ffe5b13736d5a92bd5bd3c6c6b38c2be1c881e14ba2bd AS distroless
+# nonroot ships the same files as latest, with uid 65532 as the default user.
+FROM gcr.io/distroless/base-debian13:nonroot@sha256:a0d70d6a97cd697d9362bc2aae4a6560dd65817e365d0043b07325a97975dc91 AS distroless
 
 FROM docker.io/library/ruby:4.0.7-slim@sha256:ba6a00593739f9cb66de80ad2e395a93a52a13635867ee32918ba0ec083b1ff6 AS base
 
