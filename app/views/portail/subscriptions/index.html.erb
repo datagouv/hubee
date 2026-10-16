@@ -9,8 +9,9 @@
   <p class="fr-text--lead"><%= t(".empty") %></p>
 <% else %>
   <%# Emboîtement DSFR qui porte le défilement horizontal. Pas de pagination : une organisation
-      a au plus un abonnement par flux, 51 flux en septembre 2026. À revoir si le catalogue grossit. %>
-  <div class="fr-table fr-table--bordered">
+      a au plus un abonnement par flux, 51 flux en septembre 2026. À revoir si le catalogue grossit.
+      La caption, exigée par le RGAA, est masquée : le h1 porte déjà le titre. %>
+  <div class="fr-table fr-table--bordered fr-table--no-caption">
     <div class="fr-table__wrapper">
       <div class="fr-table__container">
         <div class="fr-table__content">
