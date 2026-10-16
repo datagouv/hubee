@@ -51,7 +51,7 @@ fr:
         menu: Menu
         close: Fermer
         nav_label: Menu principal
-        home: Accueil
+        deliveries: Télédossiers
         subscriptions: Abonnements
         signed_in_as: "Connecté en tant que %{name} (%{email})"
         sign_out: Se déconnecter

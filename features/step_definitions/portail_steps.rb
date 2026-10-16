@@ -74,7 +74,7 @@ Alors("la page porte le socle DSFR complet") do
   expect(page).to have_content("Plateforme d'échange sécurisé de fichiers entre administrations")
 
   # Navigation principale
-  expect(page).to have_link("Accueil", href: "/")
+  expect(page).to have_link("Télédossiers", href: "/teledossiers")
 
   # Landmark main + contenu de la page d'accueil
   expect(page).to have_css("main#content[role='main']")

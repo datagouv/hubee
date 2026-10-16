@@ -55,7 +55,7 @@
       <nav class="fr-nav" id="header-navigation" role="navigation" aria-label="<%= t(".nav_label") %>">
         <ul class="fr-nav__list">
           <li class="fr-nav__item">
-            <%= link_to t(".home"), root_path, class: "fr-nav__link", "aria-current": (current_page?(root_path) ? "page" : nil) %>
+            <%= link_to t(".deliveries"), teledossiers_path, class: "fr-nav__link", "aria-current": (current_page?(teledossiers_path) ? "page" : nil) %>
           </li>
           <%# La policy et non le rôle : le lien n'apparaît que là où la page s'ouvre. %>
           <% if agent_signed_in? && policy(Portail::Subscription).index? %>

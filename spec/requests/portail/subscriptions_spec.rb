@@ -175,7 +175,7 @@ RSpec.describe "Portail::Subscriptions", type: :request do
       get "/teledossiers"
 
       expect(response).to have_http_status(:success)
-      expect(Capybara.string(response.body)).to have_css("nav.fr-nav a", text: "Accueil")
+      expect(Capybara.string(response.body)).to have_css("nav.fr-nav a[href='/teledossiers']", text: "Télédossiers")
       expect(Capybara.string(response.body)).not_to have_link("Abonnements")
     end
   end
