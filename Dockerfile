@@ -8,9 +8,9 @@
 
 # The tag lets Renovate follow the digest; the build pins the digest alone.
 # nonroot ships the same files as latest, with uid 65532 as the default user.
-FROM gcr.io/distroless/base-debian13:nonroot@sha256:a0d70d6a97cd697d9362bc2aae4a6560dd65817e365d0043b07325a97975dc91 AS distroless
+FROM gcr.io/distroless/base-debian13:nonroot@sha256:7e22204ffcba783587afba539fcc199cc8c91a7583b66299ac4dccdb5fed5f03 AS distroless
 
-FROM docker.io/library/ruby:4.0.7-slim@sha256:ba6a00593739f9cb66de80ad2e395a93a52a13635867ee32918ba0ec083b1ff6 AS base
+FROM docker.io/library/ruby:4.0.7-slim@sha256:38d10548b581179f1beb84d21554dbc0fffa668deb04338c67332f29f923f7e9 AS base
 
 # Rails app lives here
 WORKDIR /rails
