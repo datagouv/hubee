@@ -10,7 +10,7 @@
 # nonroot ships the same files as latest, with uid 65532 as the default user.
 FROM gcr.io/distroless/base-debian13:nonroot@sha256:7e22204ffcba783587afba539fcc199cc8c91a7583b66299ac4dccdb5fed5f03 AS distroless
 
-FROM docker.io/library/ruby:4.0.7-slim@sha256:38d10548b581179f1beb84d21554dbc0fffa668deb04338c67332f29f923f7e9 AS base
+FROM docker.io/library/ruby:4.0.9-slim@sha256:88f0d8f1f2f7829c8c85c5cfee774f7ac936a7ba460e904e8c873b6a7f96c311 AS base
 
 # Rails app lives here
 WORKDIR /rails
