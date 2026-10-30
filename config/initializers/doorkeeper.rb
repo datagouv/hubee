@@ -13,6 +13,8 @@ Doorkeeper.configure do
 
   access_token_expires_in 2.hours
 
+  # Aucun scope : les droits d'un client sont dans OauthApplicationRight.
+
   # Secret client et tokens illisibles en base ; communiqués une seule fois.
   hash_application_secrets
   hash_token_secrets

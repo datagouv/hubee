@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_26_090100) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_29_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -156,6 +156,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_090100) do
     t.index ["token"], name: "index_oauth_access_tokens_on_token", unique: true
   end
 
+  create_table "oauth_application_rights", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "oauth_application_id", null: false
+    t.string "right", null: false
+    t.index ["oauth_application_id", "right"], name: "index_oauth_application_rights_on_application_and_right", unique: true
+  end
+
   create_table "oauth_applications", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
     t.boolean "confidential", default: true, null: false
     t.datetime "created_at", null: false
@@ -221,6 +228,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_090100) do
   add_foreign_key "notifications", "subscriptions", on_delete: :restrict
   add_foreign_key "oauth_access_grants", "oauth_applications", column: "application_id"
   add_foreign_key "oauth_access_tokens", "oauth_applications", column: "application_id"
+  add_foreign_key "oauth_application_rights", "oauth_applications", on_delete: :cascade
   add_foreign_key "provider_sessions", "memberships", on_delete: :cascade
   add_foreign_key "subscriptions", "data_streams", on_delete: :cascade
   add_foreign_key "subscriptions", "organizations", on_delete: :cascade
