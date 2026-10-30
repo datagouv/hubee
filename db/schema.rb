@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_26_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_26_090100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -104,6 +104,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_090000) do
     t.uuid "agent_id", null: false
     t.datetime "created_at", null: false
     t.string "job_title"
+    t.string "mobile_phone_number"
     t.uuid "organization_link_id", null: false
     t.string "phone_number"
     t.enum "role", default: "member", null: false, enum_type: "membership_role"
