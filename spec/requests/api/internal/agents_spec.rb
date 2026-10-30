@@ -41,6 +41,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
     context "with a new agent" do
       it "registers a member habilitated on a data stream and answers the registered state" do
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         register(payload(
           {civility: "ms"},
@@ -71,6 +72,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
 
       it "traces who granted what, without name nor phone" do
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         register(payload({}, phone_number: "+33123456789"))
 
@@ -125,6 +127,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
 
       it "logs the request without the agent's identity nor phones" do
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         events = capture_semantic_logger_events do
           register(payload({civility: "ms"}, job_title: "Officier d'état civil", phone_number: "+33123456789", mobile_phone_number: "+33612345678"))
@@ -152,6 +155,8 @@ RSpec.describe "API::Internal::Agents", type: :request do
       # Un code est un identifiant opaque, que la V2 ne change jamais de casse.
       it "counts a repeated data stream code once and keeps codes that only differ by case" do
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+        stub_hub_api_v2_data_stream(code: "certdc")
 
         register(payload({}, data_stream_codes: ["CERTDC", "CERTDC", "certdc"]))
 
@@ -167,6 +172,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
         agent = create(:agent, email: "alice.martin@ville.fr", first_name: "Alicia", last_name: "Martin-Durand")
         create(:membership, agent:, organization_link: create(:organization_link, siret: "13002526500013"))
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         register(payload(email: "Alice.Martin@Ville.fr"))
 
@@ -184,6 +190,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
 
       it "refuses an identical replay on the address, writes nothing and answers no state" do
         attach(email: "alice.martin@ville.fr")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload) }.not_to change { written }
 
@@ -193,6 +200,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
 
       it "refuses a replay with another role and other habilitations, and changes nothing" do
         membership = attach(email: "alice.martin@ville.fr")
+        stub_hub_api_v2_data_stream(code: "AEC")
 
         expect { register(payload({}, role: "local_administrator", data_stream_codes: ["AEC"])) }.not_to change { written }
 
@@ -203,6 +211,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
 
       it "recognizes the agent whatever the case of the address" do
         attach(email: "alice.martin@ville.fr")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload(email: "ALICE.Martin@ville.fr")) }.not_to change { written }
 
@@ -216,6 +225,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
       it "refuses on the insee code, distinctly, and writes nothing" do
         attach(email: "alice.martin@ville.fr", insee_code: "75101")
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload) }.not_to change { written }
 
@@ -230,6 +240,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
       # La base donne « member » par défaut, jamais un appel.
       it "refuses a missing role and creates no member" do
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload({}, role: nil)) }.not_to change { written }
 
@@ -239,6 +250,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
 
       it "refuses a role other than the two of the V2" do
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload({}, role: "admin")) }.not_to change { written }
 
@@ -258,6 +270,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
 
       it "refuses an incomplete identity and a malformed phone, each on its field" do
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload({first_name: ""}, mobile_phone_number: "06 12")) }.not_to change { written }
 
@@ -356,6 +369,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
     context "with an organisation unknown to the referential" do
       it "refuses on the SIRET and leaves the organisation unknown to the V2" do
         stub_hub_api_organization_not_found(siret: "21750056000016")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload) }.not_to change { written }
 
@@ -368,6 +382,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
       it "refuses an organisation the V2 still knows once the referential no longer has it" do
         attach(email: "premier.agent@ville.fr")
         stub_hub_api_organization_not_found(siret: "21750056000016")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload) }.not_to change { written }
 
@@ -381,6 +396,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
     context "with the referential unavailable" do
       it "answers a retryable refusal without Retry-After and writes nothing" do
         stub_hub_api_organization_error(siret: "21750056000016")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload) }.not_to change { written }
 
@@ -391,19 +407,132 @@ RSpec.describe "API::Internal::Agents", type: :request do
 
       it "still answers the reasons already established instead" do
         stub_hub_api_organization_error(siret: "21750056000016")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload({}, phone_number: "abc")) }.not_to change { written }
 
         expect(response).to have_http_status(:unprocessable_content)
         expect(json).to eq("membership" => {"phone_number" => ["n'est pas valide"]})
       end
+
+      it "still checks the data stream codes, and answers the unknown ones instead" do
+        stub_hub_api_organization_error(siret: "21750056000016")
+        stub_hub_api_v2_data_stream_not_found(code: "CERTDC")
+
+        expect { register(payload) }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json).to eq("membership" => {"data_stream_codes" => ["contient un code de flux inconnu du référentiel : « CERTDC »"]})
+      end
+    end
+
+    # Une habilitation porte sur un flux que hub-api connaît.
+    context "with data stream codes checked by hub-api" do
+      it "habilitates the agent on exactly the known data streams sent" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+        stub_hub_api_v2_data_stream(code: "AEC")
+
+        register(payload({}, data_stream_codes: ["CERTDC", "AEC"]))
+
+        expect(response).to have_http_status(:created)
+        expect(json["membership"]["data_stream_codes"]).to contain_exactly("CERTDC", "AEC")
+        expect(Membership.sole.data_stream_codes).to contain_exactly("CERTDC", "AEC")
+      end
+
+      it "refuses an unknown code on the habilitations and writes nothing" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream_not_found(code: "CERTDC")
+
+        expect { register(payload) }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json).to eq("membership" => {"data_stream_codes" => ["contient un code de flux inconnu du référentiel : « CERTDC »"]})
+      end
+
+      # L'appelant découvre tous ses codes inconnus en un appel, chacun cité.
+      it "refuses the whole request for unknown codes among known ones, citing each of them" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+        stub_hub_api_v2_data_stream(code: "AEC")
+        stub_hub_api_v2_data_stream_not_found(code: "INCONNU")
+        stub_hub_api_v2_data_stream_not_found(code: "AUTRE")
+
+        expect { register(payload({}, data_stream_codes: ["CERTDC", "INCONNU", "AEC", "AUTRE"])) }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json).to eq("membership" => {"data_stream_codes" => [
+          "contient un code de flux inconnu du référentiel : « INCONNU »",
+          "contient un code de flux inconnu du référentiel : « AUTRE »"
+        ]})
+      end
+
+      it "refuses a code holding a space, without asking hub-api" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        client = use_hub_api_fake_client
+
+        expect { register(payload({}, data_stream_codes: ["CERT\u00A0DC"])) }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json).to eq("membership" => {"data_stream_codes" => ["contient un code invalide : « CERT\u00A0DC »"]})
+        expect(client.requests).to be_empty
+      end
+
+      # La gem refuse de placer « .. » dans un chemin : aucun flux ne s'appelle ainsi.
+      it "answers a dot segment as an unknown code, without asking hub-api" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        client = use_hub_api_fake_client
+
+        expect { register(payload({}, data_stream_codes: [".."])) }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json).to eq("membership" => {"data_stream_codes" => ["contient un code de flux inconnu du référentiel : « .. »"]})
+        expect(client.requests).to be_empty
+      end
+
+      it "answers a retryable refusal when hub-api does not answer, and writes nothing" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream_error(code: "CERTDC")
+
+        expect { register(payload) }.not_to change { written }
+
+        expect(response).to have_http_status(:service_unavailable)
+        expect(json).to eq("error" => "Le référentiel V1 ne répond pas. Réessayez dans quelques instants.")
+      end
+
+      # La panne ne masque pas les codes déjà reconnus inconnus.
+      it "answers the unknown codes found before hub-api stops answering" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream_not_found(code: "INCONNU")
+        stub_hub_api_v2_data_stream_error(code: "CERTDC")
+
+        expect { register(payload({}, data_stream_codes: ["INCONNU", "CERTDC"])) }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json).to eq("membership" => {"data_stream_codes" => ["contient un code de flux inconnu du référentiel : « INCONNU »"]})
+      end
     end
 
     # Tous les motifs à la fois, chacun sur son champ ; un conflit l'emporte.
     context "with a request refused for several reasons" do
+      it "answers the agent already attached with the unknown data stream code" do
+        attach(email: "alice.martin@ville.fr")
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream_not_found(code: "CERTDC")
+
+        expect { register(payload) }.not_to change { written }
+
+        expect(response).to have_http_status(:conflict)
+        expect(json).to eq(
+          "email" => ["désigne un agent déjà rattaché à cette organisation"],
+          "membership" => {"data_stream_codes" => ["contient un code de flux inconnu du référentiel : « CERTDC »"]}
+        )
+      end
+
       it "answers every reason with the conflict status" do
         attach(email: "alice.martin@ville.fr")
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload({last_name: ""}, phone_number: "abc")) }.not_to change { written }
 
@@ -418,6 +547,7 @@ RSpec.describe "API::Internal::Agents", type: :request do
       it "answers the conflict on the insee code with the organisation unknown to the referential" do
         attach(email: "alice.martin@ville.fr", insee_code: "75101")
         stub_hub_api_organization_not_found(siret: "21750056000016")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
 
         expect { register(payload) }.not_to change { written }
 

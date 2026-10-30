@@ -24,9 +24,12 @@ accorder que les droits dont il a besoin.
 |-------|-----------|---------------|
 | `internal:agents:create` | `POST /api/internal/agents` | systèmes internes, dont hub-api |
 
-hub-api ne reçoit que `internal:agents:create`. Ce droit n'est délivré à aucun client
-tant que l'enregistrement ne vérifie pas les codes de flux auprès de hub-api :
-jusque-là, un code inconnu serait enregistré.
+hub-api ne reçoit que `internal:agents:create`, et aucun autre droit.
+L'enregistrement vérifie chaque code de flux auprès de hub-api. Le droit n'est
+délivré aux systèmes internes, en recette comme en production, qu'une fois
+`API_INTERNAL_ALLOWED_IPS` renseignée et les conditions d'exploitation de
+l'espace interne vérifiées dans l'environnement concerné (« Endpoints internes »
+ci-dessous).
 
     app = Doorkeeper::Application.find_by!(name: "nom-du-client")
     OauthApplicationRight.create!(oauth_application: app, right: "internal:agents:create")  # accorder
@@ -82,6 +85,9 @@ même 404 JSON qu'une URL `/api/…` inexistante, avant toute vérification de j
   adresses, `0.0.0.0/0` ou `::/0`) empêche le démarrage
   de l'application, avec un message qui nomme la variable et l'entrée.
 - Lue au démarrage : un changement de liste demande un redémarrage.
+- Review apps : posée à chaque déploiement depuis le secret GitHub
+  `DOKKU_API_INTERNAL_ALLOWED_IPS`, qui écrase un `dokku config:set` manuel. Secret absent :
+  tout est refusé.
 - En développement, absente ou vide, elle vaut `127.0.0.1,::1` ; en test, valeur
   imposée.
 

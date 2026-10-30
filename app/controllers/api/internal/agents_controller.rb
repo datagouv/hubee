@@ -6,7 +6,8 @@ module API
       REFUSALS = {
         already_attached: {attribute: :email, status: :conflict},
         siret_already_attached: {attribute: :insee_code, status: :conflict},
-        unknown_organization: {attribute: :siret, status: :unprocessable_content}
+        unknown_organization: {attribute: :siret, status: :unprocessable_content},
+        unknown_data_stream: {attribute: :data_stream_codes, status: :unprocessable_content}
       }.freeze
 
       # Sans quoi Rails envelopperait lui-même un payload qui a oublié la clé `agent`.
