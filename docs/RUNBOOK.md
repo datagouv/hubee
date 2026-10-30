@@ -85,6 +85,9 @@ même 404 JSON qu'une URL `/api/…` inexistante, avant toute vérification de j
   adresses, `0.0.0.0/0` ou `::/0`) empêche le démarrage
   de l'application, avec un message qui nomme la variable et l'entrée.
 - Lue au démarrage : un changement de liste demande un redémarrage.
+- Review apps : posée à chaque déploiement depuis le secret GitHub
+  `DOKKU_API_INTERNAL_ALLOWED_IPS`, qui écrase un `dokku config:set` manuel. Secret absent :
+  tout est refusé.
 - En développement, absente ou vide, elle vaut `127.0.0.1,::1` ; en test, valeur
   imposée.
 
