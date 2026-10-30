@@ -17,8 +17,10 @@ module API
       def translated(error)
         case error
         when HubApiV1::OrganizationNotFoundError then NotFound.new(error.message)
+        when HubApiV1::V2::DataStreamNotFoundError then NotFound.new(error.message)
         # Refusée par la gem avant tout appel : un bug d'appelant, que réessayer ne corrigera pas.
         when HubApiV1::InvalidArgumentError then ArgumentError.new(error.message)
+        when HubApiV1::V2::InvalidArgumentError then ArgumentError.new(error.message)
         else
           # Une panne est un incident, signalé ici et non par chaque appelant. Le référentiel qui
           # viole sa propre clé (ambiguïté) en est une : jamais tranchée ici.
