@@ -40,6 +40,20 @@ fr:
             organization_link:
               siret_already_attached: désigne un SIRET auquel l'agent est déjà rattaché
 
+  activemodel:
+    errors:
+      models:
+        api/internal/agent_form:
+          attributes:
+            siret:
+              invalid: doit comporter 14 chiffres
+            data_stream_codes:
+              missing: "doit être fournie : une liste de codes, vide pour un administrateur local qui a accès à tous les flux"
+              not_a_list: doit être une liste de codes
+              required_for_member: doit compter au moins un code pour un membre
+              too_many: "ne peut pas compter plus de %{count} codes distincts"
+              invalid_code: "contient un code invalide : « %{code} »"
+
   api:
     errors:
       not_found: Ressource introuvable.
