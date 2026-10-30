@@ -40,3 +40,62 @@ Automatique : un job récurrent quotidien supprime les tokens expirés ou révoq
 
     curl -s -X POST https://<hôte>/api/oauth/token -d "grant_type=client_credentials" -d "client_id=<uid>" -d "client_secret=<secret>"
     curl -s https://<hôte>/api/ping -H "Authorization: Bearer <access_token>"
+
+## Endpoints internes (`/api/internal`)
+
+Réservés aux systèmes internes de la plateforme. Une adresse hors liste reçoit la
+même 404 JSON qu'une URL `/api/…` inexistante, avant toute vérification de jeton.
+
+### Adresses autorisées : `API_INTERNAL_ALLOWED_IPS`
+
+    API_INTERNAL_ALLOWED_IPS=192.0.2.5,198.51.100.0/24,2001:db8::/32
+
+- IP ou plages CIDR (IPv4 ou IPv6), séparées par des virgules ; espaces tolérés.
+- **Absente ou vide : tout est refusé** (hors développement, voir plus bas).
+- Une entrée invalide (nom d'hôte, masque hors bornes, plage écrite avec une
+  adresse qui n'en est pas le début, comme `192.0.2.5/24`, plage de toutes les
+  adresses, `0.0.0.0/0` ou `::/0`) empêche le démarrage
+  de l'application, avec un message qui nomme la variable et l'entrée.
+- Lue au démarrage : un changement de liste demande un redémarrage.
+- En développement, absente ou vide, elle vaut `127.0.0.1,::1` ; en test, valeur
+  imposée.
+
+### Conditions d'exploitation
+
+L'adresse jugée est celle du pair TCP, sauf quand ce pair est un proxy de
+confiance : c'est alors la **dernière** entrée de `X-Forwarded-For`. `Forwarded`
+et `Client-IP` sont ignorés. Les proxies de confiance sont la liste par défaut de
+Rails (`ActionDispatch::RemoteIp::TRUSTED_PROXIES` : boucle locale, plages
+privées et lien local) ; elle ne suit pas un éventuel
+`config.action_dispatch.trusted_proxies`. Cela suppose :
+
+1. l'application n'est joignable que par le reverse proxy, jamais en direct :
+   aucun de ses ports n'est publié hors de lui. Avec la redirection par défaut de
+   Docker en IPv4, un port publié conserve l'adresse du client ; mais selon le
+   mode (proxy userland : accès par la boucle locale, IPv6, Docker rootless,
+   iptables désactivé), la requête arrive par une passerelle privée, donc de
+   confiance, et un `X-Forwarded-For` forgé serait cru. Voir la vraie adresse du
+   client lors d'un essai ne prouve donc pas que publier le port est sans risque ;
+2. le reverse proxy **écrase** `X-Forwarded-For` au lieu de le compléter ;
+3. le reverse proxy est le premier serveur atteint par la requête : un
+   équipement en amont ferait juger son adresse à la place de celle du client ;
+4. le reverse proxy joint l'application depuis la boucle locale ou une plage
+   privée, en IPv4 (écoute par défaut de Puma) : une adresse publique, ou une
+   IPv4 vue sous forme IPv6 (`::ffff:10.0.0.2`, si Puma écoute sur `[::]`), n'est
+   pas reconnue comme proxy et c'est l'adresse du reverse proxy qui est jugée. Ne
+   jamais inscrire l'adresse du reverse proxy dans `API_INTERNAL_ALLOWED_IPS` :
+   tout client passant par lui serait admis ;
+5. le reverse proxy **retire** `Forwarded` et `Client-IP`. Le filtre les ignore,
+   mais Rails les croit pour `request.remote_ip`, qui est l'adresse écrite dans
+   les journaux : sans ce retrait, un client y inscrit l'adresse de son choix.
+
+Toute machine du réseau privé qui joint l'application en direct est un proxy de
+confiance pour elle et peut donc annoncer l'adresse de son choix : d'où la
+condition 1.
+
+### Vérifier en recette
+
+- depuis une IP non autorisée : 404 JSON sur `/api/internal/…` ;
+- la même, avec `X-Forwarded-For: <IP d'un système interne autorisé>` : 404 ;
+- depuis chaque système interne autorisé : la requête passe ;
+- l'API publique (`/api/oauth/token`, `/api/ping`) répond comme avant.

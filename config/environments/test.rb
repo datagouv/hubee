@@ -34,6 +34,9 @@ Rails.application.configure do
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 
+  # Imposée : un .env local ne change pas l'adresse que les specs voient admise.
+  config.x.api_internal_allowed_ips = "127.0.0.1,::1"
+
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
 

@@ -205,7 +205,7 @@ DELETE /api/v1/users/:id                   # (admin futur)
 |------|------|----------|
 | 401 | Unauthorized | `{error: "message"}` - Token invalide/expiré |
 | 403 | Forbidden | `{error: "message"}` - Droits insuffisants |
-| 404 | Not Found | `{error: "Not found"}` |
+| 404 | Not Found | `{"error": "Ressource introuvable."}` - URL inconnue sous `/api` ou ressource introuvable, même corps |
 | 422 | Unprocessable Entity | `{field: ["error1", "error2"]}` - Validation errors (direct, no wrapper) |
 | 429 | Too Many Requests | `{error: "message"}` - Rate limit (headers: X-RateLimit-*) |
 | 500 | Internal Server Error | `{error: "message"}` - Erreur serveur |

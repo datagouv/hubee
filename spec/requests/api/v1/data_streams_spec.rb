@@ -86,7 +86,7 @@ RSpec.describe "Api::V1::DataStreams", type: :request do
 
       it "returns error response" do
         expect(json).to match(
-          "error" => "Not found"
+          "error" => "Ressource introuvable."
         )
       end
     end

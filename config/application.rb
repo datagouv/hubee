@@ -57,6 +57,8 @@ module Hubee
     config.action_dispatch.ip_spoofing_check = false
     config.log_tags = {request_id: :request_id, ip_address: :remote_ip}
 
+    config.x.api_internal_allowed_ips = ENV["API_INTERNAL_ALLOWED_IPS"]
+
     # Une requête, une ligne : la ligne de fin de requête reprend ce que Rails écrit à part
     # (config/initializers/request_log.rb), et les appenders retirent la ligne à part. Celle d'une
     # route inconnue ne porte que la pile du routeur ; celle d'un téléchargement nommait la pièce,
