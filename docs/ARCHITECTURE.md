@@ -294,14 +294,14 @@ Rails.application.config.solid_queue.health_check = {
 ```ruby
 # Table events
 CRITICAL_EVENTS = {
-  'file_uploaded'       => 'Upload fichier',
-  'file_scan_passed'    => 'Scan antivirus OK',
-  'file_scan_failed'    => 'Virus détecté',
-  'file_encrypted'      => 'Chiffrement réussi',
-  'file_downloaded'     => 'Téléchargement fichier',
-  'package_sent'        => 'Envoi validé',
-  'delivery_acknowledged' => 'Accusé réception',
-  'access_denied'       => 'Tentative accès non autorisé'
+  'file.uploaded'         => 'Upload fichier',
+  'file.scan_passed'      => 'Scan antivirus OK',
+  'file.scan_failed'      => 'Virus détecté',
+  'file.encrypted'        => 'Chiffrement réussi',
+  'file.downloaded'       => 'Téléchargement fichier',
+  'package.sent'          => 'Envoi validé',
+  'delivery.acknowledged' => 'Accusé réception',
+  'access.denied'         => 'Tentative accès non autorisé'
 }
 ```
 

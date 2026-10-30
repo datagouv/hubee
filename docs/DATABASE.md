@@ -124,21 +124,18 @@ CREATE TABLE attachments (
 CREATE INDEX idx_attachments_processing_status ON attachments(processing_status);
 CREATE INDEX idx_attachments_package ON attachments(data_package_id);
 
--- Événements audit (RGS)
+-- Événements audit (RGS) : immuables, sans organisation (un agent n'en a pas d'unique)
 CREATE TABLE events (
-  id BIGSERIAL PRIMARY KEY,
-  event_type VARCHAR(50) NOT NULL,
-  auditable_type VARCHAR NOT NULL,
-  auditable_id BIGINT NOT NULL,
-  organization_id BIGINT NOT NULL REFERENCES organizations(id),
-  ip_address INET,
-  context JSONB DEFAULT '{}',
+  id UUID PRIMARY KEY DEFAULT uuidv7(),
+  eventable_type VARCHAR NOT NULL,
+  eventable_id UUID NOT NULL, -- Sans REFERENCES : la trace survit à la suppression de son sujet
+  event_type VARCHAR NOT NULL, -- Liste fermée, format à point : 'agent.created', 'membership.created'
+  metadata JSONB NOT NULL DEFAULT '{}',
   created_at TIMESTAMP NOT NULL -- Pas de updated_at (immuable)
 );
 
-CREATE INDEX idx_events_auditable ON events(auditable_type, auditable_id);
-CREATE INDEX idx_events_org_created ON events(organization_id, created_at);
-CREATE INDEX idx_events_type ON events(event_type);
+CREATE INDEX idx_events_eventable ON events(eventable_type, eventable_id);
+CREATE INDEX idx_events_created_at ON events(created_at);
 
 -- Users (interface web future)
 CREATE TABLE users (
@@ -395,9 +392,9 @@ CREATE INDEX idx_notifications_org_status
 CREATE INDEX idx_attachments_processing_status
   ON attachments(processing_status);
 
--- Audit trail lookup (compliance)
-CREATE INDEX idx_events_org_created
-  ON events(organization_id, created_at);
+-- Purge des événements audit de plus d'un an (rétention RGS)
+CREATE INDEX idx_events_created_at
+  ON events(created_at);
 ```
 
 ## Rétention et Archivage
@@ -418,12 +415,11 @@ data_package.destroy!
 ### Audit Trail Events
 
 ```ruby
-# Conservation DB : 1 an minimum (RGS)
-Event.where('created_at < ?', 1.year.ago).delete_all
+# Conservation DB : 1 an (RGS), puis purge quotidienne (API::PurgeEventsJob, 6 h, production)
+Event.expired.delete_all  # created_at <= 1 an : la borne est incluse
 
-# Export S3 mensuel : 5 ans
-# Format JSON signé HMAC SHA-256
-ArchiveAuditEventsJob.perform_later
+# À venir, hors périmètre actuel : export S3 mensuel conservé 5 ans (JSON signé
+# HMAC SHA-256). Il n'existe pas encore : une trace purgée n'est archivée nulle part.
 ```
 
 ## Migrations Critiques
