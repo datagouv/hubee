@@ -33,6 +33,15 @@ RSpec.describe Portail::Access::SecondFactor do
     it "requires it however the sensitive code is spelled" do
       expect(described_class.required_for?(membership_with("demo_sensible"))).to be(true)
     end
+
+    # La base de test met « é » en majuscule, pas une base en locale C ; « ß », que Ruby écrit
+    # « SS » et PostgreSQL laisse tel quel, montre que la comparaison ne dépend pas de la base.
+    it "requires it for a sensitive code holding non-ASCII letters, whatever the database locale" do
+      stub_const("Portail::Access::SensitiveDataStreams::CODES", Portail::Access::SensitiveDataStreams.parse("démo_sensible,straße"))
+
+      expect(described_class.required_for?(membership_with("Démo_Sensible"))).to be(true)
+      expect(described_class.required_for?(membership_with("straße"))).to be(true)
+    end
   end
 
   describe ".satisfied?" do

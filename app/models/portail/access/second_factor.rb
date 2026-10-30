@@ -23,12 +23,12 @@ module Portail
 
         private
 
+        # En Ruby, comme la liste : UPPER de PostgreSQL suit la locale de la base, et en locale C il
+        # laisse « é » en minuscule. L'agent échapperait alors au second facteur, sans erreur.
         def sensitive_habilitation?(membership)
           return false if SensitiveDataStreams::CODES.empty?
 
-          membership.data_stream_accesses
-            .where("UPPER(data_stream_code) IN (?)", SensitiveDataStreams::CODES)
-            .exists?
+          membership.data_stream_codes.any? { SensitiveDataStreams::CODES.include?(it.upcase) }
         end
       end
     end
