@@ -19,6 +19,7 @@ RSpec.describe API::Internal::Agents::Create do
       # Les deux appels se retrouvent après avoir constaté l'organisation inconnue de la V2, puis
       # chacun garde sa transaction ouverte sur ses traces : l'autre cherche le lien sans le voir.
       barrier = Concurrent::CyclicBarrier.new(2)
+      stub_hub_api_v2_data_stream(code: "CERTDC")
       expect(API::HubAPI::Organizations).to receive(:verify).twice do
         raise "barrier timed out" unless barrier.wait(5)
         true
@@ -50,6 +51,7 @@ RSpec.describe API::Internal::Agents::Create do
       # l'agent fait attendre le second jusqu'à la fin de la transaction du premier : la validation
       # d'unicité voit alors le rattachement.
       barrier = Concurrent::CyclicBarrier.new(2)
+      stub_hub_api_v2_data_stream(code: "CERTDC")
       expect(API::HubAPI::Organizations).to receive(:verify).twice do
         raise "barrier timed out" unless barrier.wait(5)
         true
@@ -79,6 +81,7 @@ RSpec.describe API::Internal::Agents::Create do
     it "makes an attachment written outside this code wait for the lock" do
       agent = create(:agent, email: "alice.martin@ville.fr")
       organization_link = create(:organization_link, siret: "21750056000016", insee_code: "75056")
+      stub_hub_api_v2_data_stream(code: "CERTDC")
       expect(API::HubAPI::Organizations).to receive(:verify).and_return(true)
       outside = nil
       expect(Membership).to receive(:create!).and_wrap_original do |original, **attributes|
@@ -113,6 +116,7 @@ RSpec.describe API::Internal::Agents::Create do
       create(:organization_link, siret: "21750056000016", insee_code: "75056")
       expect(Agent).to receive(:lock).twice.and_return(Agent.all)
       barrier = Concurrent::CyclicBarrier.new(2)
+      stub_hub_api_v2_data_stream(code: "CERTDC")
       expect(API::HubAPI::Organizations).to receive(:verify).twice do
         raise "barrier timed out" unless barrier.wait(5)
         true

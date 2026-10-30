@@ -15,6 +15,7 @@ RSpec.describe "Agent registered through the internal API", type: :request do
     stub_hub_api_organization_found(
       siret: ProConnectTestHelper::TEST_SIRET, type: "SI", branch_code: ProConnectTestHelper::TEST_INSEE_CODE
     )
+    data_stream_codes.each { stub_hub_api_v2_data_stream(code: it) }
 
     post "/api/internal/agents", headers: {"Authorization" => "Bearer #{token}"}, as: :json, params: {
       agent: {
