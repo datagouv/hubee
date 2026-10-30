@@ -68,6 +68,7 @@ Rails.application.routes.draw do
     # Réservé aux systèmes internes. Hors liste, aucune route ne répond : la requête finit
     # sur l'attrape-tout, sans révéler que l'endpoint existe.
     namespace :internal, constraints: API::Internal::AllowedNetwork.new(Rails.configuration.x.api_internal_allowed_ips) do
+      resources :agents, only: :create
     end
 
     # En dernier sous /api : toute route /api déclarée plus bas serait masquée.

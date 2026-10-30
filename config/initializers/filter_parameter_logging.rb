@@ -21,7 +21,13 @@ Rails.application.config.filter_parameters += [
 #   nonce         l'aléa anti-rejeu de la demande d'autorisation ProConnect.
 #   login_hint    l'adresse de l'agent, suggérée à ProConnect lors d'une élévation.
 #   phone_number  les téléphones d'un agent, fixe et mobile (`mobile_phone_number`).
+#   first_name, last_name, civility, job_title
+#                 l'identité et la civilité d'un agent enregistré par l'API interne.
 #
-# La correspondance est partielle : `code` masquerait aussi un futur `postal_code`. Ces
-# filtres s'appliquent aussi aux paramètres d'une URL de redirection journalisée.
-Rails.application.config.filter_parameters += [:code, :provider_sub, :message, :piece, :nonce, :login_hint, :phone_number]
+# La correspondance est partielle, sauf pour `code` : le code guichet (`insee_code`) et les
+# codes de flux restent lisibles. Ces filtres s'appliquent aussi aux paramètres d'une URL de
+# redirection journalisée.
+Rails.application.config.filter_parameters += [
+  /\Acode\z/, :provider_sub, :message, :piece, :nonce, :login_hint, :phone_number,
+  :first_name, :last_name, :civility, :job_title
+]

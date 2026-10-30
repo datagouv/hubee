@@ -45,8 +45,13 @@ fr:
       models:
         api/internal/agent_form:
           attributes:
+            email:
+              already_attached: désigne un agent déjà rattaché à cette organisation
             siret:
               invalid: doit comporter 14 chiffres
+              unknown_organization: ne désigne, avec ce code INSEE, aucune organisation du référentiel
+            insee_code:
+              siret_already_attached: diffère de celui sous lequel l'agent est déjà rattaché à ce SIRET
             data_stream_codes:
               missing: "doit être fournie : une liste de codes, vide pour un administrateur local qui a accès à tous les flux"
               not_a_list: doit être une liste de codes
@@ -57,6 +62,11 @@ fr:
   api:
     errors:
       not_found: Ressource introuvable.
+    internal:
+      agents:
+        missing_envelope: La demande doit porter l'agent sous la clé « agent ».
+        forbidden: Ce client n'a pas le droit d'enregistrer un agent.
+        unavailable: Le référentiel V1 ne répond pas. Réessayez dans quelques instants.
 
   portail:
     shared:
