@@ -5,8 +5,8 @@ RSpec.describe "API OAuth routes", type: :routing do
   # est exposée, pas les autres endpoints dessinés par défaut par Doorkeeper.
   it "routes only the token delivery endpoint" do
     expect(post: "/api/oauth/token").to route_to("doorkeeper/tokens#create")
-    expect(post: "/api/oauth/revoke").not_to be_routable
-    expect(post: "/api/oauth/introspect").not_to be_routable
-    expect(get: "/api/oauth/token/info").not_to be_routable
+    expect(post: "/api/oauth/revoke").to route_to("api/errors#not_found", path: "oauth/revoke")
+    expect(post: "/api/oauth/introspect").to route_to("api/errors#not_found", path: "oauth/introspect")
+    expect(get: "/api/oauth/token/info").to route_to("api/errors#not_found", path: "oauth/token/info")
   end
 end

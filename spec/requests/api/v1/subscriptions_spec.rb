@@ -157,7 +157,7 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
       end
 
       it "returns error response" do
-        expect(json).to match("error" => "Not found")
+        expect(json).to match("error" => "Ressource introuvable.")
       end
     end
   end

@@ -34,7 +34,7 @@ module API
     end
 
     def not_found
-      render json: {error: "Not found"}, status: :not_found
+      render json: {error: I18n.t("api.errors.not_found")}, status: :not_found
     end
 
     def set_pagination_headers
