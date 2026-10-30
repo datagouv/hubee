@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_26_090100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -90,10 +90,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_140000) do
     t.index ["owner_organization_id"], name: "index_data_streams_on_owner_organization_id"
   end
 
+  create_table "events", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "event_type", null: false
+    t.uuid "eventable_id", null: false
+    t.string "eventable_type", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.index ["created_at"], name: "index_events_on_created_at"
+    t.index ["eventable_type", "eventable_id"], name: "index_events_on_eventable_type_and_eventable_id"
+  end
+
   create_table "memberships", id: :uuid, default: -> { "uuidv7()" }, force: :cascade do |t|
     t.uuid "agent_id", null: false
     t.datetime "created_at", null: false
     t.string "job_title"
+    t.string "mobile_phone_number"
     t.uuid "organization_link_id", null: false
     t.string "phone_number"
     t.enum "role", default: "member", null: false, enum_type: "membership_role"
