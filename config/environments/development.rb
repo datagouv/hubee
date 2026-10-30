@@ -13,6 +13,9 @@ Rails.application.configure do
   # Do not eager load code on boot.
   config.eager_load = false
 
+  # .env.example la déclare vide : dotenv la charge alors en "", que fetch rendrait tel quel.
+  config.x.api_internal_allowed_ips = ENV["API_INTERNAL_ALLOWED_IPS"].presence || "127.0.0.1,::1"
+
   # Show full error reports.
   config.consider_all_requests_local = true
 
