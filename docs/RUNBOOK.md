@@ -24,9 +24,12 @@ accorder que les droits dont il a besoin.
 |-------|-----------|---------------|
 | `internal:agents:create` | `POST /api/internal/agents` | systèmes internes, dont hub-api |
 
-hub-api ne reçoit que `internal:agents:create`. Ce droit n'est délivré à aucun client
-tant que l'enregistrement ne vérifie pas les codes de flux auprès de hub-api :
-jusque-là, un code inconnu serait enregistré.
+hub-api ne reçoit que `internal:agents:create`, et aucun autre droit.
+L'enregistrement vérifie chaque code de flux auprès de hub-api. Le droit n'est
+délivré aux systèmes internes, en recette comme en production, qu'une fois
+`API_INTERNAL_ALLOWED_IPS` renseignée et les conditions d'exploitation de
+l'espace interne vérifiées dans l'environnement concerné (« Endpoints internes »
+ci-dessous).
 
     app = Doorkeeper::Application.find_by!(name: "nom-du-client")
     OauthApplicationRight.create!(oauth_application: app, right: "internal:agents:create")  # accorder

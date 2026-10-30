@@ -76,7 +76,7 @@ donne deux appels.
 | `membership.role` | oui | `member` ou `local_administrator`, jamais déduit d'une valeur par défaut |
 | `membership.job_title` | non | 255 caractères au plus |
 | `membership.phone_number`, `membership.mobile_phone_number` | non | format E.164 (`+33123456789`) ; un numéro national français est mis en forme, tout autre numéro mal formé est refusé |
-| `membership.data_stream_codes` | oui | une liste de chaînes, toujours fournie : une liste absente, `null`, un élément `null` ou toute autre forme sont refusés. Au moins un code pour un `member` ; une liste vide (`[]`) donne à un `local_administrator` l'accès à tous les flux de son organisation (hub-api l'envoie ainsi pour l'administrateur local déclaré à l'abonnement). Un code compte de 1 à 100 caractères, accents compris, sans aucun espacement (espace insécable comprise), une fois retirés les espaces en bord (`" CERTDC"` vaut `CERTDC`) ; il est un identifiant opaque : les doublons exacts sont retirés, la casse n'est jamais changée (`CERTDC` et `certdc` sont deux codes). 100 codes distincts au plus (51 codes en production au 26/10/2026). Les codes ne sont pas encore vérifiés auprès de hub-api |
+| `membership.data_stream_codes` | oui | une liste de chaînes, toujours fournie : une liste absente, `null`, un élément `null` ou toute autre forme sont refusés. Au moins un code pour un `member` ; une liste vide (`[]`) donne à un `local_administrator` l'accès à tous les flux de son organisation (hub-api l'envoie ainsi pour l'administrateur local déclaré à l'abonnement). Un code compte de 1 à 100 caractères, accents compris, sans aucun espacement (espace insécable comprise), une fois retirés les espaces en bord (`" CERTDC"` vaut `CERTDC`) ; il est un identifiant opaque : les doublons exacts sont retirés, la casse n'est jamais changée (`CERTDC` et `certdc` sont deux codes). 100 codes distincts au plus (51 codes en production au 26/10/2026). Chaque code doit être connu de hub-api sous ce code exact (une reconnaissance vaut une heure) : un seul code inconnu refuse tout l'appel, et chaque code inconnu est cité dans son motif. Les codes sont vérifiés même quand le référentiel des organisations ne répond pas, dans l'ordre transmis, jusqu'à la première panne de hub-api : les suivants ne sont examinés qu'au prochain appel |
 
 **201** : l'état enregistré, pas l'état demandé (pour un agent connu ailleurs, l'identité
 retenue). `id` désigne l'agent dans les opérations suivantes ; l'identifiant ProConnect n'est
@@ -127,7 +127,8 @@ rien, ni agent, ni organisation, ni rattachement, ni trace.
 | 409 | agent déjà rattaché à ce SIRET sous un autre code guichet (un seul rattachement par SIRET) | motif sur `membership.insee_code` |
 | 422 | champ manquant ou invalide | motif sur chaque champ concerné |
 | 422 | organisation inconnue du référentiel V1 | motif sur `membership.siret` |
-| 503 | référentiel V1 injoignable ou incohérent : réessayable, sans en-tête `Retry-After` | `{"error": "…"}` |
+| 422 | code de flux inconnu de hub-api | un motif par code inconnu sur `membership.data_stream_codes`, qui le cite |
+| 503 | référentiel V1 (hub-api) injoignable ou incohérent, pour l'organisation comme pour un code de flux : réessayable, sans en-tête `Retry-After` | `{"error": "…"}` |
 
 Chaque écriture laisse sa trace (`agent.created` si l'agent est créé, `membership.created`) : le
 client appelant (nom et uid), la requête, l'adresse, l'organisation, le rôle et les habilitations.
