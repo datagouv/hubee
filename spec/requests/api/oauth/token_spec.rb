@@ -79,6 +79,28 @@ RSpec.describe "API OAuth token endpoint", type: :request do
       end
     end
 
+    # Ses droits ne sont pas des scopes : il demande son jeton comme tout client.
+    context "with a client that holds a right" do
+      let(:application) { create(:oauth_application, :with_agent_registration_right) }
+
+      it "delivers a token asked without any scope" do
+        post "/api/oauth/token", params: valid_params
+
+        expect(response).to have_http_status(:ok)
+        expect(Doorkeeper::AccessToken.sole.scopes.to_a).to eq([])
+      end
+
+      # Le serveur ne déclare aucun scope : en demander un, même le nom d'un droit, coûte le jeton.
+      it "refuses a token asked with a scope, even named after a right" do
+        %w[internal:agents:create agents:create].each do |scope|
+          post "/api/oauth/token", params: valid_params.merge(scope:)
+
+          expect(response).to have_http_status(:bad_request), "scope #{scope}"
+          expect(json["error"]).to eq("invalid_scope")
+        end
+      end
+    end
+
     context "with a grant type that is not enabled" do
       let(:params) { valid_params.merge(grant_type: "authorization_code") }
 
