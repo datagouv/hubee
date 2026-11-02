@@ -41,6 +41,21 @@ RSpec.describe Portail::Subscription::List do
     end
   end
 
+  describe "#data_stream_codes" do
+    # Tout abonnement compte, quel que soit son canal ou son état : il rend cohérente une
+    # habilitation sur son flux. Un doublon ne donne le code qu'une fois.
+    it "projects the distinct data streams the organisation subscribes to" do
+      list = build(:portail_subscription_list, subscriptions: [
+        build(:portail_subscription, data_stream_code: "CERTDC"),
+        build(:portail_subscription, id: "sub-2", data_stream_code: "CERTDC"),
+        build(:portail_subscription, id: "sub-3", data_stream_code: "DEMO_API", access_mode: "api"),
+        build(:portail_subscription, id: "sub-4", data_stream_code: "DEMO_DORMANT", read_package: false)
+      ])
+
+      expect(list.data_stream_codes).to contain_exactly("CERTDC", "DEMO_API", "DEMO_DORMANT")
+    end
+  end
+
   describe "#by_data_stream_name" do
     # Lue par un humain : l'intitulé décide, le code le remplace quand il manque, et un accent
     # ou une majuscule ne renvoie pas une démarche en fin de liste.
