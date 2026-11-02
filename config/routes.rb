@@ -23,6 +23,8 @@ Rails.application.routes.draw do
   patch "teledossiers/:teledossier_id/etat", to: "portail/deliveries/states#update", as: :teledossier_etat
   # Les abonnements de l'organisation, réservés à l'administrateur local.
   get "abonnements", to: "portail/subscriptions#index", as: :abonnements
+  # Les agents de l'organisation, un par rattachement, réservés à l'administrateur local.
+  get "agents", to: "portail/memberships#index", as: :agents
 
   # =============================================================================
   # API V2 — GELÉE LE 2026-06-12
