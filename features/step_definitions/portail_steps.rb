@@ -625,3 +625,34 @@ end
 Alors("il obtient une page introuvable") do
   expect(page).to have_text("Page introuvable")
 end
+
+# --- Agents ------------------------------------------------------------------------------------
+
+Étantdonné("un collègue membre habilité sur le flux {string}") do |code|
+  colleague = create(:agent, first_name: "Alice", last_name: "Bernard")
+  membership = create(:membership, agent: colleague,
+    organization_link: Membership.find_by!(agent: @agent).organization_link)
+  create(:data_stream_access, membership:, data_stream_code: code)
+end
+
+Quand("il ouvre les agents depuis le menu") do
+  within("nav.fr-nav") { click_link "Agents" }
+end
+
+Alors("il ne voit pas les agents dans le menu") do
+  within("nav.fr-nav") { expect(page).not_to have_link("Agents") }
+end
+
+Quand("il ouvre directement l'adresse des agents") do
+  visit "/agents"
+end
+
+# Les colonnes qui disent l'accès. « à sa connexion » : la date que le portail vient de poser
+# pour l'agent connecté, qu'aucun tableau ne peut écrire d'avance.
+Alors("les agents listés sont :") do |table|
+  expect(page).to have_css("h1", text: "Les agents de ma structure")
+  signed_in_at = I18n.l(Membership.find_by!(agent: @agent).last_signed_in_at, format: :long)
+  expected = table.rows.map { |row| row.map { |cell| (cell == "à sa connexion") ? signed_in_at : cell } }
+  rows = page.all("table tbody tr").map { |row| row.all("td").map { |cell| cell.text.squish }.values_at(0, 4, 5, 6) }
+  expect(rows).to eq(expected)
+end
