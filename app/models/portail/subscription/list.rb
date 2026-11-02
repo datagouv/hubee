@@ -19,6 +19,10 @@ module Portail
           .to_h { |subscription| [subscription.data_stream_code, subscription.data_stream_name] }
       end
 
+      # Les flux auxquels l'organisation est abonnée, chacun une fois, quels que soient le canal et
+      # l'état : un abonnement inactif ou par l'API rend cohérente une habilitation sur son flux.
+      def data_stream_codes = subscriptions.map(&:data_stream_code).uniq
+
       # Pour une lecture humaine : sans accent ni casse, sinon « État civil » passerait après « Z ».
       def by_data_stream_name
         subscriptions.sort_by do |subscription|

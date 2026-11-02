@@ -53,6 +53,7 @@ fr:
         nav_label: Menu principal
         deliveries: Télédossiers
         subscriptions: Abonnements
+        memberships: Agents
         signed_in_as: "Connecté en tant que %{name} (%{email})"
         sign_out: Se déconnecter
       # Objets sans accent : certains clients mail les abîment, et ils servent à trier la boîte.
@@ -305,6 +306,28 @@ fr:
         heading: La connexion a échoué
         body: Une erreur est survenue pendant l'authentification. Aucune session n'a été ouverte. Vous pouvez réessayer.
         support_html: "Si le problème persiste, écrivez à %{email} en précisant l'heure de votre tentative."
+    memberships:
+      roles:
+        local_administrator: Administrateur local
+        member: Membre
+      data_streams:
+        all: Tous les flux
+        none: Aucun flux
+        unsubscribed: Non abonné
+      never_signed_in: Jamais
+      index:
+        title: Agents - HubEE
+        heading: Les agents de ma structure
+        lead: Les agents qui ont accès au portail pour votre structure, leur rôle et les flux sur lesquels ils sont habilités.
+        caption: Agents de la structure
+        fields:
+          agent: Agent
+          email: Adresse électronique
+          job_title: Fonction
+          phone_number: Téléphone
+          role: Rôle
+          data_streams: Flux habilités
+          last_signed_in_at: Dernière connexion
     subscriptions:
       access_modes:
         portal: Portail
