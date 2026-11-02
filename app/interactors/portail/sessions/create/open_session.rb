@@ -16,6 +16,9 @@ module Portail
             amr: context.claims[:amr],
             acr: context.claims[:acr]
           )
+          # `update_column` et non `touch` : une connexion ne modifie pas le rattachement, son
+          # `updated_at` reste celui de ses producteurs.
+          context.membership.update_column(:last_signed_in_at, Time.current)
 
           # Émis après l'écriture, contrairement au refus : un accès n'est un fait qu'une
           # fois la session ouverte.

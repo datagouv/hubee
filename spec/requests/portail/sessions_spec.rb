@@ -18,6 +18,22 @@ RSpec.describe "Portail::Sessions", type: :request do
         expect(response).to have_http_status(:success)
         expect(response.body).to include("Connecté en tant que")
       end
+
+      # La connexion est datée à l'ouverture de session : la reprise par une requête suivante
+      # ne la repousse pas.
+      it "dates the sign-in, not the requests that follow it" do
+        freeze_time
+        agent = create(:agent, provider_sub: "sub-known")
+        sign_in_via_proconnect(agent: agent)
+        membership = Membership.find_by!(agent: agent)
+        signed_in_at = Time.current
+
+        travel 10.minutes
+        get "/"
+
+        expect(response).to redirect_to(teledossiers_path)
+        expect(membership.reload.last_signed_in_at).to eq(signed_in_at)
+      end
     end
 
     context "when the agent is authenticated but unknown to the portal" do
@@ -618,6 +634,19 @@ RSpec.describe "Portail::Sessions", type: :request do
 
       expect(response).to redirect_to(denied_path)
       expect(ProviderSession.last.denial_reason).to eq("second_factor_required")
+    end
+
+    # Le rattachement est trouvé avant le refus : il ne doit pas pour autant passer pour connecté.
+    it "does not date a sign-in refused for want of a second factor" do
+      agent = administrator_agent
+
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
+      proconnect_callback
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
+      proconnect_callback
+
+      expect(response).to redirect_to(denied_path)
+      expect(Membership.find_by!(agent: agent).last_signed_in_at).to be_nil
     end
 
     # L'éjection porte un message que l'agent doit lire avant de repartir.
