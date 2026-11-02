@@ -21,5 +21,17 @@ RSpec.describe Portail::Sessions::Create::OpenSession do
       )
       expect(result.provider_session).to be_granted
     end
+
+    it "records when the agent last signed in to this organisation" do
+      freeze_time
+      membership = create(:membership)
+
+      described_class.call(
+        membership: membership, agent: membership.agent, id_token: "raw-token",
+        claims: {amr: ["mfa"], acr: "eidas1"}, provider_sub_changed: false
+      )
+
+      expect(membership.reload.last_signed_in_at).to eq(Time.current)
+    end
   end
 end
