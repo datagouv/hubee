@@ -35,6 +35,25 @@ RSpec.describe "API::Pings", type: :request do
         expect(response).to have_http_status(:unauthorized)
         expect(JSON.parse(response.body)).to eq("error" => "invalid_token", "message" => "Le jeton d'accès est absent, inconnu, expiré ou révoqué.")
       end
+
+      it "refuses before reading a malformed body", :production_exceptions do
+        get "/api/ping", headers: {"CONTENT_TYPE" => "application/json", "CONTENT_LENGTH" => "12"}, env: {input: "{pas du json"}
+
+        expect(response).to have_http_status(:unauthorized)
+        expect(JSON.parse(response.body)).to eq("error" => "invalid_token", "message" => "Le jeton d'accès est absent, inconnu, expiré ou révoqué.")
+      end
+    end
+
+    # Un proxy journalise l'URL, donc le jeton qui y serait (RFC 6750 § 2.3).
+    context "with a valid token in the URL" do
+      it "refuses it with the same uniform 401, whatever the parameter" do
+        %w[access_token bearer_token].each do |parameter|
+          get "/api/ping", params: {parameter => access_token.plaintext_token}
+
+          expect(response).to have_http_status(:unauthorized), parameter
+          expect(JSON.parse(response.body)).to eq("error" => "invalid_token", "message" => "Le jeton d'accès est absent, inconnu, expiré ou révoqué.")
+        end
+      end
     end
 
     context "with an unknown token" do
