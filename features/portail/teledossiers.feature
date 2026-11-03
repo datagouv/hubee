@@ -182,13 +182,14 @@ Fonctionnalité: Les télédossiers de l'organisation
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
     Alors il voit l'inventaire des pièces et l'historique
 
-  # L'intitulé vient des abonnements de la structure ; le code reste, c'est lui que le support
-  # connaît. Les autres scénarios n'en posent aucun : le code seul suffit à identifier la ligne.
+  # L'intitulé vient des abonnements de la structure. La liste et le filtre le donnent seul ; le
+  # détail garde le code, c'est lui que le support connaît. Les autres scénarios n'en posent
+  # aucun : le code seul suffit à identifier la ligne.
   Scénario: L'agent lit la démarche d'un télédossier sans connaître son code
     Étant donné l'API amont nomme le flux "CERTDC" "Certificat de décès électronique"
     Et il s'est connecté
-    Alors il voit le télédossier "DGS-CERTDC-0000000000001-01" sous la démarche "Certificat de décès électronique – CERTDC"
-    Et le filtre propose les flux "Certificat de décès électronique – CERTDC"
+    Alors il voit le télédossier "DGS-CERTDC-0000000000001-01" sous la démarche "Certificat de décès électronique"
+    Et le filtre propose les flux "Certificat de décès électronique"
 
   # Chaque état est une page : une navigation, pas un onglet.
   Scénario: L'agent passe d'un état à l'autre par le menu latéral
@@ -262,8 +263,8 @@ Fonctionnalité: Les télédossiers de l'organisation
     Étant donné il est administrateur local sans habilitation
     Et l'API amont sert à sa structure des abonnements de toutes natures
     Et il s'est connecté
-    Alors le filtre propose les flux "AEC, CERTDC"
-    Quand il filtre sur le flux "AEC"
+    Alors le filtre propose les flux "Actes d'état civil, Certificat de décès électronique"
+    Quand il filtre sur le flux "Actes d'état civil"
     Alors il ne voit que le télédossier "DGS-AEC-0000000000002-01"
 
   Scénario: L'agent télécharge une pièce reçue depuis le détail

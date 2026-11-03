@@ -66,6 +66,14 @@ RSpec.describe Portail::DeliveriesHelper, type: :helper do
     end
   end
 
+  describe "#data_stream_name" do
+    # Les listes et les filtres répètent le flux d'une ligne à l'autre : le nom seul y suffit.
+    it "names the data stream alone, the code standing in for a missing name" do
+      expect(helper.data_stream_name("CERTDC", "Certificat de décès électronique")).to eq("Certificat de décès électronique")
+      expect(helper.data_stream_name("AEC", nil)).to eq("AEC")
+    end
+  end
+
   describe "#data_stream_label" do
     # Le libellé identifie le flux, le code reste : c'est lui qui sert au support.
     it "names the data stream, code kept after a dash" do

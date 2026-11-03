@@ -58,9 +58,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_text("CERTDC")
     end
 
-    # L'intitulé identifie la démarche sans connaître les codes ; le code reste, pour le support.
+    # L'intitulé identifie la démarche sans connaître les codes. La liste et le filtre le
+    # répètent d'une ligne à l'autre : le nom seul, le code restant au détail, pour le support.
     context "data stream names" do
-      it "names the data stream of each row from the subscriptions, code kept" do
+      it "names the data stream of each row from the subscriptions, without its code" do
         sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
         stub_organisation_subscriptions({"CERTDC" => "Certificat de décès électronique", "AEC" => "Actes d'état civil"})
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list(deliveries: [
@@ -73,7 +74,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
         expect(response).to have_http_status(:success)
         cells = Nokogiri::HTML(response.body).css("table tbody tr td:nth-child(2)").map { |cell| cell.text.strip }
-        expect(cells).to eq(["Certificat de décès électronique – CERTDC", "Actes d'état civil – AEC"])
+        expect(cells).to eq(["Certificat de décès électronique", "Actes d'état civil"])
       end
 
       # Une démarche que les abonnements ne nomment pas reste listée et identifiable par son code.
@@ -118,11 +119,25 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
         expect(response).to have_http_status(:success)
         form = Capybara.string(response.body).find("form[action='/teledossiers'][method='get']")
-        expect(form).to have_checked_field("Certificat de décès électronique – CERTDC")
+        expect(form).to have_checked_field("Certificat de décès électronique", exact: true)
         expect(form).to have_unchecked_field("AEC")
         tags = Capybara.string(response.body).find("ul.fr-tags-group")
-        expect(tags).to have_link("Certificat de décès électronique – CERTDC", href: "/teledossiers?statut=transmitted")
-        expect(tags).to have_css("a.fr-tag--dismiss[aria-label='Retirer le filtre Certificat de décès électronique – CERTDC']")
+        expect(tags).to have_link("Certificat de décès électronique", exact: true, href: "/teledossiers?statut=transmitted")
+        expect(tags).to have_css("a.fr-tag--dismiss[aria-label='Retirer le filtre Certificat de décès électronique']")
+      end
+
+      # Des noms rangés par code se liraient dans le désordre : le filtre suit l'ordre des noms,
+      # le code remplaçant un nom manquant.
+      it "orders the data streams offered by the filter by name" do
+        sign_in_member(data_stream_codes: ["A_FLUX", "M_FLUX", "Z_FLUX"])
+        stub_organisation_subscriptions({"A_FLUX" => "Zèbre", "Z_FLUX" => "Abeille"})
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
+
+        get "/teledossiers"
+
+        expect(response).to have_http_status(:success)
+        labels = Nokogiri::HTML(response.body).css("form[action='/teledossiers'] .fr-checkbox-group label").map { |label| label.text.strip }
+        expect(labels).to eq(["Abeille", "M_FLUX", "Zèbre"])
       end
     end
 
@@ -481,7 +496,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
         # Un groupe de cases, pas un select : nhube permettait plusieurs flux à la fois.
         expect(form).to have_css("fieldset legend", text: "Flux")
         expect(form).to have_checked_field("AEC")
-        expect(form).to have_unchecked_field("CERTDC")
+        expect(form).to have_unchecked_field("Certificat de décès électronique", exact: true)
         expect(form).to have_field("À partir du", with: "2026-08-01", type: "date")
         expect(form).to have_field("Jusqu'au", with: "2026-08-31", type: "date")
         # Rien n'est transmis dans le futur : le sélecteur s'arrête à aujourd'hui.
@@ -622,10 +637,10 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
         expect(response).to have_http_status(:success)
         form = Capybara.string(response.body).find("form[action='/teledossiers'][method='get']")
-        expect(form).to have_unchecked_field("AEC")
-        expect(form).to have_unchecked_field("CERTDC")
-        expect(form).to have_no_field("DEMO_API")
-        expect(form).to have_no_field("DEMO_AUTRE")
+        expect(form).to have_unchecked_field("Actes d'état civil", exact: true)
+        expect(form).to have_unchecked_field("Certificat de décès électronique", exact: true)
+        expect(form).to have_no_field("Démonstration par l'API")
+        expect(form).to have_no_field("Démonstration d'une autre organisation")
       end
 
       it "renders the page with an alert when the organisation subscriptions cannot be read" do
