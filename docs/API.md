@@ -16,10 +16,12 @@
 
 ## Authentification & Autorisations
 
-**Bearer Token** : `Authorization: Bearer <token>`
-- Génération : `organization.generate_api_token(name: 'API Prod')` (retourné UNE FOIS)
-- Stockage : SHA256 digest + expiration + last_used_at
-- Droits : **(r)** = read (abonné lecture), **(w)** = write (abonné écriture/owner)
+**Bearer Token** : `Authorization: Bearer <token>`, seul emplacement lu. Un jeton passé dans l'URL
+(`access_token`, `bearer_token`) ou dans le corps est ignoré : la requête reçoit 401, comme sans
+jeton. Un proxy journalise l'URL, donc le jeton qui y serait (RFC 6750 § 2.3).
+- Délivrance : `POST /api/oauth/token`, OAuth2 `client_credentials`, identifiants du client dans le
+  corps ou en HTTP Basic ; jeton valable 2 heures, stocké haché, communiqué une seule fois
+- Droits **(r)** / **(w)** : prévus pour les endpoints gelés, non appliqués
 
 ## Endpoints (Rails Scaffold Style)
 

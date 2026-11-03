@@ -9,6 +9,9 @@ Doorkeeper.configure do
 
   api_only
 
+  # Le jeton n'est lu que dans l'en-tête Authorization : dans l'URL, un proxy le journaliserait.
+  access_token_methods :from_bearer_authorization
+
   grant_flows %w[client_credentials]
 
   access_token_expires_in 2.hours
