@@ -18,8 +18,8 @@ Fonctionnalité: Les agents de la structure
     Quand il ouvre les agents depuis le menu
     Alors les agents listés sont :
       | Agent         | Rôle                 | Flux habilités                            | Dernière connexion |
-      | Alice Bernard | Membre               | HORS_ABONNEMENT Non abonné                | Jamais             |
-      | Alex Martin   | Administrateur local | Certificat de décès électronique – CERTDC | à sa connexion     |
+      | BERNARD Alice | Membre               | HORS_ABONNEMENT Non abonné                | Jamais             |
+      | MARTIN Alex   | Administrateur local | Certificat de décès électronique – CERTDC | à sa connexion     |
 
   Scénario: Le membre n'a pas accès aux agents
     Étant donné il est membre habilité sur le seul flux "CERTDC"
