@@ -26,6 +26,14 @@ RSpec.describe "API::Pings", type: :request do
 
         expect(payloads.first[:api_client]).to eq("hub-api")
       end
+
+      # Ping ne lit pas le corps : rien de ce qui précède l'action ne doit le lire.
+      it "answers ok without reading the body", :production_exceptions do
+        get "/api/ping", headers: {**headers, "CONTENT_TYPE" => "application/json", "CONTENT_LENGTH" => "12"}, env: {input: "{pas du json"}
+
+        expect(response).to have_http_status(:ok)
+        expect(JSON.parse(response.body)).to eq("status" => "ok")
+      end
     end
 
     context "without a token" do

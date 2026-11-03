@@ -29,8 +29,10 @@ module API
       {json: {error: "invalid_token", message: I18n.t("api.errors.invalid_token")}}
     end
 
+    # Sans `request.format =`, qui lit les paramètres : un corps illisible passerait (400) devant les
+    # contrôles qui précèdent l'action.
     def set_default_format
-      request.format = :json
+      request.set_header("action_dispatch.request.formats", [Mime[:json]])
     end
 
     def not_found
