@@ -39,7 +39,7 @@ RSpec.describe "Portail::Memberships", type: :request do
         get "/agents"
 
         expect(response).to have_http_status(:success)
-        expect(rows.map(&:first)).to eq(["Alice Bernard", "Alex Martin"])
+        expect(rows.map(&:first)).to eq(["BERNARD Alice", "MARTIN Alex"])
       end
 
       it "lists every agent of the organisation to a local administrator without habilitation" do
@@ -50,7 +50,7 @@ RSpec.describe "Portail::Memberships", type: :request do
         get "/agents"
 
         expect(response).to have_http_status(:success)
-        expect(rows.map(&:first)).to eq(["Alice Bernard", "Alex Martin"])
+        expect(rows.map(&:first)).to eq(["BERNARD Alice", "MARTIN Alex"])
       end
 
       # Une 404 comme une page inexistante, le refus journalisé ; ni la base ni l'amont ne sont lus.
@@ -92,7 +92,7 @@ RSpec.describe "Portail::Memberships", type: :request do
         get "/agents"
 
         expect(response).to have_http_status(:success)
-        expect(rows.map(&:first)).to eq(["Alex Martin"])
+        expect(rows.map(&:first)).to eq(["MARTIN Alex"])
       end
 
       # Une seule ligne, et ce que dit le rattachement local, pas celui d'ailleurs.
@@ -106,7 +106,7 @@ RSpec.describe "Portail::Memberships", type: :request do
 
         expect(response).to have_http_status(:success)
         expect(rows.map { |row| row.values_at(0, 2, 4) })
-          .to eq([["Alice Bernard", "Juriste", "Membre"], ["Alex Martin", "—", "Administrateur local"]])
+          .to eq([["BERNARD Alice", "Juriste", "Membre"], ["MARTIN Alex", "—", "Administrateur local"]])
       end
     end
 
@@ -122,9 +122,9 @@ RSpec.describe "Portail::Memberships", type: :request do
 
       expect(response).to have_http_status(:success)
       expect(rows).to eq([
-        ["Alice Bernard", "alice.bernard@example.gouv.fr", "Juriste", "+33123456789", "Membre",
+        ["BERNARD Alice", "alice.bernard@example.gouv.fr", "Juriste", "+33123456789", "Membre",
           "Certificat de décès électronique – CERTDC", "Jamais"],
-        ["Alex Martin", administrator.email, "—", "—", "Administrateur local",
+        ["MARTIN Alex", administrator.email, "—", "—", "Administrateur local",
           "Tous les flux", I18n.l(signed_in_at, format: :long)]
       ])
     end
@@ -141,7 +141,7 @@ RSpec.describe "Portail::Memberships", type: :request do
       get "/agents"
 
       expect(response).to have_http_status(:success)
-      expect(rows.map(&:first)).to eq(["Bruno Arnaud", "Zoé Arnaud", "Alice Bernard", "Alex Martin", "—"])
+      expect(rows.map(&:first)).to eq(["ARNAUD Bruno", "ARNAUD Zoé", "BERNARD Alice", "MARTIN Alex", "—"])
     end
 
     # Une information d'affichage : sans les abonnements, les codes seuls, et aucune

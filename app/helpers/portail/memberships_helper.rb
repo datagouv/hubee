@@ -5,9 +5,11 @@ module Portail
   module MembershipsHelper
     include Portail::DeliveriesHelper
 
+    # Le nom de famille d'abord, comme le tri, et en capitales pour qu'on ne le prenne pas pour
+    # un prénom. Les capitales ne valent qu'à l'affichage : la donnée garde sa casse.
     def membership_agent_name(membership)
       agent = membership.agent
-      [agent.first_name, agent.last_name].compact_blank.join(" ").presence || MISSING
+      [agent.last_name&.upcase, agent.first_name].compact_blank.join(" ").presence || MISSING
     end
 
     # Sans repli : l'adresse est obligatoire, c'est elle qui résout l'agent à la connexion.

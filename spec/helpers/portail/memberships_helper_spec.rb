@@ -5,9 +5,15 @@ require "rails_helper"
 # Les champs d'un rattachement dans la liste des agents, chacun avec son repli.
 RSpec.describe Portail::MembershipsHelper, type: :helper do
   describe "#membership_agent_name" do
-    it "joins the first and last names, keeps the one present, falls back to a dash" do
+    # Le nom de famille d'abord, en capitales comme dans une liste administrative : la liste est
+    # triée sur lui, et « Martin Thomas » ne dirait pas lequel est le prénom.
+    it "puts the last name first, in capitals, keeps the one present, falls back to a dash" do
       expect(helper.membership_agent_name(build(:membership, agent: build(:agent, first_name: "Camille", last_name: "Martin"))))
-        .to eq("Camille Martin")
+        .to eq("MARTIN Camille")
+      expect(helper.membership_agent_name(build(:membership, agent: build(:agent, first_name: "Élise", last_name: "de La Fontaine"))))
+        .to eq("DE LA FONTAINE Élise")
+      expect(helper.membership_agent_name(build(:membership, agent: build(:agent, first_name: nil, last_name: "Martin"))))
+        .to eq("MARTIN")
       expect(helper.membership_agent_name(build(:membership, agent: build(:agent, first_name: "Camille", last_name: nil))))
         .to eq("Camille")
       expect(helper.membership_agent_name(build(:membership, agent: build(:agent, first_name: nil, last_name: ""))))
