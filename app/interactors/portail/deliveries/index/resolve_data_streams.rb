@@ -14,9 +14,9 @@ module Portail
           context.fail!(error: :no_habilitation) if Access::DataStreamPerimeter.none?(membership)
 
           subscriptions = read_subscriptions
-          context.selectable_data_streams = selectable_data_streams(subscriptions).sort
           # Une information d'affichage : sans les abonnements, les codes seuls, la page est servie.
           context.data_stream_names = subscriptions ? subscriptions.data_stream_names : {}
+          context.selectable_data_streams = by_name(selectable_data_streams(subscriptions))
           context.requested_data_streams = requested_data_streams
         end
 
@@ -40,6 +40,12 @@ module Portail
 
           context.fail!(error: :unavailable) if subscriptions.nil?
           subscriptions.portal_data_stream_codes
+        end
+
+        # Le filtre n'affiche que les noms : rangés par code, ils se liraient dans le désordre. Sans
+        # accent ni casse, comme la liste des abonnements ; le code tient lieu de nom manquant.
+        def by_name(codes)
+          codes.sort_by { |code| I18n.transliterate(context.data_stream_names[code] || code).downcase }
         end
 
         # Les flux choisis, s'ils sont tous sélectionnables ; sans choix, le périmètre lui-même.

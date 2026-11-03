@@ -204,9 +204,9 @@ end
 
 # Dans un vrai navigateur, le DSFR masque la case native derrière son habillage : on coche par
 # le libellé, et on la retrouve avec `visible: :all`.
-Quand("il filtre sur le flux {string}") do |code|
+Quand("il filtre sur le flux {string}") do |label|
   open_filters
-  check code, allow_label_click: true
+  check label, allow_label_click: true
   click_button "Filtrer"
 end
 
@@ -286,13 +286,13 @@ Alors("il voit le télédossier {string} dans la liste") do |number|
 end
 
 Alors("il voit le télédossier {string} sous la démarche {string}") do |number, label|
-  expect(page.find("table tbody tr", text: number)).to have_css("td:nth-child(2)", text: label)
+  expect(page.find("table tbody tr", text: number)).to have_css("td:nth-child(2)", exact_text: label)
 end
 
 Alors("le filtre propose les flux {string}") do |codes|
   # `visible: :all` : le panneau est replié tant que rien ne filtre.
   within("fieldset#delivery-data-streams", visible: :all) do
-    codes.split(", ").each { |code| expect(page).to have_unchecked_field(code, visible: :all) }
+    codes.split(", ").each { |code| expect(page).to have_unchecked_field(code, exact: true, visible: :all) }
     expect(page).to have_css("input[type='checkbox']", count: codes.split(", ").size, visible: :all)
   end
 end

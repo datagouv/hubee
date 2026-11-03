@@ -86,6 +86,10 @@ module Portail
       name ? "#{name} – #{code}" : code
     end
 
+    # Le nom seul là où le flux se répète d'une ligne à l'autre, listes et filtres : le code reste
+    # au détail et sur les pages d'administration. Sans nom, le code, jamais une ligne vide.
+    def data_stream_name(code, name) = name || code
+
     # Toujours affiché, avec son repli : masquer la ligne cacherait que l'information manque.
     def delivery_applicant(delivery) = delivery.applicant&.full_name.presence || MISSING
 
