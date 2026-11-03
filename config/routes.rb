@@ -1,6 +1,11 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", :as => :rails_health_check
 
+  # Erreurs levées sous /api (cf. config.exceptions_app = routes) : du JSON, jamais une page du portail.
+  constraints(->(request) { request.get_header("action_dispatch.original_path")&.match?(%r{\A/api(/|\z)}) }) do
+    match "/:status", to: "api/errors#show", via: :all, constraints: {status: /\d{3}/}
+  end
+
   # Pages d'erreur DSFR rendues par l'application (cf. config.exceptions_app = routes)
   match "/404", to: "portail/errors#not_found", via: :all
   match "/422", to: "portail/errors#unprocessable_entity", via: :all

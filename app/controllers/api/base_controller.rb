@@ -26,7 +26,7 @@ module API
 
     # 401 uniforme : ne distingue pas absent, invalide, expiré, révoqué.
     def doorkeeper_unauthorized_render_options(error: nil)
-      {json: {error: "invalid_token"}}
+      {json: {error: "invalid_token", message: I18n.t("api.errors.invalid_token")}}
     end
 
     def set_default_format

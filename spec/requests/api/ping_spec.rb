@@ -33,7 +33,7 @@ RSpec.describe "API::Pings", type: :request do
         get "/api/ping"
 
         expect(response).to have_http_status(:unauthorized)
-        expect(JSON.parse(response.body)).to eq("error" => "invalid_token")
+        expect(JSON.parse(response.body)).to eq("error" => "invalid_token", "message" => "Le jeton d'accès est absent, inconnu, expiré ou révoqué.")
       end
     end
 
@@ -42,7 +42,7 @@ RSpec.describe "API::Pings", type: :request do
         get "/api/ping", headers: {"Authorization" => "Bearer unknown-token"}
 
         expect(response).to have_http_status(:unauthorized)
-        expect(JSON.parse(response.body)).to eq("error" => "invalid_token")
+        expect(JSON.parse(response.body)).to eq("error" => "invalid_token", "message" => "Le jeton d'accès est absent, inconnu, expiré ou révoqué.")
       end
     end
 
@@ -54,7 +54,7 @@ RSpec.describe "API::Pings", type: :request do
           get "/api/ping", headers: expired_headers
 
           expect(response).to have_http_status(:unauthorized)
-          expect(JSON.parse(response.body)).to eq("error" => "invalid_token")
+          expect(JSON.parse(response.body)).to eq("error" => "invalid_token", "message" => "Le jeton d'accès est absent, inconnu, expiré ou révoqué.")
         end
       end
     end
@@ -67,7 +67,7 @@ RSpec.describe "API::Pings", type: :request do
         make_request
 
         expect(response).to have_http_status(:unauthorized)
-        expect(JSON.parse(response.body)).to eq("error" => "invalid_token")
+        expect(JSON.parse(response.body)).to eq("error" => "invalid_token", "message" => "Le jeton d'accès est absent, inconnu, expiré ou révoqué.")
       end
     end
 
@@ -79,7 +79,7 @@ RSpec.describe "API::Pings", type: :request do
         make_request
 
         expect(response).to have_http_status(:unauthorized)
-        expect(JSON.parse(response.body)).to eq("error" => "invalid_token")
+        expect(JSON.parse(response.body)).to eq("error" => "invalid_token", "message" => "Le jeton d'accès est absent, inconnu, expiré ou révoqué.")
       end
     end
 

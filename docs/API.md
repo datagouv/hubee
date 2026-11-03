@@ -199,20 +199,31 @@ DELETE /api/v1/users/:id                   # (admin futur)
 **Headers** : `X-Page`, `X-Per-Page`, `X-Total`, `X-Total-Pages`
 **Body** : Array direct (pas de meta dans body)
 
-## Errors & Rate Limiting
+## Erreurs
 
-| Code | Type | Response |
-|------|------|----------|
-| 401 | Unauthorized | `{error: "message"}` - Token invalide/expiré |
-| 403 | Forbidden | `{error: "message"}` - Droits insuffisants |
-| 404 | Not Found | `{"error": "not_found", "message": "Ressource introuvable."}` - URL inconnue sous `/api` ou ressource introuvable, même corps |
-| 422 | Unprocessable Entity | `{field: ["error1", "error2"]}` - Validation errors (direct, no wrapper) |
-| 429 | Too Many Requests | `{error: "message"}` - Rate limit (headers: X-RateLimit-*) |
-| 500 | Internal Server Error | `{error: "message"}` - Erreur serveur |
+Toute erreur sous `/api` répond en JSON, jamais par une page du portail, sous la forme
+`{"error": "<code>", "message": "<phrase>"}`. Le code est stable : c'est lui qu'un programme lit.
+La phrase, en français, s'adresse à une personne et peut changer ; elle montre aussi que la
+réponse vient de l'application, et non d'un composant placé en amont.
 
-**Rate Limits (Rack::Attack)** :
-- Par IP : 300 req/5min
-- Par token : 1000 req/h
+| Statut | `error` | `message` | Quand |
+|--------|---------|-----------|-------|
+| 400 | `bad_request` | La requête est mal formée. | corps JSON illisible, paramètres d'URL mal formés |
+| 401 | `invalid_token` | Le jeton d'accès est absent, inconnu, expiré ou révoqué. | jeton absent, inconnu, expiré ou révoqué, sans distinction ; en-tête `WWW-Authenticate: Bearer …` |
+| 404 | `not_found` | Ressource introuvable. | URL inconnue sous `/api`, ou méthode non servie ; ressource introuvable |
+| 500 | `internal_server_error` | Une erreur est survenue. | erreur inattendue |
+
+Une exception à laquelle Rails donne un autre statut (409, 422…) le garde, avec le nom de ce
+statut pour code (`conflict`, `unprocessable_content`…) et la phrase de la 500. Les erreurs
+propres à un endpoint sont décrites avec lui ; `POST /api/oauth/token` suit OAuth2 (`error`,
+`error_description`).
+
+Deux écarts à RFC 6750 § 3.1, acceptés : sans jeton, l'en-tête annonce quand même
+`error="invalid_token"` (la RFC recommande de n'y mettre aucun code) ; les caractères non ASCII de
+`error_description` y deviennent `_`.
+
+Les endpoints gelés (`/api/v1`) prévoyaient d'autres réponses (403 sur les droits (r)/(w), 422
+`{champ: […]}`, limite de débit en 429) : rien de cela n'est en service.
 
 ## Code Style & Patterns
 
