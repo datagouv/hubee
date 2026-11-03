@@ -64,6 +64,9 @@ Rails.application.routes.draw do
 
   namespace :api do
     get "ping", to: "pings#show"
+
+    # En dernier sous /api : toute route /api déclarée plus bas serait masquée.
+    match "(*path)", to: "errors#not_found", via: :all, format: false
   end
 
   # Authentification ProConnect

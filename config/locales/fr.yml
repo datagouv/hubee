@@ -39,6 +39,10 @@ fr:
             organization_link:
               siret_already_attached: désigne un SIRET auquel l'agent est déjà rattaché
 
+  api:
+    errors:
+      not_found: Ressource introuvable.
+
   portail:
     shared:
       skip_links:
