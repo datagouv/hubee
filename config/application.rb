@@ -48,7 +48,8 @@ module Hubee
     # DSFR comme form builder par défaut (toutes les formes utilisent les helpers DSFR)
     config.action_view.default_form_builder = "Dsfr::FormBuilder"
 
-    # Pages d'erreur rendues par l'application (layout DSFR) plutôt que les pages statiques
+    # Pages d'erreur rendues par l'application plutôt que les pages statiques : JSON sous /api,
+    # layout DSFR ailleurs (config/routes.rb).
     config.exceptions_app = routes
 
     # `ip_address`, la clé du contexte des événements. Le contrôle ne compare que Client-IP et

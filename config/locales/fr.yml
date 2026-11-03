@@ -41,6 +41,9 @@ fr:
 
   api:
     errors:
+      bad_request: La requête est mal formée.
+      internal_server_error: Une erreur est survenue.
+      invalid_token: Le jeton d'accès est absent, inconnu, expiré ou révoqué.
       not_found: Ressource introuvable.
 
   portail:
