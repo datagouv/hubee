@@ -84,6 +84,18 @@ RSpec.describe Seeds::TestAccounts do
     end
   end
 
+  describe ".accounts" do
+    # Les pages réservées à l'administrateur local, abonnements et agents, se testent contre le
+    # socle sans retoucher un rôle en console : le cas standard, habilité sur ses démarches portail.
+    it "offers a local administrator on the socle organisation, habilitated on its portal data streams" do
+      socle_administrators = described_class.accounts(%i[local])
+        .select { |account| account.organization == :socle && account.role == "local_administrator" }
+
+      expect(socle_administrators.map { |account| [account.email, account.data_stream_codes] })
+        .to eq([["admin-socle@test.proconnect.gouv.fr", %w[CERTDC EtatCivil recensementCitoyen]]])
+    end
+  end
+
   describe ".personal_accounts" do
     it "derives four Rochefourchat accounts from a personal mailbox, by sub-addressing" do
       accounts = described_class.personal_accounts("prenom.nom@numerique.gouv.fr")
