@@ -403,6 +403,20 @@ RSpec.describe "Portail::Subscriptions", type: :request do
       expect(Capybara.string(response.body)).to have_css("h1", text: "Page introuvable")
     end
 
+    it "says the service is unavailable when the upstream fails" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Subscriptions).to receive(:find).and_raise(Portail::HubAPI::Unavailable)
+
+      get path
+
+      expect(response).to have_http_status(:service_unavailable)
+      expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
+    end
+  end
+
+  # Un identifiant que la gem refuse avant tout appel : la 404 du portail, comme pour un abonnement
+  # inconnu.
+  describe "GET /abonnements/:id with a malformed id" do
     # Sans bouchon : c'est le refus réel de la gem, avant tout appel, qui doit donner la 404.
     it "answers not found for a malformed id" do
       sign_in_local_administrator
@@ -424,16 +438,6 @@ RSpec.describe "Portail::Subscriptions", type: :request do
 
       expect(response).to have_http_status(:not_found)
       expect(Capybara.string(response.body)).to have_css("h1", text: "Page introuvable")
-    end
-
-    it "says the service is unavailable when the upstream fails" do
-      sign_in_local_administrator
-      expect(Portail::HubAPI::Subscriptions).to receive(:find).and_raise(Portail::HubAPI::Unavailable)
-
-      get path
-
-      expect(response).to have_http_status(:service_unavailable)
-      expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
     end
   end
 

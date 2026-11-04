@@ -19,7 +19,7 @@ RSpec.describe Portail::SubscriptionsHelper, type: :helper do
       frequencies.each do |frequency, texts|
         configuration = build(:portail_delivery_email_configuration, frequency: frequency)
 
-        expect(helper.subscription_email_frequency(configuration)).to eq(texts[:label])
+        expect(helper.subscription_email_frequency(configuration)).to eq(texts[:label]), frequency
       end
     end
   end

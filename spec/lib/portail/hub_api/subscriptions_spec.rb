@@ -145,7 +145,7 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     # l'éditeur reste identifié par son couple.
     it "keeps an editor the upstream could not name" do
       client = HubApiV1::Testing::FakeClient.new
-      expect(HubApiV1::V2::Subscription).to receive(:find).and_return(build_v2_subscription_detail(
+      client.add_subscription(build_v2_subscription_detail(
         subscription: build_v2_subscription(access_mode: :api), delegation: build_v2_delegation(editor_name: nil)
       ))
 
@@ -155,23 +155,27 @@ RSpec.describe Portail::HubAPI::Subscriptions do
         editor_name: nil)
     end
 
-    # Hash complet : la lecture doit rester bornée sur le couple, pas sur le seul SIRET.
-    it "sends the portal vocabulary as the upstream keywords" do
+    # Inexistant ou hors périmètre, confondus par la gem : un refus, pas un incident. Le refus réel
+    # du FakeClient, pas un bouchon de la gem.
+    it "raises NotFound, not reported, on an unknown subscription" do
       client = HubApiV1::Testing::FakeClient.new
-      expect(HubApiV1::V2::Subscription).to receive(:find)
-        .with(id: id, siret: siret, code_insee: insee_code, client: client).and_return(build_v2_subscription_detail)
-
-      described_class.find(id: id, siret: siret, insee_code: insee_code, client: client)
-    end
-
-    # Inexistant ou hors périmètre, confondus par la gem : un refus, pas un incident.
-    it "raises NotFound, not reported, on an unknown or foreign subscription" do
-      use_hub_api_fake_client
-      expect(HubApiV1::V2::Subscription).to receive(:find).and_raise(HubApiV1::V2::SubscriptionNotFoundError)
       expect(Rails.error).not_to receive(:report)
 
       expect {
-        described_class.find(id: id, siret: siret, insee_code: insee_code)
+        described_class.find(id: id, siret: siret, insee_code: insee_code, client: client)
+      }.to raise_error(Portail::HubAPI::NotFound)
+    end
+
+    # Même SIRET, autre code INSEE : la lecture est bornée sur le couple, pas sur le seul SIRET, que
+    # deux organisations peuvent partager.
+    it "raises NotFound on a subscription of another organisation sharing the SIRET" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_subscription(build_v2_subscription_detail(
+        subscription: build_v2_subscription(organization: build_v2_recipient(siret: siret, code_insee: "75056"))
+      ))
+
+      expect {
+        described_class.find(id: id, siret: siret, insee_code: insee_code, client: client)
       }.to raise_error(Portail::HubAPI::NotFound)
     end
 
