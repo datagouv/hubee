@@ -92,7 +92,9 @@
         <% if @emails.recipients.any? %>
           <ul class="fr-raw-list" aria-label="<%= t(".recipients") %>">
             <% @emails.recipients.each do |recipient| %>
-              <li class="fr-icon-mail-line fr-icon--sm fr-mb-1v"> <%= recipient %></li>
+              <li class="fr-mb-1v">
+                <span class="fr-icon-mail-line fr-icon--sm fr-mr-1w" aria-hidden="true"></span><%= recipient %>
+              </li>
             <% end %>
           </ul>
         <% else %>

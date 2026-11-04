@@ -32,7 +32,6 @@ module Portail
       # Le rôle et l'organisation servie, jugés ensemble comme pour un télédossier : l'amont n'est
       # pas cru sur parole.
       authorize(result.detail.subscription)
-      # Les trois parties du détail, nommées pour la vue : l'abonnement, ses courriels, son éditeur.
       # Par leur nom et non par `deconstruct`, qui lierait ce contrôleur à l'ordre des membres.
       @subscription = result.detail.subscription
       @emails = result.detail.delivery_email_configuration
