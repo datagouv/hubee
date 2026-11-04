@@ -10,6 +10,8 @@ RSpec.describe Portail::SubscriptionPolicy do
 
   def index? = described_class.new(membership, Portail::Subscription).index?
 
+  def show?(subscription) = described_class.new(membership, subscription).show?
+
   context "for a member habilitated on CERTDC" do
     let(:membership) { create(:membership) }
 
@@ -18,6 +20,12 @@ RSpec.describe Portail::SubscriptionPolicy do
     describe "#index?" do
       it "refuses the list" do
         expect(index?).to be(false)
+      end
+    end
+
+    describe "#show?" do
+      it "refuses a subscription of its own organisation" do
+        expect(show?(build(:portail_subscription, membership: membership))).to be(false)
       end
     end
 
@@ -36,6 +44,12 @@ RSpec.describe Portail::SubscriptionPolicy do
     describe "#index?" do
       it "refuses the list" do
         expect(index?).to be(false)
+      end
+    end
+
+    describe "#show?" do
+      it "refuses a subscription of its own organisation" do
+        expect(show?(build(:portail_subscription, membership: membership))).to be(false)
       end
     end
 
@@ -59,6 +73,13 @@ RSpec.describe Portail::SubscriptionPolicy do
       end
     end
 
+    describe "#show?" do
+      it "accepts a subscription of its organisation, refuses another organisation" do
+        expect(show?(build(:portail_subscription, membership: membership))).to be(true)
+        expect(show?(build(:portail_subscription, :of_another_organisation))).to be(false)
+      end
+    end
+
     describe "Scope#resolve" do
       it "keeps every data stream of the organisation, drops another organisation" do
         habilitated = build(:portail_subscription, membership: membership)
@@ -76,6 +97,13 @@ RSpec.describe Portail::SubscriptionPolicy do
     describe "#index?" do
       it "accepts the list" do
         expect(index?).to be(true)
+      end
+    end
+
+    describe "#show?" do
+      it "accepts a subscription of its organisation, refuses another organisation" do
+        expect(show?(build(:portail_subscription, membership: membership))).to be(true)
+        expect(show?(build(:portail_subscription, :of_another_organisation))).to be(false)
       end
     end
 
