@@ -1,8 +1,8 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-# Plancher de sécurité : 8.1.3.1 corrige CVE-2026-66066 (Active Storage).
-gem "rails", "~> 8.1.3", ">= 8.1.3.1"
+# Plancher de sécurité : 8.1.4.1 corrige 21 avis, dont GHSA-f3w6-w445-fwh9 (Active Storage, critique).
+gem "rails", "~> 8.1.4", ">= 8.1.4.1"
 # Traductions françaises des messages du framework — validations, dates, nombres.
 # L'application tourne en fr (config.i18n.default_locale), mais Rails ne livre que
 # l'anglais : sans cette gem, la moindre erreur de validation affiche
