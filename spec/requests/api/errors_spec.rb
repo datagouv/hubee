@@ -6,6 +6,7 @@ RSpec.describe "API errors", type: :request do
       "GET /api/inconnu" => {verb: :get, path: "/api/inconnu"},
       "POST on a nested path" => {verb: :post, path: "/api/inconnu/sous/chemin"},
       "a frozen v1 route" => {verb: :get, path: "/api/v1/organizations"},
+      "a version that does not exist" => {verb: :post, path: "/api/internal/v2/agents"},
       "a path with an extension" => {verb: :get, path: "/api/inconnu.zip"},
       "the /api root" => {verb: :get, path: "/api"}
     }.each do |label, request_case|
