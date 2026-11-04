@@ -79,6 +79,11 @@ module Seeds
       # sur les trois démarches en accès portail du socle.
       Account.new(email: "socle@test.proconnect.gouv.fr", first_name: "Camille", last_name: "Socle",
         organization: :socle, role: "member", data_stream_codes: %w[CERTDC EtatCivil recensementCitoyen],
+        scope: :local),
+      # Son pendant administrateur local, pour les pages qui lui sont réservées (abonnements,
+      # agents) contre le socle, habilité comme lui : le cas standard.
+      Account.new(email: "admin-socle@test.proconnect.gouv.fr", first_name: "Alex", last_name: "Socle",
+        organization: :socle, role: "local_administrator", data_stream_codes: %w[CERTDC EtatCivil recensementCitoyen],
         scope: :local)
     ].freeze
 
