@@ -27,6 +27,14 @@ module Portail
           raise HubAPI.translated(e)
         end
 
+        # Sans cache, contrairement à `fetch` : une modification faite dans le portail admin doit
+        # se voir aussitôt sur le détail. Bornée sur le couple, comme la liste.
+        def find(id:, siret:, insee_code:, client: HubApiV1.client)
+          detail_from(HubApiV1::V2::Subscription.find(id: id, siret: siret, code_insee: insee_code, client: client))
+        rescue HubApiV1::Error => e
+          raise HubAPI.translated(e)
+        end
+
         # La liste, lue une fois par structure : `nil` quand l'amont ne répond pas, et chaque usage
         # en décide.
         def fetch(siret:, insee_code:)
@@ -39,6 +47,29 @@ module Portail
         end
 
         private
+
+        def detail_from(detail)
+          configuration = detail.delivery_email_configuration
+
+          Portail::Subscription::Detail.new(
+            subscription: subscription_from(detail.subscription),
+            delivery_email_configuration: Portail::Subscription::DeliveryEmailConfiguration.new(
+              frequency: configuration.frequency.to_s, recipients: configuration.recipients
+            ),
+            delegation: delegation_from(detail.delegation)
+          )
+        end
+
+        # nil sans éditeur, et hors mode API : la gem en décide.
+        def delegation_from(delegation)
+          return if delegation.nil?
+
+          Portail::Subscription::Delegation.new(
+            editor_siret: delegation.editor_siret,
+            editor_insee_code: delegation.editor_code_insee,
+            editor_name: delegation.editor_name
+          )
+        end
 
         def subscription_from(subscription)
           Portail::Subscription.new(

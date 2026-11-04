@@ -43,7 +43,7 @@ module Portail
       def translated(error)
         case error
         when HubApiV1::V2::DeliveryNotFoundError, HubApiV1::V2::AttachmentNotFoundError,
-          HubApiV1::V2::DataStreamNotFoundError
+          HubApiV1::V2::DataStreamNotFoundError, HubApiV1::V2::SubscriptionNotFoundError
           NotFound.new(error.message)
         # Des refus de l'amont, pas des incidents : ils ne passent donc pas par le rapporteur.
         when HubApiV1::V2::AwaitingAttachmentsNotAllowedError

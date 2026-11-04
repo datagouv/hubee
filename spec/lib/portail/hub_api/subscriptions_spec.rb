@@ -102,6 +102,99 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     end
   end
 
+  describe ".find" do
+    let(:id) { "550e8400-e29b-41d4-a716-446655440000" }
+
+    # Des valeurs distinctes des défauts sur chaque axe : une traduction qui ignorerait l'un d'eux
+    # retomberait sur le défaut et passerait. La fréquence arrive en Symbol et ressort en String.
+    it "translates the upstream detail into portal models" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_subscription(build_v2_subscription_detail(
+        subscription: build_v2_subscription(access_mode: :api),
+        delivery_email_configuration: build_v2_delivery_email_configuration(
+          frequency: :twice_daily, recipients: ["a@commune.fr", "b@commune.fr"]
+        ),
+        delegation: build_v2_delegation
+      ))
+
+      detail = described_class.find(id: id, siret: siret, insee_code: insee_code, client: client)
+
+      expect(detail).to be_a(Portail::Subscription::Detail)
+      expect(detail.subscription).to be_a(Portail::Subscription)
+      expect(detail.subscription).to have_attributes(id: id, access_mode: "api", data_stream_code: "CERTDC",
+        subscriber: Portail::Organization.new(siret: siret, insee_code: insee_code))
+      expect(detail.delivery_email_configuration).to eq(Portail::Subscription::DeliveryEmailConfiguration.new(
+        frequency: "twice_daily", recipients: ["a@commune.fr", "b@commune.fr"]
+      ))
+      expect(detail.delegation).to eq(Portail::Subscription::Delegation.new(
+        editor_siret: "13002526500013", editor_insee_code: "75056", editor_name: "Solution interne"
+      ))
+    end
+
+    it "leaves no delegation on a portal subscription" do
+      client = HubApiV1::Testing::FakeClient.new
+      client.add_subscription(build_v2_subscription_detail)
+
+      detail = described_class.find(id: id, siret: siret, insee_code: insee_code, client: client)
+
+      expect(detail.subscription).to have_attributes(access_mode: "portal")
+      expect(detail.delegation).to be_nil
+    end
+
+    # Le référentiel des organisations n'a pas nommé l'éditeur : la gem rend le détail quand même,
+    # l'éditeur reste identifié par son couple.
+    it "keeps an editor the upstream could not name" do
+      client = HubApiV1::Testing::FakeClient.new
+      expect(HubApiV1::V2::Subscription).to receive(:find).and_return(build_v2_subscription_detail(
+        subscription: build_v2_subscription(access_mode: :api), delegation: build_v2_delegation(editor_name: nil)
+      ))
+
+      detail = described_class.find(id: id, siret: siret, insee_code: insee_code, client: client)
+
+      expect(detail.delegation).to have_attributes(editor_siret: "13002526500013", editor_insee_code: "75056",
+        editor_name: nil)
+    end
+
+    # Hash complet : la lecture doit rester bornée sur le couple, pas sur le seul SIRET.
+    it "sends the portal vocabulary as the upstream keywords" do
+      client = HubApiV1::Testing::FakeClient.new
+      expect(HubApiV1::V2::Subscription).to receive(:find)
+        .with(id: id, siret: siret, code_insee: insee_code, client: client).and_return(build_v2_subscription_detail)
+
+      described_class.find(id: id, siret: siret, insee_code: insee_code, client: client)
+    end
+
+    # Inexistant ou hors périmètre, confondus par la gem : un refus, pas un incident.
+    it "raises NotFound, not reported, on an unknown or foreign subscription" do
+      use_hub_api_fake_client
+      expect(HubApiV1::V2::Subscription).to receive(:find).and_raise(HubApiV1::V2::SubscriptionNotFoundError)
+      expect(Rails.error).not_to receive(:report)
+
+      expect {
+        described_class.find(id: id, siret: siret, insee_code: insee_code)
+      }.to raise_error(Portail::HubAPI::NotFound)
+    end
+
+    it "raises InvalidRequest, not reported, on a malformed id" do
+      use_hub_api_fake_client
+      expect(Rails.error).not_to receive(:report)
+
+      expect {
+        described_class.find(id: "pas-un-uuid", siret: siret, insee_code: insee_code)
+      }.to raise_error(Portail::HubAPI::InvalidRequest)
+    end
+
+    it "raises Unavailable, reported, on a transport failure" do
+      use_hub_api_fake_client
+      expect(HubApiV1::V2::Subscription).to receive(:find).and_raise(HubApiV1::Client::ServerError)
+      expect(Rails.error).to receive(:report).with(instance_of(HubApiV1::Client::ServerError), handled: true)
+
+      expect {
+        described_class.find(id: id, siret: siret, insee_code: insee_code)
+      }.to raise_error(Portail::HubAPI::Unavailable)
+    end
+  end
+
   describe ".fetch" do
     # Le cache de test est un `null_store` : sans vrai magasin, « lu une seule fois » passerait tout
     # seul et ne prouverait rien. Le magasin sérialise ce qu'il garde, comme celui de production.
