@@ -1,6 +1,7 @@
 # Hubee V2 - API REST
 
-**Version**: 1.2.0 | **Base URL**: `/api/v1`
+**Version**: 1.2.0 | **Base URL**: `/api`, suivi de l'espace et de sa version (`/api/internal/v1`) :
+voir « Versionnage ». `/api/v1` est l'ébauche gelée décrite plus bas.
 
 ## Philosophie
 
@@ -13,6 +14,31 @@
 - **Pagination** : Headers HTTP (X-Page, X-Total), body reste array direct
 - **Autorisations** : (r) = read, (w) = write
 - **IDs API** : UUIDs v4 partout (primary keys), SIRET conservé comme attribut métier des Organizations
+
+## Versionnage
+
+La version majeure fait partie du chemin, après l'espace : `/api/<espace>/v<N>/…`, servi par le
+module `API::<Espace>::V<N>` (par exemple `/api/internal/v1/…` et `API::Internal::V1`). Une
+version qui n'existe pas répond la 404 d'une URL inconnue. Une spec de routage refuse toute route
+sous `/api` qui n'a pas cette forme, hors de ce qui reste commun à toutes les versions.
+
+Dans une version, on n'apporte que des changements compatibles. Une rupture crée la version
+suivante.
+
+Chaque nouvelle version duplique le code de la précédente : les contrôleurs, base de l'espace
+comprise, les forms, les interactors et leurs étapes, les policies, les vues, les helpers s'il y en
+a, et leurs specs.
+
+Restent communs à toutes les versions, sans numéro :
+
+- `API::BaseController`, `API::ErrorsController` et la 404 de toute URL inconnue sous `/api` ;
+- `POST /api/oauth/token` et `GET /api/ping` ;
+- `API::HubAPI`, les modèles et les jobs ;
+- les messages `api.errors.*` ;
+- les droits d'un client OAuth : un droit vaut pour toutes les versions.
+
+Les endpoints gelés décrits plus bas, sous `/api/v1`, ne suivent pas encore cette règle. Ce `v1`
+est celui de l'ébauche de l'API V2 : il n'a rien à voir avec l'API V1 en production.
 
 ## Authentification & Autorisations
 
