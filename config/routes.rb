@@ -28,6 +28,11 @@ Rails.application.routes.draw do
   patch "teledossiers/:teledossier_id/etat", to: "portail/deliveries/states#update", as: :teledossier_etat
   # Les abonnements de l'organisation, réservés à l'administrateur local.
   get "abonnements", to: "portail/subscriptions#index", as: :abonnements
+  # Le point admis dans l'identifiant et le format fixé à HTML : un suffixe `.json` reste dans
+  # l'identifiant, la gem le refuse, et la réponse est la 404 du portail. Sans le format fixé, Rails
+  # le déduirait de l'extension du chemin et chercherait une page d'erreur JSON que le portail n'a pas.
+  get "abonnements/:id", to: "portail/subscriptions#show", as: :abonnement, format: false,
+    constraints: {id: %r{[^/]+}}, defaults: {format: :html}
   # Les agents de l'organisation, un par rattachement, réservés à l'administrateur local.
   get "agents", to: "portail/memberships#index", as: :agents
 

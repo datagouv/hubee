@@ -19,5 +19,24 @@ module Portail
       @subscriptions = policy_scope(result.subscriptions.by_data_stream_name,
         policy_scope_class: SubscriptionPolicy::Scope)
     end
+
+    def show
+      result = Subscriptions::Show.call(membership: current_membership, id: params[:id])
+
+      unless result.success?
+        # Rien à autoriser : aucun abonnement n'a été trouvé.
+        skip_authorization
+        return (result.error == :not_found) ? not_found : unavailable
+      end
+
+      # Le rôle et l'organisation servie, jugés ensemble comme pour un télédossier : l'amont n'est
+      # pas cru sur parole.
+      authorize(result.detail.subscription)
+      # Les trois parties du détail, nommées pour la vue : l'abonnement, ses courriels, son éditeur.
+      # Par leur nom et non par `deconstruct`, qui lierait ce contrôleur à l'ordre des membres.
+      @subscription = result.detail.subscription
+      @emails = result.detail.delivery_email_configuration
+      @delegation = result.detail.delegation
+    end
   end
 end
