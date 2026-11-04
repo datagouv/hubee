@@ -123,7 +123,7 @@ RSpec.describe "Portail::Memberships", type: :request do
       expect(response).to have_http_status(:success)
       expect(rows).to eq([
         ["BERNARD Alice", "alice.bernard@example.gouv.fr", "Juriste", "+33123456789", "Membre",
-          "Certificat de décès électronique – CERTDC", "Jamais"],
+          "Certificat de décès électronique", "Jamais"],
         ["MARTIN Alex", administrator.email, "—", "—", "Administrateur local",
           "Tous les flux", I18n.l(signed_in_at, format: :long)]
       ])
@@ -154,7 +154,7 @@ RSpec.describe "Portail::Memberships", type: :request do
 
       expect(response).to have_http_status(:success)
       expect(rows.map { |row| row[5] }).to eq(["CERTDC"])
-      expect(Capybara.string(response.body)).not_to have_css(".fr-badge--warning")
+      expect(Capybara.string(response.body)).not_to have_css(".membership-data-streams__unsubscribed")
     end
   end
 

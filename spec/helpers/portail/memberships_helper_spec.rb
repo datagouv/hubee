@@ -72,23 +72,27 @@ RSpec.describe Portail::MembershipsHelper, type: :helper do
       Capybara.string(helper.membership_data_streams(membership, names:, subscribed_codes:))
     end
 
-    def items(cell) = cell.all("li").map { |item| item.text.strip }
+    def tags(cell) = cell.all("ul.fr-tags-group li p.fr-tag").map { |tag| tag.text.strip }
 
-    it "names each subscribed data stream, in name order, without a badge" do
+    # Des tags et non une liste : douze noms passent à la ligne dans la cellule au lieu d'étirer
+    # la ligne de l'agent d'autant.
+    it "names each subscribed data stream in a tag, in name order, without a badge" do
       rendered = cell(membership_with("CERTDC", "AEC"),
         names: {"CERTDC" => "Certificat de décès électronique", "AEC" => "Actes d'état civil"},
         subscribed_codes: ["CERTDC", "AEC"])
 
-      expect(items(rendered)).to eq(["Actes d'état civil – AEC", "Certificat de décès électronique – CERTDC"])
-      expect(rendered).not_to have_css(".fr-badge")
+      expect(tags(rendered)).to eq(["Actes d'état civil", "Certificat de décès électronique"])
+      expect(rendered).not_to have_css(".membership-data-streams__unsubscribed")
     end
 
+    # Le tag lui-même change d'allure : un badge à côté se perdait parmi douze tags. Le texte le
+    # dit aussi, la couleur seule ne suffit pas.
     it "flags a data stream the organisation does not subscribe to" do
       rendered = cell(membership_with("CERTDC", "HORS"),
         names: {"CERTDC" => "Certificat de décès électronique"}, subscribed_codes: ["CERTDC"])
 
-      expect(rendered).to have_css("li", text: "HORS") { |item| item.has_css?("p.fr-badge.fr-badge--warning", text: "Non abonné") }
-      expect(rendered).to have_css("li", text: "Certificat de décès électronique – CERTDC") { |item| item.has_no_css?(".fr-badge") }
+      expect(rendered).to have_css("p.fr-tag.fr-icon-warning-fill.membership-data-streams__unsubscribed", exact_text: "HORS · non abonné")
+      expect(rendered).to have_css("p.fr-tag:not(.membership-data-streams__unsubscribed)", exact_text: "Certificat de décès électronique")
     end
 
     # Des codes renseignés bornent l'administrateur comme un membre : non abonnés, ils ne lui
@@ -96,7 +100,7 @@ RSpec.describe Portail::MembershipsHelper, type: :helper do
     it "flags an administrator's unsubscribed data streams instead of granting every one" do
       rendered = cell(membership_with("HORS", role: "local_administrator"), names: {}, subscribed_codes: [])
 
-      expect(rendered).to have_css("li", text: "HORS") { |item| item.has_css?("p.fr-badge--warning", text: "Non abonné") }
+      expect(rendered).to have_css("p.membership-data-streams__unsubscribed", exact_text: "HORS · non abonné")
       expect(rendered).not_to have_text("Tous les flux")
     end
 
@@ -104,30 +108,33 @@ RSpec.describe Portail::MembershipsHelper, type: :helper do
     it "shows the bare code of a subscribed data stream without a name" do
       rendered = cell(membership_with("SANS_NOM"), names: {}, subscribed_codes: ["SANS_NOM"])
 
-      expect(items(rendered)).to eq(["SANS_NOM"])
-      expect(rendered).not_to have_css(".fr-badge")
+      expect(tags(rendered)).to eq(["SANS_NOM"])
+      expect(rendered).not_to have_css(".membership-data-streams__unsubscribed")
     end
 
     # Rien de vérifié, rien d'accusé.
     it "shows bare codes without a badge when the subscriptions could not be read" do
       rendered = cell(membership_with("CERTDC"), names: {}, subscribed_codes: nil)
 
-      expect(items(rendered)).to eq(["CERTDC"])
-      expect(rendered).not_to have_css(".fr-badge")
+      expect(tags(rendered)).to eq(["CERTDC"])
+      expect(rendered).not_to have_css(".membership-data-streams__unsubscribed")
     end
 
-    it "says an administrator without habilitation reaches every data stream" do
+    # Une règle et non une liste : elle vaut aussi pour les abonnements à venir. Le lien répond à
+    # « lesquels ? », et son nom accessible dit où il mène.
+    it "says an administrator without habilitation reaches every data stream, linking to the subscriptions" do
       rendered = cell(membership_with(role: "local_administrator"), names: {}, subscribed_codes: [])
 
-      expect(rendered).to have_text("Tous les flux")
-      expect(rendered).not_to have_css("li")
+      expect(rendered).to have_link("Tous les flux", href: "/abonnements")
+      expect(rendered).to have_css("a[aria-label='Tous les flux, voir les abonnements de la structure']")
+      expect(rendered).not_to have_css(".fr-tag")
     end
 
     it "says a member without habilitation reaches none" do
       rendered = cell(membership_with, names: {}, subscribed_codes: [])
 
       expect(rendered).to have_text("Aucun flux")
-      expect(rendered).not_to have_css("li")
+      expect(rendered).not_to have_css(".fr-tag")
     end
   end
 end
