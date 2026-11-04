@@ -19,4 +19,13 @@ RSpec.describe Portail::Subscription do
       expect(build(:portail_subscription, data_stream_code: "AEC").data_stream_display_name).to eq("AEC")
     end
   end
+
+  describe "#api_access?" do
+    # Un canal non renseigné n'est pas l'API : rien n'y montrerait un éditeur.
+    it "is true for the API access mode only" do
+      expect(build(:portail_subscription, access_mode: "api")).to be_api_access
+      expect(build(:portail_subscription, access_mode: "portal")).not_to be_api_access
+      expect(build(:portail_subscription, access_mode: nil)).not_to be_api_access
+    end
+  end
 end

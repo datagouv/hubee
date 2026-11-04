@@ -27,7 +27,10 @@
             <tbody>
               <% @subscriptions.each do |subscription| %>
                 <tr>
-                  <td><%= data_stream_label(subscription.data_stream_code, subscription.data_stream_name) %></td>
+                  <td>
+                    <%= link_to data_stream_label(subscription.data_stream_code, subscription.data_stream_name),
+                          abonnement_path(subscription.id), class: "fr-link" %>
+                  </td>
                   <td><%= subscription_access_mode(subscription) %></td>
                   <td><%= subscription_activity(subscription) %></td>
                 </tr>

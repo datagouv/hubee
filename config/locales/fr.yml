@@ -355,6 +355,41 @@ fr:
         empty: Votre structure n'a aucun abonnement.
         failures:
           unavailable: La liste des abonnements est momentanément indisponible. Réessayez dans quelques instants.
+      # Un libellé court, la précision dessous. L'envoi est fixé en UTC : pas d'heure précise, qui
+      # changerait avec l'heure d'été.
+      email_frequencies:
+        per_delivery:
+          label: À chaque télédossier
+          hint: Un courriel dès qu'un télédossier arrive
+        daily:
+          label: Une fois par jour
+          hint: Un récapitulatif des télédossiers en attente, le matin
+        twice_daily:
+          label: Deux fois par jour
+          hint: Un récapitulatif des télédossiers en attente, le matin et à midi
+        none:
+          label: Aucun courriel
+        unknown:
+          label: Non renseignée
+      show:
+        title: "Abonnement %{data_stream} - HubEE"
+        breadcrumb: Fil d'Ariane
+        breadcrumb_open: Voir le fil d'Ariane
+        home: Accueil
+        access_mode_unset: Non renseignée
+        editor_identifiers: "SIRET %{siret} · Code INSEE %{insee_code}"
+        self_connected: Aucun
+        self_connected_hint: Votre structure se connecte elle-même à l'API.
+        inactive: "Abonnement inactif : la structure ne reçoit pas de télédossiers par cet abonnement."
+        no_recipient: Aucune adresse
+        delegation: Éditeur délégué
+        emails: Courriels de télédossiers
+        recipients: Destinataires
+        back: Retour à la liste
+        fields:
+          activity: État
+          access_mode: Accès
+          data_stream: Démarche
     errors:
       back_home: Retour à l'accueil
       stale_page: Cette page n'était plus à jour, elle a été rechargée.

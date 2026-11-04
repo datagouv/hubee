@@ -9,11 +9,20 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
-/* delivery-summary : le récapitulatif d'un télédossier (portail/deliveries/show).
+/* delivery-summary, subscription-summary : les récapitulatifs d'un télédossier
+   (portail/deliveries/show) et d'un abonnement (portail/subscriptions/show).
    Le DSFR retire la marge des dd mais leur laisse un retrait en padding : c'est lui qu'on annule,
    sinon chaque valeur est décalée d'1rem sous son intitulé. */
-.delivery-summary dd {
+.delivery-summary dd,
+.subscription-summary dd {
   padding-inline-start: 0;
+}
+
+/* subscription-panel : les blocs côte à côte du détail d'un abonnement (portail/subscriptions/show).
+   Toute la hauteur de leur colonne : deux blocs voisins s'alignent par le bas, quel que soit leur
+   contenu. Mise en page seule, aucune couleur ni espacement du DSFR n'est touché. */
+.subscription-panel {
+  height: 100%;
 }
 
 /* delivery-timeline : la frise de l'historique d'un télédossier (portail/deliveries/show).
