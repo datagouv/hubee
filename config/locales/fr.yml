@@ -319,8 +319,9 @@ fr:
         member: Membre
       data_streams:
         all: Tous les flux
+        all_label: Tous les flux, voir les abonnements de la structure
         none: Aucun flux
-        unsubscribed: Non abonné
+        unsubscribed: "%{name} · non abonné"
       never_signed_in: Jamais
       index:
         title: Agents - HubEE

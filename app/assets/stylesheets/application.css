@@ -121,3 +121,29 @@
   margin-bottom: 0;
   vertical-align: calc((0.75em - var(--icon-size)) * 0.5);
 }
+
+/* membership-data-streams-column : l'en-tête de la colonne des flux (portail/memberships/index).
+   Le DSFR interdit le retour à la ligne dans les cellules : la colonne se calait sur son tag le
+   plus long, un tag par rangée. Élargie, elle en tient deux ou trois ; le tableau défile un peu
+   plus, ce que le DSFR prévoit pour les tableaux larges. */
+.membership-data-streams-column {
+  min-width: 26rem;
+}
+
+/* membership-data-streams : les flux d'un agent en tags (portail/memberships/index).
+   Le groupe de tags DSFR est réglé pour une page, pas pour une cellule : son interligne de
+   2.75rem et la marge basse des tags espaçaient trop les rangées. */
+.membership-data-streams > li {
+  line-height: 1.5rem;
+}
+
+.membership-data-streams .fr-tag {
+  margin: 0.125rem 0.25rem;
+}
+
+/* Hors abonnement : les couleurs du badge d'avertissement DSFR, le DSFR n'ayant pas de tag
+   d'avertissement. Les variables suivent le thème, sombre compris. */
+.membership-data-streams .membership-data-streams__unsubscribed {
+  background-color: var(--background-contrast-warning);
+  color: var(--text-default-warning);
+}

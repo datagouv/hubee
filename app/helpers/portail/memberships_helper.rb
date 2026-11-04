@@ -30,28 +30,33 @@ module Portail
     end
 
     # La liste vide se lit selon le rôle, comme le périmètre réel : tout pour l'administrateur,
-    # rien pour le membre. `subscribed_codes` nil : les abonnements n'ont pas pu être lus, et on
-    # n'accuse pas une habilitation qu'on n'a pas vérifiée.
+    # rien pour le membre. « Tous les flux » est une règle et non une liste : elle vaut aussi pour
+    # les abonnements à venir, et le lien vers les abonnements dit lesquels. `subscribed_codes`
+    # nil : les abonnements n'ont pas pu être lus, et on n'accuse pas une habilitation qu'on n'a
+    # pas vérifiée. Des tags au nom seul : une douzaine passent à la ligne dans la cellule au lieu
+    # d'étirer la ligne, et les flux se répètent d'un agent à l'autre.
     def membership_data_streams(membership, names:, subscribed_codes:)
-      return t("portail.memberships.data_streams.all") if Access::DataStreamPerimeter.unrestricted?(membership)
+      if Access::DataStreamPerimeter.unrestricted?(membership)
+        return link_to(t("portail.memberships.data_streams.all"), abonnements_path,
+          class: "fr-link fr-link--sm", aria: {label: t("portail.memberships.data_streams.all_label")})
+      end
       return t("portail.memberships.data_streams.none") if Access::DataStreamPerimeter.none?(membership)
 
-      labels = membership.data_stream_codes.to_h { |code| [code, data_stream_label(code, names[code])] }
-      tag.ul(class: "fr-raw-list") do
-        safe_join(labels.sort_by { |_code, label| I18n.transliterate(label).downcase }.map do |code, label|
-          tag.li do
-            safe_join([label, unsubscribed_badge(code, subscribed_codes)].compact, " ")
-          end
-        end)
+      codes = membership.data_stream_codes.sort_by { |code| I18n.transliterate(data_stream_name(code, names[code])).downcase }
+      tag.ul(class: "fr-tags-group fr-tags-group--sm membership-data-streams") do
+        safe_join(codes.map { |code| tag.li(data_stream_tag(data_stream_name(code, names[code]), code, subscribed_codes)) })
       end
     end
 
     private
 
-    def unsubscribed_badge(code, subscribed_codes)
-      return if subscribed_codes.nil? || subscribed_codes.include?(code)
+    # Hors abonnement, le tag lui-même change d'allure : un badge à côté se perdait parmi douze
+    # tags. Le texte le dit aussi, la couleur seule ne suffit pas.
+    def data_stream_tag(name, code, subscribed_codes)
+      return tag.p(name, class: "fr-tag") if subscribed_codes.nil? || subscribed_codes.include?(code)
 
-      tag.p(t("portail.memberships.data_streams.unsubscribed"), class: "fr-badge fr-badge--sm fr-badge--warning")
+      tag.p(t("portail.memberships.data_streams.unsubscribed", name:),
+        class: "fr-tag fr-tag--icon-left fr-icon-warning-fill membership-data-streams__unsubscribed")
     end
   end
 end
