@@ -11,14 +11,18 @@ module Portail
       end
     end
 
-    attr_reader :membership
+    attr_reader :membership, :subscription
 
-    # La liste n'a pas d'enregistrement à juger : seul le rattachement compte.
-    def initialize(membership, _subscription)
+    # Pour la liste, le record est la classe : seul le rattachement y compte.
+    def initialize(membership, subscription)
       @membership = membership
+      @subscription = subscription
     end
 
     def index? = membership.local_administrator?
+
+    # Le détail servi : le rôle, et l'organisation que l'amont a rendue.
+    def show? = SubscriptionPolicy.readable?(membership, subscription)
 
     class Scope
       attr_reader :membership, :scope
