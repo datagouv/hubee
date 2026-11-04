@@ -168,6 +168,35 @@ FactoryBot.define do
     subscriptions { [build(:portail_subscription)] }
   end
 
+  # Le détail d'un abonnement portail, sans délégation : la délégation se pose avec le mode API.
+  factory :portail_subscription_detail, class: "Portail::Subscription::Detail" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    transient { membership { nil } }
+
+    subscription { build(:portail_subscription, membership: membership) }
+    delivery_email_configuration { build(:portail_delivery_email_configuration) }
+    delegation { nil }
+  end
+
+  factory :portail_delivery_email_configuration, class: "Portail::Subscription::DeliveryEmailConfiguration" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    frequency { "per_delivery" }
+    recipients { ["contact@commune.fr"] }
+  end
+
+  factory :portail_delegation, class: "Portail::Subscription::Delegation" do
+    skip_create
+    initialize_with { new(**attributes) }
+
+    editor_siret { "13002526500013" }
+    editor_insee_code { "75056" }
+    editor_name { "Solution interne" }
+  end
+
   # Le flux entier. Permissif par défaut : un décor restrictif doit se demander, pour qu'un spec
   # qui éprouve un refus le dise dans son propre texte.
   factory :portail_data_stream, class: "Portail::DataStream" do
