@@ -12,8 +12,16 @@ module Portail
     # causé l'erreur. L'agent n'est dans l'en-tête que si l'action en erreur l'avait déjà lu.
     skip_before_action :resume_session
 
+    def bad_request
+      render status: :bad_request
+    end
+
     def not_found
       render status: :not_found
+    end
+
+    def not_acceptable
+      render status: :not_acceptable
     end
 
     def unprocessable_entity
