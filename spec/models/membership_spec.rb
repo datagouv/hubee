@@ -114,6 +114,47 @@ RSpec.describe Membership, type: :model do
     end
   end
 
+  describe "mobile_phone_number" do
+    it "stores what an agent types in its international form" do
+      expect(create(:membership, mobile_phone_number: "06 12 34 56 78").mobile_phone_number)
+        .to eq("+33612345678")
+      expect(create(:membership, mobile_phone_number: "0692 12 34 56").mobile_phone_number)
+        .to eq("+262692123456")
+    end
+
+    it "accepts and rejects exactly what the landline does" do
+      inputs = {
+        "international form" => {input: "+33 6 12 34 56 78", invalid: false},
+        "international prefix" => {input: "0033612345678", invalid: false},
+        "dotted national form" => {input: "06.12.34.56.78", invalid: false},
+        "too short" => {input: "12345", invalid: true},
+        "truncated international form" => {input: "+33 (0)6 12", invalid: true},
+        "letters" => {input: "abc", invalid: true}
+      }
+
+      inputs.each do |name, row|
+        landline = build(:membership, phone_number: row[:input])
+        mobile = build(:membership, mobile_phone_number: row[:input])
+
+        expect(mobile.valid?).to eq(!row[:invalid]), "mobile diverges on #{name}"
+        expect(landline.valid?).to eq(!row[:invalid]), "landline diverges on #{name}"
+        expect(mobile.errors[:mobile_phone_number]).to eq(landline.errors[:phone_number])
+      end
+    end
+
+    it "accepts having no mobile phone number at all" do
+      expect(build(:membership, mobile_phone_number: nil)).to be_valid
+      expect(build(:membership, mobile_phone_number: "")).to be_valid
+    end
+  end
+
+  it "masks both phone numbers wherever the record is logged" do
+    membership = build(:membership, phone_number: "01 42 76 20 00", mobile_phone_number: "06 12 34 56 78")
+
+    expect(membership.inspect).to include("phone_number: [FILTERED]", "mobile_phone_number: [FILTERED]")
+    expect(membership.inspect).not_to include("+33142762000", "+33612345678")
+  end
+
   describe "job_title" do
     it "bounds the job title" do
       expect(build(:membership, job_title: "a" * 255)).to be_valid
@@ -126,6 +167,8 @@ RSpec.describe Membership, type: :model do
       expect(described_class.human_attribute_name(:role)).to eq("Rôle")
       expect(described_class.human_attribute_name(:job_title)).to eq("Fonction")
       expect(described_class.human_attribute_name(:phone_number)).to eq("Téléphone")
+      expect(described_class.human_attribute_name(:mobile_phone_number))
+        .to eq("Téléphone mobile")
       expect(described_class.human_attribute_name("roles.member")).to eq("Agent")
       expect(described_class.human_attribute_name("roles.local_administrator"))
         .to eq("Administrateur local")
