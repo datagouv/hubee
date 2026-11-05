@@ -19,7 +19,6 @@ class DataStreamAccess < ApplicationRecord
   # L'unicité est donc sensible à la casse, faute de savoir laquelle de deux formes vaut.
   validates :data_stream_code,
     presence: true,
-    format: {with: /\A\S+\z/, allow_blank: true},
-    length: {maximum: 100},
+    format: {with: DataStreamCode::FORMAT, allow_blank: true},
     uniqueness: {scope: :membership_id}
 end
