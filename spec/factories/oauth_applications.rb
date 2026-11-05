@@ -3,5 +3,9 @@
 FactoryBot.define do
   factory :oauth_application, class: "Doorkeeper::Application" do
     sequence(:name) { |n| "client-#{n}" }
+
+    trait :with_agent_registration_right do
+      after(:create) { create(:oauth_application_right, oauth_application: it) }
+    end
   end
 end
