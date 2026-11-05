@@ -50,6 +50,14 @@ module Portail
       not_found
     end
 
+    # Garde des contrôleurs réservés à l'administrateur local (abonnements, agents) : un membre est
+    # refusé avant toute lecture, base ou amont. Hors Pundit à dessein : un `authorize` ici cocherait
+    # `verify_authorized` pour toutes les actions, et un `show` qui oublierait le contrôle de
+    # l'enregistrement servi passerait inaperçu. La policy reste l'autorité, rôle compris.
+    def require_local_administrator
+      refuse_access unless current_membership.local_administrator?
+    end
+
     def not_found = render("portail/errors/not_found", status: :not_found)
 
     # Un service tiers manque et la page n'a rien à montrer sans lui : une page d'erreur, pas une
