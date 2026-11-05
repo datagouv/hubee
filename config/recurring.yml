@@ -16,3 +16,7 @@ production:
   purge_api_access_tokens:
     class: API::PurgeStaleTokensJob
     schedule: every day at 5am
+
+  purge_events:
+    class: API::PurgeEventsJob
+    schedule: every day at 6am
