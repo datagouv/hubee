@@ -2,8 +2,10 @@
 
 module Portail
   class MembershipsController < Portail::BaseController
+    # Un membre n'a pas à faire lire la base ni appeler l'amont pour une 404.
+    before_action :require_local_administrator
+
     def index
-      # Avant toute lecture : un membre n'a pas à faire lire la base ni appeler l'amont pour une 404.
       # Le tableau `[:portail, …]` désigne Portail::MembershipPolicy : le modèle est ::Membership.
       authorize [:portail, Membership]
 

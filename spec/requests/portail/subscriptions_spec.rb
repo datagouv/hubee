@@ -214,12 +214,11 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         expect(Capybara.string(response.body)).to have_css("h1", text: "CERTDC")
       end
 
-      # Comme pour un télédossier, la policy juge l'abonnement lu : un membre le fait lire, même de
-      # sa propre organisation, puis reçoit une 404 comme pour une page inexistante, le refus journalisé.
+      # Le garde du contrôleur refuse un membre avant toute lecture : une 404 comme pour une page
+      # inexistante, le refus journalisé, et l'amont n'est pas appelé.
       it "refuses the page to a member habilitated on the data stream" do
         agent = sign_in_member(data_stream_codes: ["CERTDC"])
-        expect(Portail::HubAPI::Subscriptions).to receive(:find)
-          .and_return(build(:portail_subscription_detail, membership: Membership.find_by!(agent: agent)))
+        expect(Portail::HubAPI::Subscriptions).not_to receive(:find)
 
         events = capture_semantic_logger_events { get path }
 
@@ -235,9 +234,8 @@ RSpec.describe "Portail::Subscriptions", type: :request do
       end
 
       it "refuses the page to a member without habilitation" do
-        agent = sign_in_member(data_stream_codes: [])
-        expect(Portail::HubAPI::Subscriptions).to receive(:find)
-          .and_return(build(:portail_subscription_detail, membership: Membership.find_by!(agent: agent)))
+        sign_in_member(data_stream_codes: [])
+        expect(Portail::HubAPI::Subscriptions).not_to receive(:find)
 
         events = capture_semantic_logger_events { get path }
 
