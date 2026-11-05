@@ -19,6 +19,22 @@ RSpec.describe "Portail errors", :production_exceptions, type: :request do
     expect(response.body).to include("Page introuvable")
   end
 
+  it "renders the DSFR 404 page for an unknown URL with an unreadable query" do
+    get "/inconnue?a[]=1&a[b]=2"
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.media_type).to eq("text/html")
+    expect(response.body).to include("Page introuvable", "fr-footer")
+  end
+
+  it "renders the DSFR 404 page for an unknown URL with an unreadable body" do
+    post "/inconnue", params: "{illisible", headers: {"Content-Type" => "application/json"}
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.media_type).to eq("text/html")
+    expect(response.body).to include("Page introuvable", "fr-footer")
+  end
+
   it "renders the DSFR 500 page for an unexpected error, and reports it" do
     sign_in_via_proconnect(agent: create(:agent))
     expect(ProviderSession).to receive(:includes).and_raise(ActiveRecord::ConnectionNotEstablished)
