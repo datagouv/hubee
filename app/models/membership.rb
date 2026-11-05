@@ -15,14 +15,14 @@ class Membership < ApplicationRecord
   enum :role, {member: "member", local_administrator: "local_administrator"}, validate: true
 
   # === Normalisations ===
-  normalizes :phone_number, with: ->(value) { PhoneNumber.normalize(value) }
+  normalizes :phone_number, :mobile_phone_number, with: ->(value) { PhoneNumber.normalize(value) }
 
   # === Validations ===
   validates :agent_id, uniqueness: {scope: :organization_link_id}
 
   # Ce que la normalisation n'a pas su mettre en forme est rejeté, pas effacé : l'import
   # reçoit une erreur et peut réessayer sans le numéro plutôt que de perdre l'agent.
-  validates :phone_number, format: {with: PhoneNumber::E164_FORMAT}, allow_nil: true
+  validates :phone_number, :mobile_phone_number, format: {with: PhoneNumber::E164_FORMAT}, allow_nil: true
   validates :job_title, length: {maximum: 255}
 
   # L'invariant traverse une jointure, aucun index ne peut le tenir : validation seule,
