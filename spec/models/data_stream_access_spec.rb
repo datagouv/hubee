@@ -21,6 +21,13 @@ RSpec.describe DataStreamAccess, type: :model do
       expect(build(:data_stream_access, data_stream_code: "CERT DC")).not_to be_valid
     end
 
+    it "accepts any character but a space, and refuses Unicode spaces too" do
+      expect(%w[Etat_civil-2 état-civil flux/1 50%].map { build(:data_stream_access, data_stream_code: it) })
+        .to all(be_valid)
+      expect(["CERT\u00A0DC", "CERT\u2009DC"].map { build(:data_stream_access, data_stream_code: it) })
+        .to all(be_invalid)
+    end
+
     it "bounds the code length" do
       expect(build(:data_stream_access, data_stream_code: "A" * 100)).to be_valid
       expect(build(:data_stream_access, data_stream_code: "A" * 101)).not_to be_valid
