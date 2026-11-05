@@ -49,6 +49,145 @@ jeton. Un proxy journalise l'URL, donc le jeton qui y serait (RFC 6750 § 2.3).
   corps ou en HTTP Basic ; jeton valable 2 heures, stocké haché, communiqué une seule fois
 - Droits **(r)** / **(w)** : prévus pour les endpoints gelés, non appliqués
 
+## Espace interne (`/api/internal`)
+
+Réservé aux systèmes internes de la plateforme, dont hub-api, jamais exposé à l'API publique.
+Avec `/api/ping` et l'émission du jeton, c'est la seule partie de l'API en service ; les
+endpoints décrits plus bas restent gelés.
+
+**Authentification** : jeton OAuth2 `client_credentials` (`POST /api/oauth/token`), demandé
+**sans `scope`**, puis `Authorization: Bearer <token>`. Un `scope`, même le nom d'un droit, fait
+refuser le jeton (400 `invalid_scope`).
+
+Les refus de `POST /api/oauth/token` suivent OAuth2 : `{"error": "<code>", "error_description": "…"}`.
+
+| Statut | `error` | Quand |
+|--------|---------|-------|
+| 400 | `invalid_request` | `grant_type` absent |
+| 400 | `unsupported_grant_type` | `grant_type` autre que `client_credentials` |
+| 400 | `invalid_scope` | un `scope` demandé |
+| 401 | `invalid_client` | client inconnu, secret faux ou absent, sans distinction |
+
+Un corps JSON illisible y reçoit le 400 général, `{"error": "bad_request", "message": "La requête est mal formée."}`.
+
+**Droits** : accordés au client, opération par opération (voir `docs/RUNBOOK.md`). Ils ne
+passent pas par le jeton : ils sont lus à chaque appel, et un client sans le droit reçoit 403 `forbidden`.
+
+### Enregistrer un agent
+
+```http
+POST /api/internal/v1/agents        # droit internal:agents:create
+```
+
+Crée l'agent s'il est inconnu, le rattache s'il est déjà connu (même adresse) pour une autre
+organisation. Son identité n'est alors pas modifiée : c'est ProConnect qui la rafraîchit à la
+connexion. L'organisation est vérifiée au référentiel V1 (organisation de type SI) à chaque
+appel, même connue de la V2, puis prise en compte si elle est nouvelle. Un seul rattachement par appel : un agent de deux organisations
+donne deux appels.
+
+```json
+{
+  "agent": {
+    "email": "alice.martin@ville.fr",
+    "first_name": "Alice",
+    "last_name": "Martin",
+    "civility": "ms",
+    "membership": {
+      "siret": "21750056000016",
+      "insee_code": "75056",
+      "role": "member",
+      "job_title": "Officier d'état civil",
+      "phone_number": "+33123456789",
+      "mobile_phone_number": "+33612345678",
+      "data_stream_codes": ["CERTDC"]
+    }
+  }
+}
+```
+
+| Champ | Obligatoire | Règle |
+|-------|-------------|-------|
+| `email` | oui | adresse de l'agent, sans distinction de casse : c'est elle que la connexion ProConnect retrouve |
+| `first_name`, `last_name` | oui | |
+| `civility` | non | `mr` ou `ms` |
+| `membership.siret` | oui | 14 chiffres |
+| `membership.insee_code` | oui | le **code guichet** de l'organisation. Avec le SIRET, il la désigne sans ambiguïté, même quand plusieurs organisations partagent un SIRET. C'est son code INSEE, que le référentiel V1 appelle code de branche |
+| `membership.role` | oui | `member` ou `local_administrator`, jamais déduit d'une valeur par défaut |
+| `membership.job_title` | non | 255 caractères au plus |
+| `membership.phone_number`, `membership.mobile_phone_number` | non | format E.164 (`+33123456789`) ; un numéro national français est mis en forme, tout autre numéro mal formé est refusé |
+| `membership.data_stream_codes` | oui | une liste de chaînes, toujours fournie : une liste absente, `null`, un élément `null` ou toute autre forme sont refusés. Au moins un code pour un `member` ; une liste vide (`[]`) donne à un `local_administrator` l'accès à tous les flux de son organisation (hub-api l'envoie ainsi pour l'administrateur local déclaré à l'abonnement). Un code compte de 1 à 100 caractères, accents compris, sans aucun espacement (espace insécable comprise), une fois retirés les espaces en bord (`" CERTDC"` vaut `CERTDC`) ; il est un identifiant opaque : les doublons exacts sont retirés, la casse n'est jamais changée (`CERTDC` et `certdc` sont deux codes). 100 codes distincts au plus (51 codes en production au 26/10/2026). Les codes ne sont pas encore vérifiés auprès de hub-api |
+
+**201** : l'état enregistré, pas l'état demandé (pour un agent connu ailleurs, l'identité
+retenue). `id` désigne l'agent dans les opérations suivantes ; l'identifiant ProConnect n'est
+jamais exposé.
+
+```json
+{
+  "id": "0199…",
+  "email": "alice.martin@ville.fr",
+  "first_name": "Alice",
+  "last_name": "Martin",
+  "civility": "ms",
+  "membership": {
+    "siret": "21750056000016",
+    "insee_code": "75056",
+    "role": "member",
+    "job_title": "Officier d'état civil",
+    "phone_number": "+33123456789",
+    "mobile_phone_number": "+33612345678",
+    "data_stream_codes": ["CERTDC"]
+  }
+}
+```
+
+**Erreurs.** Les motifs qui portent sur un champ reprennent l'imbrication de la demande, sans
+l'enveloppe `agent` : un motif sur un champ du rattachement apparaît sous `membership`. Les
+erreurs sans champ ont la forme commune à l'API, `{"error": "<code>", "message": "…"}` (section
+« Erreurs », plus bas). Les messages sont en français.
+
+```json
+{
+  "email": ["désigne un agent déjà rattaché à cette organisation"],
+  "membership": {"phone_number": ["n'est pas valide"]}
+}
+```
+
+Une demande refusée reçoit **tous** ses motifs à la fois, chacun sur son champ. Le statut est
+celui du motif le plus fort : un conflit (409) l'emporte sur une demande invalide (422). Un
+référentiel indisponible (503) n'est signalé que s'il n'y a aucun autre motif. Un refus n'écrit
+rien, ni agent, ni organisation, ni rattachement, ni trace.
+
+Les contrôles se suivent dans cet ordre, et le premier qui refuse donne la réponse :
+
+| Ordre | Contrôle | Refus |
+|-------|----------|-------|
+| 1 | jeton | 401 |
+| 2 | droit du client | 403, même si le corps est illisible |
+| 3 | corps lisible, enveloppe `agent` présente | 400 |
+| 4 | motifs de la demande : champs, référentiel, rattachements existants | 409, sinon 422, tous les motifs à la fois |
+| 5 | référentiel joignable | 503, seulement sans aucun motif |
+
+Des paramètres d'URL mal formés sont refusés (400) avant tout contrôle, jeton compris.
+
+| Statut | Quand | Corps |
+|--------|-------|-------|
+| 400 | corps illisible (JSON mal formé) | `{"error": "bad_request", "message": "…"}` |
+| 400 | enveloppe `agent` absente | `{"error": "missing_agent", "message": "…"}` |
+| 401 | jeton absent, inconnu, expiré ou révoqué | `{"error": "invalid_token", "message": "…"}` |
+| 403 | client sans le droit `internal:agents:create` | `{"error": "forbidden", "message": "…"}` |
+| 404 | autre méthode que `POST` | `{"error": "not_found", "message": "…"}` |
+| 409 | agent déjà rattaché à cette organisation, pour **tout** rejeu, identique ou non : rien n'est modifié, et l'état enregistré n'est pas renvoyé | motif sur `email` |
+| 409 | agent déjà rattaché à ce SIRET sous un autre code guichet (un seul rattachement par SIRET) | motif sur `membership.insee_code` |
+| 422 | champ manquant ou invalide | motif sur chaque champ concerné |
+| 422 | organisation inconnue du référentiel V1 | motif sur `membership.siret` |
+| 503 | référentiel V1 injoignable ou incohérent : réessayable, sans en-tête `Retry-After` | `{"error": "service_unavailable", "message": "…"}` |
+
+Chaque écriture laisse sa trace (`agent.created` si l'agent est créé, `membership.created`) : le
+client appelant (nom et uid), la requête, l'adresse, l'organisation, le rôle et les habilitations.
+L'identifiant de la requête est celui que le client envoie dans `X-Request-Id` (255 caractères au plus,
+lettres, chiffres, `-`, `_` et `@`), à défaut un UUID généré par le serveur : il sert à recouper les
+journaux, pas à prouver l'origine d'un appel.
+
 ## Endpoints (Rails Scaffold Style)
 
 **Pattern de réponse universel** :
