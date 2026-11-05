@@ -58,6 +58,7 @@ fr:
               required_for_member: doit compter au moins un code pour un membre
               too_many: "ne peut pas compter plus de %{count} codes distincts"
               invalid_code: "contient un code invalide : « %{code} »"
+              unknown_data_stream: "contient un code de flux inconnu du référentiel : « %{code} »"
 
   api:
     errors:
