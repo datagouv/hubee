@@ -305,9 +305,7 @@ CRITICAL_EVENTS = {
 }
 ```
 
-**Conservation** :
-- DB : 1 an minimum (RGS)
-- S3 : 5 ans (export mensuel JSON signé HMAC SHA-256), à venir
+**Conservation** : 1 an en base minimum (RGS), sans archivage au-delà.
 
 ## Infrastructure Cible
 

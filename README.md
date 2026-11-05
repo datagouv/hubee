@@ -223,7 +223,7 @@ Le projet suit une approche **TDD feature par feature**.
 - **Conformité**: RGS niveau élevé
 - **Chiffrement**: DS Proxy (DINUM)
 - **Antivirus**: ClamAV
-- **Audit**: Trail complet (1 an DB, 5 ans S3)
+- **Audit**: Trail complet (1 an en base)
 
 ## 📊 Standards de Qualité
 
