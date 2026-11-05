@@ -25,8 +25,9 @@ class Membership < ApplicationRecord
   validates :phone_number, :mobile_phone_number, format: {with: PhoneNumber::E164_FORMAT}, allow_nil: true
   validates :job_title, length: {maximum: 255}
 
-  # L'invariant traverse une jointure, aucun index ne peut le tenir : validation seule,
-  # fenêtre de course assumée tant que l'écriture des rattachements est séquentielle.
+  # L'invariant traverse une jointure, aucun index ne peut le tenir : validation seule. Tout écrivain
+  # verrouille donc la ligne de l'agent avant de le rattacher (cf. Register, côté API), sans quoi
+  # deux rattachements simultanés ne se verraient pas.
   validate :one_membership_per_siret
 
   # === Méthodes d'instance ===
