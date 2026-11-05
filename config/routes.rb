@@ -72,6 +72,13 @@ Rails.application.routes.draw do
   namespace :api do
     get "ping", to: "pings#show"
 
+    # Filtrage par adresse fait par le reverse proxy, en amont : l'application n'en fait aucun.
+    namespace :internal do
+      namespace :v1 do
+        resources :agents, only: :create
+      end
+    end
+
     # En dernier sous /api : toute route /api déclarée plus bas serait masquée.
     match "(*path)", to: "errors#not_found", via: :all, format: false
   end
