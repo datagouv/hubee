@@ -98,8 +98,7 @@ Fichier individuel dans un paquet
 
 ### Event (Audit)
 Événement tracé pour conformité RGS
-- Conservation: 1 an DB, 5 ans S3 (à venir)
-- Format: JSON signé (HMAC SHA-256)
+- Conservation: 1 an en base, sans archivage
 - Événements critiques: upload, scan, chiffrement, téléchargement, suppression
 
 ## Décisions Techniques MVP

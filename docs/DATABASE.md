@@ -418,8 +418,7 @@ data_package.destroy!
 # Conservation DB : 1 an (RGS), puis purge quotidienne (API::PurgeEventsJob, 6 h, production)
 Event.expired.delete_all  # created_at <= il y a 1 an : la borne est incluse
 
-# À venir, hors périmètre actuel : export S3 mensuel conservé 5 ans (JSON signé
-# HMAC SHA-256). Il n'existe pas encore : une trace purgée n'est archivée nulle part.
+# Aucun archivage : une trace purgée disparaît.
 ```
 
 ## Migrations Critiques
