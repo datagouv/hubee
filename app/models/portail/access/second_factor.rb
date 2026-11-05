@@ -23,12 +23,11 @@ module Portail
 
         private
 
+        # Casse exacte, comme la V1 : deux codes peuvent n'y différer que par la casse.
         def sensitive_habilitation?(membership)
           return false if SensitiveDataStreams::CODES.empty?
 
-          membership.data_stream_accesses
-            .where("UPPER(data_stream_code) IN (?)", SensitiveDataStreams::CODES)
-            .exists?
+          membership.data_stream_codes.intersect?(SensitiveDataStreams::CODES)
         end
       end
     end

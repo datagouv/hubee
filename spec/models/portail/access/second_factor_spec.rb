@@ -28,10 +28,16 @@ RSpec.describe Portail::Access::SecondFactor do
       expect(described_class.required_for?(membership_with("DEMO_SENSIBLE"))).to be(true)
     end
 
-    # Les codes sont stockés verbatim : sans comparaison insensible à la casse, cet agent
-    # échapperait au second facteur sans qu'aucune erreur ne le signale.
-    it "requires it however the sensitive code is spelled" do
-      expect(described_class.required_for?(membership_with("demo_sensible"))).to be(true)
+    # Deux codes qui ne diffèrent que par la casse sont deux flux distincts en V1.
+    it "spares an agent whose data stream differs from a sensitive one only by case" do
+      expect(described_class.required_for?(membership_with("demo_sensible"))).to be(false)
+    end
+
+    it "requires it for a sensitive code holding non-ASCII letters, spelled exactly" do
+      stub_const("Portail::Access::SensitiveDataStreams::CODES", Portail::Access::SensitiveDataStreams.parse("Démo_Sensible"))
+
+      expect(described_class.required_for?(membership_with("Démo_Sensible"))).to be(true)
+      expect(described_class.required_for?(membership_with("démo_sensible"))).to be(false)
     end
   end
 

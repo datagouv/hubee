@@ -24,9 +24,9 @@ module Seeds
     }.freeze
 
     # Les codes des flux sensibles ne sont pas dans ce dépôt public : le catalogue les désigne
-    # par un symbole, résolu depuis l'environnement au semis. Des variables dédiées, et non
-    # SENSITIVE_DATA_STREAM_CODES que `SensitiveDataStreams.parse` majuscule : l'habilitation part
-    # verbatim vers l'amont, sensible à la casse, et un code recasé donne un écran vide.
+    # par un symbole, résolu depuis l'environnement au semis. Des variables dédiées, une par compte,
+    # et non SENSITIVE_DATA_STREAM_CODES qui en porte plusieurs : l'habilitation part verbatim vers
+    # l'amont, sensible à la casse, et un code recasé donne un écran vide.
     SENSITIVE_CODE_VARIABLES = {
       sensitive_1: "SEED_SENSITIVE_DATA_STREAM_CODE_1",
       sensitive_2: "SEED_SENSITIVE_DATA_STREAM_CODE_2"
