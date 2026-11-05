@@ -7,10 +7,10 @@ module Portail
     # Sa présence est exigée au démarrage par config/initializers/sensitive_data_streams.rb.
     module SensitiveDataStreams
       class << self
-        # Majuscules des deux côtés de la comparaison : les codes sont stockés verbatim, et une
-        # divergence de casse ferait échapper un agent au second facteur en silence.
+        # Les codes tels qu'en V1, casse comprise : un code mal écrit n'est sensible pour personne.
+        # Aucun contrôle auprès de la V1, pour pouvoir déclarer un code avant sa création.
         def parse(raw)
-          raw.to_s.split(",").map { |code| code.strip.upcase }.reject(&:empty?).freeze
+          raw.to_s.split(",").map(&:strip).reject(&:empty?).freeze
         end
       end
 

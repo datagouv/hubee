@@ -6,8 +6,8 @@ RSpec.describe Portail::Access::SensitiveDataStreams do
   describe ".parse" do
     # Codes inventés : le découpage ne dépend d'aucune valeur, et la vraie liste ne descend
     # pas dans ce dépôt, qui est public.
-    it "reads a comma separated list, whatever the spacing and the case" do
-      expect(described_class.parse("AAA,bbb , Ccc")).to eq(%w[AAA BBB CCC])
+    it "reads a comma separated list, whatever the spacing, keeping the case" do
+      expect(described_class.parse("AAA,bbb , Ccc")).to eq(%w[AAA bbb Ccc])
     end
 
     # Une liste vide est un choix légitime : plus aucun flux n'est sensible.
