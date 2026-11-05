@@ -2,9 +2,8 @@
 
 require "rails_helper"
 
-# Controller spec (et non request spec) : en test/dev le serveur de fichiers
-# statiques sert public/404.html & co. en 200, masquant les routes dynamiques.
-# Le controller spec court-circuite ce middleware et teste le rendu DSFR réel.
+# Le rendu de chaque page, action par action. Le parcours d'une exception jusqu'à ces pages est
+# couvert par spec/requests/portail/errors_spec.rb.
 RSpec.describe Portail::ErrorsController, type: :controller do
   render_views
 
@@ -61,7 +60,9 @@ RSpec.describe Portail::ErrorsController, type: :controller do
     record_query = ->(*, payload) { queries << payload[:sql] unless payload[:name] == "SCHEMA" }
 
     ActiveSupport::Notifications.subscribed(record_query, "sql.active_record") do
+      get :bad_request
       get :not_found
+      get :not_acceptable
       get :unprocessable_entity
       get :internal_server_error
     end

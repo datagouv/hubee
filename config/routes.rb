@@ -7,7 +7,9 @@ Rails.application.routes.draw do
   end
 
   # Pages d'erreur DSFR rendues par l'application (cf. config.exceptions_app = routes)
+  match "/400", to: "portail/errors#bad_request", via: :all
   match "/404", to: "portail/errors#not_found", via: :all
+  match "/406", to: "portail/errors#not_acceptable", via: :all
   match "/422", to: "portail/errors#unprocessable_entity", via: :all
   match "/500", to: "portail/errors#internal_server_error", via: :all
 

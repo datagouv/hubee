@@ -12,8 +12,16 @@ module Portail
     # causé l'erreur. L'agent n'est dans l'en-tête que si l'action en erreur l'avait déjà lu.
     skip_before_action :resume_session
 
+    def bad_request
+      render status: :bad_request
+    end
+
     def not_found
       render status: :not_found
+    end
+
+    def not_acceptable
+      render status: :not_acceptable
     end
 
     def unprocessable_entity
@@ -22,6 +30,17 @@ module Portail
 
     def internal_server_error
       render status: :internal_server_error
+    end
+
+    private
+
+    # Aucune action ne lit les paramètres. Illisibles, la query ou le corps de la requête fautive
+    # feraient échouer la page d'erreur à son tour : Rails répondrait par sa 500 de secours en
+    # texte brut.
+    def process_action(...)
+      request.set_header("action_dispatch.request.query_parameters", {})
+      request.set_header("action_dispatch.request.request_parameters", {})
+      super
     end
   end
 end
