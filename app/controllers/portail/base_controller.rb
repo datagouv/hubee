@@ -2,6 +2,12 @@
 
 module Portail
   class BaseController < ApplicationController
+    # Avant l'authentification : un navigateur refusé l'est aussi sur la page de connexion. La page
+    # du portail plutôt que le fichier statique de Rails, en anglais et hors DSFR ; les navigateurs
+    # refusés, sortis il y a peu, affichent le DSFR.
+    allow_browser versions: :modern,
+      block: -> { render "portail/errors/unsupported_browser", status: :not_acceptable }
+
     include Portail::Authentication
     include Pundit::Authorization
 
