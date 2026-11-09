@@ -37,7 +37,7 @@ module API
           params.expect(agent: [
             :email, :first_name, :last_name, :civility,
             membership: [:siret, :insee_code, :role, :job_title, :phone_number, :mobile_phone_number]
-          ]).to_h.deep_symbolize_keys.deep_merge(membership: data_stream_codes_param)
+          ]).to_h.deep_symbolize_keys.deep_merge(membership: data_stream_codes_param).merge(send_invitation_param)
         end
 
         # Lus dans le JSON brut : les paramètres de Rails font de [null] une liste vide, et leur filtrage
@@ -45,14 +45,26 @@ module API
         # local ; le form refuse ce qui n'est pas une liste de chaînes, et une liste absente. Hors d'un
         # corps JSON objet (l'agent peut venir de l'URL), la liste est absente.
         def data_stream_codes_param
-          body = JSON.parse(request.raw_post) if request.media_type == Mime[:json]
-          agent = body["agent"] if body.is_a?(Hash)
-          membership = agent["membership"] if agent.is_a?(Hash)
+          membership = raw_agent["membership"]
           return {} unless membership.is_a?(Hash) && membership.key?("data_stream_codes")
 
           {data_stream_codes: membership["data_stream_codes"]}
-        rescue JSON::ParserError
-          {}
+        end
+
+        # Lue dans le JSON brut, comme data_stream_codes : le filtrage de Rails écarterait une valeur non
+        # scalaire avant que le form ne la refuse. Hors d'un corps JSON objet, elle est absente, donc fausse.
+        def send_invitation_param
+          raw_agent.slice("send_invitation").symbolize_keys
+        end
+
+        def raw_agent
+          @raw_agent ||= begin
+            body = JSON.parse(request.raw_post) if request.media_type == Mime[:json]
+            agent = body["agent"] if body.is_a?(Hash)
+            agent.is_a?(Hash) ? agent : {}
+          rescue JSON::ParserError
+            {}
+          end
         end
 
         # Un refus est un motif, ou un motif et les paramètres de son message. Un conflit

@@ -42,9 +42,17 @@ RSpec.describe API::Internal::V1::Agents::Create::Register do
       )
       expect(membership.reload.data_stream_codes).to contain_exactly("CERTDC", "AEC")
       expect(Event.order(:created_at).pluck(:event_type, :eventable_type, :eventable_id, :metadata)).to eq([
-        ["agent.created", "Agent", membership.agent_id, granted(form)],
+        ["agent.created", "Agent", membership.agent_id, granted(form).merge("send_invitation" => false)],
         ["membership.created", "Membership", membership.id, granted(form)]
       ])
+    end
+
+    it "traces on the agent alone that the invitation was asked for" do
+      result = register(build(:api_internal_v1_agent_form, send_invitation: true))
+
+      expect(Event.order(:created_at).map { [it.event_type, it.metadata["send_invitation"]] })
+        .to eq([["agent.created", true], ["membership.created", nil]])
+      expect(result.form.send_invitation).to be(true)
     end
 
     # L'identité est rafraîchie par ProConnect à la connexion, l'enregistrement ne la corrige pas.
