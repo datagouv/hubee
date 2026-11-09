@@ -66,6 +66,13 @@ RSpec.describe API::InviteAgentJob do
       expect(Event.count).to eq(0)
     end
 
+    it "sends and traces nothing again for an agent already invited" do
+      described_class.perform_now(agent, organization_name: nil, **origin)
+
+      expect { described_class.perform_now(agent, organization_name: nil, **origin) }
+        .not_to change { [ActionMailer::Base.deliveries.size, Event.count] }
+    end
+
     it "sends and traces nothing for an agent deleted since the enqueue" do
       described_class.perform_later(agent, organization_name: nil, **origin)
       agent.destroy!
