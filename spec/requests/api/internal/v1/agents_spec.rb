@@ -88,7 +88,68 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
           "data_stream_codes" => ["CERTDC"]
         }
         expect(Event.order(:created_at).pluck(:event_type, :metadata))
-          .to eq([["agent.created", granted], ["membership.created", granted]])
+          .to eq([["agent.created", granted.merge("send_invitation" => false)], ["membership.created", granted]])
+      end
+
+      [true, false].each do |asked|
+        it "traces on the agent that the invitation was #{asked ? "asked for" : "declined"}" do
+          stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+          stub_hub_api_v2_data_stream(code: "CERTDC")
+
+          register(payload({send_invitation: asked}))
+
+          expect(response).to have_http_status(:created)
+          expect(Event.order(:created_at).map { [it.event_type, it.metadata["send_invitation"]] })
+            .to eq([["agent.created", asked], ["membership.created", nil]])
+        end
+      end
+
+      [true, false].each do |asked|
+        it "answers the usual body when the invitation is #{asked ? "asked for" : "declined"}" do
+          stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+          stub_hub_api_v2_data_stream(code: "CERTDC")
+
+          register(payload({send_invitation: asked}))
+
+          expect(response).to have_http_status(:created)
+          expect(json).to eq(
+            "id" => Agent.sole.id,
+            "email" => "alice.martin@ville.fr",
+            "first_name" => "Alice",
+            "last_name" => "Martin",
+            "civility" => nil,
+            "membership" => {
+              "siret" => "21750056000016",
+              "insee_code" => "75056",
+              "role" => "member",
+              "job_title" => nil,
+              "phone_number" => nil,
+              "mobile_phone_number" => nil,
+              "data_stream_codes" => ["CERTDC"]
+            }
+          )
+        end
+      end
+
+      # La clé n'est lue que dans le corps JSON : ailleurs, elle n'est ni lue ni refusée. Un corps JSON
+      # qui n'est pas un objet laisse l'agent à l'URL, où la liste des flux manque seule.
+      it "does not read the invitation from the query string, nor refuse it" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        headers = bearer(internal_client).merge("CONTENT_TYPE" => "application/json")
+
+        expect { post "/api/internal/v1/agents?#{payload({send_invitation: "oui"}).to_query}", params: "null", headers: headers }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json.keys).to eq(["membership"])
+      end
+
+      it "does not read the invitation from a form body, nor refuse it" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+
+        expect { post "/api/internal/v1/agents", params: payload({send_invitation: "oui"}), headers: bearer(internal_client) }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json.keys).to eq(["membership"])
       end
 
       it "registers a local administrator habilitated on a data stream, bounded to it" do
@@ -344,6 +405,19 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
             "role" => ["doit être rempli(e)"],
             "data_stream_codes" => ["doit être fournie : une liste de codes, vide pour un administrateur local qui a accès à tous les flux"]
           })
+        end
+      end
+
+      # Un appelant qui envoie "true" croirait inviter alors que rien ne partirait.
+      {"a string" => "true", "the string false" => "false", "a number" => 1, "zero" => 0, "null" => nil, "an empty string" => "", "a list" => [true], "an object" => {"a" => true}}.each do |label, value|
+        it "refuses an invitation that is #{label}, and writes nothing" do
+          stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+          stub_hub_api_v2_data_stream(code: "CERTDC")
+
+          expect { register(payload({send_invitation: value})) }.not_to change { written }
+
+          expect(response).to have_http_status(:unprocessable_content)
+          expect(json).to eq("send_invitation" => ["doit être le booléen JSON true ou false"])
         end
       end
 

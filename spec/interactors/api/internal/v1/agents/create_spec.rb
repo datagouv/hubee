@@ -18,6 +18,17 @@ RSpec.describe API::Internal::V1::Agents::Create do
       expect(result.membership.agent.email).to eq("alice.martin@ville.fr")
     end
 
+    it "keeps the effective invitation in the context for the steps that follow" do
+      stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+      stub_hub_api_v2_data_stream(code: "CERTDC")
+
+      results = [build(:api_internal_v1_agent_form), build(:api_internal_v1_agent_form, send_invitation: true)].map do
+        described_class.call(form: it, api_client:, request_id: "req-1")
+      end
+
+      expect(results.map { it.form.send_invitation }).to eq([false, true])
+    end
+
     # Chaque vérification porte sur les champs valides, et la demande reçoit tous ses motifs.
     it "gathers every reason of a refused request and writes nothing" do
       agent = create(:agent, email: "alice.martin@ville.fr")

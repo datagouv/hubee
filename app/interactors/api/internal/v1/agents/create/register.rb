@@ -13,7 +13,7 @@ module API
               ActiveRecord::Base.transaction do
                 agent, created = find_or_create_agent
                 membership = create_membership(agent)
-                Event.create!(eventable: agent, event_type: "agent.created", metadata:) if created
+                Event.create!(eventable: agent, event_type: "agent.created", metadata: agent_metadata) if created
                 Event.create!(eventable: membership, event_type: "membership.created", metadata:)
                 context.membership = membership
               end
@@ -68,6 +68,8 @@ module API
               OrganizationLink.insert({siret: form.siret, insee_code: form.insee_code}, unique_by: %i[siret insee_code])
               OrganizationLink.find_by!(siret: form.siret, insee_code: form.insee_code)
             end
+
+            def agent_metadata = metadata.merge(send_invitation: form.send_invitation)
 
             # Ni nom ni téléphone : l'adresse suffit à désigner l'agent, même après sa suppression.
             def metadata
