@@ -11,6 +11,17 @@ RSpec.describe API::InviteAgentJob do
     {siret: "21750056000016", insee_code: "75056", api_client: "systeme-interne", api_client_uid: "uid-123", request_id: "req-42"}
   end
 
+  describe "on a temporary refusal of the mail server" do
+    it "retries the delivery later" do
+      delivery = instance_double(ActionMailer::MessageDelivery)
+      expect(API::AgentMailer).to receive(:invitation).and_return(delivery)
+      expect(delivery).to receive(:deliver_now).and_raise(Net::SMTPServerBusy.new("451 try again later"))
+
+      expect { described_class.perform_now(agent, organization_name: nil, **origin) }
+        .to change { enqueued_jobs.size }.by(1)
+    end
+  end
+
   describe "#perform" do
     it "delivers the invitation to the agent, naming the organisation" do
       described_class.perform_now(agent, organization_name: "Mairie de Paris", **origin)
