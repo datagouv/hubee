@@ -9,7 +9,7 @@ class Event < ApplicationRecord
   RETENTION = 1.year
 
   # Liste fermée en Ruby seulement, sans enum PostgreSQL : elle grandira à chaque nouvelle trace.
-  TYPES = %w[agent.created membership.created].freeze
+  TYPES = %w[agent.created agent.invited membership.created].freeze
 
   # === Associations ===
   belongs_to :eventable, polymorphic: true
