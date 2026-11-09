@@ -18,14 +18,31 @@ RSpec.describe API::Internal::V1::Agents::Create::CheckOrganization do
       expect(result.refusals).to eq([:unknown_organization])
     end
 
-    it "lets through an organisation unknown to the V2 that the referential confirms" do
-      stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+    it "lets through an organisation unknown to the V2 that the referential confirms, keeping its name" do
+      stub_hub_api_organization_found(
+        siret: "21750056000016", type: "SI", branch_code: "75056",
+        record: build_organization_record(name: "Mairie de Paris", siret: "21750056000016", type: "SI", branch_code: "75056")
+      )
 
       result = described_class.call(form: validated_form)
 
       expect(result).to be_success
+      expect(result.organization_name).to eq("Mairie de Paris")
       expect(result.refusals).to be_nil
       expect(result.unavailable).to be_nil
+    end
+
+    it "keeps no name for an organisation the referential confirms without one" do
+      stub_hub_api_organization_found(
+        siret: "21750056000016", type: "SI", branch_code: "75056",
+        record: build_organization_record(name: nil, siret: "21750056000016", type: "SI", branch_code: "75056")
+      )
+
+      result = described_class.call(form: validated_form)
+
+      expect(result).to be_success
+      expect(result.organization_name).to be_nil
+      expect(result.refusals).to be_nil
     end
 
     it "refuses an organisation unknown to the referential, after the reasons already found" do

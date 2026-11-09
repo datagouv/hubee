@@ -22,7 +22,7 @@ module API
             # supprimée en V1 n'y est jamais effacée.
             # Une indisponibilité n'est pas un motif : elle ne masque pas ceux déjà établis.
             def ask_referential
-              HubAPI::Organizations.verify(siret: form.siret, insee_code: form.insee_code)
+              context.organization_name = HubAPI::Organizations.verify(siret: form.siret, insee_code: form.insee_code)
             rescue HubAPI::NotFound
               (context.refusals ||= []) << :unknown_organization
             rescue HubAPI::Unavailable => e
