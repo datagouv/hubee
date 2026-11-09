@@ -64,7 +64,7 @@ module Portail
       refuse_access unless current_membership.local_administrator?
     end
 
-    def not_found = render("portail/errors/not_found", status: :not_found)
+    def not_found = render("portail/errors/show", locals: {page: :not_found}, status: :not_found)
 
     # Un service tiers manque et la page n'a rien à montrer sans lui : une page d'erreur, pas une
     # redirection dont le message s'évapore.
