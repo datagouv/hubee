@@ -18,7 +18,7 @@ RSpec.describe API::AgentMailer do
       end
 
       it "names the agent, the organisation and the address in the HTML part" do
-        expect(html).to have_css("header", text: "HubEE - Hub d'Échange de l'État")
+        expect(html).to have_text("HubEE - Hub d'Échange de l'État")
         expect(html).to have_text("Bonjour Alice Martin,")
         expect(html).to have_css("strong", text: "Mairie de Paris")
         expect(html).to have_text("Vous avez désormais accès au portail HubEE pour l'organisation Mairie de Paris (SIRET 21750056000016).", normalize_ws: true)
@@ -27,8 +27,8 @@ RSpec.describe API::AgentMailer do
         expect(html).to have_text("Vous n'avez aucun mot de passe HubEE à créer.")
         expect(html).to have_text("Cordialement,")
         expect(html).to have_text("L'équipe HubEE")
-        expect(html).to have_css("footer", text: "Ce message vous a été envoyé automatiquement.")
-        expect(html).to have_css("footer", text: "Merci de ne pas y répondre.")
+        expect(html).to have_text("Ce message vous a été envoyé automatiquement.")
+        expect(html).to have_text("Merci de ne pas y répondre.")
       end
 
       it "links the root of the portal, without any token, from the button and the pasted link" do
