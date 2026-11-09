@@ -12,8 +12,7 @@ module API
       class << self
         def verify(siret:, insee_code:, client: HubApiV1.client)
           # Le code de branche du référentiel est le code INSEE, le code guichet de la V2.
-          HubApiV1::Organization.find(siret: siret, type: TYPE, branch_code: insee_code, client: client)
-          true
+          HubApiV1::Organization.find(siret: siret, type: TYPE, branch_code: insee_code, client: client).name.presence
         rescue HubApiV1::Error => e
           raise HubAPI.translated(e)
         end
