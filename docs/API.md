@@ -92,6 +92,7 @@ donne deux appels.
     "first_name": "Alice",
     "last_name": "Martin",
     "civility": "ms",
+    "send_invitation": true,
     "membership": {
       "siret": "21750056000016",
       "insee_code": "75056",
@@ -110,6 +111,7 @@ donne deux appels.
 | `email` | oui | adresse de l'agent, sans distinction de casse : c'est elle que la connexion ProConnect retrouve |
 | `first_name`, `last_name` | oui | |
 | `civility` | non | `mr` ou `ms` |
+| `send_invitation` | non | `true` ou `false` JSON, `false` si absent : demande l'invitation de l'agent. Toute autre valeur (`"true"`, `1`, `null`, `""`, une liste…) est refusée (422). Lu dans le corps JSON seul : passé dans l'URL ou un formulaire, il est ignoré. La réponse ne change pas |
 | `membership.siret` | oui | 14 chiffres |
 | `membership.insee_code` | oui | le **code guichet** de l'organisation. Avec le SIRET, il la désigne sans ambiguïté, même quand plusieurs organisations partagent un SIRET. C'est son code INSEE, que le référentiel V1 appelle code de branche |
 | `membership.role` | oui | `member` ou `local_administrator`, jamais déduit d'une valeur par défaut |
@@ -184,7 +186,8 @@ Des paramètres d'URL mal formés sont refusés (400) avant tout contrôle, jeto
 | 503 | référentiel V1 (hub-api) injoignable ou incohérent, pour l'organisation comme pour un code de flux : réessayable, sans en-tête `Retry-After` | `{"error": "service_unavailable", "message": "…"}` |
 
 Chaque écriture laisse sa trace (`agent.created` si l'agent est créé, `membership.created`) : le
-client appelant (nom et uid), la requête, l'adresse, l'organisation, le rôle et les habilitations.
+client appelant (nom et uid), la requête, l'adresse, l'organisation, le rôle et les habilitations ;
+`agent.created` porte en plus `send_invitation`, sa valeur effective.
 L'identifiant de la requête est celui que le client envoie dans `X-Request-Id` (255 caractères au plus,
 lettres, chiffres, `-`, `_` et `@`), à défaut un UUID généré par le serveur : il sert à recouper les
 journaux, pas à prouver l'origine d'un appel.
