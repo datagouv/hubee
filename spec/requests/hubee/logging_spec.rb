@@ -100,7 +100,7 @@ RSpec.describe "Request logging", type: :request do
     expect(response).to have_http_status(:not_found)
     expect(response.body).to include("Page introuvable")
     expect(lines_of_the_response(lines)).to contain_exactly(a_string_including(
-      %(message="Completed #not_found"), "status=404", %(path="/inconnue"), %(method="POST"),
+      %(message="Completed #show"), "status=404", %(path="/inconnue"), %(method="POST"),
       %(exception_class="ActionController::RoutingError"),
       %(exception_message="No route matches [POST] \\"/inconnue\\"")
     ))

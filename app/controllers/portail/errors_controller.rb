@@ -12,27 +12,22 @@ module Portail
     # causé l'erreur. L'agent n'est dans l'en-tête que si l'action en erreur l'avait déjà lu.
     skip_before_action :resume_session
 
-    def bad_request
-      render status: :bad_request
-    end
-
-    def not_found
-      render status: :not_found
-    end
-
-    def not_acceptable
-      render status: :not_acceptable
-    end
-
-    def unprocessable_entity
-      render status: :unprocessable_content
-    end
-
-    def internal_server_error
-      render status: :internal_server_error
+    # config.exceptions_app : l'exception levée, sous le statut que Rails ou une gem lui donne. La
+    # liste n'est pas la nôtre : un statut sans page propre garde le sien, avec la page de sa
+    # famille. Pas `params`, comme pour l'API.
+    def show
+      status = request.path_parameters[:status].to_i
+      render locals: {page: page_for(status)}, status:
     end
 
     private
+
+    def page_for(status)
+      code = Rack::Utils::SYMBOL_TO_STATUS_CODE.key(status)
+      return code if I18n.exists?("portail.errors.show.#{code}")
+
+      (status >= 500) ? :server_error : :client_error
+    end
 
     # Aucune action ne lit les paramètres. Illisibles, la query ou le corps de la requête fautive
     # feraient échouer la page d'erreur à son tour : Rails répondrait par sa 500 de secours en

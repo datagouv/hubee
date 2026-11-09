@@ -441,30 +441,36 @@ fr:
           heading: L'archive n'a pas pu être remise
           lead: "L'une des pièces reçues n'est pas disponible : l'archive n'est remise que si elle les contient toutes. Réessayez plus tard ; si le problème persiste, contactez le support."
         back_to_delivery: Retour au télédossier
-      bad_request:
-        title: Requête mal formée - HubEE
-        heading: Requête mal formée
-        lead: La requête envoyée n'a pas pu être lue. Vérifiez l'adresse saisie.
-      not_found:
-        title: Page introuvable - HubEE
-        heading: Page introuvable
-        lead: La page que vous cherchez n'existe pas ou a été déplacée.
-      not_acceptable:
-        title: Format non disponible - HubEE
-        heading: Format non disponible
-        lead: Cette page n'est pas disponible dans le format demandé.
+      # Une page par statut levé ; un statut sans page prend celle de sa famille.
+      show:
+        bad_request:
+          title: Requête mal formée - HubEE
+          heading: Requête mal formée
+          lead: La requête envoyée n'a pas pu être lue. Vérifiez l'adresse saisie.
+        not_found:
+          title: Page introuvable - HubEE
+          heading: Page introuvable
+          lead: La page que vous cherchez n'existe pas ou a été déplacée.
+        not_acceptable:
+          title: Format non disponible - HubEE
+          heading: Format non disponible
+          lead: Cette page n'est pas disponible dans le format demandé.
+        unprocessable_content:
+          title: Requête invalide - HubEE
+          heading: Requête invalide
+          lead: La requête n'a pas pu être traitée.
+        client_error:
+          title: Requête impossible - HubEE
+          heading: Requête impossible
+          lead: La requête n'a pas pu aboutir.
+        server_error:
+          title: Erreur serveur - HubEE
+          heading: Une erreur est survenue
+          lead: Le service rencontre un problème technique. Merci de réessayer ultérieurement.
       unsupported_browser:
         title: Navigateur non pris en charge - HubEE
         heading: Navigateur non pris en charge
         lead: Votre navigateur est trop ancien pour utiliser HubEE. Mettez-le à jour, ou utilisez un autre navigateur récent, pour continuer.
-      unprocessable_entity:
-        title: Requête invalide - HubEE
-        heading: Requête invalide
-        lead: La requête n'a pas pu être traitée.
-      internal_server_error:
-        title: Erreur serveur - HubEE
-        heading: Une erreur est survenue
-        lead: Le service rencontre un problème technique. Merci de réessayer ultérieurement.
       service_unavailable:
         title: Service indisponible - HubEE
         heading: Service momentanément indisponible

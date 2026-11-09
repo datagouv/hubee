@@ -77,6 +77,13 @@ RSpec.describe "Portail errors", :production_exceptions, type: :request do
     expect(response.body).to include("Une erreur est survenue", "fr-footer")
   end
 
+  it "renders the DSFR 404 page for an address shaped like a success status" do
+    get "/200"
+
+    expect(response).to have_http_status(:not_found)
+    expect(response.body).to include("Page introuvable", "fr-footer")
+  end
+
   it "renders the DSFR 500 page for an unexpected error, and reports it" do
     sign_in_via_proconnect(agent: create(:agent))
     expect(ProviderSession).to receive(:includes).and_raise(ActiveRecord::ConnectionNotEstablished)
