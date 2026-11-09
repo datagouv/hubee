@@ -129,7 +129,7 @@ CREATE TABLE events (
   id UUID PRIMARY KEY DEFAULT uuidv7(),
   eventable_type VARCHAR NOT NULL,
   eventable_id UUID NOT NULL, -- Sans REFERENCES : la trace survit à la suppression de son sujet
-  event_type VARCHAR NOT NULL, -- Liste fermée, format à point : 'agent.created', 'membership.created'
+  event_type VARCHAR NOT NULL, -- Liste fermée, format à point : 'agent.created', 'membership.created', 'agent.invited'
   metadata JSONB NOT NULL DEFAULT '{}',
   created_at TIMESTAMP NOT NULL -- Pas de updated_at (immuable)
 );

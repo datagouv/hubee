@@ -68,6 +68,7 @@ RSpec.describe Event, type: :model do
   describe "event_type" do
     it "accepts the closed list and nothing else" do
       expect(build(:event, event_type: "agent.created")).to be_valid
+      expect(build(:event, event_type: "agent.invited")).to be_valid
       expect(build(:event, event_type: "membership.created")).to be_valid
       expect(build(:event, event_type: "agent.deleted")).not_to be_valid
     end
