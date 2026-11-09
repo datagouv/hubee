@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "API::Internal::V1::Agents", type: :request do
+  include ActiveJob::TestHelper
+
   # Le cas standard : un membre habilité sur un flux, pour une organisation du référentiel.
   def payload(identity = {}, membership = {})
     {
@@ -715,6 +717,115 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
 
         expect(response).to have_http_status(:forbidden)
         expect(json).to eq("error" => "forbidden", "message" => "Ce client n'a pas le droit d'effectuer cette opération.")
+      end
+    end
+
+    context "with the invitation of the agent" do
+      let(:origin) do
+        {
+          siret: "21750056000016", insee_code: "75056", api_client: "systeme-interne",
+          api_client_uid: internal_client.uid, request_id: response.headers["X-Request-Id"]
+        }
+      end
+
+      def stub_referential(name: "Mairie de Paris")
+        stub_hub_api_organization_found(
+          siret: "21750056000016", type: "SI", branch_code: "75056",
+          record: build_organization_record(name:, siret: "21750056000016", type: "SI", branch_code: "75056")
+        )
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+      end
+
+      it "enqueues it for a created agent when asked, and delivers it naming the organisation" do
+        stub_referential
+
+        register(payload({send_invitation: true}))
+
+        expect(response).to have_http_status(:created)
+        expect(API::InviteAgentJob).to have_been_enqueued.exactly(:once)
+          .with(Agent.sole, organization_name: "Mairie de Paris", **origin)
+        perform_enqueued_jobs
+        mail = ActionMailer::Base.deliveries.sole
+        expect(mail.to).to eq(["alice.martin@ville.fr"])
+        expect(mail.text_part.body.decoded).to include("l'organisation Mairie de Paris (SIRET 21750056000016)")
+      end
+
+      it "enqueues it without a name when the referential has none" do
+        stub_referential(name: nil)
+
+        register(payload({send_invitation: true}))
+
+        expect(response).to have_http_status(:created)
+        expect(API::InviteAgentJob).to have_been_enqueued.with(Agent.sole, organization_name: nil, **origin)
+      end
+
+      it "enqueues nothing for a created agent when explicitly not asked" do
+        stub_referential
+
+        register(payload({send_invitation: false}))
+
+        expect(response).to have_http_status(:created)
+        expect(API::InviteAgentJob).not_to have_been_enqueued
+      end
+
+      it "enqueues nothing for a created agent when not mentioned" do
+        stub_referential
+
+        register(payload)
+
+        expect(response).to have_http_status(:created)
+        expect(API::InviteAgentJob).not_to have_been_enqueued
+      end
+
+      it "enqueues nothing on a replay, even asked" do
+        attach(email: "alice.martin@ville.fr")
+        stub_referential
+
+        register(payload({send_invitation: true}))
+
+        expect(response).to have_http_status(:conflict)
+        expect(API::InviteAgentJob).not_to have_been_enqueued
+      end
+
+      it "enqueues nothing for an agent already known attached to a new organisation, even asked" do
+        attach(email: "alice.martin@ville.fr", siret: "13002526500013")
+        stub_referential
+
+        register(payload({send_invitation: true}))
+
+        expect(response).to have_http_status(:created)
+        expect(API::InviteAgentJob).not_to have_been_enqueued
+      end
+
+      it "enqueues nothing for a refused request, even asked" do
+        stub_hub_api_organization_not_found(siret: "21750056000016")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+
+        register(payload({send_invitation: true}))
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(API::InviteAgentJob).not_to have_been_enqueued
+      end
+
+      it "enqueues nothing while the referential is unavailable, even asked" do
+        stub_hub_api_organization_error(siret: "21750056000016")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+
+        register(payload({send_invitation: true}))
+
+        expect(response).to have_http_status(:service_unavailable)
+        expect(API::InviteAgentJob).not_to have_been_enqueued
+      end
+
+      it "answers the registered state all the same when the job cannot be enqueued" do
+        stub_referential
+        expect(API::InviteAgentJob).to receive(:perform_later).and_raise(ActiveJob::EnqueueError)
+
+        register(payload({send_invitation: true}))
+
+        expect(response).to have_http_status(:created)
+        expect(json).to include("id" => Agent.sole.id, "email" => "alice.martin@ville.fr")
+        expect(Membership.count).to eq(1)
       end
     end
   end

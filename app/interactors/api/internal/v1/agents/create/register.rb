@@ -16,6 +16,7 @@ module API
                 Event.create!(eventable: agent, event_type: "agent.created", metadata: agent_metadata) if created
                 Event.create!(eventable: membership, event_type: "membership.created", metadata:)
                 context.membership = membership
+                context.agent_created = created
               end
             end
 

@@ -31,6 +31,7 @@ RSpec.describe API::Internal::V1::Agents::Create::Register do
       result = register(form)
 
       expect(result).to be_success
+      expect(result.agent_created).to be(true)
       membership = result.membership
       expect(membership.agent).to have_attributes(
         email: "alice.martin@ville.fr", first_name: "Alice", last_name: "Martin", civility: "ms", provider_sub: nil
@@ -64,6 +65,7 @@ RSpec.describe API::Internal::V1::Agents::Create::Register do
       result = nil
       expect { result = register(form) }.not_to change(Agent, :count)
 
+      expect(result.agent_created).to be(false)
       expect(result.membership.agent).to eq(agent)
       expect(agent.reload).to have_attributes(first_name: "Alicia", last_name: "Martin-Durand", civility: nil)
       expect(Event.pluck(:event_type, :eventable_id)).to eq([["membership.created", result.membership.id]])
