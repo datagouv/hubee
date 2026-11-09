@@ -1,6 +1,8 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", :as => :rails_health_check
 
+  mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+
   # Erreurs levées sous /api (cf. config.exceptions_app = routes) : du JSON, jamais une page du portail.
   constraints(->(request) { request.get_header("action_dispatch.original_path")&.match?(%r{\A/api(/|\z)}) }) do
     match "/:status", to: "api/errors#show", via: :all, constraints: {status: /\d{3}/}

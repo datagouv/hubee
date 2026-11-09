@@ -83,6 +83,10 @@ jobs:
             PROCONNECT_REDIRECT_URI="https://$REVIEW_PREFIX.$REVIEW_DOMAIN/connexion/proconnect/retour" \
             PROCONNECT_POST_LOGOUT_REDIRECT_URI="https://$REVIEW_PREFIX.$REVIEW_DOMAIN/" \
             SENSITIVE_DATA_STREAM_CODES="${{ secrets.DOKKU_SENSITIVE_DATA_STREAM_CODES }}" \
+            APP_HOST="$REVIEW_PREFIX.$REVIEW_DOMAIN" \
+            MAILER_FROM="${{ secrets.DOKKU_MAILER_FROM }}" \
+            SMTP_USER_NAME="${{ secrets.DOKKU_SMTP_USER_NAME }}" \
+            SMTP_PASSWORD="${{ secrets.DOKKU_SMTP_PASSWORD }}" \
             REVIEW_APP="true" \
             SENTRY_DSN="${{ secrets.DOKKU_SENTRY_DSN }}" \
             SENTRY_ENVIRONMENT="review-app-$REVIEW_PREFIX" \

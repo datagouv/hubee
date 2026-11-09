@@ -35,8 +35,10 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Don't care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = false
+  # Les courriels sont consultables sur /letter_opener, sans rien envoyer.
+  config.action_mailer.delivery_method = :letter_opener_web
+  config.action_mailer.raise_delivery_errors = true
+  config.action_mailer.default_options = {from: "ne-pas-repondre@hubee.localhost"}
 
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
