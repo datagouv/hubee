@@ -750,6 +750,38 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
         expect(mail.text_part.body.decoded).to include("l'organisation Mairie de Paris (SIRET 21750056000016)")
       end
 
+      it "traces the creation, then the delivery of the invitation, with the same origin" do
+        stub_referential
+
+        register(payload({send_invitation: true}))
+        perform_enqueued_jobs
+
+        expect(response).to have_http_status(:created)
+        expect(Event.order(:id).pluck(:event_type)).to eq(%w[agent.created membership.created agent.invited])
+        expect(Event.find_by!(event_type: "agent.invited")).to have_attributes(
+          eventable: Agent.sole,
+          metadata: {
+            "api_client" => "systeme-interne",
+            "api_client_uid" => internal_client.uid,
+            "request_id" => response.headers["X-Request-Id"],
+            "email" => "alice.martin@ville.fr",
+            "siret" => "21750056000016",
+            "insee_code" => "75056"
+          }
+        )
+      end
+
+      it "does not trace the delivery when the invitation is not asked for" do
+        stub_referential
+
+        register(payload({send_invitation: false}))
+        perform_enqueued_jobs
+
+        expect(response).to have_http_status(:created)
+        expect(Event.pluck(:event_type)).to contain_exactly("agent.created", "membership.created")
+        expect(ActionMailer::Base.deliveries).to be_empty
+      end
+
       it "enqueues it without a name when the referential has none" do
         stub_referential(name: nil)
 
