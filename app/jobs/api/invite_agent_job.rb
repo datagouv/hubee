@@ -8,6 +8,10 @@ module API
 
     def perform(agent, organization_name:, siret:, insee_code:, api_client:, api_client_uid:, request_id:)
       AgentMailer.invitation(agent, organization_name:, siret:).deliver_now
+      Event.create!(
+        eventable: agent, event_type: "agent.invited",
+        metadata: {api_client:, api_client_uid:, request_id:, email: agent.email, siret:, insee_code:}
+      )
     end
   end
 end
