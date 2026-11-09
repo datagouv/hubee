@@ -155,6 +155,17 @@ RSpec.describe API::Internal::V1::AgentForm do
     it "counts a repeated code once against the bound" do
       expect(form({}, data_stream_codes: Array.new(100) { "FLUX-#{it}" } + ["FLUX-0"])).to be_valid
     end
+
+    it "accepts an invitation asked for or declined" do
+      expect([form(send_invitation: true), form(send_invitation: false)]).to all(be_valid)
+    end
+
+    # Un appelant qui envoie "true" croirait inviter alors que rien ne partirait.
+    {"a string" => "true", "a number" => 1, "null" => nil, "an empty string" => "", "a list" => [true], "an object" => {"a" => true}}.each do |label, value|
+      it "refuses an invitation that is #{label}, with this sole reason" do
+        expect(errors_of(form(send_invitation: value))).to eq(send_invitation: [{error: :inclusion, value:}])
+      end
+    end
   end
 
   describe "#email" do
@@ -182,6 +193,16 @@ RSpec.describe API::Internal::V1::AgentForm do
     end
   end
 
+  describe "#send_invitation" do
+    it "is false when absent" do
+      expect(form.send_invitation).to be(false)
+    end
+
+    it "is kept as given" do
+      expect([form(send_invitation: true).send_invitation, form(send_invitation: false).send_invitation]).to eq([true, false])
+    end
+  end
+
   describe "#valid_on?" do
     it "tells whether the given fields passed the validation" do
       invalid = form({}, siret: "123")
@@ -205,6 +226,13 @@ RSpec.describe API::Internal::V1::AgentForm do
           data_stream_codes: ["doit compter au moins un code pour un membre"]
         }
       )
+    end
+
+    it "keeps the reason on the invitation at the level of the agent, in French" do
+      invalid = form(send_invitation: "true")
+      invalid.validate
+
+      expect(invalid.error_details).to eq(send_invitation: ["doit être le booléen JSON true ou false"])
     end
 
     it "leaves the membership out when none of its fields is refused" do

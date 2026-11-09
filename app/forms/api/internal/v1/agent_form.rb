@@ -25,6 +25,8 @@ module API
         attribute :phone_number, :string
         attribute :mobile_phone_number, :string
         attribute :data_stream_codes
+        # Sans type : toute valeur reçue est gardée telle quelle pour être refusée, jamais convertie.
+        attribute :send_invitation, default: false
 
         # Les normalisations des modèles : la valeur vérifiée est celle qui sera écrite et cherchée.
         normalizes :email, with: ->(email) { Agent.normalize_value_for(:email, email) }
@@ -47,6 +49,7 @@ module API
         validates :role, presence: true, inclusion: {in: Membership.roles.keys, allow_blank: true}
         validates :job_title, length: {maximum: 255}
         validates :phone_number, :mobile_phone_number, format: {with: PhoneNumber::E164_FORMAT}, allow_nil: true
+        validate :send_invitation_boolean
         validate :data_stream_codes_well_formed
         validate :member_habilitated
 
@@ -72,6 +75,11 @@ module API
         end
 
         private
+
+        # Pas d'`inclusion` : Rails y admet une liste dont chaque élément est dans l'ensemble, [true] compris.
+        def send_invitation_boolean
+          errors.add(:send_invitation, :inclusion, value: send_invitation) unless [true, false].include?(send_invitation)
+        end
 
         # Au-delà de la borne, les codes ne sont pas examinés un à un : la réponse ne les renvoie pas.
         def data_stream_codes_well_formed

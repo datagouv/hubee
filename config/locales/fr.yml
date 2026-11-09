@@ -59,6 +59,8 @@ fr:
               too_many: "ne peut pas compter plus de %{count} codes distincts"
               invalid_code: "contient un code invalide : « %{code} »"
               unknown_data_stream: "contient un code de flux inconnu du référentiel : « %{code} »"
+            send_invitation:
+              inclusion: doit être le booléen JSON true ou false
 
   api:
     errors:
