@@ -1,0 +1,30 @@
+<p style="margin: 0 0 16px;">Bonjour <%= @agent.first_name %> <%= @agent.last_name %>,</p>
+
+<p style="margin: 0 0 16px;">
+  Vous avez désormais accès au portail HubEE pour
+  <% if @organization_name %>
+    l'organisation <strong><%= @organization_name %></strong> (SIRET <%= @siret %>).
+  <% else %>
+    <strong>l'organisation de SIRET <%= @siret %></strong>.
+  <% end %>
+</p>
+
+<p style="margin: 0 0 16px;">La connexion se fait avec ProConnect, en utilisant votre adresse professionnelle <strong><%= @agent.email %></strong> :</p>
+
+<ol style="margin: 0 0 16px; padding-left: 24px;">
+  <li>Rendez-vous sur le portail HubEE.</li>
+  <li>Cliquez sur « S'identifier avec ProConnect ».</li>
+  <li>Connectez-vous avec l'adresse <%= @agent.email %>.</li>
+</ol>
+
+<p style="margin: 0 0 24px;">Vous n'avez aucun mot de passe HubEE à créer.</p>
+
+<p style="margin: 0 0 24px;">
+  <a href="<%= root_url %>" style="display: inline-block; padding: 12px 24px; background-color: #000091; color: #ffffff; text-decoration: none; font-weight: bold;">Accéder au portail HubEE</a>
+</p>
+
+<p style="margin: 0 0 16px;">Si le bouton ne fonctionne pas correctement, vous pouvez copier puis coller le lien suivant dans votre navigateur :<br><%= root_url %></p>
+
+<p style="margin: 0 0 16px;">Si vous pensez avoir reçu ce message par erreur, vous pouvez l'ignorer.</p>
+
+<p style="margin: 0;">Cordialement,<br>L'équipe HubEE</p>

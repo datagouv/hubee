@@ -63,6 +63,9 @@ fr:
               inclusion: doit être le booléen JSON true ou false
 
   api:
+    agent_mailer:
+      invitation:
+        subject: "[HubEE] Votre accès au portail HubEE"
     errors:
       bad_request: La requête est mal formée.
       forbidden: Ce client n'a pas le droit d'effectuer cette opération.
