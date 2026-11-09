@@ -193,7 +193,8 @@ Chaque écriture laisse sa trace (`agent.created` si l'agent est créé, `member
 client appelant (nom et uid), la requête, l'adresse, l'organisation, le rôle et les habilitations ;
 `agent.created` porte en plus `send_invitation`, sa valeur effective.
 Une invitation remise laisse `agent.invited` sur l'agent, écrit par le job après l'envoi : mêmes
-métadonnées que `agent.created`, sans le rôle, les habilitations ni `send_invitation`.
+métadonnées que `agent.created`, sans le rôle, les habilitations ni `send_invitation`. Le `send_invitation`
+de `agent.created` dit la demande, pas l'envoi : une invitation demandée sans `agent.invited` n'a pas été remise.
 L'identifiant de la requête est celui que le client envoie dans `X-Request-Id` (255 caractères au plus,
 lettres, chiffres, `-`, `_` et `@`), à défaut un UUID généré par le serveur : il sert à recouper les
 journaux, pas à prouver l'origine d'un appel.
