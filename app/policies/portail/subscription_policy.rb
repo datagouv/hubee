@@ -24,6 +24,10 @@ module Portail
     # Le détail servi : le rôle, et l'organisation que l'amont a rendue.
     def show? = SubscriptionPolicy.readable?(membership, subscription)
 
+    # Les identifiants du client OAuth : seul un abonnement en mode API en a. Le statut n'entre pas
+    # en compte : l'amont en juge, et le refus s'explique à l'écran.
+    def reveal_credentials? = show? && subscription.api_access?
+
     class Scope
       attr_reader :membership, :scope
 
