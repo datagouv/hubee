@@ -105,4 +105,7 @@
   </div>
 </div>
 
+<%# Dépliée seulement après une consultation : sans JavaScript, le POST rend cette page avec elle. %>
+<%= render "portail/subscriptions/credentials", subscription: @subscription, credentials: @credentials, refusal: @refusal %>
+
 <%= link_to t(".back"), abonnements_path, class: "fr-link fr-icon-arrow-left-line fr-link--icon-left" %>

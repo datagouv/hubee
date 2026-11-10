@@ -25,6 +25,14 @@
   height: 100%;
 }
 
+/* subscription-credentials : la consultation des identifiants d'un abonnement API
+   (portail/subscriptions/_credentials). L'invite à consulter reste dans la page, masquée tant que les
+   identifiants la précèdent : Turbo retire ce bloc de sa copie pour le bouton « précédent », et
+   l'invite réapparaît sans JavaScript. */
+.subscription-credentials__revealed + .subscription-credentials__prompt {
+  display: none;
+}
+
 /* delivery-timeline : la frise de l'historique d'un télédossier (portail/deliveries/show).
    Le DSFR n'a pas de composant frise ; la mise en page est à nous, aucune couleur ne l'est. */
 .delivery-timeline,

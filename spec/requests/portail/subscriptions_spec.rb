@@ -192,6 +192,34 @@ RSpec.describe "Portail::Subscriptions", type: :request do
       expect(Capybara.string(response.body)).to have_title("Abonnement Certificat de décès électronique - HubEE")
     end
 
+    # Les identifiants ne sont lus qu'au clic : la page n'en montre que le bouton.
+    it "offers to reveal the credentials of an API subscription, without reading them" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Subscriptions).to receive(:find)
+        .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode: "api")))
+      expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+
+      get path
+
+      expect(response).to have_http_status(:success)
+      section = Capybara.string(response.body).find("#subscription-credentials")
+      expect(section).to have_css("h2", text: "Identifiants de connexion API")
+      expect(section).to have_css("form[method='post'][action='#{path}/identifiants']")
+      expect(section).to have_button("Afficher les identifiants")
+    end
+
+    it "explains why a portal-mode subscription has no credentials" do
+      sign_in_local_administrator
+      expect(Portail::HubAPI::Subscriptions).to receive(:find).and_return(build(:portail_subscription_detail))
+
+      get path
+
+      expect(response).to have_http_status(:success)
+      section = Capybara.string(response.body).find("#subscription-credentials")
+      expect(section).to have_text("Cet abonnement passe par le portail : il n'a pas d'identifiants de connexion API.")
+      expect(section).not_to have_css("form")
+    end
+
     # Le rôle × habilitation entier : seul le rôle ouvre la page, l'habilitation n'y change rien.
     context "reading perimeter" do
       it "shows the subscription to a local administrator habilitated on its data stream" do

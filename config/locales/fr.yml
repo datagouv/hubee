@@ -417,6 +417,18 @@ fr:
           activity: État
           access_mode: Accès
           data_stream: Démarche
+      credentials:
+        title: Identifiants de connexion API
+        portal_mode: "Cet abonnement passe par le portail : il n'a pas d'identifiants de connexion API."
+        hint: Le système d'information de votre structure se connecte à l'API HubEE avec ces identifiants. Chaque affichage est enregistré.
+        reveal: Afficher les identifiants
+        warning: Ces identifiants donnent accès aux télédossiers de votre structure pour cette démarche. Ne les transmettez qu'aux personnes chargées de l'intégration. Cette consultation est enregistrée.
+        client_id: Identifiant client (client_id)
+        client_secret: Secret client (client_secret)
+        refusals:
+          not_api_mode: "Cet abonnement ne passe pas par l'API : il n'a pas d'identifiants à afficher."
+          not_active: "Cet abonnement n'est pas actif : ses identifiants ne peuvent pas être affichés."
+          contact_support_html: "Les identifiants de cet abonnement ne peuvent pas être affichés. Écrivez à %{email} en précisant la démarche concernée."
     errors:
       back_home: Retour à l'accueil
       stale_page: Cette page n'était plus à jour, elle a été rechargée.
