@@ -35,6 +35,16 @@ module Portail
           raise HubAPI.translated(e)
         end
 
+        # Les identifiants du client OAuth, sans cache : un secret régénéré doit se voir aussitôt, et
+        # un secret n'a rien à faire dans le cache. Bornée sur le couple, comme le détail.
+        def credentials(id:, siret:, insee_code:, client: HubApiV1.client)
+          served = HubApiV1::V2::Subscription.credentials(id: id, siret: siret, code_insee: insee_code, client: client)
+
+          Portail::Subscription::Credentials.new(client_id: served.client_id, client_secret: served.client_secret)
+        rescue HubApiV1::Error => e
+          raise HubAPI.translated(e)
+        end
+
         # La liste, lue une fois par structure : `nil` quand l'amont ne répond pas, et chaque usage
         # en décide.
         def fetch(siret:, insee_code:)

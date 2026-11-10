@@ -37,6 +37,17 @@ module Portail
 
     class AttachmentContentMismatch < Error; end
 
+    # L'amont ne sert pas les identifiants d'un abonnement, pour une raison métier à expliquer à
+    # l'administrateur : ni une panne, ni une absence. La raison reste un symbole, l'écran la traduit.
+    class CredentialsRefused < Error
+      attr_reader :reason
+
+      def initialize(reason, message = nil)
+        @reason = reason
+        super(message || reason.to_s)
+      end
+    end
+
     class << self
       # La classe d'origine reste dans le message : c'est elle qui distingue une panne d'un refus
       # au journal. Les deux familles de refus : le client V1 et sa surcouche V2 ont chacun le leur.
