@@ -67,14 +67,16 @@ RSpec.describe API::AgentMailer do
       end
     end
 
-    context "without the name of the organisation" do
-      subject(:mail) { described_class.invitation(agent, organization_name: nil, siret: "21750056000016") }
+    {"nil" => nil, "empty" => "", "blank" => " "}.each do |kind, name|
+      context "with a #{kind} name of the organisation" do
+        subject(:mail) { described_class.invitation(agent, organization_name: name, siret: "21750056000016") }
 
-      it "designates the organisation by its SIRET in both parts" do
-        expect(html).to have_css("strong", text: "l'organisation de SIRET 21750056000016")
-        expect(html).to have_text("Vous avez désormais accès au portail HubEE pour l'organisation de SIRET 21750056000016.", normalize_ws: true)
-        expect(text).to include("Vous avez désormais accès au portail HubEE pour l'organisation de SIRET 21750056000016.")
-        expect(text).not_to include("()")
+        it "designates the organisation by its SIRET in both parts" do
+          expect(html).to have_css("strong", text: "l'organisation de SIRET 21750056000016")
+          expect(html).to have_text("Vous avez désormais accès au portail HubEE pour l'organisation de SIRET 21750056000016.", normalize_ws: true)
+          expect(text).to include("Vous avez désormais accès au portail HubEE pour l'organisation de SIRET 21750056000016.")
+          expect(text).not_to include("()")
+        end
       end
     end
 

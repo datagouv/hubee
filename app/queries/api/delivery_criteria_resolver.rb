@@ -7,7 +7,7 @@ module API
         sirets = Array(criteria&.dig("siret"))
         return Subscription.none if sirets.empty?
 
-        org_ids = Organization.where(siret: sirets).pluck(:id)
+        org_ids = ::Organization.where(siret: sirets).pluck(:id)
 
         Subscription
           .where(data_stream: data_stream, organization_id: org_ids)

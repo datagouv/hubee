@@ -4,7 +4,7 @@ module API
   class AgentMailer < ApplicationMailer
     def invitation(agent, organization_name:, siret:)
       @agent = agent
-      @organization_name = organization_name
+      @organization_name = organization_name.presence
       @siret = siret
 
       mail(to: agent.email)

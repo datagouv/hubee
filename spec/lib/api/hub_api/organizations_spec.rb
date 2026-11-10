@@ -3,24 +3,27 @@
 require "rails_helper"
 
 RSpec.describe API::HubAPI::Organizations do
-  describe ".verify" do
-    it "returns the name of an SI organization designated by its SIRET and insee code" do
+  describe ".find" do
+    it "returns an API::Organization for an SI organization designated by its SIRET and insee code" do
       stub_hub_api_organization_found(
         siret: "21750001600019", type: "SI", branch_code: "75056",
         record: build_organization_record(name: "Mairie de Paris", siret: "21750001600019", type: "SI", branch_code: "75056")
       )
 
-      expect(described_class.verify(siret: "21750001600019", insee_code: "75056")).to eq("Mairie de Paris")
+      organization = described_class.find(siret: "21750001600019", insee_code: "75056")
+
+      expect(organization).to be_a(API::Organization)
+      expect(organization.name).to eq("Mairie de Paris")
     end
 
-    {"nil" => nil, "blank" => " "}.each do |kind, name|
-      it "returns nil for an organization whose name is #{kind}" do
+    {"nil" => nil, "empty" => "", "blank" => " "}.each do |kind, name|
+      it "returns the name as the referential gives it when it is #{kind}" do
         stub_hub_api_organization_found(
           siret: "21750001600019", type: "SI", branch_code: "75056",
           record: build_organization_record(name:, siret: "21750001600019", type: "SI", branch_code: "75056")
         )
 
-        expect(described_class.verify(siret: "21750001600019", insee_code: "75056")).to be_nil
+        expect(described_class.find(siret: "21750001600019", insee_code: "75056").name).to eq(name)
       end
     end
 
@@ -31,9 +34,9 @@ RSpec.describe API::HubAPI::Organizations do
       client.add_organization(build_organization_record(name: "Mairie du 1er", siret: "21750001600019", type: "SI", branch_code: "75056"))
       client.add_organization(build_organization_record(name: "Mairie du 2e", siret: "21750001600019", type: "SI", branch_code: "75101"))
 
-      expect(described_class.verify(siret: "21750001600019", insee_code: "75056", client: client)).to eq("Mairie du 1er")
-      expect(described_class.verify(siret: "21750001600019", insee_code: "75101", client: client)).to eq("Mairie du 2e")
-      expect { described_class.verify(siret: "21750001600019", insee_code: "13055", client: client) }
+      expect(described_class.find(siret: "21750001600019", insee_code: "75056", client: client).name).to eq("Mairie du 1er")
+      expect(described_class.find(siret: "21750001600019", insee_code: "75101", client: client).name).to eq("Mairie du 2e")
+      expect { described_class.find(siret: "21750001600019", insee_code: "13055", client: client) }
         .to raise_error(API::HubAPI::NotFound)
     end
 
@@ -42,14 +45,14 @@ RSpec.describe API::HubAPI::Organizations do
         build_organization_record(siret: "21750001600019", type: "SI", branch_code: "75056")
       )
 
-      expect { described_class.verify(siret: "21750001600019", insee_code: "13055") }
+      expect { described_class.find(siret: "21750001600019", insee_code: "13055") }
         .to raise_error(API::HubAPI::NotFound)
     end
 
     it "says unknown an organization absent from the referential" do
       stub_hub_api_organization_not_found(siret: "21750001600019")
 
-      expect { described_class.verify(siret: "21750001600019", insee_code: "75056") }
+      expect { described_class.find(siret: "21750001600019", insee_code: "75056") }
         .to raise_error(API::HubAPI::NotFound)
     end
 
@@ -58,7 +61,7 @@ RSpec.describe API::HubAPI::Organizations do
         build_organization_record(siret: "21750001600019", type: "OSL", branch_code: "75056")
       )
 
-      expect { described_class.verify(siret: "21750001600019", insee_code: "75056") }
+      expect { described_class.find(siret: "21750001600019", insee_code: "75056") }
         .to raise_error(API::HubAPI::NotFound)
     end
 
@@ -68,14 +71,14 @@ RSpec.describe API::HubAPI::Organizations do
         build_organization_record(name: "Mairie fermée", siret: "21750001600019", type: "SI", branch_code: "75056", status: "Fermée")
       )
 
-      expect(described_class.verify(siret: "21750001600019", insee_code: "75056")).to eq("Mairie fermée")
+      expect(described_class.find(siret: "21750001600019", insee_code: "75056").name).to eq("Mairie fermée")
     end
 
     it "rejects a blank insee code as a caller bug, neither unknown nor unavailable" do
       client = HubApiV1::Testing::FakeClient.new
       client.add_organization(build_organization_record(siret: "21750001600019", type: "SI", branch_code: "75056"))
 
-      expect { described_class.verify(siret: "21750001600019", insee_code: "", client: client) }
+      expect { described_class.find(siret: "21750001600019", insee_code: "", client: client) }
         .to raise_error(ArgumentError, "branch_code is required")
     end
 
@@ -83,7 +86,7 @@ RSpec.describe API::HubAPI::Organizations do
       stub_hub_api_organization_ambiguous(siret: "21750001600019")
       expect(Rails.error).to receive(:report).with(instance_of(HubApiV1::AmbiguousOrganizationError), handled: true)
 
-      expect { described_class.verify(siret: "21750001600019", insee_code: "75056") }
+      expect { described_class.find(siret: "21750001600019", insee_code: "75056") }
         .to raise_error(API::HubAPI::Unavailable, /\AHubApiV1::AmbiguousOrganizationError : /)
     end
 
@@ -100,7 +103,7 @@ RSpec.describe API::HubAPI::Organizations do
         stub_hub_api_organization_error(siret: "21750001600019", error: error)
         expect(Rails.error).to receive(:report).with(instance_of(error), handled: true)
 
-        expect { described_class.verify(siret: "21750001600019", insee_code: "75056") }
+        expect { described_class.find(siret: "21750001600019", insee_code: "75056") }
           .to raise_error(API::HubAPI::Unavailable, /\A#{error.name} : /)
       end
     end
