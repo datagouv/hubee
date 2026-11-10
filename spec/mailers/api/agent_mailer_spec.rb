@@ -14,11 +14,20 @@ RSpec.describe API::AgentMailer do
       it "addresses the agent with the subject of the invitation" do
         expect(mail.to).to eq(["alice.martin@ville.fr"])
         expect(mail.subject).to eq("[HubEE] Votre accès au portail HubEE")
-        expect(mail.parts.map(&:mime_type)).to eq(["text/plain", "text/html"])
+        expect(mail.mime_type).to eq("multipart/related")
+        expect(mail.parts.first.parts.map(&:mime_type)).to eq(["text/plain", "text/html"])
+      end
+
+      it "carries the bloc-marque of the header and footer as inline images" do
+        expect(mail.attachments.map { [it.filename, it.inline?] }).to eq([["marianne-clair.png", true], ["marianne-sombre.png", true]])
+        mail.attachments.each do |image|
+          expect(html).to have_css("img[src='cid:#{image.cid}'][alt='République française']", count: 2, visible: :all)
+        end
+        expect(html).to have_css("strong", text: "HubEE", exact_text: true, count: 2)
+        expect(html).to have_css("strong", text: "Hub d'Échange de l'État", exact_text: true, count: 2)
       end
 
       it "names the agent, the organisation and the address in the HTML part" do
-        expect(html).to have_text("HubEE - Hub d'Échange de l'État")
         expect(html).to have_text("Bonjour Alice Martin,")
         expect(html).to have_css("strong", text: "Mairie de Paris")
         expect(html).to have_text("Vous avez désormais accès au portail HubEE pour l'organisation Mairie de Paris (SIRET 21750056000016).", normalize_ws: true)
@@ -27,14 +36,14 @@ RSpec.describe API::AgentMailer do
         expect(html).to have_text("Vous n'avez aucun mot de passe HubEE à créer.")
         expect(html).to have_text("Cordialement,")
         expect(html).to have_text("L'équipe HubEE")
-        expect(html).to have_text("Ce message vous a été envoyé automatiquement.")
-        expect(html).to have_text("Merci de ne pas y répondre.")
+        expect(html).to have_text("Ce message vous a été envoyé automatiquement. Merci de ne pas y répondre.")
       end
 
       it "links the root of the portal, without any token, from the button and the pasted link" do
         expect(html).to have_link("Accéder au portail HubEE", href: "http://example.com/")
+        expect(html).to have_css("td[bgcolor='#000091'] > a[href='http://example.com/']", text: "Accéder au portail HubEE")
         expect(html).to have_text("copier puis coller le lien suivant dans votre navigateur :")
-        expect(html).to have_text("http://example.com/")
+        expect(html).to have_link("http://example.com/", href: "http://example.com/")
         expect(mail.html_part.body.decoded.scan(%r{https?://[^"'\s<]+}).uniq).to eq(["http://example.com/"])
       end
 
