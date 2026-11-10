@@ -32,17 +32,19 @@ RSpec.describe API::Internal::V1::Agents::Create::CheckOrganization do
       expect(result.unavailable).to be_nil
     end
 
-    it "keeps no name for an organisation the referential confirms without one" do
-      stub_hub_api_organization_found(
-        siret: "21750056000016", type: "SI", branch_code: "75056",
-        record: build_organization_record(name: nil, siret: "21750056000016", type: "SI", branch_code: "75056")
-      )
+    {"without one" => nil, "with an empty one" => "", "with a blank one" => " "}.each do |kind, name|
+      it "keeps the name as the referential gives it for an organisation it confirms #{kind}" do
+        stub_hub_api_organization_found(
+          siret: "21750056000016", type: "SI", branch_code: "75056",
+          record: build_organization_record(name:, siret: "21750056000016", type: "SI", branch_code: "75056")
+        )
 
-      result = described_class.call(form: validated_form)
+        result = described_class.call(form: validated_form)
 
-      expect(result).to be_success
-      expect(result.organization_name).to be_nil
-      expect(result.refusals).to be_nil
+        expect(result).to be_success
+        expect(result.organization_name).to eq(name)
+        expect(result.refusals).to be_nil
+      end
     end
 
     it "refuses an organisation unknown to the referential, after the reasons already found" do
@@ -66,7 +68,7 @@ RSpec.describe API::Internal::V1::Agents::Create::CheckOrganization do
     end
 
     it "does not ask the referential about an invalid designation" do
-      expect(API::HubAPI::Organizations).not_to receive(:verify)
+      expect(API::HubAPI::Organizations).not_to receive(:find)
 
       result = described_class.call(form: validated_form(siret: "123"))
 

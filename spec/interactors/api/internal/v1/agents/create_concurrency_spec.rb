@@ -20,9 +20,9 @@ RSpec.describe API::Internal::V1::Agents::Create do
       # chacun garde sa transaction ouverte sur ses traces : l'autre cherche le lien sans le voir.
       barrier = Concurrent::CyclicBarrier.new(2)
       stub_hub_api_v2_data_stream(code: "CERTDC")
-      expect(API::HubAPI::Organizations).to receive(:verify).twice do
+      expect(API::HubAPI::Organizations).to receive(:find).twice do
         raise "barrier timed out" unless barrier.wait(5)
-        true
+        API::Organization.new(name: "Mairie de Paris")
       end
       expect(Event).to receive(:create!).exactly(4).times.and_wrap_original do |original, **attributes|
         sleep 0.2
@@ -52,9 +52,9 @@ RSpec.describe API::Internal::V1::Agents::Create do
       # d'unicité voit alors le rattachement.
       barrier = Concurrent::CyclicBarrier.new(2)
       stub_hub_api_v2_data_stream(code: "CERTDC")
-      expect(API::HubAPI::Organizations).to receive(:verify).twice do
+      expect(API::HubAPI::Organizations).to receive(:find).twice do
         raise "barrier timed out" unless barrier.wait(5)
-        true
+        API::Organization.new(name: "Mairie de Paris")
       end
       expect(Event).to receive(:create!).once.and_wrap_original do |original, **attributes|
         sleep 0.2
@@ -82,7 +82,7 @@ RSpec.describe API::Internal::V1::Agents::Create do
       agent = create(:agent, email: "alice.martin@ville.fr")
       organization_link = create(:organization_link, siret: "21750056000016", insee_code: "75056")
       stub_hub_api_v2_data_stream(code: "CERTDC")
-      expect(API::HubAPI::Organizations).to receive(:verify).and_return(true)
+      expect(API::HubAPI::Organizations).to receive(:find).and_return(API::Organization.new(name: "Mairie de Paris"))
       outside = nil
       expect(Membership).to receive(:create!).and_wrap_original do |original, **attributes|
         outside = Thread.new do
@@ -117,9 +117,9 @@ RSpec.describe API::Internal::V1::Agents::Create do
       expect(Agent).to receive(:lock).twice.and_return(Agent.all)
       barrier = Concurrent::CyclicBarrier.new(2)
       stub_hub_api_v2_data_stream(code: "CERTDC")
-      expect(API::HubAPI::Organizations).to receive(:verify).twice do
+      expect(API::HubAPI::Organizations).to receive(:find).twice do
         raise "barrier timed out" unless barrier.wait(5)
-        true
+        API::Organization.new(name: "Mairie de Paris")
       end
       raised = Queue.new
       expect(Membership).to receive(:create!).twice.and_wrap_original do |original, **attributes|
@@ -157,9 +157,9 @@ RSpec.describe API::Internal::V1::Agents::Create do
       # ouverte sur sa trace : sans verrou, la validation du second ne verrait pas le rattachement.
       barrier = Concurrent::CyclicBarrier.new(2)
       stub_hub_api_v2_data_stream(code: "CERTDC")
-      expect(API::HubAPI::Organizations).to receive(:verify).twice do
+      expect(API::HubAPI::Organizations).to receive(:find).twice do
         raise "barrier timed out" unless barrier.wait(5)
-        true
+        API::Organization.new(name: "Mairie de Paris")
       end
       expect(Event).to receive(:create!).once.and_wrap_original do |original, **attributes|
         sleep 0.2

@@ -4,7 +4,7 @@ module API
       before_action :set_organization, only: :show
 
       def index
-        @pagy, @organizations = pagy(Organization.all)
+        @pagy, @organizations = pagy(::Organization.all)
       end
 
       def show
@@ -13,7 +13,7 @@ module API
       private
 
       def set_organization
-        @organization = Organization.find(params[:id])
+        @organization = ::Organization.find(params[:id])
       end
     end
   end
