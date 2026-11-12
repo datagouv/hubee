@@ -277,7 +277,7 @@ fr:
         empty: Aucun télédossier dans cet état pour votre structure.
         empty_filtered: Aucun télédossier ne correspond à vos critères dans cet état.
         failures:
-          no_habilitation: Vous n'êtes habilité sur aucun flux ; aucun télédossier ne peut vous être présenté. Rapprochez-vous de l'administrateur local de votre structure.
+          no_habilitation: Vous n'êtes habilité sur aucun flux consultable dans le portail ; aucun télédossier ne peut vous être présenté. Rapprochez-vous de l'administrateur local de votre structure.
           # Le motif est dans le flash : la page ne dit que la conséquence.
           upstream: Les télédossiers de votre structure n'ont pas pu être affichés.
       show:

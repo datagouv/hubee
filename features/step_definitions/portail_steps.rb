@@ -139,6 +139,18 @@ end
     data_stream_code: "AEC"))
 end
 
+# Le mode d'accès voyage avec l'abonnement : il décide si les télédossiers du flux s'ouvrent dans
+# le portail ou restent au système client de la structure. Sans intitulé : le nommer est un autre pas.
+Étantdonné("sa structure reçoit le flux {string} par le portail") do |code|
+  HubApiV1.client.add_subscription(build_v2_subscription(id: "sub-portail-#{code}", organization: e2e_recipient,
+    data_stream_code: code, data_stream_name: nil))
+end
+
+Étantdonné("sa structure reçoit le flux {string} par l'API") do |code|
+  HubApiV1.client.add_subscription(build_v2_subscription(id: "sub-api-#{code}", organization: e2e_recipient,
+    data_stream_code: code, data_stream_name: nil, access_mode: :api))
+end
+
 # L'intitulé voyage avec l'abonnement de la structure, c'est là que l'amont le sert.
 Étantdonné("l'API amont nomme le flux {string} {string}") do |code, name|
   HubApiV1.client.add_subscription(build_v2_subscription(

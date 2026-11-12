@@ -9,6 +9,9 @@ RSpec.describe "Portail::Attachments", type: :request do
   let(:attachment_id) { "a1111111-1111-1111-1111-111111111111" }
   let(:path) { "/teledossiers/#{delivery_id}/pieces/#{attachment_id}" }
 
+  # La lecture d'un télédossier vérifie que l'organisation reçoit son flux par le portail.
+  before { stub_organisation_subscriptions }
+
   describe "GET /teledossiers/:teledossier_id/pieces/:id" do
     # Le fichier tel quel, sous son nom d'origine, et jamais dans la page : un type neutre et
     # `attachment`, quel que soit le type que l'amont annonce. Aucun magasin sur le chemin.
@@ -417,6 +420,15 @@ RSpec.describe "Portail::Attachments", type: :request do
           sign_in_member(data_stream_codes: ["CERTDC"])
           expect(Portail::HubAPI::Deliveries).to receive(:find)
             .and_return(delivery_on("CERTDC", state: "integration_error"))
+
+          expect_a_refusal
+        end
+
+        # L'accès à une pièce est celui de son télédossier : un flux reçu par l'API ferme aussi les octets.
+        it "refuses a piece of a delivery of a data stream the organisation receives through the API" do
+          sign_in_member(data_stream_codes: ["CERTDC"])
+          expect_organisation_subscriptions("CERTDC" => "api")
+          expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
           expect_a_refusal
         end

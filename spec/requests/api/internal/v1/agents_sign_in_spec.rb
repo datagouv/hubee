@@ -69,12 +69,12 @@ RSpec.describe "Agent registered through the internal API", type: :request do
   end
 
   # Le cas de hub-api : l'administrateur local déclaré à l'abonnement a accès à tous les flux.
-  it "lets a local administrator without habilitation sign in, unfiltered" do
+  it "lets a local administrator without habilitation sign in, on every data stream the organisation receives through the portal" do
     register(role: "local_administrator", data_stream_codes: [])
     expect(Portail::HubAPI::Subscriptions).to receive(:list).and_return(build(:portail_subscription_list))
     expect(Portail::HubAPI::Deliveries).to receive(:list)
       # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
-      .with(hash_including(data_stream_codes: []))
+      .with(hash_including(data_stream_codes: ["CERTDC"]))
       .and_return(build(:portail_delivery_list))
 
     sign_in_and_land

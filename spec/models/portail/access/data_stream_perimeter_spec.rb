@@ -11,12 +11,6 @@ RSpec.describe Portail::Access::DataStreamPerimeter do
       expect(described_class.none?(membership)).to be(true)
       expect(described_class.covers?(membership, "CERTDC")).to be(false)
     end
-
-    # Un filtre vide envoyé à l'amont vaudrait toute l'organisation : l'oubli du court-circuit
-    # doit exploser, pas ouvrir la lecture.
-    it "refuses to hand any filter" do
-      expect { described_class.filter(membership) }.to raise_error(described_class::NoAccess)
-    end
   end
 
   context "for a member habilitated on CERTDC and AEC" do
@@ -29,10 +23,9 @@ RSpec.describe Portail::Access::DataStreamPerimeter do
 
     # Code inventé : la règle ne dépend d'aucune valeur, et les vrais codes de flux sensibles
     # ne descendent pas dans ce dépôt, qui est public.
-    it "covers those data streams only, and hands them as the filter" do
+    it "covers those data streams only" do
       expect(described_class.covers?(membership, "CERTDC")).to be(true)
       expect(described_class.covers?(membership, "DEMO_AUTRE")).to be(false)
-      expect(described_class.filter(membership)).to contain_exactly("CERTDC", "AEC")
       expect(described_class.none?(membership)).to be(false)
     end
 
@@ -43,16 +36,14 @@ RSpec.describe Portail::Access::DataStreamPerimeter do
       create(:data_stream_access, membership: other, data_stream_code: "DEMO_AUTRE")
 
       expect(described_class.covers?(membership, "DEMO_AUTRE")).to be(false)
-      expect(described_class.filter(membership)).to contain_exactly("CERTDC", "AEC")
     end
   end
 
   context "for a local administrator without habilitation" do
     let(:membership) { create(:membership, :local_administrator) }
 
-    it "covers every data stream, and hands the upstream an empty filter" do
+    it "covers every data stream" do
       expect(described_class.covers?(membership, "AEC")).to be(true)
-      expect(described_class.filter(membership)).to eq([])
       expect(described_class.none?(membership)).to be(false)
     end
   end
@@ -63,10 +54,9 @@ RSpec.describe Portail::Access::DataStreamPerimeter do
 
     before { create(:data_stream_access, membership: membership, data_stream_code: "CERTDC") }
 
-    it "covers that data stream only, and hands it as the filter" do
+    it "covers that data stream only" do
       expect(described_class.covers?(membership, "CERTDC")).to be(true)
       expect(described_class.covers?(membership, "AEC")).to be(false)
-      expect(described_class.filter(membership)).to contain_exactly("CERTDC")
     end
   end
 end
