@@ -12,8 +12,12 @@ module Portail
       NUMBER_MAX_LENGTH = HubApiV1::V2::Delivery::MAX_NUMBER_LENGTH
 
       class << self
+        # Un filtre de flux vide, la gem l'omet et l'amont sert toute l'organisation, flux reçus par
+        # l'API compris : jamais envoyé, quel que soit l'appelant.
         def list(siret:, insee_code:, state:, data_stream_codes:, number:, transmitted_from:,
           transmitted_to:, sort:, direction:, page:, per_page:, client: HubApiV1.client)
+          raise ArgumentError, "Filtre de flux vide : l'amont servirait toute l'organisation" if data_stream_codes.blank?
+
           list = HubApiV1::V2::Delivery.list(
             siret: siret,
             code_insee: insee_code,

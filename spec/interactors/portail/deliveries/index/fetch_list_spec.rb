@@ -29,7 +29,7 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
 
   it "passes the state, the number, the period, the sort and the page along, as the URL says them" do
     expect(Portail::HubAPI::Deliveries).to receive(:list).with(
-      siret: "22770001000019", insee_code: "77372", state: "done", data_stream_codes: [],
+      siret: "22770001000019", insee_code: "77372", state: "done", data_stream_codes: ["CERTDC"],
       number: "ID22026", transmitted_from: "2026-08-01", transmitted_to: "2026-08-31",
       sort: "updated_at", direction: "asc", page: 2, per_page: described_class::PER_PAGE
     ).and_return(build(:portail_delivery_list))
@@ -37,7 +37,7 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     result = described_class.call(membership: membership,
       criteria: criteria(statut: "done", numero: "ID22026", du: "2026-08-01", au: "2026-08-31",
         tri: "updated_at", ordre: "asc"),
-      requested_data_streams: [], page: 2)
+      requested_data_streams: ["CERTDC"], page: 2)
 
     expect(result).to be_success
   end
@@ -60,7 +60,7 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
     result = described_class.call(membership: membership, criteria: criteria(statut: "integration_error"),
-      requested_data_streams: [], page: 1)
+      requested_data_streams: ["CERTDC"], page: 1)
 
     expect(result).to be_failure
     expect(result.error).to eq(:invalid_request)
@@ -75,7 +75,7 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
     result = nil
     events = capture_semantic_logger_events do
       result = described_class.call(membership: membership, criteria: criteria(tri: "n-importe-quoi"),
-        requested_data_streams: [], page: 1)
+        requested_data_streams: ["CERTDC"], page: 1)
     end
 
     expect(result).to be_failure
@@ -91,7 +91,8 @@ RSpec.describe Portail::Deliveries::Index::FetchList do
 
     result = nil
     events = capture_semantic_logger_events do
-      result = described_class.call(membership: membership, criteria: criteria, requested_data_streams: [], page: 1)
+      result = described_class.call(membership: membership, criteria: criteria, requested_data_streams: ["CERTDC"],
+        page: 1)
     end
 
     expect(result).to be_failure
