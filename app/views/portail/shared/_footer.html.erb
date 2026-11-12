@@ -31,6 +31,10 @@
         <li class="fr-footer__bottom-item"><a class="fr-footer__bottom-link" href="#"><%= t(".legal") %></a></li>
         <li class="fr-footer__bottom-item"><a class="fr-footer__bottom-link" href="#"><%= t(".personal_data") %></a></li>
         <li class="fr-footer__bottom-item"><a class="fr-footer__bottom-link" href="#"><%= t(".cookies") %></a></li>
+        <li class="fr-footer__bottom-item">
+          <%= link_to t(".help"), help_url, class: "fr-footer__bottom-link",
+                target: "_blank", rel: "noopener", title: t(".new_window", site: t(".help")) %>
+        </li>
       </ul>
       <div class="fr-footer__bottom-copy">
         <p><%= t(".license_html", link: link_to(t(".license_link"), "https://github.com/etalab/licence-ouverte/blob/master/LO.md", target: "_blank", rel: "noopener external", title: t(".license_link_title"))) %></p>
