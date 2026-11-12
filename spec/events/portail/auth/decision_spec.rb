@@ -12,7 +12,7 @@ RSpec.describe Portail::Auth::Decision do
         email: "agent@example.gouv.fr", siret: "13002526500013", acr: "eidas1")
     end
 
-    # L'invariant le plus coûteux à violer : un jeton dans une table conservée six mois.
+    # L'invariant le plus coûteux à violer : un jeton dans une table conservée un an.
     # Le Data ferme le jeu de clés ; cet exemple épingle lesquelles.
     # Le persisteur fait `AccessDecision.create!(**decision.to_h)` : un champ ajouté ici et
     # pas en base ferait échouer l'écriture en production, sans rien casser en amont.

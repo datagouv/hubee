@@ -4,8 +4,9 @@
 # pendant une requête, et elle survit à la suppression de ses sujets.
 class AccessDecision < ApplicationRecord
   # === Constants ===
-  # Six mois : ce que la CNIL retient pour les journaux de connexion.
-  RETENTION = 6.months
+  # Un an : six mois ne suffisaient pas pour remonter un incident ou répondre à un audit. Durée
+  # validée par le métier, la même que pour les traces d'audit de l'API (Event::RETENTION).
+  RETENTION = 1.year
 
   # === Enums ===
   enum :outcome, {granted: "granted", denied: "denied"}, validate: true

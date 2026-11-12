@@ -12,7 +12,8 @@ RSpec.describe AccessDecision, type: :model do
   end
 
   # La rétention est une décision de sécurité : elle vit dans une constante pour se changer
-  # en une ligne, et le scope doit la suivre plutôt que de redire six mois.
+  # en une ligne, et le scope doit la suivre plutôt que de redire la durée. La durée elle-même est
+  # épinglée par la spec de la purge.
   describe ".expired" do
     it "gathers exactly what has passed the retention" do
       old = create(:access_decision, created_at: described_class::RETENTION.ago - 1.day)
