@@ -9,6 +9,9 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
   let(:delivery_id) { "94b1b09d-b47f-4480-9b48-93b8b36108f2" }
   let(:path) { "/teledossiers/#{delivery_id}/archive" }
 
+  # La lecture d'un télédossier vérifie que l'organisation reçoit son flux par le portail.
+  before { stub_organisation_subscriptions }
+
   # L'organisation de l'agent connecté, dans le vocabulaire de la gem : le fake filtre sur ce couple.
   def upstream_recipient
     build_v2_recipient(siret: ProConnectTestHelper::TEST_SIRET, code_insee: ProConnectTestHelper::TEST_INSEE_CODE)
@@ -325,6 +328,14 @@ RSpec.describe "Portail::Deliveries::Archives", type: :request do
         serve_delivery_with_added_pieces
 
         expect_the_archive_to_be_served
+      end
+
+      it "refuses the archive of a delivery of a data stream the organisation receives through the API" do
+        sign_in_member(data_stream_codes: ["CERTDC"])
+        expect_organisation_subscriptions("CERTDC" => "api")
+        client = serve_delivery_with_added_pieces
+
+        expect_a_not_found_page(client)
       end
 
       # Seul le journal distingue un refus d'une inexistence : il laisse voir un agent qui forge

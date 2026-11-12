@@ -22,7 +22,7 @@ RSpec.describe Portail::Deliveries::Index do
     expect(result.data_stream_names).to eq({"CERTDC" => "Certificat de décès électronique"})
   end
 
-  # Le refus de l'organizer entier : chaque étape le porte, la composition le rend une fois.
+  # Le refus de l'organizer entier : la première étape le rend, rien ne part en amont.
   it "refuses a member without habilitation before reading anything upstream" do
     expect(Portail::HubAPI::Subscriptions).not_to receive(:list)
     expect(Portail::HubAPI::Deliveries).not_to receive(:list)

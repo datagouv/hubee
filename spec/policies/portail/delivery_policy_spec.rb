@@ -3,13 +3,26 @@
 require "rails_helper"
 
 # La règle rôle × habilitation est éprouvée dans le spec de Portail::Access::DataStreamPerimeter, celle
-# des états servis dans celui de Portail::Access::StatePerimeter. Ici, on constate que la policy les
-# applique à ce que l'amont a servi, liste et détail, et qu'elle vérifie aussi l'organisation :
-# l'amont est un tiers, son filtre n'est pas tenu pour acquis.
+# des états servis dans celui de Portail::Access::StatePerimeter, celle du mode d'accès dans celui de
+# Portail::Access::PortalPerimeter. Ici, on constate que la policy les applique à ce que l'amont a
+# servi, liste et détail, et qu'elle vérifie aussi l'organisation : l'amont est un tiers, son filtre
+# n'est pas tenu pour acquis.
 RSpec.describe Portail::DeliveryPolicy do
   def scope(*deliveries) = described_class::Scope.new(membership, deliveries).resolve
 
   def show?(delivery) = described_class.new(membership, delivery).show?
+
+  # Les abonnements de l'organisation : CERTDC et AEC par le portail, sauf ceux nommés dans `api:`.
+  # Armé seulement là où un télédossier passe les autres règles : elles tranchent d'abord, sans
+  # lire l'amont. Au moins une fois : une lecture par télédossier, que le cache de la frontière
+  # sert en requête ; une seule part à l'amont, éprouvé dans les request specs.
+  def expect_subscriptions(api: [])
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch).at_least(:once).and_return(
+      build(:portail_subscription_list, subscriptions: %w[CERTDC AEC].map do |code|
+        build(:portail_subscription, data_stream_code: code, access_mode: api.include?(code) ? "api" : "portal")
+      end)
+    )
+  end
 
   context "for a member without habilitation" do
     let(:membership) { create(:membership) }
@@ -38,6 +51,7 @@ RSpec.describe Portail::DeliveryPolicy do
 
     describe "Scope#resolve" do
       it "keeps CERTDC for the organisation, drops another data stream or another organisation" do
+        expect_subscriptions
         kept = build(:portail_delivery, membership: membership)
         other_stream = build(:portail_delivery, data_stream_code: "AEC", membership: membership)
         other_organisation = build(:portail_delivery, :of_another_organisation)
@@ -47,15 +61,24 @@ RSpec.describe Portail::DeliveryPolicy do
 
       # Servie par l'amont, mais pas une page du service instructeur : HubEE la supervise.
       it "drops a delivery in a state the portal does not serve" do
+        expect_subscriptions
         kept = build(:portail_delivery, membership: membership)
         unserved = build(:portail_delivery, state: "integration_error", membership: membership)
 
         expect(scope(kept, unserved)).to eq([kept])
       end
+
+      it "drops a delivery of a data stream the organisation receives through the API" do
+        expect_subscriptions(api: ["CERTDC"])
+        delivery = build(:portail_delivery, membership: membership)
+
+        expect(scope(delivery)).to be_empty
+      end
     end
 
     describe "#show?" do
       it "accepts a delivery on CERTDC for the organisation" do
+        expect_subscriptions
         delivery = build(:portail_delivery, membership: membership)
 
         expect(show?(delivery)).to be(true)
@@ -83,6 +106,14 @@ RSpec.describe Portail::DeliveryPolicy do
 
         expect(show?(delivery)).to be(false)
       end
+
+      # Le même trou encore : le système client de l'organisation traite ce flux, pas le portail.
+      it "refuses a delivery of a data stream the organisation receives through the API" do
+        expect_subscriptions(api: ["CERTDC"])
+        delivery = build(:portail_delivery, membership: membership)
+
+        expect(show?(delivery)).to be(false)
+      end
     end
   end
 
@@ -90,7 +121,8 @@ RSpec.describe Portail::DeliveryPolicy do
     let(:membership) { create(:membership, :local_administrator) }
 
     describe "Scope#resolve" do
-      it "keeps every data stream of the organisation, drops another organisation" do
+      it "keeps every data stream the organisation receives through the portal, drops another organisation" do
+        expect_subscriptions
         kept = [
           build(:portail_delivery, membership: membership),
           build(:portail_delivery, data_stream_code: "AEC", membership: membership)
@@ -102,15 +134,26 @@ RSpec.describe Portail::DeliveryPolicy do
 
       # « Voit tout » s'arrête aux états servis : celui-ci n'est la page de personne.
       it "drops a delivery in a state the portal does not serve" do
+        expect_subscriptions
         kept = build(:portail_delivery, membership: membership)
         unserved = build(:portail_delivery, state: "integration_error", membership: membership)
 
         expect(scope(kept, unserved)).to eq([kept])
       end
+
+      # « Voit tout » s'arrête aussi au portail.
+      it "drops a delivery of a data stream the organisation receives through the API" do
+        expect_subscriptions(api: ["AEC"])
+        kept = build(:portail_delivery, membership: membership)
+        through_api = build(:portail_delivery, data_stream_code: "AEC", membership: membership)
+
+        expect(scope(kept, through_api)).to eq([kept])
+      end
     end
 
     describe "#show?" do
-      it "accepts a delivery on any data stream of the organisation" do
+      it "accepts a delivery on any data stream the organisation receives through the portal" do
+        expect_subscriptions
         delivery = build(:portail_delivery, data_stream_code: "AEC", membership: membership)
 
         expect(show?(delivery)).to be(true)
@@ -127,6 +170,21 @@ RSpec.describe Portail::DeliveryPolicy do
 
         expect(show?(delivery)).to be(false)
       end
+
+      it "refuses a delivery of a data stream the organisation receives through the API" do
+        expect_subscriptions(api: ["AEC"])
+        delivery = build(:portail_delivery, data_stream_code: "AEC", membership: membership)
+
+        expect(show?(delivery)).to be(false)
+      end
+
+      # Ni abonnement, ni mode d'accès : rien ne dit que le portail traite ce flux.
+      it "refuses a delivery of a data stream the organisation is not subscribed to" do
+        expect_subscriptions
+        delivery = build(:portail_delivery, data_stream_code: "DEMO", membership: membership)
+
+        expect(show?(delivery)).to be(false)
+      end
     end
   end
 
@@ -138,6 +196,7 @@ RSpec.describe Portail::DeliveryPolicy do
 
     describe "Scope#resolve" do
       it "keeps CERTDC only" do
+        expect_subscriptions
         kept = build(:portail_delivery, membership: membership)
         other_stream = build(:portail_delivery, data_stream_code: "AEC", membership: membership)
 
@@ -145,15 +204,24 @@ RSpec.describe Portail::DeliveryPolicy do
       end
 
       it "drops a delivery in a state the portal does not serve" do
+        expect_subscriptions
         kept = build(:portail_delivery, membership: membership)
         unserved = build(:portail_delivery, state: "integration_error", membership: membership)
 
         expect(scope(kept, unserved)).to eq([kept])
       end
+
+      it "drops a delivery of a data stream the organisation receives through the API" do
+        expect_subscriptions(api: ["CERTDC"])
+        delivery = build(:portail_delivery, membership: membership)
+
+        expect(scope(delivery)).to be_empty
+      end
     end
 
     describe "#show?" do
       it "accepts a delivery on CERTDC" do
+        expect_subscriptions
         delivery = build(:portail_delivery, membership: membership)
 
         expect(show?(delivery)).to be(true)
@@ -167,6 +235,13 @@ RSpec.describe Portail::DeliveryPolicy do
 
       it "refuses a delivery in a state the portal does not serve" do
         delivery = build(:portail_delivery, state: "integration_error", membership: membership)
+
+        expect(show?(delivery)).to be(false)
+      end
+
+      it "refuses a delivery of a data stream the organisation receives through the API" do
+        expect_subscriptions(api: ["CERTDC"])
+        delivery = build(:portail_delivery, membership: membership)
 
         expect(show?(delivery)).to be(false)
       end
@@ -184,12 +259,14 @@ RSpec.describe Portail::DeliveryPolicy do
       before { create(:data_stream_access, membership: membership, data_stream_code: "CERTDC") }
 
       it "grants what reading grants" do
+        expect_subscriptions
         delivery = build(:portail_delivery, state: "in_progress", membership: membership)
 
         expect(update?(delivery)).to be(true)
       end
 
       it "still grants a delivery no transition can leave" do
+        expect_subscriptions
         delivery = build(:portail_delivery, state: "done", membership: membership)
 
         expect(update?(delivery)).to be(true)
@@ -213,6 +290,13 @@ RSpec.describe Portail::DeliveryPolicy do
 
         expect(update?(delivery)).to be(false)
       end
+
+      it "refuses a delivery of a data stream the organisation receives through the API" do
+        expect_subscriptions(api: ["CERTDC"])
+        delivery = build(:portail_delivery, state: "in_progress", membership: membership)
+
+        expect(update?(delivery)).to be(false)
+      end
     end
 
     context "for a member without habilitation" do
@@ -229,9 +313,17 @@ RSpec.describe Portail::DeliveryPolicy do
       let(:membership) { create(:membership, :local_administrator) }
 
       it "grants a delivery of the organisation" do
+        expect_subscriptions
         delivery = build(:portail_delivery, state: "in_progress", membership: membership)
 
         expect(update?(delivery)).to be(true)
+      end
+
+      it "refuses a delivery of a data stream the organisation receives through the API" do
+        expect_subscriptions(api: ["CERTDC"])
+        delivery = build(:portail_delivery, state: "in_progress", membership: membership)
+
+        expect(update?(delivery)).to be(false)
       end
     end
 
@@ -241,6 +333,7 @@ RSpec.describe Portail::DeliveryPolicy do
       before { create(:data_stream_access, membership: membership, data_stream_code: "CERTDC") }
 
       it "grants a delivery on CERTDC" do
+        expect_subscriptions
         delivery = build(:portail_delivery, state: "in_progress", membership: membership)
 
         expect(update?(delivery)).to be(true)
@@ -249,6 +342,13 @@ RSpec.describe Portail::DeliveryPolicy do
       it "refuses a delivery on another data stream" do
         delivery = build(:portail_delivery, state: "in_progress", data_stream_code: "AEC",
           membership: membership)
+
+        expect(update?(delivery)).to be(false)
+      end
+
+      it "refuses a delivery of a data stream the organisation receives through the API" do
+        expect_subscriptions(api: ["CERTDC"])
+        delivery = build(:portail_delivery, state: "in_progress", membership: membership)
 
         expect(update?(delivery)).to be(false)
       end

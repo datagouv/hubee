@@ -2,16 +2,18 @@
 
 require "rails_helper"
 
-# Les flux proposés au filtre et le filtre envoyé à l'amont : le périmètre du rattachement quand
-# il en a un, les abonnements de l'organisation en lecture via le portail sinon. Une seule règle
-# pour tous, la seconde branche disparaîtra avec les habilitations des administrateurs locaux.
+# Les flux proposés au filtre et le filtre envoyé à l'amont : ceux que l'organisation reçoit par le
+# portail, bornés par le périmètre du rattachement quand il en a un. La seconde branche disparaîtra
+# avec les habilitations des administrateurs locaux.
 RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
   def criteria(**params) = Portail::Delivery::Criteria.from_params(params)
 
-  # Chaque flux nommé « <code> nommé », pour reconnaître d'où vient un nom.
-  def upstream_subscriptions(*codes)
+  # Chaque flux nommé « <code> nommé », pour reconnaître d'où vient un nom. Reçus par le portail,
+  # sauf ceux nommés dans `api:`.
+  def upstream_subscriptions(*codes, api: [])
     build(:portail_subscription_list, subscriptions: codes.map.with_index do |code, index|
-      build(:portail_subscription, id: "sub-#{index}", data_stream_code: code, data_stream_name: "#{code} nommé")
+      build(:portail_subscription, id: "sub-#{index}", data_stream_code: code, data_stream_name: "#{code} nommé",
+        access_mode: api.include?(code) ? "api" : "portal")
     end)
   end
 
@@ -23,14 +25,47 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
     create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
     create(:data_stream_access, membership: membership, data_stream_code: "AEC")
     expect(Portail::HubAPI::Subscriptions).to receive(:fetch)
-      .with(siret: "22770001000019", insee_code: "77372").and_return(upstream_subscriptions("CERTDC", "DEMO"))
+      .with(siret: "22770001000019", insee_code: "77372")
+      .and_return(upstream_subscriptions("CERTDC", "AEC", "DEMO"))
 
     result = described_class.call(membership: membership, criteria: criteria)
 
     expect(result).to be_success
     expect(result.selectable_data_streams).to eq(%w[AEC CERTDC])
-    expect(result.data_stream_names).to eq({"CERTDC" => "CERTDC nommé", "DEMO" => "DEMO nommé"})
-    expect(result.requested_data_streams).to contain_exactly("CERTDC", "AEC")
+    expect(result.data_stream_names)
+      .to eq({"CERTDC" => "CERTDC nommé", "AEC" => "AEC nommé", "DEMO" => "DEMO nommé"})
+    expect(result.requested_data_streams).to eq(%w[AEC CERTDC])
+  end
+
+  # Le système client de l'organisation traite ce flux : l'habilitation n'y change rien. Nommé
+  # quand même, un nom n'ouvre rien.
+  it "offers a habilitated member only the data streams its organisation receives through the portal, and filters on them" do
+    membership = create(:membership)
+    create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
+    create(:data_stream_access, membership: membership, data_stream_code: "DEMO_API")
+    create(:data_stream_access, membership: membership, data_stream_code: "DEMO_NON_ABONNE")
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch)
+      .and_return(upstream_subscriptions("CERTDC", "DEMO_API", api: ["DEMO_API"]))
+
+    result = described_class.call(membership: membership, criteria: criteria)
+
+    expect(result).to be_success
+    expect(result.selectable_data_streams).to eq(["CERTDC"])
+    expect(result.data_stream_names).to eq({"CERTDC" => "CERTDC nommé", "DEMO_API" => "DEMO_API nommé"})
+    expect(result.requested_data_streams).to eq(["CERTDC"])
+  end
+
+  # Un filtre vide vaudrait toute l'organisation en aval : rien à demander, la page le dit.
+  it "fails as without habilitation when none of the member data streams is received through the portal" do
+    membership = create(:membership)
+    create(:data_stream_access, membership: membership, data_stream_code: "DEMO_API")
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch)
+      .and_return(upstream_subscriptions("DEMO_API", api: ["DEMO_API"]))
+
+    result = described_class.call(membership: membership, criteria: criteria)
+
+    expect(result).to be_failure
+    expect(result.error).to eq(:no_habilitation)
   end
 
   it "offers a local administrator with named habilitations those alone" do
@@ -45,35 +80,48 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
     expect(result.requested_data_streams).to eq(["CERTDC"])
   end
 
-  # Les noms sont une information d'affichage : sans eux, les codes seuls, et la page. La panne
-  # est déjà journalisée par la frontière, qui rend nil.
-  it "leaves a member its data streams unnamed when the subscriptions could not be read" do
+  # Sans les abonnements, le mode d'accès de ses flux est inconnu : rien à proposer, pas de page.
+  # La panne est déjà journalisée par la frontière, qui rend nil.
+  it "fails as unavailable when the subscriptions could not be read for a habilitated member" do
     membership = create(:membership)
     create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
     expect(Portail::HubAPI::Subscriptions).to receive(:fetch).and_return(nil)
 
     result = described_class.call(membership: membership, criteria: criteria)
 
-    expect(result).to be_success
-    expect(result.selectable_data_streams).to eq(["CERTDC"])
-    expect(result.data_stream_names).to eq({})
+    expect(result).to be_failure
+    expect(result.error).to eq(:unavailable)
   end
 
   # Le couple doit venir du rattachement : pris ailleurs, il ouvrirait une autre structure. Ce
   # que la liste projette est éprouvé sur Subscription::List ; ici, qu'elle est lue et servie.
-  # Sans choix, un rattachement non restreint ne filtre rien : l'amont sert toute l'organisation.
-  it "offers an unrestricted local administrator the data streams its organisation reads through the portal" do
+  # Sans choix, un rattachement non restreint filtre aussi, sur ces flux-là : sans filtre, l'amont
+  # servirait toute l'organisation, flux reçus par l'API compris.
+  it "offers an unrestricted local administrator the data streams its organisation reads through the portal, and filters on them" do
     membership = create(:membership, :local_administrator,
       organization_link: create(:organization_link, siret: "22770001000019", insee_code: "77372"))
     expect(Portail::HubAPI::Subscriptions).to receive(:fetch)
-      .with(siret: "22770001000019", insee_code: "77372").and_return(upstream_subscriptions("CERTDC", "AEC"))
+      .with(siret: "22770001000019", insee_code: "77372")
+      .and_return(upstream_subscriptions("CERTDC", "AEC", "DEMO_API", api: ["DEMO_API"]))
 
     result = described_class.call(membership: membership, criteria: criteria)
 
     expect(result).to be_success
     expect(result.selectable_data_streams).to eq(%w[AEC CERTDC])
-    expect(result.data_stream_names).to eq({"CERTDC" => "CERTDC nommé", "AEC" => "AEC nommé"})
-    expect(result.requested_data_streams).to eq([])
+    expect(result.data_stream_names)
+      .to eq({"CERTDC" => "CERTDC nommé", "AEC" => "AEC nommé", "DEMO_API" => "DEMO_API nommé"})
+    expect(result.requested_data_streams).to eq(%w[AEC CERTDC])
+  end
+
+  it "fails as without habilitation when the organisation of an unrestricted local administrator receives nothing through the portal" do
+    membership = create(:membership, :local_administrator)
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch)
+      .and_return(upstream_subscriptions("DEMO_API", api: ["DEMO_API"]))
+
+    result = described_class.call(membership: membership, criteria: criteria)
+
+    expect(result).to be_failure
+    expect(result.error).to eq(:no_habilitation)
   end
 
   # Le flux choisi remplace le périmètre, jamais ne l'élargit.
@@ -81,7 +129,7 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
     membership = create(:membership)
     create(:data_stream_access, membership: membership, data_stream_code: "CERTDC")
     create(:data_stream_access, membership: membership, data_stream_code: "AEC")
-    expect(Portail::HubAPI::Subscriptions).to receive(:fetch).and_return(upstream_subscriptions)
+    expect(Portail::HubAPI::Subscriptions).to receive(:fetch).and_return(upstream_subscriptions("CERTDC", "AEC"))
 
     result = described_class.call(membership: membership, criteria: criteria(flux: ["AEC", "CERTDC"]))
 
@@ -107,8 +155,8 @@ RSpec.describe Portail::Deliveries::Index::ResolveDataStreams do
     ))
   end
 
-  # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut « aucun filtre ».
-  it "fails without calling the upstream when the membership has no access" do
+  # Sans habilitation, la réponse se sait sans l'amont : ni appel, ni panne qui la masquerait.
+  it "fails as without habilitation without reading the subscriptions for a member without habilitation" do
     expect(Portail::HubAPI::Subscriptions).not_to receive(:fetch)
 
     result = described_class.call(membership: create(:membership), criteria: criteria)

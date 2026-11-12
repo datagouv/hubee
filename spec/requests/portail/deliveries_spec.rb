@@ -80,6 +80,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       # Une démarche que les abonnements ne nomment pas reste listée et identifiable par son code.
       it "falls back to the code alone for a data stream the subscriptions do not name" do
         sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
+        stub_organisation_subscriptions({"CERTDC" => "Certificat de décès électronique", "AEC" => nil})
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list(deliveries: [
           build(:portail_delivery_summary, number: "DGS-AEC-0000000000002-01", data_stream_code: "AEC")
         ]))
@@ -91,28 +92,23 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(cells).to eq(["AEC"])
       end
 
-      # Les abonnements sont un second amont pour un membre : leur panne ne coûte que les noms,
-      # jamais la page.
-      it "keeps the list usable, codes alone, when the subscriptions are unavailable" do
+      # Les abonnements disent aussi par où l'organisation reçoit chaque flux : sans eux, un membre
+      # habilité n'a rien à lire, comme l'administrateur local.
+      it "renders the page with an alert, without asking for the deliveries, when the subscriptions are unavailable" do
         sign_in_member
         expect(Portail::HubAPI::Subscriptions).to receive(:list).and_raise(Portail::HubAPI::Unavailable)
-        expect(Portail::HubAPI::Deliveries).to receive(:list)
-          .and_return(upstream_list(deliveries: [build(:portail_delivery_summary)]))
+        expect(Portail::HubAPI::Deliveries).not_to receive(:list)
 
         get "/teledossiers"
 
         expect(response).to have_http_status(:success)
-        page = Capybara.string(response.body)
-        expect(page).to have_link("DGS-CERTDC-0000000000001-01")
-        expect(page).to have_no_text("momentanément indisponible")
-        cells = Nokogiri::HTML(response.body).css("table tbody tr td:nth-child(2)").map { |cell| cell.text.strip }
-        expect(cells).to eq(["CERTDC"])
+        expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
       end
 
       # Le filtre se choisit à la lecture, et son rappel en tag aussi.
       it "names the data streams offered by the filter and recalled as active filters" do
         sign_in_member(data_stream_codes: ["CERTDC", "AEC"])
-        stub_organisation_subscriptions({"CERTDC" => "Certificat de décès électronique"})
+        stub_organisation_subscriptions({"CERTDC" => "Certificat de décès électronique", "AEC" => nil})
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
 
         get "/teledossiers", params: {flux: "CERTDC"}
@@ -130,7 +126,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
       # le code remplaçant un nom manquant.
       it "orders the data streams offered by the filter by name" do
         sign_in_member(data_stream_codes: ["A_FLUX", "M_FLUX", "Z_FLUX"])
-        stub_organisation_subscriptions({"A_FLUX" => "Zèbre", "Z_FLUX" => "Abeille"})
+        stub_organisation_subscriptions({"A_FLUX" => "Zèbre", "M_FLUX" => nil, "Z_FLUX" => "Abeille"})
         expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list)
 
         get "/teledossiers"
@@ -415,18 +411,76 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(response).to have_http_status(:success)
       end
 
-      it "leaves a local administrator without habilitation unfiltered" do
-        sign_in_local_administrator
-        # Ses flux proposés viennent de l'amont : bouchonnés, ils ne sont pas le sujet ici.
-        expect(Portail::HubAPI::Subscriptions).to receive(:list).and_return(build(:portail_subscription_list))
-        expect(Portail::HubAPI::Deliveries).to receive(:list)
-          # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
-          .with(hash_including(data_stream_codes: []))
-          .and_return(upstream_list)
+      # Le système client de l'organisation traite un flux reçu par l'API : ni le rôle ni
+      # l'habilitation n'y changent rien. L'amont n'est interrogé que sur les flux reçus par le
+      # portail, et ce qu'il servirait d'autre ne s'affiche pas. Sans filtre, il servirait toute
+      # l'organisation. Aucune combinaison ne se déduit d'une autre.
+      {
+        "a member habilitated on both data streams" => {role: :member, codes: ["CERTDC", "DEMO_API"], listed: true},
+        "a member without any habilitation" => {role: :member, codes: [], listed: false},
+        "a local administrator without habilitation" => {role: :local_administrator, codes: [], listed: true},
+        "a local administrator habilitated on both data streams" => {role: :local_administrator, codes: ["CERTDC", "DEMO_API"], listed: true}
+      }.each do |agent, setup|
+        it "#{setup[:listed] ? "lists the portal data stream alone" : "lists nothing"} to #{agent}, the organisation receiving the other through the API" do
+          if setup[:role] == :member
+            sign_in_member(data_stream_codes: setup[:codes])
+          else
+            sign_in_local_administrator(data_stream_codes: setup[:codes])
+          end
+          if setup[:listed]
+            expect_organisation_subscriptions("CERTDC" => "portal", "DEMO_API" => "api")
+            expect(Portail::HubAPI::Deliveries).to receive(:list)
+              # Le reste du hash est éprouvé dans le spec de l'étape FetchList.
+              .with(hash_including(data_stream_codes: ["CERTDC"]))
+              .and_return(upstream_list(deliveries: [
+                build(:portail_delivery_summary),
+                build(:portail_delivery_summary, id: "par-api", number: "DGS-DEMO-0000000000003-01",
+                  data_stream_code: "DEMO_API")
+              ]))
+          else
+            expect(Portail::HubAPI::Deliveries).not_to receive(:list)
+          end
+
+          get "/teledossiers"
+
+          expect(response).to have_http_status(:success)
+          page = Capybara.string(response.body)
+          if setup[:listed]
+            expect(page).to have_link("DGS-CERTDC-0000000000001-01")
+          else
+            expect(page).to have_text("Vous n'êtes habilité sur aucun flux consultable dans le portail")
+          end
+          expect(page).to have_no_text("DGS-DEMO-0000000000003-01")
+        end
+      end
+
+      # Le filtre puis chaque ligne lisent le mode d'accès : le cache de la frontière sert la même
+      # lecture, une seule part à l'amont.
+      it "reads the organisation subscriptions once from the upstream for the whole page" do
+        sign_in_member
+        expect(Portail::HubAPI::Subscriptions).to receive(:list).once.and_return(build(:portail_subscription_list))
+        expect(Portail::HubAPI::Deliveries).to receive(:list).and_return(upstream_list(deliveries: [
+          build(:portail_delivery_summary),
+          build(:portail_delivery_summary, id: "0a11c2f4-0000-4000-8000-000000000045",
+            number: "DGS-CERTDC-0000000000005-01")
+        ]))
 
         get "/teledossiers"
 
         expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body)).to have_link("DGS-CERTDC-0000000000005-01")
+      end
+
+      it "tells a member habilitated on data streams received through the API alone that nothing can be shown, without asking the upstream" do
+        sign_in_member(data_stream_codes: ["DEMO_API"])
+        expect_organisation_subscriptions("DEMO_API" => "api")
+        expect(Portail::HubAPI::Deliveries).not_to receive(:list)
+
+        get "/teledossiers"
+
+        expect(response).to have_http_status(:success)
+        expect(Capybara.string(response.body))
+          .to have_text("Vous n'êtes habilité sur aucun flux consultable dans le portail")
       end
 
       # L'amont est un tiers : s'il ignore le filtre, la ligne hors habilitation ne s'affiche
@@ -583,6 +637,7 @@ RSpec.describe "Portail::Deliveries", type: :request do
 
       it "filters on several data streams at once" do
         sign_in_member(data_stream_codes: ["CERTDC", "AEC", "DEMO"])
+        stub_organisation_subscriptions({"CERTDC" => nil, "AEC" => nil, "DEMO" => nil})
         expect(Portail::HubAPI::Deliveries).to receive(:list)
           # Le hash complet est éprouvé dans le spec de l'étape FetchList.
           .with(hash_including(data_stream_codes: ["AEC", "DEMO"]))
@@ -1298,6 +1353,32 @@ RSpec.describe "Portail::Deliveries", type: :request do
       expect(Capybara.string(response.body)).to have_link("Retour à l'accueil", href: root_path)
     end
 
+    # Le contrôleur puis la vue interrogent la policy : le cache de la frontière sert la même
+    # lecture, une seule part à l'amont.
+    it "reads the organisation subscriptions once from the upstream, however often the page asks" do
+      sign_in_member
+      expect(Portail::HubAPI::Subscriptions).to receive(:list).once.and_return(build(:portail_subscription_list))
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:success)
+      expect(Capybara.string(response.body)).to have_text("DGS-CERTDC-0000000000001-01")
+    end
+
+    # Le mode d'accès du flux inconnu, le télédossier ne s'ouvre pas : une panne, pas un refus.
+    it "renders a service unavailable page when the organisation subscriptions could not be read" do
+      sign_in_member
+      expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(build(:portail_delivery))
+      expect(Portail::HubAPI::Subscriptions).to receive(:fetch).and_return(nil)
+
+      get "/teledossiers/#{delivery_id}"
+
+      expect(response).to have_http_status(:service_unavailable)
+      expect(Capybara.string(response.body)).to have_text("momentanément indisponible")
+      expect(Capybara.string(response.body)).to have_no_text("DGS-CERTDC-0000000000001-01")
+    end
+
     # L'identifiant vient de l'URL et finit au journal, en champ : le formateur logfmt cite les
     # valeurs, un retour à la ligne n'y forge aucune ligne.
     it "logs the unknown identifier as a field" do
@@ -1895,6 +1976,36 @@ RSpec.describe "Portail::Deliveries", type: :request do
         expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
 
         expect_a_not_found_page
+      end
+
+      # Le trou du lien direct : la liste ne propose pas ce flux, mais un identifiant connu ouvrait
+      # son télédossier. Le système client de l'organisation le traite, pas le portail : refusé à
+      # tous, comme un télédossier hors habilitation. Aucune combinaison ne se déduit d'une autre.
+      # `reads_subscriptions` : les abonnements ne sont lus que si les autres règles laissent passer,
+      # le membre sans habilitation est refusé avant.
+      {
+        "a member habilitated on the data stream" => {role: :member, codes: ["CERTDC"], reads_subscriptions: true},
+        "a member without any habilitation" => {role: :member, codes: [], reads_subscriptions: false},
+        "a local administrator without habilitation" => {role: :local_administrator, codes: [], reads_subscriptions: true},
+        "a local administrator habilitated on the data stream" => {role: :local_administrator, codes: ["CERTDC"], reads_subscriptions: true}
+      }.each do |agent_label, setup|
+        it "refuses #{agent_label} a delivery of a data stream the organisation receives through the API, logged as out of perimeter" do
+          agent = if setup[:role] == :member
+            sign_in_member(data_stream_codes: setup[:codes])
+          else
+            sign_in_local_administrator(data_stream_codes: setup[:codes])
+          end
+          expect_organisation_subscriptions("CERTDC" => "api") if setup[:reads_subscriptions]
+          expect(Portail::HubAPI::Deliveries).to receive(:find).and_return(delivery_on("CERTDC"))
+
+          events = capture_semantic_logger_events { expect_a_not_found_page }
+
+          expect(events).to include(be_a_semantic_logger_event(
+            level: :info, message: "Décision d'accès",
+            payload_includes: {event: "Portail::Access::Refusal", reason: :out_of_perimeter,
+                               path: "/teledossiers/#{delivery_id}", agent_id: agent.id}
+          ))
+        end
       end
 
       # La requête amont porte déjà l'organisation ; ceci vérifie que l'amont l'a respectée.

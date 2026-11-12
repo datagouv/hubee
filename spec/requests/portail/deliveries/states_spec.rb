@@ -455,6 +455,15 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
         expect_a_not_found_page
       end
 
+      # Ce qui ne se lit pas ne s'écrit pas : le système client de l'organisation traite ce flux.
+      it "refuses a delivery of a data stream the organisation receives through the API" do
+        sign_in_member
+        expect_organisation_subscriptions("CERTDC" => "api")
+        serve
+
+        expect_a_not_found_page
+      end
+
       it "refuses a member without any habilitation" do
         sign_in_member(data_stream_codes: [])
         serve
@@ -541,6 +550,15 @@ RSpec.describe "Portail::Deliveries::States", type: :request do
 
       it "refuses a member outside their habilitations" do
         sign_in_member(data_stream_codes: ["AUTRE"])
+        serve
+
+        expect_a_not_found_page
+      end
+
+      # Ce qui ne se lit pas ne s'écrit pas : le système client de l'organisation traite ce flux.
+      it "refuses a delivery of a data stream the organisation receives through the API" do
+        sign_in_member
+        expect_organisation_subscriptions("CERTDC" => "api")
         serve
 
         expect_a_not_found_page

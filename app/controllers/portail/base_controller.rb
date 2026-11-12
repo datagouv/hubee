@@ -46,6 +46,9 @@ module Portail
     # l'existence de ce que l'agent n'a pas à voir. Seul le journal les sépare.
     rescue_from Pundit::NotAuthorizedError, with: :refuse_access
 
+    # Une règle d'accès qui lit l'amont et n'a pas pu le lire : ni accordé, ni refusé, une panne.
+    rescue_from HubAPI::Unavailable, with: :unavailable
+
     private
 
     # Un refus d'accès, pour le CSIRT : même canal que l'authentification, qui y joint le

@@ -9,14 +9,20 @@ module Portail
         include Interactor
 
         def call
-          # Un périmètre vide ne part jamais en aval : une liste de codes vide y vaut
-          # « aucun filtre », donc toute l'organisation.
+          # Deux refus distincts sous le même motif. Celui-ci se sait sans l'amont : ni appel, ni
+          # panne qui le masquerait. Le second, plus bas, dépend des abonnements.
           context.fail!(error: :no_habilitation) if Access::DataStreamPerimeter.none?(membership)
 
+          # Sans les abonnements, le mode d'accès des flux est inconnu : rien à proposer, pas de page.
           subscriptions = read_subscriptions
-          # Une information d'affichage : sans les abonnements, les codes seuls, la page est servie.
-          context.data_stream_names = subscriptions ? subscriptions.data_stream_names : {}
+          context.fail!(error: :unavailable) if subscriptions.nil?
+
+          context.data_stream_names = subscriptions.data_stream_names
           context.selectable_data_streams = by_name(selectable_data_streams(subscriptions))
+          # Habilité sur les seuls flux reçus par l'API, ou structure qui n'en reçoit aucun par le
+          # portail : rien à demander.
+          context.fail!(error: :no_habilitation) if context.selectable_data_streams.empty?
+
           context.requested_data_streams = requested_data_streams
         end
 
@@ -24,22 +30,22 @@ module Portail
 
         def membership = context.membership
 
-        # Les abonnements de l'organisation, nil quand l'amont ne répond pas : chaque usage en
-        # décide. Le couple vient du rattachement : pris ailleurs, il ouvrirait une autre structure.
+        # Les abonnements de l'organisation, nil quand l'amont ne répond pas. Le couple vient du
+        # rattachement : pris ailleurs, il ouvrirait une autre structure.
         def read_subscriptions
           link = membership.organization_link
           HubAPI::Subscriptions.fetch(siret: link.siret, insee_code: link.insee_code)
         end
 
-        # Les habilitations du rattachement, ou les abonnements de l'organisation quand rien ne le
-        # restreint. Transitoire : le temps que les administrateurs locaux reçoivent leurs
-        # habilitations par flux comme les agents, la seconde branche disparaîtra. Sans les
-        # abonnements, rien à proposer : pas de page.
+        # Les flux que l'organisation reçoit par le portail, bornés par les habilitations du
+        # rattachement quand il en a. Un flux reçu par l'API est traité par le système client de
+        # l'organisation, pas ici. Transitoire : le temps que les administrateurs locaux reçoivent
+        # leurs habilitations par flux comme les agents, la branche sans borne disparaîtra.
         def selectable_data_streams(subscriptions)
-          return membership.data_stream_codes unless Access::DataStreamPerimeter.unrestricted?(membership)
+          portal = subscriptions.portal_data_stream_codes
+          return portal if Access::DataStreamPerimeter.unrestricted?(membership)
 
-          context.fail!(error: :unavailable) if subscriptions.nil?
-          subscriptions.portal_data_stream_codes
+          portal.intersection(membership.data_stream_codes)
         end
 
         # Le filtre n'affiche que les noms : rangés par code, ils se liraient dans le désordre. Sans
@@ -48,10 +54,10 @@ module Portail
           codes.sort_by { |code| I18n.transliterate(context.data_stream_names[code] || code).downcase }
         end
 
-        # Les flux choisis, s'ils sont tous sélectionnables ; sans choix, le périmètre lui-même.
+        # Les flux choisis, s'ils sont tous sélectionnables ; sans choix, tous les sélectionnables.
         def requested_data_streams
           chosen = context.criteria.data_stream_codes
-          return Access::DataStreamPerimeter.filter(membership) if chosen.empty?
+          return context.selectable_data_streams if chosen.empty?
 
           unknown = chosen - context.selectable_data_streams
           return chosen if unknown.empty?

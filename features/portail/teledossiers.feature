@@ -8,6 +8,7 @@ Fonctionnalité: Les télédossiers de l'organisation
     Étant donné un agent rattaché à une organisation
     Et il est habilité sur le flux "CERTDC"
     Et ProConnect est prêt à l'authentifier
+    Et sa structure reçoit le flux "CERTDC" par le portail
     Et l'API amont sert un télédossier pour son organisation
 
   Scénario: L'agent connecté arrive sur les télédossiers de sa structure
@@ -116,6 +117,25 @@ Fonctionnalité: Les télédossiers de l'organisation
       | membre sans habilitation                             |
       | administrateur local habilité sur le seul flux "AEC" |
 
+  # Le système client de la structure traite un flux reçu par l'API : ses télédossiers ne s'ouvrent
+  # dans le portail par aucun chemin, ni la liste ni le lien direct, quels que soient le rôle et
+  # les habilitations.
+  Plan du scénario: Le télédossier d'un flux reçu par l'API reste fermé : <rattachement>
+    Étant donné sa structure reçoit le flux "DEMO_API" par l'API
+    Et l'API amont sert aussi un télédossier "DGS-DEMO-0000000000006-01" sur le flux "DEMO_API"
+    Et il est <rattachement>
+    Et il s'est connecté
+    Alors il ne voit pas le télédossier "DGS-DEMO-0000000000006-01" dans la liste
+    Quand il ouvre directement le télédossier "DGS-DEMO-0000000000006-01"
+    Alors il obtient une page introuvable, sans que le dossier lui soit montré
+
+    Exemples:
+      | rattachement                                              |
+      | membre habilité sur le seul flux "DEMO_API"               |
+      | membre sans habilitation                                  |
+      | administrateur local sans habilitation                    |
+      | administrateur local habilité sur le seul flux "DEMO_API" |
+
   Scénario: L'agent accuse réception d'un nouveau télédossier depuis son détail
     Étant donné il s'est connecté
     Quand il ouvre le télédossier "DGS-CERTDC-0000000000001-01"
@@ -216,6 +236,7 @@ Fonctionnalité: Les télédossiers de l'organisation
   # Le filtre et le tri sont portés par l'URL : la page se recharge et se partage telle quelle.
   Scénario: L'agent restreint la liste à un flux
     Étant donné il est habilité sur le flux "AEC"
+    Et sa structure reçoit le flux "AEC" par le portail
     Et l'API amont sert aussi un télédossier "DGS-AEC-0000000000002-01" sur le flux "AEC"
     Et il s'est connecté
     Quand il filtre sur le flux "AEC"
@@ -224,6 +245,8 @@ Fonctionnalité: Les télédossiers de l'organisation
   Scénario: L'agent restreint la liste à plusieurs flux à la fois
     Étant donné il est habilité sur le flux "AEC"
     Et il est habilité sur le flux "DEMO"
+    Et sa structure reçoit le flux "AEC" par le portail
+    Et sa structure reçoit le flux "DEMO" par le portail
     Et l'API amont sert aussi un télédossier "DGS-AEC-0000000000002-01" sur le flux "AEC"
     Et l'API amont sert aussi un télédossier "DGS-DEMO-0000000000004-01" sur le flux "DEMO"
     Et il s'est connecté
