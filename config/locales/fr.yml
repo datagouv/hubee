@@ -93,6 +93,8 @@ fr:
         deliveries: Télédossiers
         subscriptions: Abonnements
         memberships: Agents
+        help: Aide
+        help_title: Aide - nouvelle fenêtre
         signed_in_as: "Connecté en tant que %{name} (%{email})"
         sign_out: Se déconnecter
       # Objets sans accent : certains clients mail les abîment, et ils servent à trier la boîte.
@@ -121,6 +123,7 @@ fr:
         legal: Mentions légales
         personal_data: Données personnelles
         cookies: Gestion des cookies
+        help: Aide
         license_link: licence etalab-2.0
         license_link_title: Licence etalab - nouvelle fenêtre
         license_html: Sauf mention explicite de propriété intellectuelle détenue par des tiers, les contenus de ce site sont proposés sous %{link}.
