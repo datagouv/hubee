@@ -24,6 +24,7 @@ module Portail
 
         subscription = authorize(found.detail.subscription, :consult_credentials?)
         result = CredentialConsultations::Create.call(membership: current_membership, subscription:, request_id: request.request_id)
+        return not_found if result.error == :not_found
         render :create, status: FAILURE_STATUSES.fetch(result.error, :ok),
           locals: {credentials: result.credentials, failure: result.error}
       end

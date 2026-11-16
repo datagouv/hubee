@@ -24,32 +24,29 @@ RSpec.describe Portail::Subscriptions::CredentialConsultations::Create::FetchCre
     expect(result.credentials).to eq(credentials)
   end
 
-  # L'abonnement vient d'être lu : un introuvable sur la route des identifiants est une anomalie
-  # (route absente d'un environnement, abonnement supprimé entre-temps), pas une réponse à l'agent.
-  it "fails as unavailable, logged as a warning, when the upstream no longer finds the subscription" do
+  # Supprimé entre la lecture du détail et le clic : introuvable, comme sur le détail. Une route
+  # absente d'un environnement ne passe pas par ici : hub-api la refuse en 403, signalé comme une panne.
+  it "fails as not found, logged, when the upstream no longer finds the subscription" do
     expect(Portail::HubAPI::Subscriptions).to receive(:credentials).and_raise(Portail::HubAPI::NotFound)
 
     result = nil
     events = capture_semantic_logger_events { result = call }
 
     expect(result).to be_failure
-    expect(result.error).to eq(:unavailable)
+    expect(result.error).to eq(:not_found)
     expect(events).to include(be_a_semantic_logger_event(
-      level: :warn, message: "Identifiants d'abonnement introuvables en amont",
+      level: :info, message: "Identifiants d'abonnement introuvables en amont",
       payload_includes: {subscription_id: subscription.id}
     ))
   end
 
-  it "fails as unavailable, logged as a warning, on an id the upstream refuses" do
+  it "fails as not found on an id the upstream refuses" do
     expect(Portail::HubAPI::Subscriptions).to receive(:credentials).and_raise(Portail::HubAPI::InvalidRequest)
 
-    result = nil
-    events = capture_semantic_logger_events { result = call }
+    result = call
 
-    expect(result.error).to eq(:unavailable)
-    expect(events).to include(be_a_semantic_logger_event(
-      level: :warn, message: "Identifiants d'abonnement introuvables en amont"
-    ))
+    expect(result).to be_failure
+    expect(result.error).to eq(:not_found)
   end
 
   # Un cas pour l'équipe HubEE : journalisé, pour qu'elle retrouve l'abonnement concerné.

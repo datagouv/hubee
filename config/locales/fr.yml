@@ -399,7 +399,7 @@ fr:
         client_id: Identifiant client (client_id)
         client_secret: Secret client (client_secret)
         refused_html: Les identifiants de cet abonnement ne peuvent pas être fournis automatiquement. Écrivez à %{email} en précisant la démarche concernée.
-        unavailable: Les identifiants ne peuvent pas être lus pour le moment. Réessayez dans quelques instants.
+        unavailable_html: "Les identifiants ne peuvent pas être lus pour le moment. Réessayez plus tard ; si le problème persiste, écrivez à %{email}."
       # Un libellé court, la précision dessous. L'envoi est fixé en UTC : pas d'heure précise, qui
       # changerait avec l'heure d'été.
       email_frequencies:
