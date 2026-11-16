@@ -157,19 +157,21 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     expect(page).to have_css("#subscription-credentials h2[tabindex='-1'][autofocus]")
   end
 
-  # Le détail vient d'être servi : la route des identifiants manquante ne fait pas disparaître la page.
-  it "says the credentials cannot be read for now when the upstream no longer finds them" do
+  # Supprimé entre la lecture du détail et le clic : la 404 du portail, comme sur le détail.
+  it "answers not found when the subscription disappears before its credentials are read" do
     sign_in_local_administrator
     serve_detail
     expect(Portail::HubAPI::Subscriptions).to receive(:credentials).and_raise(Portail::HubAPI::NotFound)
 
     expect { reveal }.not_to change(Event, :count)
 
-    expect(response).to have_http_status(:service_unavailable)
-    expect(page).to have_text("Les identifiants ne peuvent pas être lus pour le moment.")
+    expect(response).to have_http_status(:not_found)
+    expect(Capybara.string(response.body)).to have_css("h1", text: "Page introuvable")
   end
 
-  it "says the credentials cannot be read for now when the upstream is failing" do
+  # Une panne, ou une route que hub-api refuse (403 tant qu'elle n'y est pas déployée) : ni passagère
+  # à coup sûr, ni du ressort de l'agent. On ne promet pas un réessai immédiat, on oriente.
+  it "says the credentials cannot be read for now, pointing to the support, when the upstream is failing" do
     sign_in_local_administrator
     serve_detail
     expect(Portail::HubAPI::Subscriptions).to receive(:credentials).and_raise(Portail::HubAPI::Unavailable)
@@ -177,7 +179,9 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     expect { reveal }.not_to change(Event, :count)
 
     expect(response).to have_http_status(:service_unavailable)
-    expect(page).to have_text("Les identifiants ne peuvent pas être lus pour le moment.")
+    expect(page).to have_text("Les identifiants ne peuvent pas être lus pour le moment. Réessayez plus tard ; " \
+      "si le problème persiste, écrivez à support@hubee.numerique.gouv.fr.")
+    expect(page).to have_link("support@hubee.numerique.gouv.fr", href: "mailto:support@hubee.numerique.gouv.fr")
   end
 
   # Le bouton passe par Turbo : une autre requête ne crée pas de consultation.

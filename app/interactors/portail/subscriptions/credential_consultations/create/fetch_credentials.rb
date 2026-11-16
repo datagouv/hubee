@@ -15,10 +15,10 @@ module Portail
               id: context.subscription.id, siret: link.siret, insee_code: link.insee_code
             )
           rescue HubAPI::NotFound, HubAPI::InvalidRequest
-            # L'abonnement vient d'être lu : route absente d'un environnement, ou abonnement supprimé
-            # entre-temps. Une anomalie pour l'exploitation, une indisponibilité pour l'agent.
-            Rails.logger.warn("Identifiants d'abonnement introuvables en amont", subscription_id: context.subscription.id)
-            context.fail!(error: :unavailable)
+            # Supprimé entre la lecture du détail et le clic : introuvable, comme sur le détail. Une
+            # route absente d'un environnement n'arrive pas ici : hub-api la refuse en 403, une panne.
+            Rails.logger.info("Identifiants d'abonnement introuvables en amont", subscription_id: context.subscription.id)
+            context.fail!(error: :not_found)
           rescue HubAPI::CredentialsRefused
             # Un cas pour l'équipe HubEE : l'identifiant suffit à retrouver l'abonnement.
             Rails.logger.info("Identifiants d'abonnement refusés en amont", subscription_id: context.subscription.id)
