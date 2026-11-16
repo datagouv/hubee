@@ -116,4 +116,62 @@ RSpec.describe Portail::SubscriptionPolicy do
       end
     end
   end
+
+  # Le secret d'un abonnement API : la règle du détail, et le mode API, seul à avoir un client OAuth.
+  # La matrice rôle × habilitation entière, aucune case ne se déduisant d'une autre.
+  describe "#consult_credentials?" do
+    def consult_credentials?(subscription) = described_class.new(membership, subscription).consult_credentials?
+
+    def api_subscription(**) = build(:portail_subscription, membership: membership, access_mode: "api", **)
+
+    context "for a member habilitated on CERTDC" do
+      let(:membership) { create(:membership) }
+
+      before { create(:data_stream_access, membership: membership, data_stream_code: "CERTDC") }
+
+      it "refuses the credentials of an API subscription of its own organisation" do
+        expect(consult_credentials?(api_subscription)).to be(false)
+      end
+    end
+
+    context "for a member without habilitation" do
+      let(:membership) { create(:membership) }
+
+      it "refuses the credentials of an API subscription of its own organisation" do
+        expect(consult_credentials?(api_subscription)).to be(false)
+      end
+    end
+
+    context "for a local administrator habilitated on CERTDC" do
+      let(:membership) { create(:membership, :local_administrator) }
+
+      before { create(:data_stream_access, membership: membership, data_stream_code: "CERTDC") }
+
+      it "allows the credentials of an API subscription of its own organisation" do
+        expect(consult_credentials?(api_subscription)).to be(true)
+      end
+    end
+
+    context "for a local administrator without habilitation" do
+      let(:membership) { create(:membership, :local_administrator) }
+
+      it "allows the credentials of an API subscription of its own organisation" do
+        expect(consult_credentials?(api_subscription)).to be(true)
+      end
+
+      it "refuses a portal subscription, which has no OAuth client" do
+        expect(consult_credentials?(api_subscription(access_mode: "portal"))).to be(false)
+      end
+
+      it "refuses a subscription whose access mode is unset" do
+        expect(consult_credentials?(api_subscription(access_mode: nil))).to be(false)
+      end
+
+      it "refuses an API subscription the upstream served for another organisation" do
+        subscription = build(:portail_subscription, :of_another_organisation, access_mode: "api")
+
+        expect(consult_credentials?(subscription)).to be(false)
+      end
+    end
+  end
 end
