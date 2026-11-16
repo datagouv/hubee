@@ -199,6 +199,80 @@ RSpec.describe Portail::HubAPI::Subscriptions do
     end
   end
 
+  describe ".credentials" do
+    let(:id) { "550e8400-e29b-41d4-a716-446655440000" }
+    let(:client) { HubApiV1::Testing::FakeClient.new }
+    # Tiré au hasard : aucune chaîne qui ressemble à un secret dans le dépôt (GitGuardian), et une
+    # spec de non-fuite qui ne peut pas passer sur une valeur connue.
+    let(:secret_value) { SecureRandom.hex(16) }
+
+    def add_api_subscription(**)
+      client.add_subscription(build_v2_subscription_detail(subscription: build_v2_subscription(access_mode: :api, **)))
+    end
+
+    it "translates the upstream credentials, the secret still wrapped" do
+      add_api_subscription
+      client.add_subscription_credentials(subscription_id: id, credentials: build_v2_subscription_credentials(
+        client_id: "SI-22770001000019-77372-CERTDC", client_secret: HubApiV1::Secret.new(secret_value)
+      ))
+
+      credentials = described_class.credentials(id: id, siret: siret, insee_code: insee_code, client: client)
+
+      expect(credentials).to be_a(Portail::Subscription::Credentials)
+      expect(credentials.client_id).to eq("SI-22770001000019-77372-CERTDC")
+      expect(credentials.client_secret).to eq(HubApiV1::Secret.new(secret_value))
+    end
+
+    it "keeps the secret out of the log" do
+      add_api_subscription
+      client.add_subscription_credentials(subscription_id: id,
+        credentials: build_v2_subscription_credentials(client_secret: HubApiV1::Secret.new(secret_value)))
+
+      events = capture_semantic_logger_events do
+        described_class.credentials(id: id, siret: siret, insee_code: insee_code, client: client)
+      end
+
+      expect(events.map { |event| [event.message, event.payload].inspect }.join).not_to include(secret_value)
+    end
+
+    # Client absent ou ambigu, abonnement inactif : un cas support durable, pas un incident.
+    it "raises CredentialsRefused, not reported, when the upstream refuses to serve them" do
+      add_api_subscription
+      expect(Rails.error).not_to receive(:report)
+
+      expect {
+        described_class.credentials(id: id, siret: siret, insee_code: insee_code, client: client)
+      }.to raise_error(Portail::HubAPI::CredentialsRefused)
+    end
+
+    it "raises NotFound, not reported, on a subscription of another organisation" do
+      add_api_subscription(organization: build_v2_recipient(siret: siret, code_insee: "75056"))
+      expect(Rails.error).not_to receive(:report)
+
+      expect {
+        described_class.credentials(id: id, siret: siret, insee_code: insee_code, client: client)
+      }.to raise_error(Portail::HubAPI::NotFound)
+    end
+
+    it "raises InvalidRequest, not reported, on a malformed id" do
+      expect(Rails.error).not_to receive(:report)
+
+      expect {
+        described_class.credentials(id: "pas-un-uuid", siret: siret, insee_code: insee_code, client: client)
+      }.to raise_error(Portail::HubAPI::InvalidRequest)
+    end
+
+    it "raises Unavailable, reported, on a transport failure" do
+      use_hub_api_fake_client
+      expect(HubApiV1::V2::Subscription).to receive(:credentials).and_raise(HubApiV1::Client::ServerError)
+      expect(Rails.error).to receive(:report).with(instance_of(HubApiV1::Client::ServerError), handled: true)
+
+      expect {
+        described_class.credentials(id: id, siret: siret, insee_code: insee_code)
+      }.to raise_error(Portail::HubAPI::Unavailable)
+    end
+  end
+
   describe ".fetch" do
     # Le cache de test est un `null_store` : sans vrai magasin, « lu une seule fois » passerait tout
     # seul et ne prouverait rien. Le magasin sérialise ce qu'il garde, comme celui de production.
