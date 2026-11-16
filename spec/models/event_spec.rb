@@ -70,6 +70,7 @@ RSpec.describe Event, type: :model do
       expect(build(:event, event_type: "agent.created")).to be_valid
       expect(build(:event, event_type: "agent.invited")).to be_valid
       expect(build(:event, event_type: "membership.created")).to be_valid
+      expect(build(:event, event_type: "subscription_credentials.consulted")).to be_valid
       expect(build(:event, event_type: "agent.deleted")).not_to be_valid
     end
 
