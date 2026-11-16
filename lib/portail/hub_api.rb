@@ -30,6 +30,10 @@ module Portail
     # à l'agent lui épargne d'insister.
     class EventLimitReached < Error; end
 
+    # L'amont refuse de servir les identifiants d'un abonnement : client OAuth absent ou ambigu,
+    # abonnement inactif. Durable, un cas pour l'équipe HubEE : aucun réessai n'y changera rien.
+    class CredentialsRefused < Error; end
+
     # Trois refus d'une pièce : rien n'est publié, l'état ne bouge pas, l'agent change de fichier.
     class AttachmentContentTypeNotAccepted < Error; end
 
@@ -49,6 +53,7 @@ module Portail
         when HubApiV1::V2::AwaitingAttachmentsNotAllowedError
           AwaitingAttachmentsNotAllowed.new(error.message)
         when HubApiV1::V2::DeliveryEventLimitReachedError then EventLimitReached.new(error.message)
+        when HubApiV1::V2::SubscriptionCredentialsRefusedError then CredentialsRefused.new(error.message)
         when HubApiV1::V2::AttachmentContentTypeNotAcceptedError
           AttachmentContentTypeNotAccepted.new(error.message)
         when HubApiV1::V2::AttachmentInfectedError then AttachmentInfected.new(error.message)
