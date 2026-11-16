@@ -6,6 +6,8 @@
     <title><%= content_for(:title) || t("app_name") %></title>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%# Les balises propres à une page, comme le cache Turbo désactivé du détail d'un abonnement. %>
+    <%= yield :head %>
 
     <%# La favicon HubEE (reprise du portail V1). Servie depuis /favicon.ico, l'adresse
         que les navigateurs sondent d'office — plus de RoutingError dans les journaux. %>
@@ -17,6 +19,8 @@
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%# Bouton officiel ProConnect (CSS auto-suffisant hébergé localement) %>
     <%= stylesheet_link_tag "proconnect_button", "data-turbo-track": "reload" %>
+    <%# ⚠️ Turbo 8 précharge tout lien au survol : un GET qui écrit (trace d'audit, appel amont avec
+        effet) doit passer par un formulaire ou porter `data-turbo="false"`. %>
     <%= javascript_importmap_tags %>
   </head>
 

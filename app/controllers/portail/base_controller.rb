@@ -67,11 +67,13 @@ module Portail
       refuse_access unless current_membership.local_administrator?
     end
 
-    def not_found = render("portail/errors/show", locals: {page: :not_found}, status: :not_found)
+    # En HTML quel que soit le format demandé : une requête Turbo Stream refusée reçoit la page
+    # d'erreur, que Turbo affiche à la place de la page.
+    def not_found = render("portail/errors/show", locals: {page: :not_found}, status: :not_found, formats: [:html])
 
     # Un service tiers manque et la page n'a rien à montrer sans lui : une page d'erreur, pas une
     # redirection dont le message s'évapore.
-    def unavailable = render("portail/errors/service_unavailable", status: :service_unavailable)
+    def unavailable = render("portail/errors/service_unavailable", status: :service_unavailable, formats: [:html])
 
     # Le sujet des policies est le rattachement, pas l'agent : le rôle et les habilitations
     # vivent sur lui, et un même agent peut être membre ici et administrateur local ailleurs.

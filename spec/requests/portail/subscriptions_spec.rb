@@ -401,6 +401,65 @@ RSpec.describe "Portail::Subscriptions", type: :request do
       expect(Capybara.string(response.body)).to have_css("h1", text: "Page introuvable")
     end
 
+    # Le bloc ne fait que proposer : le secret n'est lu qu'au clic, par un POST.
+    context "credentials" do
+      def page = Capybara.string(response.body)
+
+      def section = page.find(:xpath, %(//section[h2[normalize-space(.)="Identifiants de connexion à l'API"]]))
+
+      def show_detail(access_mode:, data_stream_codes: ["CERTDC"])
+        sign_in_local_administrator(data_stream_codes:)
+        expect(Portail::HubAPI::Subscriptions).to receive(:find)
+          .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode:)))
+        expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+
+        get path
+      end
+
+      it "offers to reveal the credentials of an API subscription, without reading them" do
+        show_detail(access_mode: "api")
+
+        expect(response).to have_http_status(:success)
+        expect(section).to have_css(
+          "form[method='post'][action='/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations'] " \
+          "button", text: "Afficher les identifiants"
+        )
+        expect(section).to have_text("Chaque affichage est enregistré à votre nom.")
+      end
+
+      # Le rôle seul ouvre les identifiants : l'habilitation n'y change rien. Un membre n'atteint pas
+      # le détail (voir « reading perimeter »).
+      it "offers the same to a local administrator without habilitation" do
+        show_detail(access_mode: "api", data_stream_codes: [])
+
+        expect(response).to have_http_status(:success)
+        expect(section).to have_button("Afficher les identifiants")
+      end
+
+      it "explains why a portal subscription has no credentials" do
+        show_detail(access_mode: "portal")
+
+        expect(response).to have_http_status(:success)
+        expect(section).to have_text("Cet abonnement passe par le portail : il n'a pas d'identifiants de connexion à l'API.")
+        expect(section).not_to have_button
+      end
+
+      # Ni API ni portail affirmé : rien à proposer, rien à expliquer.
+      it "leaves the block out when the access mode is unset" do
+        show_detail(access_mode: nil)
+
+        expect(response).to have_http_status(:success)
+        expect(page).not_to have_text("Identifiants de connexion à l'API")
+      end
+
+      # Sinon Turbo garde le secret révélé dans son instantané et le ressort au retour arrière.
+      it "keeps the page out of the Turbo snapshot cache" do
+        show_detail(access_mode: "api")
+
+        expect(page).to have_css("meta[name='turbo-cache-control'][content='no-cache']", visible: :all)
+      end
+    end
+
     it "says the service is unavailable when the upstream fails" do
       sign_in_local_administrator
       expect(Portail::HubAPI::Subscriptions).to receive(:find).and_raise(Portail::HubAPI::Unavailable)

@@ -34,6 +34,10 @@ Rails.application.routes.draw do
   # le déduirait de l'extension du chemin et chercherait une page d'erreur JSON que le portail n'a pas.
   get "abonnements/:id", to: "portail/subscriptions#show", as: :abonnement, format: false,
     constraints: {id: %r{[^/]+}}, defaults: {format: :html}
+  # Une consultation des identifiants du client OAuth d'un abonnement API, au clic. En POST : on
+  # crée la consultation, tracée, et un lien serait préchargé par Turbo au simple survol.
+  post "abonnements/:abonnement_id/identifiants/consultations",
+    to: "portail/subscriptions/credential_consultations#create", as: :abonnement_identifiants_consultations, format: false, constraints: {abonnement_id: %r{[^/]+}}
   # Les agents de l'organisation, un par rattachement, réservés à l'administrateur local.
   get "agents", to: "portail/memberships#index", as: :agents
 
