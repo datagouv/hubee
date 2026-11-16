@@ -1,3 +1,6 @@
+<%# Le secret révélé ne doit pas survivre dans l'instantané que Turbo garde de la page : sans cela,
+    le retour arrière le réafficherait. %>
+<% content_for :head, tag.meta(name: "turbo-cache-control", content: "no-cache") %>
 <%# Le nom seul, comme la fiche d'un télédossier : le code est dans le récapitulatif. %>
 <% content_for :title, t(".title", data_stream: @subscription.data_stream_display_name) %>
 
@@ -104,5 +107,7 @@
     </section>
   </div>
 </div>
+
+<%= render "portail/subscriptions/credentials", subscription: @subscription %>
 
 <%= link_to t(".back"), abonnements_path, class: "fr-link fr-icon-arrow-left-line fr-link--icon-left" %>

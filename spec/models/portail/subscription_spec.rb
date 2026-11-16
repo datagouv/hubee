@@ -28,4 +28,13 @@ RSpec.describe Portail::Subscription do
       expect(build(:portail_subscription, access_mode: nil)).not_to be_api_access
     end
   end
+
+  describe "#portal_access?" do
+    # Un canal non renseigné n'est pas le portail : l'écran n'affirmerait pas un canal inconnu.
+    it "is true for the portal access mode only" do
+      expect(build(:portail_subscription, access_mode: "portal")).to be_portal_access
+      expect(build(:portail_subscription, access_mode: "api")).not_to be_portal_access
+      expect(build(:portail_subscription, access_mode: nil)).not_to be_portal_access
+    end
+  end
 end
