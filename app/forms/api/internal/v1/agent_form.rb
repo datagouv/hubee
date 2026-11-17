@@ -27,6 +27,7 @@ module API
         attribute :data_stream_codes
         # Sans type : toute valeur reçue est gardée telle quelle pour être refusée, jamais convertie.
         attribute :send_invitation, default: false
+        attribute :source_info
 
         # Les normalisations des modèles : la valeur vérifiée est celle qui sera écrite et cherchée.
         normalizes :email, with: ->(email) { Agent.normalize_value_for(:email, email) }
@@ -50,6 +51,7 @@ module API
         validates :job_title, length: {maximum: 255}
         validates :phone_number, :mobile_phone_number, format: {with: PhoneNumber::E164_FORMAT}, allow_nil: true
         validate :send_invitation_boolean
+        validate :source_info_well_formed
         validate :data_stream_codes_well_formed
         validate :member_habilitated
 
@@ -57,10 +59,20 @@ module API
           super(**identity, **membership)
         end
 
-        # Une liste absente n'est pas une liste vide : seule la seconde donne tous les flux à un
-        # administrateur local.
+        # Ces deux setters notent que leur clé a été transmise. `new` ne les appelle que pour une clé reçue
+        # (le contrôleur ne la passe que si le JSON la contient), jamais pour la valeur par défaut.
+        # Une clé absente et une clé à `null` valent toutes deux nil : seul ce drapeau les sépare.
+
+        # Absente, la liste est refusée (`missing`) : la croire vide donnerait tous les flux à un
+        # administrateur local. À `null`, ce n'est pas une liste (`not_a_list`).
         def data_stream_codes=(codes)
           @data_stream_codes_given = true
+          super
+        end
+
+        # Absente, la source n'est pas tracée ; à `null`, elle est refusée.
+        def source_info=(info)
+          @source_info_given = true
           super
         end
 
@@ -79,6 +91,22 @@ module API
         # Pas d'`inclusion` : Rails y admet une liste dont chaque élément est dans l'ensemble, [true] compris.
         def send_invitation_boolean
           errors.add(:send_invitation, :inclusion, value: send_invitation) unless [true, false].include?(send_invitation)
+        end
+
+        def source_info_well_formed
+          errors.add(:source_info, :invalid) if @source_info_given && !well_formed_source_info?
+        end
+
+        def well_formed_source_info?
+          source_info.is_a?(Hash) && source_info.all? { |key, value| admitted_source_info?(key, value) }
+        end
+
+        def admitted_source_info?(key, value)
+          case key
+          when "import" then [true, false].include?(value)
+          when "job_id", "report_id" then value.nil? || value.is_a?(Integer)
+          else false
+          end
         end
 
         # Au-delà de la borne, les codes ne sont pas examinés un à un : la réponse ne les renvoie pas.

@@ -154,6 +154,49 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
         expect(json.keys).to eq(["membership"])
       end
 
+      it "traces the source of the call, given beside the agent, on the agent and on his membership" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+        source_info = {"import" => true, "job_id" => 123, "report_id" => 45}
+
+        register(payload.merge(source_info:))
+
+        expect(response).to have_http_status(:created)
+        expect(Event.order(:created_at).map { [it.event_type, it.metadata["source_info"]] })
+          .to eq([["agent.created", source_info], ["membership.created", source_info]])
+      end
+
+      it "does not read the source from the query string" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+
+        post "/api/internal/v1/agents?source_info=oui", params: payload, headers: bearer(internal_client), as: :json
+
+        expect(response).to have_http_status(:created)
+        expect(Event.order(:created_at).map { [it.event_type, it.metadata.key?("source_info")] })
+          .to eq([["agent.created", false], ["membership.created", false]])
+      end
+
+      it "does not read the source inside the agent, nor refuse it" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+
+        register(payload({source_info: "oui"}))
+
+        expect(response).to have_http_status(:created)
+        expect(Event.order(:created_at).map { [it.event_type, it.metadata.key?("source_info")] })
+          .to eq([["agent.created", false], ["membership.created", false]])
+      end
+
+      it "does not read the source from a form body, nor refuse it" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+
+        expect { post "/api/internal/v1/agents", params: payload.merge(source_info: "oui"), headers: bearer(internal_client) }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json.keys).to eq(["membership"])
+      end
+
       it "registers a local administrator habilitated on a data stream, bounded to it" do
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
         stub_hub_api_v2_data_stream(code: "CERTDC")
@@ -420,6 +463,21 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
 
           expect(response).to have_http_status(:unprocessable_content)
           expect(json).to eq("send_invitation" => ["doit être le booléen JSON true ou false"])
+        end
+      end
+
+      # Une source mal formée revient à chaque appel : elle se voit au premier essai au lieu de se perdre.
+      {"null" => nil, "a string" => "import", "an unknown key" => {batch: 1}, "an import that is a string" => {import: "true"}, "a job id that is a string" => {job_id: "123"}}.each do |label, value|
+        it "refuses a source that is #{label}, and writes nothing" do
+          stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+          stub_hub_api_v2_data_stream(code: "CERTDC")
+
+          expect { register(payload.merge(source_info: value)) }.not_to change { written }
+
+          expect(response).to have_http_status(:unprocessable_content)
+          expect(json).to eq(
+            "source_info" => ["doit être un objet aux seules clés import (booléen JSON), job_id et report_id (entier ou null)"]
+          )
         end
       end
 
@@ -750,10 +808,10 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
         expect(mail.text_part.body.decoded).to include("l'organisation Mairie de Paris (SIRET 21750056000016)")
       end
 
-      it "traces the creation, then the delivery of the invitation, with the same origin" do
+      it "traces the creation, then the delivery of the invitation, with the same origin but not the source" do
         stub_referential
 
-        register(payload({send_invitation: true}))
+        register(payload({send_invitation: true}).merge(source_info: {import: true}))
         perform_enqueued_jobs
 
         expect(response).to have_http_status(:created)
