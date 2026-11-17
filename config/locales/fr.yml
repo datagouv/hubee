@@ -61,6 +61,8 @@ fr:
               unknown_data_stream: "contient un code de flux inconnu du référentiel : « %{code} »"
             send_invitation:
               inclusion: doit être le booléen JSON true ou false
+            source_info:
+              invalid: doit être un objet aux seules clés import (booléen JSON), job_id et report_id (entier ou null)
 
   api:
     agent_mailer:

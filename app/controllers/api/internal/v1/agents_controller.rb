@@ -18,7 +18,7 @@ module API
         rescue_from ActionController::ParameterMissing, with: :missing_envelope
 
         def create
-          form = AgentForm.new(**agent_params)
+          form = AgentForm.new(**agent_params, **source_info_param)
           result = Agents::Create.call(form:, api_client: current_api_client, request_id: request.request_id)
 
           if result.success?
@@ -57,11 +57,19 @@ module API
           raw_agent.slice("send_invitation").symbolize_keys
         end
 
+        def source_info_param
+          raw_body.slice("source_info").symbolize_keys
+        end
+
         def raw_agent
-          @raw_agent ||= begin
+          agent = raw_body["agent"]
+          agent.is_a?(Hash) ? agent : {}
+        end
+
+        def raw_body
+          @raw_body ||= begin
             body = JSON.parse(request.raw_post) if request.media_type == Mime[:json]
-            agent = body["agent"] if body.is_a?(Hash)
-            agent.is_a?(Hash) ? agent : {}
+            body.is_a?(Hash) ? body : {}
           rescue JSON::ParserError
             {}
           end

@@ -102,7 +102,8 @@ donne deux appels.
       "mobile_phone_number": "+33612345678",
       "data_stream_codes": ["CERTDC"]
     }
-  }
+  },
+  "source_info": {"import": true, "job_id": 123, "report_id": 45}
 }
 ```
 
@@ -118,6 +119,7 @@ donne deux appels.
 | `membership.job_title` | non | 255 caractères au plus |
 | `membership.phone_number`, `membership.mobile_phone_number` | non | format E.164 (`+33123456789`) ; un numéro national français est mis en forme, tout autre numéro mal formé est refusé |
 | `membership.data_stream_codes` | oui | une liste de chaînes, toujours fournie : une liste absente, `null`, un élément `null` ou toute autre forme sont refusés. Au moins un code pour un `member` ; une liste vide (`[]`) donne à un `local_administrator` l'accès à tous les flux de son organisation (hub-api l'envoie ainsi pour l'administrateur local déclaré à l'abonnement). Un code compte de 1 à 100 caractères, accents compris, sans aucun espacement (espace insécable comprise), une fois retirés les espaces en bord (`" CERTDC"` vaut `CERTDC`) ; il est un identifiant opaque : les doublons exacts sont retirés, la casse n'est jamais changée (`CERTDC` et `certdc` sont deux codes). 100 codes distincts au plus (51 codes en production au 26/10/2026). Chaque code doit être connu de hub-api sous ce code exact (une reconnaissance vaut une heure) : un seul code inconnu refuse tout l'appel, et chaque code inconnu est cité dans son motif. Un code mal formé est refusé avant toute vérification : tant qu'il en reste un, hub-api n'est interrogé sur aucun code, et les codes inconnus ne sont cités qu'une fois les codes mal formés corrigés. Les codes sont vérifiés même quand le référentiel des organisations ne répond pas, dans l'ordre transmis, jusqu'à la première panne de hub-api : les suivants ne sont examinés qu'au prochain appel |
+| `source_info` | non | au premier niveau, à côté de l'enveloppe `agent` (il décrit l'appel, pas l'agent) ; placé dans `agent`, il est ignoré. Un objet aux seules clés facultatives `import` (`true` ou `false` JSON), `job_id` et `report_id` (entier JSON, sans borne, ou `null`) ; `{}` est admis. Toute autre forme (`null`, une chaîne, une clé inconnue, un `import` qui n'est pas un booléen, un id qui n'est pas un entier, même `3.0`…) est refusée (422). Lu dans le corps JSON seul, comme `send_invitation`. Seulement tracé : la réponse ne change pas |
 
 L'invitation part en différé, après l'enregistrement, et seulement quand l'appel crée l'agent et demande
 l'invitation (`send_invitation: true`). Elle ne part ni sur un rejeu, ni pour un agent déjà connu rattaché à
@@ -147,7 +149,8 @@ jamais exposé.
 ```
 
 **Erreurs.** Les motifs qui portent sur un champ reprennent l'imbrication de la demande, sans
-l'enveloppe `agent` : un motif sur un champ du rattachement apparaît sous `membership`. Les
+l'enveloppe `agent` : un motif sur un champ du rattachement apparaît sous `membership`. Un motif sur
+`source_info`, hors de l'enveloppe, apparaît au même niveau que ceux de l'agent. Les
 erreurs sans champ ont la forme commune à l'API, `{"error": "<code>", "message": "…"}` (section
 « Erreurs », plus bas). Les messages sont en français.
 
@@ -192,8 +195,10 @@ Des paramètres d'URL mal formés sont refusés (400) avant tout contrôle, jeto
 Chaque écriture laisse sa trace (`agent.created` si l'agent est créé, `membership.created`) : le
 client appelant (nom et uid), la requête, l'adresse, l'organisation, le rôle et les habilitations ;
 `agent.created` porte en plus `send_invitation`, sa valeur effective.
+Un `source_info` fourni est repris tel quel sous cette clé dans `agent.created` et `membership.created` ;
+absent, la clé n'y figure pas.
 Une invitation remise laisse `agent.invited` sur l'agent, écrit par le job après l'envoi : mêmes
-métadonnées que `agent.created`, sans le rôle, les habilitations ni `send_invitation`. Le `send_invitation`
+métadonnées que `agent.created`, sans le rôle, les habilitations, `send_invitation` ni `source_info`. Le `send_invitation`
 de `agent.created` dit la demande, pas l'envoi : une invitation demandée sans `agent.invited` n'a pas été remise.
 L'identifiant de la requête est celui que le client envoie dans `X-Request-Id` (255 caractères au plus,
 lettres, chiffres, `-`, `_` et `@`), à défaut un UUID généré par le serveur : il sert à recouper les

@@ -83,7 +83,7 @@ module API
                 insee_code: form.insee_code,
                 role: form.role,
                 data_stream_codes: form.data_stream_codes
-              }
+              }.merge({source_info: form.source_info}.compact)
             end
           end
         end

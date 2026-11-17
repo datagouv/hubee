@@ -56,6 +56,15 @@ RSpec.describe API::Internal::V1::Agents::Create::Register do
       expect(result.form.send_invitation).to be(true)
     end
 
+    it "traces the source of the call on the agent and on his membership" do
+      source_info = {"import" => true, "job_id" => nil, "report_id" => 45}
+
+      register(build(:api_internal_v1_agent_form, source_info:))
+
+      expect(Event.order(:created_at).map { [it.event_type, it.metadata["source_info"]] })
+        .to eq([["agent.created", source_info], ["membership.created", source_info]])
+    end
+
     # L'identité est rafraîchie par ProConnect à la connexion, l'enregistrement ne la corrige pas.
     it "attaches an agent known for another SIRET, his identity unchanged, tracing the membership only" do
       agent = create(:agent, email: "alice.martin@ville.fr", first_name: "Alicia", last_name: "Martin-Durand")

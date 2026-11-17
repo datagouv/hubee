@@ -166,6 +166,39 @@ RSpec.describe API::Internal::V1::AgentForm do
         expect(errors_of(form(send_invitation: value))).to eq(send_invitation: [{error: :inclusion, value:}])
       end
     end
+
+    {
+      "a complete source" => {"import" => true, "job_id" => 123, "report_id" => 45},
+      "a source run outside a job queue" => {"import" => true, "job_id" => nil, "report_id" => 45},
+      "a source without report" => {"import" => true, "job_id" => 123, "report_id" => nil},
+      "a partial source" => {"import" => false},
+      "integer ids of any sign or size" => {"job_id" => 0, "report_id" => -(2**64)},
+      "an empty source" => {}
+    }.each do |label, source_info|
+      it "accepts #{label}" do
+        expect(form(source_info:)).to be_valid
+      end
+    end
+
+    {
+      "null" => nil,
+      "a string" => "import",
+      "a list" => [{"import" => true}],
+      "an unknown key" => {"import" => true, "batch" => 1},
+      "a key as a symbol" => {import: true},
+      "an import that is a string" => {"import" => "true"},
+      "an import that is null" => {"import" => nil},
+      "an import that is a number" => {"import" => 1},
+      "a job id that is a string" => {"job_id" => "123"},
+      "a job id that is a float" => {"job_id" => 1.5},
+      "a job id that is an integral float" => {"job_id" => 1.0},
+      "a job id that is a boolean" => {"job_id" => true},
+      "a report id that is a string" => {"report_id" => "45"}
+    }.each do |label, source_info|
+      it "refuses a source that is #{label}, with this sole reason" do
+        expect(errors_of(form(source_info:))).to eq(source_info: [{error: :invalid}])
+      end
+    end
   end
 
   describe "#email" do
@@ -203,6 +236,16 @@ RSpec.describe API::Internal::V1::AgentForm do
     end
   end
 
+  describe "#source_info" do
+    it "is nil when absent" do
+      expect(form.source_info).to be_nil
+    end
+
+    it "is kept as given" do
+      expect(form(source_info: {"import" => true, "job_id" => nil}).source_info).to eq("import" => true, "job_id" => nil)
+    end
+  end
+
   describe "#valid_on?" do
     it "tells whether the given fields passed the validation" do
       invalid = form({}, siret: "123")
@@ -233,6 +276,15 @@ RSpec.describe API::Internal::V1::AgentForm do
       invalid.validate
 
       expect(invalid.error_details).to eq(send_invitation: ["doit être le booléen JSON true ou false"])
+    end
+
+    it "keeps the reason on the source at the top level, in French" do
+      invalid = form(source_info: {"import" => "true"})
+      invalid.validate
+
+      expect(invalid.error_details).to eq(
+        source_info: ["doit être un objet aux seules clés import (booléen JSON), job_id et report_id (entier ou null)"]
+      )
     end
 
     it "leaves the membership out when none of its fields is refused" do
