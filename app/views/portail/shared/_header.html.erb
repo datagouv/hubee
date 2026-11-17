@@ -25,12 +25,8 @@
         <div class="fr-header__tools">
           <div class="fr-header__tools-links">
             <ul class="fr-btns-group">
-              <%# Pour tous, connecté ou non : c'est souvent avant la connexion qu'on cherche l'aide. %>
-              <li>
-                <%= link_to t(".help"), help_url,
-                      class: "fr-btn fr-btn--icon-left fr-icon-question-line",
-                      target: "_blank", rel: "noopener", title: t(".help_title") %>
-              </li>
+              <%# L'identité d'abord : une information, pas une action. Les actions suivent, côte à
+                  côte, la déconnexion tout à droite, là où on la cherche. %>
               <% if agent_signed_in? %>
                 <li>
                   <%# Même rembourrage vertical que le bouton : les <li> du groupe étant
@@ -39,6 +35,14 @@
                     <%= t(".signed_in_as", name: current_agent.first_name, email: current_agent.email) %>
                   </p>
                 </li>
+              <% end %>
+              <%# Pour tous, connecté ou non : c'est souvent avant la connexion qu'on cherche l'aide. %>
+              <li>
+                <%= link_to t(".help"), help_url,
+                      class: "fr-btn fr-btn--icon-left fr-icon-question-line",
+                      target: "_blank", rel: "noopener", title: t(".help_title") %>
+              </li>
+              <% if agent_signed_in? %>
                 <li>
                   <%# Déconnexion : redirection cross-origin vers ProConnect (SLO), que Turbo
                       ne sait pas rendre — il laisserait la page inchangée. Hors Turbo, donc. %>

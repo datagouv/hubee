@@ -32,6 +32,9 @@ RSpec.describe "Portail help link", type: :request do
     expect(tools).to have_link("Aide", href: "https://hubee.numerique.gouv.fr/aide")
     expect(tools).to have_text("Connecté en tant que")
     expect(tools).to have_button("Se déconnecter")
+    # L'identité d'abord, puis les actions côte à côte, la déconnexion tout à droite.
+    expect(tools.all("li").map { |item| item.text.squish })
+      .to eq(["Connecté en tant que Alex (#{Agent.last.email})", "Aide", "Se déconnecter"])
     expect(page.find(".fr-footer__bottom-list")).to have_link("Aide", href: "https://hubee.numerique.gouv.fr/aide")
   end
 end
