@@ -7,10 +7,8 @@ module Portail
         # La trace d'audit de la consultation, sans identifiant ni secret. L'agent et son
         # organisation sont recopiés : la trace doit rester lisible une fois l'agent ou son
         # rattachement supprimé. Sans rescue, à dessein : pas de trace, pas d'affichage.
-        #
-        # Le type nomme l'objet de l'action, comme `agent.invited` ; l'acteur est dans les
-        # métadonnées. Seul écart : l'objet, les identifiants, n'existe pas en base (il vit dans
-        # le serveur d'autorisation) ; la trace s'accroche donc au rattachement de l'acteur.
+        # Les identifiants n'existent pas en base : la trace s'accroche au rattachement de l'acteur,
+        # selon la convention de nommage et d'eventable décrite sur Event::TYPES.
         class RecordConsultation
           include Interactor
 
