@@ -436,15 +436,14 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         expect(section).to have_button("Afficher les identifiants")
       end
 
-      it "explains why a portal subscription has no credentials" do
+      # Sans client OAuth propre, rien à proposer : le bloc ne ferait que constater un manque.
+      it "leaves the block out of a portal subscription" do
         show_detail(access_mode: "portal")
 
         expect(response).to have_http_status(:success)
-        expect(section).to have_text("Cet abonnement passe par le portail : il n'a pas d'identifiants de connexion à l'API.")
-        expect(section).not_to have_button
+        expect(page).not_to have_text("Identifiants de connexion à l'API")
       end
 
-      # Ni API ni portail affirmé : rien à proposer, rien à expliquer.
       it "leaves the block out when the access mode is unset" do
         show_detail(access_mode: nil)
 

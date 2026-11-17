@@ -31,8 +31,13 @@ module Portail
 
       private
 
+      # Sans JavaScript, le bouton poste un formulaire ordinaire : une page qui dit pourquoi rien ne
+      # s'affiche, avant toute lecture et toute trace.
       def require_turbo_stream
-        head :not_acceptable unless request.format.turbo_stream?
+        return if request.format.turbo_stream?
+
+        render :javascript_required, status: :not_acceptable, formats: [:html],
+          locals: {subscription_id: params[:abonnement_id]}
       end
     end
   end

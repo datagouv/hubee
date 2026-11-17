@@ -22,6 +22,10 @@ module Portail
       t("portail.subscriptions.email_frequencies.#{configuration.frequency}.hint", default: nil)
     end
 
+    # Un identifiant de connexion à l'écran : de quoi le reconnaître, pas de quoi le recopier. Le
+    # masque est fixe, il ne trahit pas la longueur ; la valeur entière ne sert qu'à la copie.
+    def masked_credential(value) = "#{value.first(4)}••••••••"
+
     # Actif : l'organisation reçoit les télédossiers du flux (read_package).
     def subscription_activity(subscription)
       if subscription.read_package

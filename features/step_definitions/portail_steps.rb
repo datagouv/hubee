@@ -125,16 +125,20 @@ end
 end
 
 # Les quatre natures : lisible par le portail (deux flux), par l'API, non lisible, autre
-# organisation du même SIRET. Seuls AEC et CERTDC doivent ressortir.
+# organisation du même SIRET. Seuls AEC et CERTDC doivent ressortir. Des UUID, comme en amont :
+# la gem refuse tout autre identifiant, et le détail répondrait 404.
 Étantdonné("l'API amont sert à sa structure des abonnements de toutes natures") do
   [
-    {id: "sub-1", data_stream_code: "CERTDC", data_stream_name: "Certificat de décès électronique"},
-    {id: "sub-2", data_stream_code: "AEC", data_stream_name: "Actes d'état civil"},
-    {id: "sub-3", data_stream_code: "DEMO_API", data_stream_name: "Démonstration par l'API", access_mode: :api},
-    {id: "sub-4", data_stream_code: "DEMO_INACTIF", data_stream_name: "Démonstration inactive", read_package: false},
-    {id: "sub-5", data_stream_code: "DEMO_AUTRE", data_stream_name: "Démonstration d'une autre organisation",
+    {id: "00000000-0000-4000-8000-000000000001", data_stream_code: "CERTDC", data_stream_name: "Certificat de décès électronique"},
+    {id: "00000000-0000-4000-8000-000000000002", data_stream_code: "AEC", data_stream_name: "Actes d'état civil"},
+    {id: "00000000-0000-4000-8000-000000000003", data_stream_code: "DEMO_API", data_stream_name: "Démonstration par l'API", access_mode: :api},
+    {id: "00000000-0000-4000-8000-000000000004", data_stream_code: "DEMO_INACTIF", data_stream_name: "Démonstration inactive", read_package: false},
+    {id: "00000000-0000-4000-8000-000000000005", data_stream_code: "DEMO_AUTRE", data_stream_name: "Démonstration d'une autre organisation",
      organization: build_v2_recipient(siret: E2E_SIRET, code_insee: "00002")}
-  ].each { |subscription| HubApiV1.client.add_subscription(build_v2_subscription(organization: e2e_recipient, **subscription)) }
+  ].each do |subscription|
+    HubApiV1.client.add_subscription(build_v2_subscription(organization: e2e_recipient, **subscription))
+    (@subscription_ids ||= {})[subscription[:data_stream_code]] = subscription[:id]
+  end
   HubApiV1.client.add_case(e2e_delivery("DGS-AEC-0000000000002-01",
     data_stream_code: "AEC"))
 end
@@ -636,6 +640,59 @@ end
 
 Alors("il obtient une page introuvable") do
   expect(page).to have_text("Page introuvable")
+end
+
+# Tiré au hasard, comme dans les specs : aucune chaîne qui ressemble à un secret dans le dépôt.
+Étantdonné("l'API amont sert les identifiants de l'abonnement {string}") do |code|
+  subscription_id = @subscription_ids.fetch(code)
+  @client_id = "SI-#{E2E_SIRET}-00001-#{code}"
+  @client_secret = SecureRandom.hex(16)
+  HubApiV1.client.add_subscription_credentials(subscription_id:, credentials: build_v2_subscription_credentials(
+    client_id: @client_id, client_secret: HubApiV1::Secret.new(@client_secret)
+  ))
+end
+
+Quand("il ouvre l'abonnement {string} depuis la liste") do |label|
+  within("nav.fr-nav") { click_link "Abonnements" }
+  within("table") { click_link label }
+  # Turbo navigue sans recharger : attendre le détail avant d'y chercher quoi que ce soit.
+  expect(page).to have_current_path(%r{\A/abonnements/[^/]+\z})
+end
+
+# Un refus du navigateur, tel que l'API du presse-papiers le rend : une promesse rejetée.
+Quand("son navigateur refuse la copie") do
+  page.execute_script(<<~JS)
+    Object.defineProperty(navigator, "clipboard", {
+      value: {writeText: () => Promise.reject(new DOMException("Refusé", "NotAllowedError"))}
+    })
+  JS
+end
+
+Alors("il voit les identifiants masqués, jamais en entier") do
+  within("#subscription-credentials") do
+    expect(page).to have_css("code", text: "#{@client_id.first(4)}••••••••")
+    expect(page).to have_css("code", text: "#{@client_secret.first(4)}••••••••")
+    expect(page).to have_no_text(@client_id)
+    expect(page).to have_no_text(@client_secret)
+    # Aucune issue de copie avant le clic.
+    expect(page).to have_no_text("Copié dans le presse-papiers.")
+    expect(page).to have_no_text("La copie n'a pas fonctionné.")
+  end
+end
+
+# Le presse-papiers réel du navigateur, relu avec la permission que Chrome réserve à la lecture.
+Alors("le secret entier est dans son presse-papiers") do
+  page.driver.browser.execute_cdp("Browser.grantPermissions",
+    permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"], origin: Capybara.current_session.server.base_url)
+  expect(page.evaluate_async_script("navigator.clipboard.readText().then(arguments[0])")).to eq(@client_secret)
+end
+
+Alors("il lit {string}") do |text|
+  expect(page).to have_text(text)
+end
+
+Alors("il ne lit pas {string}") do |text|
+  expect(page).to have_no_text(text)
 end
 
 # --- Agents ------------------------------------------------------------------------------------

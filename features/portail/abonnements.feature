@@ -28,3 +28,28 @@ Fonctionnalité: Les abonnements de la structure
     Alors il ne voit pas les abonnements dans le menu
     Quand il ouvre directement l'adresse des abonnements
     Alors il obtient une page introuvable
+
+  # Les identifiants ne s'affichent jamais en entier : de quoi les reconnaître, et la copie.
+  @javascript
+  Scénario: L'administrateur local copie le secret d'un abonnement API sans le voir
+    Étant donné il est administrateur local habilité sur le seul flux "CERTDC"
+    Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
+    Et il s'est connecté
+    Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
+    Et il clique sur "Afficher les identifiants"
+    Alors il voit les identifiants masqués, jamais en entier
+    Quand il clique sur "Copier le secret client"
+    Alors le secret entier est dans son presse-papiers
+    Et il lit "Copié dans le presse-papiers."
+
+  @javascript
+  Scénario: La copie échoue, l'administrateur local est prévenu
+    Étant donné il est administrateur local habilité sur le seul flux "CERTDC"
+    Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
+    Et il s'est connecté
+    Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
+    Et il clique sur "Afficher les identifiants"
+    Et son navigateur refuse la copie
+    Et il clique sur "Copier le secret client"
+    Alors il lit "La copie n'a pas fonctionné. Réessayez ; si le problème persiste, écrivez à support@hubee.numerique.gouv.fr."
+    Et il ne lit pas "Copié dans le presse-papiers."
