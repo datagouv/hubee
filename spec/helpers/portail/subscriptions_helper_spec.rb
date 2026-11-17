@@ -43,4 +43,15 @@ RSpec.describe Portail::SubscriptionsHelper, type: :helper do
         .to eq("Non renseignée")
     end
   end
+
+  describe "#masked_credential" do
+    # La longueur ne transparaît pas : le masque est le même pour un identifiant et un secret.
+    it "keeps the first four characters and hides the rest behind a fixed mask" do
+      # Tiré au hasard : aucune chaîne qui ressemble à un secret dans le dépôt (GitGuardian).
+      secret = SecureRandom.hex(16)
+
+      expect(helper.masked_credential("SI-99999999911111-00001-CERTDC")).to eq("SI-9••••••••")
+      expect(helper.masked_credential(secret)).to eq("#{secret.first(4)}••••••••")
+    end
+  end
 end

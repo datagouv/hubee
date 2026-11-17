@@ -17,9 +17,6 @@ module Portail
     # Le seul canal où un éditeur peut se connecter à la place de l'organisation.
     def api_access? = access_mode == API_ACCESS
 
-    # Le canal sans client OAuth propre : l'écran dit pourquoi il n'a pas d'identifiants d'API.
-    def portal_access? = access_mode == PORTAL_ACCESS
-
     # Ce par quoi l'écran désigne le flux, comme data_stream_label : le code quand le nom manque.
     def data_stream_display_name = data_stream_name || data_stream_code
   end

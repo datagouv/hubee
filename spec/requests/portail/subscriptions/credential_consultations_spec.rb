@@ -55,10 +55,34 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
     expect(Capybara.string(response.body))
       .to have_css("turbo-stream[action='replace'][target='subscription-credentials']", visible: :all)
-    expect(page).to have_css("#subscription-credentials code", text: secret_value)
     # Le bouton qui avait le focus disparaît : Turbo le porte sur le titre du bloc.
     expect(page).to have_css("#subscription-credentials h2[tabindex='-1'][autofocus]")
     expect(response.body).to include("SI-99999999911111-00001-CERTDC").and include(secret_value)
+  end
+
+  # De quoi reconnaître les identifiants, pas de quoi les lire par-dessus l'épaule : la valeur
+  # entière n'est que dans la cible de la copie.
+  it "masks both credentials on screen and hands their whole value to the copy buttons" do
+    sign_in_local_administrator
+    serve_detail
+    serve_credentials
+
+    reveal
+
+    block = page.find("#subscription-credentials")
+    expect(block).to have_css("code", text: "SI-9••••••••")
+    expect(block).to have_css("code", text: "#{secret_value.first(4)}••••••••")
+    expect(block.text).not_to include("SI-99999999911111-00001-CERTDC")
+    expect(block.text).not_to include(secret_value)
+    expect(block).to have_css("[data-controller='clipboard'][data-clipboard-text-value='SI-99999999911111-00001-CERTDC'] " \
+      "button[type='button'][data-action='clipboard#copy']", text: "Copier l'identifiant client")
+    expect(block).to have_css("[data-controller='clipboard'][data-clipboard-text-value='#{secret_value}'] " \
+      "button[type='button'][data-action='clipboard#copy']", text: "Copier le secret client")
+    # Les deux issues sont prêtes, cachées : le script ne fait que montrer la bonne.
+    expect(block).to have_css("[data-clipboard-target='copied'].fr-hidden", text: "Copié dans le presse-papiers.", count: 2,
+      visible: :all)
+    expect(block).to have_css("[data-clipboard-target='failed'].fr-hidden", text: "La copie n'a pas fonctionné.", count: 2,
+      visible: :all)
   end
 
   # Le rôle × habilitation entier : seul le rôle ouvre les identifiants.
@@ -184,8 +208,8 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     expect(page).to have_link("support@hubee.numerique.gouv.fr", href: "mailto:support@hubee.numerique.gouv.fr")
   end
 
-  # Le bouton passe par Turbo : une autre requête ne crée pas de consultation.
-  it "answers 406 to a non-Turbo request, before reading anything" do
+  # Sans JavaScript, le formulaire part sans Turbo : on dit pourquoi, sans rien lire ni tracer.
+  it "asks to turn JavaScript on when the request comes without Turbo, before reading anything" do
     sign_in_local_administrator
     expect(Portail::HubAPI::Subscriptions).not_to receive(:find)
     expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
@@ -193,6 +217,25 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     expect { post path }.not_to change(Event, :count)
 
     expect(response).to have_http_status(:not_acceptable)
+    expect(response.media_type).to eq("text/html")
+    page = Capybara.string(response.body)
+    expect(page).to have_css("h1", text: "Activez JavaScript pour afficher les identifiants")
+    expect(page).to have_link("Retour à l'abonnement", href: "/abonnements/#{id}")
+  end
+
+  # La raison du POST : sans le jeton de la page, une requête forgée ailleurs au nom de l'agent
+  # ne lit rien et ne trace rien.
+  it "refuses a request without the page's CSRF token, before reading anything" do
+    sign_in_local_administrator
+    expect(Portail::HubAPI::Subscriptions).not_to receive(:find)
+    expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+    ActionController::Base.allow_forgery_protection = true
+
+    expect { reveal }.not_to change(Event, :count)
+
+    expect(response).to redirect_to(root_path)
+  ensure
+    ActionController::Base.allow_forgery_protection = false
   end
 
   it "forbids caching the response" do

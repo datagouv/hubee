@@ -1,6 +1,7 @@
 <%# locals: (credentials:) -%>
-<%# Le seul endroit où le secret quitte son enveloppe : nulle part ailleurs `reveal`. L'id est gardé
-    pour que le bloc reste la cible d'un éventuel nouvel affichage. %>
+<%# Le seul endroit où le secret quitte son enveloppe : nulle part ailleurs `reveal`. Il n'est pas
+    affiché pour autant, seulement confié à la copie. L'id est gardé pour que le bloc reste la cible
+    d'un éventuel nouvel affichage. %>
 <div id="subscription-credentials" class="fr-mb-4w">
   <section class="subscription-panel fr-p-3w fr-border-default--grey">
     <%# Le bouton qui avait le focus disparaît : Turbo porte le focus sur ce titre, que le lecteur
@@ -10,10 +11,12 @@
     </h2>
     <p class="fr-mb-2w"><%= t("portail.subscriptions.credentials.lead") %></p>
     <dl class="fr-mb-0">
-      <dt class="fr-hint-text fr-mb-1v"><%= t("portail.subscriptions.credentials.client_id") %></dt>
-      <dd class="fr-mb-2w"><code><%= credentials.client_id %></code></dd>
-      <dt class="fr-hint-text fr-mb-1v"><%= t("portail.subscriptions.credentials.client_secret") %></dt>
-      <dd class="fr-mb-0"><code><%= credentials.client_secret.reveal %></code></dd>
+      <%= render "portail/subscriptions/credential_consultations/copyable",
+            label: t("portail.subscriptions.credentials.client_id"), copy: t("portail.subscriptions.credentials.copy_client_id"),
+            value: credentials.client_id %>
+      <%= render "portail/subscriptions/credential_consultations/copyable",
+            label: t("portail.subscriptions.credentials.client_secret"), copy: t("portail.subscriptions.credentials.copy_client_secret"),
+            value: credentials.client_secret.reveal %>
     </dl>
   </section>
 </div>

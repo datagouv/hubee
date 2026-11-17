@@ -1,0 +1,20 @@
+<%# locals: (label:, copy:, value:) -%>
+<%# Un identifiant masqué à l'écran, copié en entier au clic. La valeur ne vit que dans l'attribut
+    que lit le contrôleur `clipboard` ; les deux issues de la copie sont écrites ici, cachées, et le
+    script ne fait que montrer la bonne, dans une zone que le lecteur d'écran annonce. `fr-hidden`
+    et non l'attribut `hidden`, que le `display: flex` de `.fr-message` annulerait. Le texte tient
+    dans un <span> : sans lui, chaque morceau autour du lien serait un élément flex à part. %>
+<dt class="fr-hint-text fr-mb-1v"><%= label %></dt>
+<dd class="fr-mb-2w" data-controller="clipboard" data-clipboard-text-value="<%= value %>">
+  <code><%= masked_credential(value) %></code>
+  <button type="button" class="fr-btn fr-btn--sm fr-btn--tertiary fr-btn--icon-left fr-icon-clipboard-line fr-ml-1w"
+          data-action="clipboard#copy"><%= copy %></button>
+  <div class="fr-messages-group" aria-live="polite">
+    <p class="fr-message fr-message--valid fr-hidden" data-clipboard-target="copied">
+      <%= t("portail.subscriptions.credentials.copied") %>
+    </p>
+    <p class="fr-message fr-message--error fr-hidden" data-clipboard-target="failed">
+      <span><%= t("portail.subscriptions.credentials.copy_failed_html", email: mail_to(support_email)) %></span>
+    </p>
+  </div>
+</dd>
