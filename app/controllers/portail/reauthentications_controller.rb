@@ -31,13 +31,17 @@ module Portail
     # l'organisation de la session suggérées. Le second facteur est demandé si le rattachement
     # l'exige, comme à la connexion.
     def resume
-      return redirect_to root_path if pending_reauthentication.nil?
+      pending = pending_reauthentication
+      return redirect_to root_path if pending.nil?
 
       depart_for_proconnect(
         step_up: Access::SecondFactor.required_for?(current_membership),
         login_hint: current_agent.email,
         siret_hint: current_membership.organization_link.siret
       )
+      # Le `state` de cette connexion, et d'aucune autre : une connexion ordinaire lancée pendant
+      # l'attente ne conclut pas la réauthentification.
+      session[:reauthentication] = pending.merge("state" => session[:proconnect_state])
     end
 
     private
