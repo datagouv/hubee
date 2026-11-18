@@ -432,6 +432,11 @@ RSpec.describe "Portail::Subscriptions", type: :request do
           visible: :all)
         expect(section).to have_text("vous serez déconnecté de ProConnect, y compris de vos autres services")
         expect(section).to have_text("Chaque accès est enregistré à votre nom.")
+        # Le libellé ne dit pas la déconnexion : l'avertissement est lié au bouton.
+        warning_id = section.find("p", text: "vous serez déconnecté de ProConnect")[:id]
+        expect(section).to have_css("button[aria-describedby='#{warning_id}']", text: "Obtenir les identifiants")
+        # Au premier affichage, le focus reste où le navigateur le met.
+        expect(section).not_to have_css("[autofocus]")
       end
 
       # Une preuve encore valable, sans le retour de réauthentification : le bouton consulte, sans
