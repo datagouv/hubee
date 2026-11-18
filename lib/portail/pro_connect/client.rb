@@ -114,8 +114,10 @@ module Portail
 
         # L'exigence MFA se demande par `claims`, `essential: true` : ProConnect répond
         # par une erreur plutôt que par un niveau plus faible.
+        # `sid` : ProConnect ne le met dans l'id_token que si on le demande. C'est lui qui prouve, au
+        # retour d'une réauthentification, que la déconnexion a eu lieu (cf. CheckLoggedOut).
         def requested_claims(step_up)
-          id_token = {amr: {essential: true}}
+          id_token = {amr: {essential: true}, sid: {essential: true}}
           id_token[:acr] = {essential: true, values: demanded(step_up)} if step_up
 
           {id_token:}.to_json
