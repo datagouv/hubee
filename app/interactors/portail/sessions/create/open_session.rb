@@ -12,6 +12,7 @@ module Portail
           context.provider_session = ProviderSession.create!(
             membership: context.membership,
             provider_id_token: context.id_token,
+            provider_sid: context.claims[:sid],
             email: context.agent.email,
             amr: context.claims[:amr],
             acr: context.claims[:acr]
