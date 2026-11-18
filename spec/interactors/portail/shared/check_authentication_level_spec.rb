@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Sessions::Create::CheckAuthenticationLevel do
+RSpec.describe Portail::Shared::CheckAuthenticationLevel do
   subject(:result) { described_class.call(claims: {acr: acr}) }
 
   context "when the level certifies the organisational link" do
