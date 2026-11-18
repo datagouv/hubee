@@ -12,6 +12,10 @@ module Portail
   module Reauthentication
     extend ActiveSupport::Concern
 
+    # Le temps d'un aller-retour chez ProConnect. Au-delà, le parcours est abandonné : un retour
+    # tardif ne réveille pas une réauthentification oubliée.
+    PENDING_TTL = 10.minutes
+
     class_methods do
       # `purpose` est évalué dans le contrôleur : l'objet de la preuve dépend de la requête. `with`
       # nomme la réponse d'un refus, propre à chaque page ; sans elle, un 403 nu.
@@ -29,6 +33,20 @@ module Portail
     end
 
     private
+
+    # Le parcours en cours dans ce navigateur, s'il est récent et appartient à la session ouverte.
+    # Sinon il est oublié : sans agent connecté, ou sur une autre session, il ne vaut plus rien.
+    def pending_reauthentication
+      pending = session[:reauthentication]
+      return if pending.nil?
+
+      return pending if Current.provider_session.present? &&
+        pending["provider_session_id"] == Current.provider_session.id &&
+        pending["started_at"] > PENDING_TTL.ago.to_i
+
+      session.delete(:reauthentication)
+      nil
+    end
 
     # Très sensible : la preuve est consommée ici, avant l'action. Si l'action échoue ensuite,
     # l'agent se réauthentifie de nouveau — la sécurité prime sur le confort.
