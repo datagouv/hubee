@@ -4,11 +4,8 @@ module Portail
   module Subscriptions
     module CredentialConsultations
       class Create
-        # La trace d'audit de la consultation, sans identifiant ni secret. L'agent et son
-        # organisation sont recopiés : la trace doit rester lisible une fois l'agent ou son
-        # rattachement supprimé. Sans rescue, à dessein : pas de trace, pas d'affichage.
-        # Les identifiants n'existent pas en base : la trace s'accroche au rattachement de l'acteur,
-        # selon la convention de nommage et d'eventable décrite sur Event::TYPES.
+        # La trace, sans identifiant ni secret ; agent et organisation recopiés pour survivre à leur
+        # suppression. Sans rescue, à dessein : pas de trace, pas d'affichage. Eventable : Event::TYPES.
         class RecordConsultation
           include Interactor
 

@@ -3,9 +3,8 @@ import { Controller } from "@hotwired/stimulus"
 // Le temps de lire la confirmation sur le bouton, avant qu'il ne reprenne son libellé.
 const CONFIRMATION_DELAY = 2000
 
-// Copie une valeur que l'écran ne montre pas en entier (les identifiants d'un abonnement API). Les
-// deux issues sont écrites par le serveur dans des <template> : on insère la bonne dans la zone de
-// messages, vide sinon. La valeur n'est jamais journalisée, ni dans la console, ni avec l'erreur.
+// Copie une valeur que l'écran ne montre pas en entier ; les messages viennent du serveur
+// (<template>). La valeur n'est jamais journalisée, ni dans la console, ni avec l'erreur.
 export default class extends Controller {
   static values = { text: String, doneLabel: String }
   static targets = ["button", "label", "messages", "copied", "failed"]

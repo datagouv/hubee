@@ -15,8 +15,7 @@ module Portail
               id: context.subscription.id, siret: link.siret, insee_code: link.insee_code
             )
           rescue HubAPI::NotFound, HubAPI::InvalidRequest
-            # Supprimé entre la lecture du détail et le clic : introuvable, comme sur le détail. Une
-            # route absente d'un environnement n'arrive pas ici : hub-api la refuse en 403, une panne.
+            # Supprimé entre la lecture du détail et le clic : introuvable, comme sur le détail.
             Rails.logger.info("Identifiants d'abonnement introuvables en amont", subscription_id: context.subscription.id)
             context.fail!(error: :not_found)
           rescue HubAPI::CredentialsRefused

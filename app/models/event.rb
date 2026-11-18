@@ -10,11 +10,9 @@ class Event < ApplicationRecord
 
   # Liste fermée en Ruby seulement, sans enum PostgreSQL : elle grandira à chaque nouvelle trace.
   #
-  # Nommage `<objet>.<action>` : l'objet est ce sur quoi l'action porte (l'agent invité, le
-  # rattachement créé), l'action un participe passé. L'acteur n'est pas dans le nom : il est dans
-  # les métadonnées. L'eventable est l'objet ; quand l'objet n'existe pas en base (les identifiants
-  # d'un abonnement vivent dans le serveur d'autorisation), c'est le rattachement de l'acteur, et
-  # ce qui désigne l'objet va dans les métadonnées.
+  # Nommage `<objet>.<action>` (participe passé) ; l'acteur va dans les métadonnées. L'eventable est
+  # l'objet ; s'il n'existe pas en base (les identifiants d'un abonnement), c'est le rattachement de
+  # l'acteur, et ce qui désigne l'objet va dans les métadonnées.
   TYPES = %w[agent.created agent.invited membership.created subscription_credentials.consulted].freeze
 
   # === Associations ===
