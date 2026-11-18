@@ -237,4 +237,17 @@ RSpec.describe Portail::ProConnect::Client do
       )
     end
   end
+
+  # L'adresse est déclarée telle quelle chez ProConnect : la changer exige de la redéclarer.
+  describe ".reauthentication_logout_url" do
+    it "returns to the reauthentication address after logging out" do
+      url = described_class.reauthentication_logout_url(id_token: "the-id-token")
+
+      expect(url).to start_with("#{domain}/api/v2/session/end?")
+      expect(params_of(url)).to eq(
+        "id_token_hint" => "the-id-token",
+        "post_logout_redirect_uri" => "https://portail.hubee.gouv.fr/connexion/proconnect/reauthentification"
+      )
+    end
+  end
 end

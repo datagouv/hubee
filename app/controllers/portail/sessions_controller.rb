@@ -101,19 +101,6 @@ module Portail
 
     private
 
-    # Un seul chemin vers ProConnect. `state` et `nonce` sont posés ici et relus au
-    # retour : ce sont eux qui lient la réponse à notre demande.
-    def depart_for_proconnect(step_up:, login_hint: nil, siret_hint: nil)
-      authorization = Portail::ProConnect::Client.authorization(step_up:, login_hint:, siret_hint:)
-      session[:proconnect_state] = authorization.state
-      session[:proconnect_nonce] = authorization.nonce
-
-      redirect_to authorization.url, allow_other_host: true
-    rescue Portail::ProConnect::Client::Unavailable => e
-      Rails.logger.error("ProConnect indisponible", e)
-      redirect_to auth_failure_path
-    end
-
     # Comparaison à temps constant, et consommation : un `state` ne vaut qu'un aller-retour.
     def valid_state?
       expected = session.delete(:proconnect_state)
