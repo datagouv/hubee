@@ -22,7 +22,7 @@ RSpec.describe Portail::Auth::Decision do
 
     it "carries these fields and no others" do
       expect(described_class.new(outcome: :granted).to_h.keys).to contain_exactly(
-        :outcome, :reason, :email, :provider_sub, :siret, :organization_label, :idp_id,
+        :outcome, :kind, :reason, :email, :provider_sub, :siret, :organization_label, :idp_id,
         :acr, :amr, :agent_id, :membership_id, :provider_sub_changed
       )
     end
