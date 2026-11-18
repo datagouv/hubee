@@ -39,4 +39,18 @@ RSpec.describe Portail::Auth::Recorder do
     expect(AccessDecision.last).to have_attributes(ip_address: "203.0.113.7",
       user_agent: "Firefox", request_id: "req-1")
   end
+
+  # Une réauthentification juge le même retour ProConnect qu'une connexion : sans ce champ, rien ne
+  # les distinguerait dans la table.
+  it "records the kind of the decision" do
+    described_class.new.emit(event_for(Portail::Auth::Decision.new(outcome: :granted, kind: :reauthentication)))
+
+    expect(AccessDecision.last.kind).to eq("reauthentication")
+  end
+
+  it "records a sign-in by default" do
+    described_class.new.emit(event_for(Portail::Auth::Decision.new(outcome: :granted)))
+
+    expect(AccessDecision.last.kind).to eq("sign_in")
+  end
 end

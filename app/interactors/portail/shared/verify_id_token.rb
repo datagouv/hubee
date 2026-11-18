@@ -16,7 +16,8 @@ module Portail
         # Aucun sujet, délibérément : tout ce que le jeton contient devient inutilisable au
         # moment où il échoue, et l'attribuer à un agent réel donnerait au support un faux
         # diagnostic. Seul le contexte de requête — IP, user_agent — qualifie ce refus.
-        Rails.event.notify(Portail::Auth::Decision.new(outcome: :denied, reason: :invalid_token))
+        Rails.event.notify(Portail::Auth::Decision.new(outcome: :denied, reason: :invalid_token,
+          kind: context.kind || :sign_in))
         context.fail!(error: :invalid_token)
       rescue Portail::ProConnect::Client::Unavailable => e
         # Vérifier la signature suppose d'aller chercher les clés publiques. ProConnect
