@@ -15,11 +15,12 @@ module ProConnectTestHelper
 
   def mock_proconnect(sub:, email: "agent@example.gouv.fr", first_name: "Alex", last_name: "Martin",
     amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET, organization_label: "Mairie de Test",
-    idp_id: nil)
+    idp_id: nil, sid: "sid-#{SecureRandom.hex(4)}")
     mock_proconnect_transport(email:, first_name:, last_name:, siret:, organization_label:, idp_id:)
 
-    # expect (pas allow) : le callback déclenche réellement cet appel, une fois.
-    expect(Portail::ProConnect::TokenVerifier).to receive(:call).and_return(sub:, amr:, acr:)
+    # expect (pas allow) : le callback déclenche réellement cet appel, une fois. Un `sid` neuf par
+    # défaut : chaque connexion simulée ouvre sa propre session ProConnect.
+    expect(Portail::ProConnect::TokenVerifier).to receive(:call).and_return(sub:, amr:, acr:, sid:)
   end
 
   # Le transport aboutit, la vérification reste au spec : pour éprouver un refus ou une
@@ -50,6 +51,23 @@ module ProConnectTestHelper
   # Un spec qui veut un `state` invalide appelle `get` lui-même.
   def proconnect_callback(params = {})
     depart_for_proconnect
+    get "/connexion/proconnect/retour", params: {code: "test-code", state: STATE}.merge(params)
+  end
+
+  # Le parcours complet d'une réauthentification, agent déjà connecté : départ, retour de
+  # déconnexion, retour de connexion. Ce que ProConnect renvoie au dernier retour se simule avant,
+  # par `mock_proconnect` ; un spec qui veut un retour en erreur passe `params:`. `expect` : le
+  # parcours fait toujours ces deux appels, une fois chacun.
+  def reauthenticate(purpose:, return_to: "/", params: {})
+    expect(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
+      .and_return("https://proconnect.test/api/v2/session/end")
+    expect(Portail::ProConnect::Client).to receive(:authorization).and_return(
+      Portail::ProConnect::Client::Authorization.new(
+        url: "https://proconnect.test/api/v2/authorize", state: STATE, nonce: NONCE
+      )
+    )
+    post reauthentication_path, params: {purpose:, return_to:}
+    get reauthentication_resume_path
     get "/connexion/proconnect/retour", params: {code: "test-code", state: STATE}.merge(params)
   end
 

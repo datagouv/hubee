@@ -69,7 +69,7 @@ RSpec.describe Portail::ProConnect::Client do
     it "requests the amr claim as essential and the minimum authentication level" do
       params = params_of(described_class.authorization.url)
 
-      expect(params["claims"]).to eq({id_token: {amr: {essential: true}}}.to_json)
+      expect(params["claims"]).to eq({id_token: {amr: {essential: true}, sid: {essential: true}}}.to_json)
       expect(params["acr_values"]).to eq("eidas1")
       expect(params["scope"])
         .to eq("openid given_name usual_name email siret organization_label idp_id")
@@ -83,11 +83,19 @@ RSpec.describe Portail::ProConnect::Client do
       params = params_of(described_class.authorization(step_up: true).url)
 
       expect(params["claims"]).to eq(
-        {id_token: {amr: {essential: true},
+        {id_token: {amr: {essential: true}, sid: {essential: true},
                     acr: {essential: true, values: Portail::Access::AuthenticationLevels::SECOND_FACTOR}}}.to_json
       )
       # Laisser acr_values au plancher enverrait la consigne inverse dans la même requête.
       expect(params["acr_values"]).to eq("eidas1-mfa eidas2 eidas3")
+    end
+
+    # ProConnect (oidc-provider) ne met le `sid` dans l'id_token que si le client le demande : c'est
+    # lui qui prouve, au retour d'une réauthentification, que la déconnexion a eu lieu.
+    it "asks for the ProConnect session identifier at every authorization" do
+      [described_class.authorization, described_class.authorization(step_up: true)].each do |authorization|
+        expect(JSON.parse(params_of(authorization.url)["claims"]).dig("id_token", "sid")).to eq("essential" => true)
+      end
     end
 
     it "passes on the address and the organisation it already knows" do
@@ -234,6 +242,19 @@ RSpec.describe Portail::ProConnect::Client do
       expect(params_of(url)).to eq(
         "id_token_hint" => "the-id-token",
         "post_logout_redirect_uri" => "https://portail.hubee.gouv.fr/"
+      )
+    end
+  end
+
+  # L'adresse est déclarée telle quelle chez ProConnect : la changer exige de la redéclarer.
+  describe ".reauthentication_logout_url" do
+    it "returns to the reauthentication address after logging out" do
+      url = described_class.reauthentication_logout_url(id_token: "the-id-token")
+
+      expect(url).to start_with("#{domain}/api/v2/session/end?")
+      expect(params_of(url)).to eq(
+        "id_token_hint" => "the-id-token",
+        "post_logout_redirect_uri" => "https://portail.hubee.gouv.fr/connexion/proconnect/reauthentification"
       )
     end
   end

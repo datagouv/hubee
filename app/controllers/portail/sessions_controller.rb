@@ -26,6 +26,12 @@ module Portail
     end
 
     def create
+      # Même adresse de retour pour la réauthentification d'un agent déjà connecté : ProConnect n'en
+      # connaît qu'une. Seul le retour de la connexion lancée par la réauthentification la conclut ;
+      # tout autre suit le parcours ordinaire.
+      pending = pending_reauthentication
+      return complete_reauthentication(pending) if reauthentication_callback?(pending)
+
       # Les refus ProConnect arrivent en paramètre ; enchaîner l'échange du code
       # échouerait plus loin sous un motif trompeur.
       return redirect_to auth_failure_path if params[:error].present?
@@ -101,17 +107,36 @@ module Portail
 
     private
 
-    # Un seul chemin vers ProConnect. `state` et `nonce` sont posés ici et relus au
-    # retour : ce sont eux qui lient la réponse à notre demande.
-    def depart_for_proconnect(step_up:, login_hint: nil, siret_hint: nil)
-      authorization = Portail::ProConnect::Client.authorization(step_up:, login_hint:, siret_hint:)
-      session[:proconnect_state] = authorization.state
-      session[:proconnect_nonce] = authorization.nonce
+    # Conclut une réauthentification. Ce que vaut un refus, et s'il ferme la session, est décidé par
+    # Reauthentications::Deny ; il ne reste ici que la session HTTP et la réponse.
+    def complete_reauthentication(pending)
+      session.delete(:reauthentication)
+      return_to = pending["return_to"]
+      # Lus avant tout : `state` et `nonce` sont consommés même quand ProConnect renvoie une erreur.
+      nonce = session.delete(:proconnect_nonce)
+      aborted = params[:error].present?
+      return deny_reauthentication(return_to, error: :reauthentication_aborted) if !valid_state? || aborted
 
-      redirect_to authorization.url, allow_other_host: true
-    rescue Portail::ProConnect::Client::Unavailable => e
-      Rails.logger.error("ProConnect indisponible", e)
-      redirect_to auth_failure_path
+      result = Portail::Reauthentications::Complete.call(code: params[:code], nonce:,
+        provider_session: Current.provider_session, purpose: pending["purpose"], kind: :reauthentication,
+        step_up_attempted: true)
+      return redirect_to(return_to, notice: t("portail.reauthentications.verified")) if result.success?
+
+      deny_reauthentication(return_to, error: result.error, claims: result.claims, email: result.info&.email,
+        siret: result.siret, idp_id: result.idp_id, organization_label: result.organization_label)
+    end
+
+    def deny_reauthentication(return_to, error:, **presented)
+      denial = Portail::Reauthentications::Deny.call(error:, provider_session: Current.provider_session, **presented)
+      return redirect_to(return_to, alert: t("portail.reauthentications.failed")) unless denial.close_session
+
+      terminate_session
+      redirect_to root_path, alert: t("portail.reauthentications.closed.#{denial.reason}")
+    end
+
+    def reauthentication_callback?(pending)
+      pending.present? && pending["state"].present? && params[:state].present? &&
+        ActiveSupport::SecurityUtils.secure_compare(pending["state"], params[:state])
     end
 
     # Comparaison à temps constant, et consommation : un `state` ne vaut qu'un aller-retour.

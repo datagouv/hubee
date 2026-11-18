@@ -22,6 +22,10 @@ module Portail
       # Imposé, jamais lu dans le jeton : un HS256 signé avec la clé publique passerait sinon.
       SIGNING_ALGORITHM = :RS256
 
+      # Retour d'une déconnexion demandée par une réauthentification, déclaré tel quel chez ProConnect
+      # à côté de la racine : le changer exige de le redéclarer sur chaque environnement.
+      REAUTHENTICATION_LOGOUT_PATH = "connexion/proconnect/reauthentification"
+
       TRANSPORT_ERRORS = [
         Rack::OAuth2::Client::Error, Faraday::Error, SWD::Exception,
         OpenIDConnect::Discovery::DiscoveryFailed, JSON::ParserError
@@ -73,6 +77,13 @@ module Portail
           "#{config.end_session_endpoint}?#{query}"
         end
 
+        # Construit sur la racine déjà configurée : pas de variable de plus à poser par environnement.
+        def reauthentication_logout_url(id_token:)
+          logout_url(id_token:, post_logout_redirect_uri: URI.join(
+            ENV.fetch("PROCONNECT_POST_LOGOUT_REDIRECT_URI"), REAUTHENTICATION_LOGOUT_PATH
+          ).to_s)
+        end
+
         # Annuaire ProConnect (endpoints, clés publiques), en cache une heure — cf.
         # config/initializers/pro_connect.rb.
         def config
@@ -103,8 +114,10 @@ module Portail
 
         # L'exigence MFA se demande par `claims`, `essential: true` : ProConnect répond
         # par une erreur plutôt que par un niveau plus faible.
+        # `sid` : ProConnect ne le met dans l'id_token que si on le demande. C'est lui qui prouve, au
+        # retour d'une réauthentification, que la déconnexion a eu lieu (cf. CheckLoggedOut).
         def requested_claims(step_up)
-          id_token = {amr: {essential: true}}
+          id_token = {amr: {essential: true}, sid: {essential: true}}
           id_token[:acr] = {essential: true, values: demanded(step_up)} if step_up
 
           {id_token:}.to_json

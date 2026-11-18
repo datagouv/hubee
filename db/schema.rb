@@ -10,12 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_090200) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_18_100200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   # Custom types defined in this database.
   # Note that some types may not work with other database engines. Be careful if changing database.
+  create_enum "access_kind", ["sign_in", "reauthentication"]
   create_enum "access_outcome", ["granted", "denied"]
   create_enum "data_package_state", ["draft", "transmitted", "acknowledged"]
   create_enum "membership_role", ["member", "local_administrator"]
@@ -28,6 +29,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_090200) do
     t.string "email"
     t.string "idp_id"
     t.string "ip_address"
+    t.enum "kind", default: "sign_in", null: false, enum_type: "access_kind"
     t.uuid "membership_id"
     t.string "organization_label"
     t.enum "outcome", null: false, enum_type: "access_outcome"
@@ -201,6 +203,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_090200) do
     t.uuid "membership_id"
     t.string "organization_label"
     t.text "provider_id_token", null: false
+    t.string "provider_sid"
+    t.datetime "reauthenticated_at"
+    t.string "reauthenticated_for"
+    t.datetime "reauthentication_consumed_at"
     t.datetime "updated_at", null: false
     t.index ["created_at"], name: "index_provider_sessions_on_created_at"
     t.index ["membership_id"], name: "index_provider_sessions_on_membership_id"
