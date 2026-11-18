@@ -12,6 +12,11 @@ module Portail
     # Motifs qui ne disent rien du compte de l'agent : la page d'échec générique suffit.
     TECHNICAL_FAILURES = %i[invalid_token provider_unavailable sign_in_conflict].freeze
 
+    # Un autre que le rattachement de la session est revenu de ProConnect : le collègue sur le poste,
+    # qui n'a pu entrer qu'avec son propre compte. La session est fermée.
+    REAUTHENTICATION_MISMATCHES = %i[reauthentication_mismatch unknown_agent email_mismatch
+      organization_mismatch].freeze
+
     # Départ vers ProConnect. En POST : couvert par le jeton CSRF de Rails. Pas `authorize` :
     # ce nom est celui de la méthode de Pundit, incluse dans BaseController.
     def start
@@ -26,6 +31,11 @@ module Portail
     end
 
     def create
+      # Même adresse de retour pour la réauthentification d'un agent déjà connecté : ProConnect n'en
+      # connaît qu'une. Un parcours abandonné ou expiré n'est pas en cours, la connexion suit son cours.
+      pending = pending_reauthentication
+      return complete_reauthentication(pending) if pending
+
       # Les refus ProConnect arrivent en paramètre ; enchaîner l'échange du code
       # échouerait plus loin sous un motif trompeur.
       return redirect_to auth_failure_path if params[:error].present?
@@ -100,6 +110,50 @@ module Portail
     end
 
     private
+
+    # Conclut une réauthentification. Seul un autre rattachement ferme la session : un abandon, un
+    # refus de ProConnect ou une panne ne disent rien de qui est au poste.
+    def complete_reauthentication(pending)
+      session.delete(:reauthentication)
+      return_to = pending["return_to"]
+      # Lus avant tout : `state` et `nonce` sont consommés même quand ProConnect renvoie une erreur.
+      nonce = session.delete(:proconnect_nonce)
+      aborted = params[:error].present?
+      return reauthentication_failed(return_to, reason: :reauthentication_aborted) if !valid_state? || aborted
+
+      result = Portail::Reauthentications::Create.call(code: params[:code], nonce:,
+        provider_session: Current.provider_session, purpose: pending["purpose"], kind: :reauthentication,
+        step_up_attempted: true)
+
+      if result.success?
+        redirect_to return_to, notice: t("portail.reauthentications.verified")
+      elsif REAUTHENTICATION_MISMATCHES.include?(result.error)
+        trace_reauthentication_refusal(:reauthentication_mismatch, result)
+        terminate_session
+        redirect_to root_path, alert: t("portail.reauthentications.mismatch")
+      else
+        # Un jeton invalide est déjà tracé par sa vérification ; une panne n'est imputable à personne.
+        reauthentication_failed(return_to, reason: result.error, result:,
+          traced: !%i[invalid_token provider_unavailable].include?(result.error))
+      end
+    end
+
+    def reauthentication_failed(return_to, reason:, result: nil, traced: true)
+      trace_reauthentication_refusal(reason, result) if traced
+      redirect_to return_to, alert: t("portail.reauthentications.failed")
+    end
+
+    # Ce que ProConnect a présenté, et la session dont l'agent demandait la réauthentification : c'est
+    # elle que le support et le CSIRT retrouvent. Lu avant toute fermeture de session.
+    def trace_reauthentication_refusal(reason, result)
+      Rails.event.notify(Portail::Auth::Decision.new(
+        outcome: :denied, kind: :reauthentication, reason:,
+        email: result&.info&.email, provider_sub: result&.claims&.dig(:sub), siret: result&.siret,
+        organization_label: result&.organization_label, idp_id: result&.idp_id,
+        acr: result&.claims&.dig(:acr), amr: Array(result&.claims&.dig(:amr)),
+        agent_id: current_agent.id, membership_id: current_membership.id
+      ))
+    end
 
     # Comparaison à temps constant, et consommation : un `state` ne vaut qu'un aller-retour.
     def valid_state?

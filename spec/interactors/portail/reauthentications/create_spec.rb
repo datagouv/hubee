@@ -76,7 +76,8 @@ RSpec.describe Portail::Reauthentications::Create do
     proconnect_returns(acr: "eidas1", amr: ["pwd"])
 
     expect(result.error).to eq(:second_factor_required)
-    expect(provider_session.reload).to have_attributes(provider_id_token: "new-token", reauthenticated_at: nil)
+    expect(provider_session.reload).to have_attributes(provider_id_token: "new-token", acr: "eidas1-mfa",
+      reauthenticated_at: nil)
   end
 
   it "emits a granted reauthentication decision" do
