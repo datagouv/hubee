@@ -110,6 +110,19 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       expect(response).to redirect_to(root_path)
     end
 
+    # Rien n'a été fermé côté portail : l'agent retrouve sa page, le parcours est abandonné.
+    it "brings the agent back to the page when ProConnect cannot be reached on the way back from logout" do
+      sign_in_local_administrator
+      start_reauthentication
+      allow(Portail::ProConnect::Client).to receive(:authorization).and_raise(Portail::ProConnect::Client::Unavailable)
+
+      get reauthentication_resume_path
+
+      expect(response).to redirect_to(return_to)
+      expect(flash[:alert]).to eq("La vérification de votre identité n'a pas abouti. Réessayez.")
+      expect(session[:reauthentication]).to be_nil
+    end
+
     it "goes home on a logout return whose reauthentication is older than 10 minutes" do
       sign_in_local_administrator
       start_reauthentication
@@ -162,6 +175,19 @@ RSpec.describe "Portail::Reauthentications", type: :request do
         agent_id: agent.id)
       follow_redirect!
       expect(response.body).not_to include("Connecté en tant que")
+    end
+
+    # Le contournement de la déconnexion : la connexion relancée réutilise la session ProConnect de
+    # l'agent, sans aucune saisie. Le même `sid` en témoigne.
+    it "closes the session when ProConnect reused the session of the sign-in" do
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa", sid: granted_session.provider_sid)
+
+      reauthenticate(purpose:, return_to:)
+
+      expect(response).to redirect_to(root_path)
+      expect(ProviderSession.granted).to be_empty
+      expect(AccessDecision.last).to have_attributes(outcome: "denied", kind: "reauthentication",
+        reason: "reauthentication_without_logout", agent_id: agent.id)
     end
 
     it "closes the session when someone unknown to the portal comes back" do

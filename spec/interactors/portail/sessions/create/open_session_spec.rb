@@ -9,7 +9,7 @@ RSpec.describe Portail::Sessions::Create::OpenSession do
 
       result = described_class.call(
         membership: membership, agent: membership.agent, id_token: "raw-token",
-        claims: {amr: ["mfa"], acr: "eidas1"},
+        claims: {amr: ["mfa"], acr: "eidas1", sid: "sid-1"},
         # Posé par SyncAgentIdentity, qui tourne juste avant dans l'organizer.
         provider_sub_changed: false
       )
@@ -17,7 +17,7 @@ RSpec.describe Portail::Sessions::Create::OpenSession do
       expect(result).to be_success
       expect(result.provider_session).to have_attributes(
         membership: membership, provider_id_token: "raw-token",
-        email: membership.agent.email, amr: ["mfa"], acr: "eidas1"
+        email: membership.agent.email, amr: ["mfa"], acr: "eidas1", provider_sid: "sid-1"
       )
       expect(result.provider_session).to be_granted
     end

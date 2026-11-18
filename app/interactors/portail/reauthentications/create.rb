@@ -11,7 +11,8 @@ module Portail
       # rattachement de la session, la session ProConnect ouverte est la sienne, et « Se déconnecter »
       # doit pouvoir la fermer même si la réauthentification est refusée ensuite.
       organize Shared::ExchangeCode, Shared::VerifyIdToken, Shared::CheckAuthenticationLevel,
-        Shared::FindAgent, Shared::FindMembership, Create::CheckSameMembership, Create::AdoptIdToken,
+        Shared::FindAgent, Shared::FindMembership, Create::CheckSameMembership, Create::CheckLoggedOut,
+        Create::AdoptIdToken,
         Shared::CheckSecondFactor, Create::RecordProof
     end
   end
