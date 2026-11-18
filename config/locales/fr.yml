@@ -318,6 +318,10 @@ fr:
         applicant_message: Message à la personne concernée
         si_comment: Commentaire à destination des SI
         event_attachments: Pièces apportées
+    reauthentications:
+      verified: Identité vérifiée.
+      failed: La vérification de votre identité n'a pas abouti. Réessayez.
+      mismatch: "Le compte utilisé pour vérifier votre identité n'est pas celui de votre session : par sécurité, votre session a été fermée."
     sessions:
       proconnect_button:
         label: S'identifier avec ProConnect
