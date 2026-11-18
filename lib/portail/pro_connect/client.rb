@@ -22,6 +22,10 @@ module Portail
       # Imposé, jamais lu dans le jeton : un HS256 signé avec la clé publique passerait sinon.
       SIGNING_ALGORITHM = :RS256
 
+      # Retour d'une déconnexion demandée par une réauthentification, déclaré tel quel chez ProConnect
+      # à côté de la racine : le changer exige de le redéclarer sur chaque environnement.
+      REAUTHENTICATION_LOGOUT_PATH = "connexion/proconnect/reauthentification"
+
       TRANSPORT_ERRORS = [
         Rack::OAuth2::Client::Error, Faraday::Error, SWD::Exception,
         OpenIDConnect::Discovery::DiscoveryFailed, JSON::ParserError
@@ -71,6 +75,13 @@ module Portail
           post_logout_redirect_uri: ENV.fetch("PROCONNECT_POST_LOGOUT_REDIRECT_URI"))
           query = {id_token_hint: id_token, post_logout_redirect_uri:}.compact.to_query
           "#{config.end_session_endpoint}?#{query}"
+        end
+
+        # Construit sur la racine déjà configurée : pas de variable de plus à poser par environnement.
+        def reauthentication_logout_url(id_token:)
+          logout_url(id_token:, post_logout_redirect_uri: URI.join(
+            ENV.fetch("PROCONNECT_POST_LOGOUT_REDIRECT_URI"), REAUTHENTICATION_LOGOUT_PATH
+          ).to_s)
         end
 
         # Annuaire ProConnect (endpoints, clés publiques), en cache une heure — cf.
