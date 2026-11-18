@@ -416,15 +416,15 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         get path
       end
 
-      it "offers to reveal the credentials of an API subscription, without reading them" do
+      it "offers to obtain the credentials of an API subscription, without reading them" do
         show_detail(access_mode: "api")
 
         expect(response).to have_http_status(:success)
         expect(section).to have_css(
           "form[method='post'][action='/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations'] " \
-          "button", text: "Afficher les identifiants"
+          "button", text: "Obtenir les identifiants"
         )
-        expect(section).to have_text("Chaque affichage est enregistré à votre nom.")
+        expect(section).to have_text("Chaque accès est enregistré à votre nom.")
       end
 
       # Le rôle seul ouvre les identifiants : l'habilitation n'y change rien. Un membre n'atteint pas
@@ -433,7 +433,7 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         show_detail(access_mode: "api", data_stream_codes: [])
 
         expect(response).to have_http_status(:success)
-        expect(section).to have_button("Afficher les identifiants")
+        expect(section).to have_button("Obtenir les identifiants")
       end
 
       # Sans client OAuth propre, rien à proposer : le bloc ne ferait que constater un manque.

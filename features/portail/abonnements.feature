@@ -36,11 +36,16 @@ Fonctionnalité: Les abonnements de la structure
     Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
     Et il s'est connecté
     Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
-    Et il clique sur "Afficher les identifiants"
+    Et il clique sur "Obtenir les identifiants"
     Alors il voit les identifiants masqués, jamais en entier
     Quand il clique sur "Copier le secret client"
     Alors le secret entier est dans son presse-papiers
     Et il lit "Copié dans le presse-papiers."
+    Et le message est espacé du champ comme le prévoit le DSFR
+    Et le bouton "Copier le secret client" confirme la copie, puis revient à son libellé
+    Quand il clique sur "Copier l'identifiant client"
+    Alors l'identifiant client entier est dans son presse-papiers
+    Et il ne lit qu'une fois "Copié dans le presse-papiers."
 
   @javascript
   Scénario: La copie échoue, l'administrateur local est prévenu
@@ -48,8 +53,9 @@ Fonctionnalité: Les abonnements de la structure
     Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
     Et il s'est connecté
     Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
-    Et il clique sur "Afficher les identifiants"
+    Et il clique sur "Obtenir les identifiants"
     Et son navigateur refuse la copie
     Et il clique sur "Copier le secret client"
     Alors il lit "La copie n'a pas fonctionné. Réessayez ; si le problème persiste, écrivez à support@hubee.numerique.gouv.fr."
+    Et le message est espacé du champ comme le prévoit le DSFR
     Et il ne lit pas "Copié dans le presse-papiers."
