@@ -117,7 +117,7 @@ module Portail
       aborted = params[:error].present?
       return deny_reauthentication(return_to, error: :reauthentication_aborted) if !valid_state? || aborted
 
-      result = Portail::Reauthentications::Create.call(code: params[:code], nonce:,
+      result = Portail::Reauthentications::Complete.call(code: params[:code], nonce:,
         provider_session: Current.provider_session, purpose: pending["purpose"], kind: :reauthentication,
         step_up_attempted: true)
       return redirect_to(return_to, notice: t("portail.reauthentications.verified")) if result.success?

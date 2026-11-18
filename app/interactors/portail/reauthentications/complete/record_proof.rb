@@ -2,7 +2,7 @@
 
 module Portail
   module Reauthentications
-    class Create
+    class Complete
       class RecordProof
         include Interactor
 

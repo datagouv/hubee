@@ -2,15 +2,18 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Reauthentications::Create do
+RSpec.describe Portail::Reauthentications::Complete do
   subject(:result) do
     described_class.call(code: "the-code", nonce: "nonce-1", provider_session:, purpose: "credentials:42",
       kind: :reauthentication, step_up_attempted: true)
   end
 
-  let(:agent) { create(:agent, provider_sub: "sub-agent", email: "agent@example.gouv.fr") }
-  let(:link) { create(:organization_link, siret: "99999999911111") }
-  let(:membership) { create(:membership, agent:, organization_link: link, role: "local_administrator") }
+  # Les cas d'échec des étapes partagées (agent inconnu, autre organisation, autre `sub`) sont éprouvés
+  # dans leurs propres specs : ne restent ici que ceux qui disent l'ordre de la chaîne.
+  let(:membership) do
+    create(:membership, agent: create(:agent, provider_sub: "sub-agent", email: "agent@example.gouv.fr"),
+      organization_link: create(:organization_link, siret: "99999999911111"), role: "local_administrator")
+  end
   let(:provider_session) do
     create(:provider_session, membership:, provider_id_token: "old-token", provider_sid: "sid-sign-in", acr: "eidas1-mfa")
   end
@@ -51,34 +54,14 @@ RSpec.describe Portail::Reauthentications::Create do
     expect(provider_session.reload).to have_attributes(provider_id_token: "old-token", reauthenticated_at: nil)
   end
 
-  # ProConnect attribue un `sub` par fournisseur d'identité : en changer est légitime.
-  it "accepts the same agent under another sub" do
-    proconnect_returns(sub: "sub-other-idp")
-
-    expect(result).to be_success
-  end
-
   it "fails as a mismatch for another agent of the same organisation" do
     create(:membership, agent: create(:agent, provider_sub: "sub-colleague", email: "collegue@example.gouv.fr"),
-      organization_link: link)
+      organization_link: membership.organization_link)
     proconnect_returns(sub: "sub-colleague", email: "collegue@example.gouv.fr")
 
     expect(result).to be_failure
     expect(result.error).to eq(:reauthentication_mismatch)
     expect(provider_session.reload).to have_attributes(provider_id_token: "old-token", reauthenticated_at: nil)
-  end
-
-  it "fails for an agent unknown to the portal" do
-    proconnect_returns(sub: "sub-stranger", email: "inconnu@example.gouv.fr")
-
-    expect(result.error).to eq(:unknown_agent)
-  end
-
-  it "fails for the same agent under another organisation" do
-    proconnect_returns(siret: "11111111100000")
-
-    expect(result.error).to eq(:organization_mismatch)
-    expect(provider_session.reload.reauthenticated_at).to be_nil
   end
 
   # La session ProConnect désormais ouverte est celle de l'agent : « Se déconnecter » doit la fermer.
@@ -96,6 +79,6 @@ RSpec.describe Portail::Reauthentications::Create do
     expect { result }.to change(AccessDecision, :count).by(1)
     expect(AccessDecision.last).to have_attributes(outcome: "granted", kind: "reauthentication",
       email: "agent@example.gouv.fr", provider_sub: "sub-agent", siret: "99999999911111", idp_id: "idp-1",
-      acr: "eidas1-mfa", agent_id: agent.id, membership_id: membership.id)
+      acr: "eidas1-mfa", agent_id: membership.agent_id, membership_id: membership.id)
   end
 end

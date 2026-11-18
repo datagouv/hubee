@@ -56,11 +56,12 @@ module ProConnectTestHelper
 
   # Le parcours complet d'une réauthentification, agent déjà connecté : départ, retour de
   # déconnexion, retour de connexion. Ce que ProConnect renvoie au dernier retour se simule avant,
-  # par `mock_proconnect` ; un spec qui veut un retour en erreur passe `params:`.
+  # par `mock_proconnect` ; un spec qui veut un retour en erreur passe `params:`. `expect` : le
+  # parcours fait toujours ces deux appels, une fois chacun.
   def reauthenticate(purpose:, return_to: "/", params: {})
-    allow(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
+    expect(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
       .and_return("https://proconnect.test/api/v2/session/end")
-    allow(Portail::ProConnect::Client).to receive(:authorization).and_return(
+    expect(Portail::ProConnect::Client).to receive(:authorization).and_return(
       Portail::ProConnect::Client::Authorization.new(
         url: "https://proconnect.test/api/v2/authorize", state: STATE, nonce: NONCE
       )
