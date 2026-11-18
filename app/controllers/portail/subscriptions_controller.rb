@@ -38,12 +38,23 @@ module Portail
       @subscription = result.detail.subscription
       @emails = result.detail.delivery_email_configuration
       @delegation = result.detail.delegation
-      # Ce que le bloc des identifiants propose : la consultation, ou d'abord la réauthentification. Au
-      # retour d'une réauthentification faite pour cet abonnement, la consultation part d'elle-même.
-      purpose = Access::Reauthentication.purpose(:credentials, @subscription.id)
-      @credentials_unlocked = Access::Reauthentication.satisfied?(Current.provider_session, level: :very_sensitive,
-        purpose:)
-      @credentials_auto_reveal = @credentials_unlocked && flash[:reauthenticated_for] == purpose
+      @credentials_access = credentials_access(@subscription)
+    end
+
+    private
+
+    # Ce que propose le bloc des identifiants. Il n'ouvre rien : la consultation reste gardée par la
+    # preuve, consommée côté serveur.
+    # - :reauthentication_required : le bouton part d'abord vers la réauthentification ;
+    # - :available : une preuve vaut encore, le bouton consulte ;
+    # - :reveal_now : retour de la réauthentification faite pour cet abonnement, la consultation part
+    #   d'elle-même.
+    def credentials_access(subscription)
+      purpose = Access::Reauthentication.purpose(:credentials, subscription.id)
+      return :reauthentication_required unless
+        Access::Reauthentication.satisfied?(Current.provider_session, level: :very_sensitive, purpose:)
+
+      (flash[:reauthenticated_for] == purpose) ? :reveal_now : :available
     end
   end
 end

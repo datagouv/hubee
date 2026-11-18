@@ -108,7 +108,6 @@
   </div>
 </div>
 
-<%= render "portail/subscriptions/credentials", subscription: @subscription, unlocked: @credentials_unlocked,
-      auto_reveal: @credentials_auto_reveal %>
+<%= render "portail/subscriptions/credentials", subscription: @subscription, access: @credentials_access %>
 
 <%= link_to t(".back"), abonnements_path, class: "fr-link fr-icon-arrow-left-line fr-link--icon-left" %>
