@@ -12,11 +12,6 @@ module Portail
     # Motifs qui ne disent rien du compte de l'agent : la page d'échec générique suffit.
     TECHNICAL_FAILURES = %i[invalid_token provider_unavailable sign_in_conflict].freeze
 
-    # Un autre que le rattachement de la session est revenu de ProConnect : le collègue sur le poste,
-    # qui n'a pu entrer qu'avec son propre compte. La session est fermée.
-    REAUTHENTICATION_MISMATCHES = %i[reauthentication_mismatch unknown_agent email_mismatch
-      organization_mismatch].freeze
-
     # Départ vers ProConnect. En POST : couvert par le jeton CSRF de Rails. Pas `authorize` :
     # ce nom est celui de la méthode de Pundit, incluse dans BaseController.
     def start
@@ -112,55 +107,31 @@ module Portail
 
     private
 
-    # Conclut une réauthentification. Seuls un autre rattachement, ou une déconnexion évitée, ferment
-    # la session : un abandon, un refus de ProConnect ou une panne ne disent rien de qui est au poste.
+    # Conclut une réauthentification. Ce que vaut un refus, et s'il ferme la session, est décidé par
+    # Reauthentications::Deny ; il ne reste ici que la session HTTP et la réponse.
     def complete_reauthentication(pending)
       session.delete(:reauthentication)
       return_to = pending["return_to"]
       # Lus avant tout : `state` et `nonce` sont consommés même quand ProConnect renvoie une erreur.
       nonce = session.delete(:proconnect_nonce)
       aborted = params[:error].present?
-      return reauthentication_failed(return_to, reason: :reauthentication_aborted) if !valid_state? || aborted
+      return deny_reauthentication(return_to, error: :reauthentication_aborted) if !valid_state? || aborted
 
       result = Portail::Reauthentications::Create.call(code: params[:code], nonce:,
         provider_session: Current.provider_session, purpose: pending["purpose"], kind: :reauthentication,
         step_up_attempted: true)
+      return redirect_to(return_to, notice: t("portail.reauthentications.verified")) if result.success?
 
-      if result.success?
-        redirect_to return_to, notice: t("portail.reauthentications.verified")
-      elsif REAUTHENTICATION_MISMATCHES.include?(result.error)
-        close_after_reauthentication(:reauthentication_mismatch, result, alert: t("portail.reauthentications.mismatch"))
-      elsif result.error == :reauthentication_without_logout
-        # La déconnexion a été évitée : quelqu'un au poste a pu empêcher la redirection.
-        close_after_reauthentication(result.error, result, alert: t("portail.reauthentications.without_logout"))
-      else
-        # Un jeton invalide est déjà tracé par sa vérification ; une panne n'est imputable à personne.
-        reauthentication_failed(return_to, reason: result.error, result:,
-          traced: !%i[invalid_token provider_unavailable].include?(result.error))
-      end
+      deny_reauthentication(return_to, error: result.error, claims: result.claims, email: result.info&.email,
+        siret: result.siret, idp_id: result.idp_id, organization_label: result.organization_label)
     end
 
-    def close_after_reauthentication(reason, result, alert:)
-      trace_reauthentication_refusal(reason, result)
+    def deny_reauthentication(return_to, error:, **presented)
+      denial = Portail::Reauthentications::Deny.call(error:, provider_session: Current.provider_session, **presented)
+      return redirect_to(return_to, alert: t("portail.reauthentications.failed")) unless denial.close_session
+
       terminate_session
-      redirect_to root_path, alert:
-    end
-
-    def reauthentication_failed(return_to, reason:, result: nil, traced: true)
-      trace_reauthentication_refusal(reason, result) if traced
-      redirect_to return_to, alert: t("portail.reauthentications.failed")
-    end
-
-    # Ce que ProConnect a présenté, et la session dont l'agent demandait la réauthentification : c'est
-    # elle que le support et le CSIRT retrouvent. Lu avant toute fermeture de session.
-    def trace_reauthentication_refusal(reason, result)
-      Rails.event.notify(Portail::Auth::Decision.new(
-        outcome: :denied, kind: :reauthentication, reason:,
-        email: result&.info&.email, provider_sub: result&.claims&.dig(:sub), siret: result&.siret,
-        organization_label: result&.organization_label, idp_id: result&.idp_id,
-        acr: result&.claims&.dig(:acr), amr: Array(result&.claims&.dig(:amr)),
-        agent_id: current_agent.id, membership_id: current_membership.id
-      ))
+      redirect_to root_path, alert: t("portail.reauthentications.closed.#{denial.reason}")
     end
 
     def reauthentication_callback?(pending)

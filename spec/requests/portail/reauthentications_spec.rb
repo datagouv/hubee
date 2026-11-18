@@ -185,6 +185,8 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       reauthenticate(purpose:, return_to:)
 
       expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq("Votre identité n'a pas pu être vérifiée : la déconnexion de ProConnect " \
+        "n'a pas eu lieu. Par sécurité, votre session a été fermée.")
       expect(ProviderSession.granted).to be_empty
       expect(AccessDecision.last).to have_attributes(outcome: "denied", kind: "reauthentication",
         reason: "reauthentication_without_logout", agent_id: agent.id)
