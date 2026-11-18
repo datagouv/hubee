@@ -53,6 +53,22 @@ module ProConnectTestHelper
     get "/connexion/proconnect/retour", params: {code: "test-code", state: STATE}.merge(params)
   end
 
+  # Le parcours complet d'une réauthentification, agent déjà connecté : départ, retour de
+  # déconnexion, retour de connexion. Ce que ProConnect renvoie au dernier retour se simule avant,
+  # par `mock_proconnect` ; un spec qui veut un retour en erreur passe `params:`.
+  def reauthenticate(purpose:, return_to: "/", params: {})
+    allow(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
+      .and_return("https://proconnect.test/api/v2/session/end")
+    allow(Portail::ProConnect::Client).to receive(:authorization).and_return(
+      Portail::ProConnect::Client::Authorization.new(
+        url: "https://proconnect.test/api/v2/authorize", state: STATE, nonce: NONCE
+      )
+    )
+    post reauthentication_path, params: {purpose:, return_to:}
+    get reauthentication_resume_path
+    get "/connexion/proconnect/retour", params: {code: "test-code", state: STATE}.merge(params)
+  end
+
   # Garantit le rattachement correspondant au SIRET simulé : un spec qui veut un refus
   # construit sa situation lui-même.
   def sign_in_via_proconnect(agent:, amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET, idp_id: nil)
