@@ -4,7 +4,7 @@ require "rails_helper"
 
 # ProConnect ouvre un nouveau `sid` après une déconnexion : le même `sid` au retour prouve que la
 # déconnexion n'a pas eu lieu, et que la connexion a réutilisé la session ProConnect déjà ouverte.
-RSpec.describe Portail::Reauthentications::Create::CheckLoggedOut do
+RSpec.describe Portail::Reauthentications::Complete::CheckLoggedOut do
   let(:provider_session) { create(:provider_session, provider_sid: "sid-before") }
 
   it "passes when ProConnect opened a new session" do
