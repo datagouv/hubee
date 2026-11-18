@@ -123,4 +123,120 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       expect(session[:reauthentication]).to be_nil
     end
   end
+
+  describe "GET /connexion/proconnect/retour during a reauthentication" do
+    let!(:agent) { sign_in_local_administrator }
+
+    def granted_session = ProviderSession.granted.sole
+
+    it "returns to the page with a proof, and keeps the session" do
+      freeze_time
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
+
+      reauthenticate(purpose:, return_to:)
+
+      expect(response).to redirect_to(return_to)
+      expect(flash[:notice]).to eq("Identité vérifiée.")
+      expect(granted_session).to have_attributes(id: session[:provider_session_id], reauthenticated_for: purpose,
+        reauthenticated_at: Time.current, provider_id_token: "test-id-token")
+      expect(AccessDecision.last).to have_attributes(outcome: "granted", kind: "reauthentication")
+      expect(session[:reauthentication]).to be_nil
+    end
+
+    # Le scénario du collègue sur le poste : il ne peut entrer qu'avec son propre compte.
+    it "closes the session when another agent comes back" do
+      colleague = create(:agent, provider_sub: "sub-collegue", email: "collegue@example.gouv.fr")
+      create(:membership, agent: colleague, organization_link: OrganizationLink.sole)
+      mock_proconnect(sub: colleague.provider_sub, email: colleague.email, acr: "eidas1-mfa")
+
+      reauthenticate(purpose:, return_to:)
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq("Le compte utilisé pour vérifier votre identité n'est pas celui de votre " \
+        "session : par sécurité, votre session a été fermée.")
+      expect(ProviderSession.granted).to be_empty
+      expect(AccessDecision.last).to have_attributes(outcome: "denied", kind: "reauthentication",
+        reason: "reauthentication_mismatch", email: "collegue@example.gouv.fr", provider_sub: "sub-collegue",
+        agent_id: agent.id)
+      follow_redirect!
+      expect(response.body).not_to include("Connecté en tant que")
+    end
+
+    it "closes the session when someone unknown to the portal comes back" do
+      mock_proconnect(sub: "sub-inconnu", email: "inconnu@example.gouv.fr", acr: "eidas1-mfa")
+
+      reauthenticate(purpose:, return_to:)
+
+      expect(response).to redirect_to(root_path)
+      expect(ProviderSession.granted).to be_empty
+      expect(AccessDecision.last.reason).to eq("reauthentication_mismatch")
+    end
+
+    it "closes the session when the agent comes back under another organisation" do
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa", siret: "11111111100000")
+
+      reauthenticate(purpose:, return_to:)
+
+      expect(response).to redirect_to(root_path)
+      expect(ProviderSession.granted).to be_empty
+      expect(AccessDecision.last.reason).to eq("reauthentication_mismatch")
+    end
+
+    it "keeps the session when ProConnect returns an error" do
+      reauthenticate(purpose:, return_to:, params: {error: "access_denied"})
+
+      expect(response).to redirect_to(return_to)
+      expect(flash[:alert]).to eq("La vérification de votre identité n'a pas abouti. Réessayez.")
+      expect(granted_session).to have_attributes(id: session[:provider_session_id], reauthenticated_at: nil)
+      expect(AccessDecision.last).to have_attributes(outcome: "denied", kind: "reauthentication",
+        reason: "reauthentication_aborted", agent_id: agent.id)
+    end
+
+    it "keeps the session on an invalid state" do
+      reauthenticate(purpose:, return_to:, params: {state: "forged-state"})
+
+      expect(response).to redirect_to(return_to)
+      expect(granted_session.reauthenticated_at).to be_nil
+      expect(AccessDecision.last.reason).to eq("reauthentication_aborted")
+    end
+
+    it "keeps the session when the second factor is missing" do
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
+
+      reauthenticate(purpose:, return_to:)
+
+      expect(response).to redirect_to(return_to)
+      expect(flash[:alert]).to eq("La vérification de votre identité n'a pas abouti. Réessayez.")
+      expect(granted_session).to have_attributes(reauthenticated_at: nil, provider_id_token: "test-id-token")
+      expect(AccessDecision.last).to have_attributes(kind: "reauthentication", reason: "second_factor_required")
+      # La session garde son second facteur : l'administrateur local n'est pas éjecté.
+      get "/"
+      expect(response).not_to redirect_to(step_up_path)
+    end
+
+    it "keeps the session when ProConnect cannot be reached on the way back" do
+      allow(Portail::ProConnect::Client).to receive(:exchange).and_raise(Portail::ProConnect::Client::Unavailable)
+
+      expect { reauthenticate(purpose:, return_to:) }.not_to change(AccessDecision, :count)
+
+      expect(response).to redirect_to(return_to)
+      expect(granted_session.reauthenticated_at).to be_nil
+    end
+
+    # Un parcours oublié ne doit pas capter une connexion ordinaire faite plus tard.
+    it "signs in as usual when an abandoned reauthentication has expired" do
+      allow(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
+        .and_return("https://proconnect.test/api/v2/session/end")
+      post reauthentication_path, params: {purpose:, return_to:}
+      travel 11.minutes
+      granted_session.touch
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
+
+      proconnect_callback
+
+      expect(response).to redirect_to(root_path)
+      expect(AccessDecision.last).to have_attributes(outcome: "granted", kind: "sign_in")
+      expect(granted_session.reauthenticated_at).to be_nil
+    end
+  end
 end
