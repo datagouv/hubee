@@ -1,22 +1,55 @@
 import { Controller } from "@hotwired/stimulus"
 
+// Le temps de lire la confirmation sur le bouton, avant qu'il ne reprenne son libellé.
+const CONFIRMATION_DELAY = 2000
+
 // Copie une valeur que l'écran ne montre pas en entier (les identifiants d'un abonnement API). Les
-// deux issues sont écrites par le serveur, cachées : on ne fait que montrer la bonne. La valeur
-// n'est jamais journalisée, ni dans la console, ni avec l'erreur.
+// deux issues sont écrites par le serveur dans des <template> : on insère la bonne dans la zone de
+// messages, vide sinon. La valeur n'est jamais journalisée, ni dans la console, ni avec l'erreur.
 export default class extends Controller {
-  static values = { text: String }
-  static targets = ["copied", "failed"]
+  static values = { text: String, doneLabel: String }
+  static targets = ["button", "label", "messages", "copied", "failed"]
+
+  connect() {
+    this.idleLabel = this.labelTarget.textContent
+  }
+
+  disconnect() {
+    clearTimeout(this.timer)
+  }
 
   async copy() {
-    // fr-hidden et non `hidden` : le display de .fr-message l'emporterait sur l'attribut.
-    this.copiedTarget.classList.add("fr-hidden")
-    this.failedTarget.classList.add("fr-hidden")
+    // Chaque champ efface d'abord son issue, celui-ci compris : un seul message à la fois, celui de
+    // la dernière copie, sans quoi on ne saurait plus lequel est dans le presse-papiers.
+    this.dispatch("copy", { target: window })
     try {
       // Absent hors HTTPS ou refusé par le navigateur : les deux mènent au message d'échec.
       await navigator.clipboard.writeText(this.textValue)
-      this.copiedTarget.classList.remove("fr-hidden")
+      this.show(this.copiedTarget)
+      this.confirm()
     } catch {
-      this.failedTarget.classList.remove("fr-hidden")
+      this.show(this.failedTarget)
     }
+  }
+
+  reset() {
+    this.messagesTarget.replaceChildren()
+    this.restore()
+  }
+
+  show(template) {
+    this.messagesTarget.replaceChildren(template.content.cloneNode(true))
+  }
+
+  confirm() {
+    this.labelTarget.textContent = this.doneLabelValue
+    this.buttonTarget.classList.replace("fr-icon-clipboard-line", "fr-icon-check-line")
+    this.timer = setTimeout(() => this.restore(), CONFIRMATION_DELAY)
+  }
+
+  restore() {
+    clearTimeout(this.timer)
+    this.labelTarget.textContent = this.idleLabel
+    this.buttonTarget.classList.replace("fr-icon-check-line", "fr-icon-clipboard-line")
   }
 }

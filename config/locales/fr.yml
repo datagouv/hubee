@@ -400,12 +400,18 @@ fr:
       credentials:
         heading: Identifiants de connexion à l'API
         lead: Votre logiciel s'en sert pour se connecter à l'API HubEE au titre de cet abonnement. Ne les communiquez qu'aux personnes chargées de ce logiciel.
-        reveal: Afficher les identifiants
-        audited: Chaque affichage est enregistré à votre nom.
+        reveal: Obtenir les identifiants
+        audited: Chaque accès est enregistré à votre nom.
         client_id: Identifiant client (client_id)
         client_secret: Secret client (client_secret)
-        copy_client_id: Copier l'identifiant client
-        copy_client_secret: Copier le secret client
+        masked: Pour votre sécurité, seuls les 4 premiers caractères sont affichés. Utilisez les boutons « Copier » pour les coller dans votre logiciel.
+        # Lu après le libellé du champ : sans lui, le lecteur d'écran n'énoncerait que des puces.
+        masked_sr: ", masqué : seuls les 4 premiers caractères sont affichés"
+        # Le bouton dit « Copier » ; le lecteur d'écran entend aussi ce qu'il copie.
+        copy: Copier
+        copy_done: Copié
+        copy_target_client_id: l'identifiant client
+        copy_target_client_secret: le secret client
         copied: Copié dans le presse-papiers.
         copy_failed_html: "La copie n'a pas fonctionné. Réessayez ; si le problème persiste, écrivez à %{email}."
         refused_html: Les identifiants de cet abonnement ne peuvent pas être fournis automatiquement. Écrivez à %{email} en précisant la démarche concernée.

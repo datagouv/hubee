@@ -670,8 +670,8 @@ end
 
 Alors("il voit les identifiants masqués, jamais en entier") do
   within("#subscription-credentials") do
-    expect(page).to have_css("code", text: "#{@client_id.first(4)}••••••••")
-    expect(page).to have_css("code", text: "#{@client_secret.first(4)}••••••••")
+    expect(page).to have_field("Identifiant client (client_id)", with: "#{@client_id.first(4)}••••••••", readonly: true)
+    expect(page).to have_field("Secret client (client_secret)", with: "#{@client_secret.first(4)}••••••••", readonly: true)
     expect(page).to have_no_text(@client_id)
     expect(page).to have_no_text(@client_secret)
     # Aucune issue de copie avant le clic.
@@ -681,10 +681,38 @@ Alors("il voit les identifiants masqués, jamais en entier") do
 end
 
 # Le presse-papiers réel du navigateur, relu avec la permission que Chrome réserve à la lecture.
+module ClipboardWorld
+  def clipboard_text
+    page.driver.browser.execute_cdp("Browser.grantPermissions",
+      permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"], origin: Capybara.current_session.server.base_url)
+    page.evaluate_async_script("navigator.clipboard.readText().then(arguments[0])")
+  end
+end
+World(ClipboardWorld)
+
 Alors("le secret entier est dans son presse-papiers") do
-  page.driver.browser.execute_cdp("Browser.grantPermissions",
-    permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"], origin: Capybara.current_session.server.base_url)
-  expect(page.evaluate_async_script("navigator.clipboard.readText().then(arguments[0])")).to eq(@client_secret)
+  expect(clipboard_text).to eq(@client_secret)
+end
+
+Alors("l'identifiant client entier est dans son presse-papiers") do
+  expect(clipboard_text).to eq(@client_id)
+end
+
+# La confirmation là où l'œil regarde, le temps de la lire.
+Alors("le bouton {string} confirme la copie, puis revient à son libellé") do |label|
+  expect(page).to have_button(label.sub("Copier", "Copié"), class: "fr-icon-check-line")
+  expect(page).to have_button(label, class: "fr-icon-clipboard-line", wait: 5)
+end
+
+# Le DSFR espace le premier message d'un champ (1rem) : un message affiché qui ne serait pas le
+# premier de sa zone perdrait cette marge.
+Alors("le message est espacé du champ comme le prévoit le DSFR") do
+  message = page.find("#subscription-credentials .fr-messages-group .fr-message")
+  expect(page.evaluate_script("getComputedStyle(arguments[0]).marginTop", message)).to eq("16px")
+end
+
+Alors("il ne lit qu'une fois {string}") do |text|
+  expect(page).to have_text(text, count: 1)
 end
 
 Alors("il lit {string}") do |text|
