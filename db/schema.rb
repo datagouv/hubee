@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_18_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_18_100100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -203,6 +203,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_18_100000) do
     t.uuid "membership_id"
     t.string "organization_label"
     t.text "provider_id_token", null: false
+    t.datetime "reauthenticated_at"
+    t.string "reauthenticated_for"
+    t.datetime "reauthentication_consumed_at"
     t.datetime "updated_at", null: false
     t.index ["created_at"], name: "index_provider_sessions_on_created_at"
     t.index ["membership_id"], name: "index_provider_sessions_on_membership_id"
