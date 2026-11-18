@@ -32,9 +32,10 @@ module Portail
 
     def create
       # Même adresse de retour pour la réauthentification d'un agent déjà connecté : ProConnect n'en
-      # connaît qu'une. Un parcours abandonné ou expiré n'est pas en cours, la connexion suit son cours.
+      # connaît qu'une. Seul le retour de la connexion lancée par la réauthentification la conclut ;
+      # tout autre suit le parcours ordinaire.
       pending = pending_reauthentication
-      return complete_reauthentication(pending) if pending
+      return complete_reauthentication(pending) if reauthentication_callback?(pending)
 
       # Les refus ProConnect arrivent en paramètre ; enchaîner l'échange du code
       # échouerait plus loin sous un motif trompeur.
@@ -153,6 +154,11 @@ module Portail
         acr: result&.claims&.dig(:acr), amr: Array(result&.claims&.dig(:amr)),
         agent_id: current_agent.id, membership_id: current_membership.id
       ))
+    end
+
+    def reauthentication_callback?(pending)
+      pending.present? && pending["state"].present? && params[:state].present? &&
+        ActiveSupport::SecurityUtils.secure_compare(pending["state"], params[:state])
     end
 
     # Comparaison à temps constant, et consommation : un `state` ne vaut qu'un aller-retour.

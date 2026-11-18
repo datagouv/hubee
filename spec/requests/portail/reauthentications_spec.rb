@@ -86,6 +86,8 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       expect(response).to redirect_to("https://proconnect.test/api/v2/authorize")
       expect(session[:proconnect_state]).to eq(ProConnectTestHelper::STATE)
       expect(session[:proconnect_nonce]).to eq(ProConnectTestHelper::NONCE)
+      # Seule la connexion lancée ici conclura la réauthentification.
+      expect(session[:reauthentication]["state"]).to eq(ProConnectTestHelper::STATE)
     end
 
     it "does not demand a second factor from a member who needs none" do
@@ -192,12 +194,27 @@ RSpec.describe "Portail::Reauthentications", type: :request do
         reason: "reauthentication_aborted", agent_id: agent.id)
     end
 
-    it "keeps the session on an invalid state" do
+    # Un retour qui ne porte pas le `state` de la connexion lancée au retour de déconnexion n'est
+    # pas celui de la réauthentification : il suit le parcours ordinaire, qui le refuse.
+    it "keeps the session and grants nothing on an invalid state" do
       reauthenticate(purpose:, return_to:, params: {state: "forged-state"})
 
-      expect(response).to redirect_to(return_to)
-      expect(granted_session.reauthenticated_at).to be_nil
-      expect(AccessDecision.last.reason).to eq("reauthentication_aborted")
+      expect(response).to redirect_to(auth_failure_path)
+      expect(granted_session).to have_attributes(id: session[:provider_session_id], reauthenticated_at: nil)
+    end
+
+    # Le chemin le plus court pour qui voudrait éviter la déconnexion : lancer une connexion
+    # ordinaire pendant qu'une réauthentification attend. Elle ne prouve rien.
+    it "does not take an authorization it did not launch as a reauthentication" do
+      allow(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
+        .and_return("https://proconnect.test/api/v2/session/end")
+      post reauthentication_path, params: {purpose:, return_to:}
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
+
+      proconnect_callback
+
+      expect(ProviderSession.granted.sole.reauthenticated_at).to be_nil
+      expect(AccessDecision.where(kind: "reauthentication")).to be_empty
     end
 
     it "keeps the session when the second factor is missing" do
