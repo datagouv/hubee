@@ -43,18 +43,15 @@ module Portail
 
     private
 
-    # Ce que propose le bloc des identifiants. Il n'ouvre rien : la consultation reste gardée par la
-    # preuve, consommée côté serveur.
+    # Ce que propose le bloc des identifiants, d'après la seule preuve. Il n'ouvre rien : la consultation
+    # reste gardée par la preuve, consommée côté serveur.
     # - :reauthentication_required : le bouton part d'abord vers la réauthentification ;
-    # - :available : une preuve vaut encore, le bouton consulte ;
-    # - :reveal_now : retour de la réauthentification faite pour cet abonnement, la consultation part
-    #   d'elle-même.
+    # - :reveal_now : une preuve vaut pour cet abonnement (retour de ProConnect), la consultation part
+    #   d'elle-même. Consommée, elle ne repart pas au rechargement.
     def credentials_access(subscription)
       purpose = Access::Reauthentication.purpose(:credentials, subscription.id)
-      return :reauthentication_required unless
-        Access::Reauthentication.satisfied?(Current.provider_session, level: :very_sensitive, purpose:)
-
-      (flash[:reauthenticated_for] == purpose) ? :reveal_now : :available
+      reauthenticated = Access::Reauthentication.satisfied?(Current.provider_session, level: :very_sensitive, purpose:)
+      reauthenticated ? :reveal_now : :reauthentication_required
     end
   end
 end

@@ -161,8 +161,6 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       reauthenticate(purpose:, return_to:)
 
       expect(response).to redirect_to(return_to)
-      # Pas de bandeau : la page d'arrivée envoie elle-même l'action demandée, qu'elle reconnaît à son objet.
-      expect(flash[:reauthenticated_for]).to eq(purpose)
       expect(granted_session).to have_attributes(id: session[:provider_session_id], reauthenticated_for: purpose,
         reauthenticated_at: Time.current, provider_id_token: "test-id-token")
       expect(AccessDecision.last).to have_attributes(outcome: "granted", kind: "reauthentication")

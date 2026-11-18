@@ -439,17 +439,15 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         expect(section).not_to have_css("[autofocus]")
       end
 
-      # Une preuve encore valable, sans le retour de réauthentification : le bouton consulte, sans
-      # partir seul.
-      it "offers to obtain the credentials of an API subscription while a reauthentication holds, without reading them" do
+      # La preuve seule décide : tant qu'une preuve vaut pour cet abonnement, la page envoie elle-même
+      # la consultation. Elle ne lit rien : c'est le POST qui consommera la preuve.
+      it "sends the consultation by itself while a proof holds for the subscription, without reading anything" do
         show_detail(access_mode: "api", reauthenticated: true)
 
         expect(response).to have_http_status(:success)
-        expect(section).to have_css(
-          "form[method='post'][action='/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations'] " \
-          "button", text: "Obtenir les identifiants"
-        )
-        expect(section).not_to have_css("[data-controller~='auto-submit']")
+        expect(section).to have_css("form[data-controller~='auto-submit'][method='post']" \
+          "[action='/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations'] " \
+          "button", text: "Obtenir les identifiants")
         expect(section).not_to have_text("vous serez déconnecté de ProConnect")
       end
 
