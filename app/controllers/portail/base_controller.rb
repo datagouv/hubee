@@ -9,6 +9,7 @@ module Portail
       block: -> { render "portail/errors/unsupported_browser", status: :not_acceptable }
 
     include Portail::Authentication
+    include Portail::Reauthentication
     include Pundit::Authorization
 
     layout "portail"
