@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Sessions::Create::CheckSecondFactor do
+RSpec.describe Portail::Shared::CheckSecondFactor do
   subject(:result) { described_class.call(membership:, claims: {acr:, amr:}, step_up_attempted:) }
 
   let(:step_up_attempted) { nil }

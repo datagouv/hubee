@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Sessions::Create::FindMembership do
+RSpec.describe Portail::Shared::FindMembership do
   subject(:result) { described_class.call(agent: agent, siret: "99999999911111") }
 
   let(:agent) { create(:agent) }

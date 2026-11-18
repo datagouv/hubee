@@ -6,9 +6,11 @@ module Portail
       include Interactor::Organizer
 
       # Les deux dernières étapes écrivent : rien ne l'est tant que l'accès n'est pas
-      # acquis, c'est-à-dire tant que FindMembership n'a pas conclu.
-      organize ExchangeCode, VerifyIdToken, CheckAuthenticationLevel, FindAgent,
-        FindMembership, CheckSecondFactor, SyncAgentIdentity, OpenSession
+      # acquis, c'est-à-dire tant que FindMembership n'a pas conclu. Les étapes partagées
+      # le sont avec la réauthentification, qui juge le même retour ProConnect.
+      organize Shared::ExchangeCode, Shared::VerifyIdToken, Shared::CheckAuthenticationLevel,
+        Shared::FindAgent, Shared::FindMembership, Shared::CheckSecondFactor,
+        SyncAgentIdentity, OpenSession
     end
   end
 end

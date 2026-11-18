@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Sessions::Create::ExchangeCode do
+RSpec.describe Portail::Shared::ExchangeCode do
   it "unpacks what ProConnect returned into the context" do
     expect(Portail::ProConnect::Client).to receive(:exchange).with(code: "the-code").and_return(
       Portail::ProConnect::Client::Tokens.new(

@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Sessions::Create::VerifyIdToken do
+RSpec.describe Portail::Shared::VerifyIdToken do
   subject(:result) { described_class.call(id_token: "raw-token", nonce: "nonce-1") }
 
   around do |example|
