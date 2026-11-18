@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Reauthentications::Create::AdoptIdToken do
+RSpec.describe Portail::Reauthentications::Complete::AdoptIdToken do
   # Les niveaux restent ceux de la session tant que la réauthentification n'a pas abouti : un retour
   # sans second facteur ferait sinon éjecter l'administrateur local à la requête suivante.
   # Le `sid` suit le jeton : la réauthentification suivante doit en présenter un autre que celui de

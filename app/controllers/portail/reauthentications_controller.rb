@@ -13,18 +13,15 @@ module Portail
     # ou celle de son fournisseur d'identité, ne doit pas suffire à la reconnexion qui suit.
     def create
       return_to = local_path(params[:return_to])
+      logout_url = reauthentication_logout_url
+      # ProConnect injoignable : rien n'a été fermé, l'agent retrouve sa page.
+      return redirect_to(return_to, alert: t("portail.reauthentications.failed")) if logout_url.nil?
+
       session[:reauthentication] = {
         "purpose" => params.require(:purpose).to_s.first(PURPOSE_MAX_LENGTH), "return_to" => return_to,
         "provider_session_id" => Current.provider_session.id, "started_at" => Time.current.to_i
       }
-
-      redirect_to Portail::ProConnect::Client.reauthentication_logout_url(
-        id_token: Current.provider_session.provider_id_token
-      ), allow_other_host: true
-    rescue Portail::ProConnect::Client::Unavailable
-      # Rien n'a été fermé : l'agent retrouve sa page.
-      session.delete(:reauthentication)
-      redirect_to return_to, alert: t("portail.reauthentications.failed")
+      redirect_to logout_url, allow_other_host: true
     end
 
     # Retour de la déconnexion : la connexion relancée par le portail, avec l'adresse et
@@ -45,10 +42,22 @@ module Portail
       # Le `state` de cette connexion, et d'aucune autre : une connexion ordinaire lancée pendant
       # l'attente ne conclut pas la réauthentification. Sans départ, le parcours est abandonné.
       state = session[:proconnect_state]
-      state ? session[:reauthentication] = pending.merge("state" => state) : session.delete(:reauthentication)
+      if state
+        session[:reauthentication] = pending.merge("state" => state)
+      else
+        session.delete(:reauthentication)
+      end
     end
 
     private
+
+    # Le seul appel qui peut échouer, isolé : nil quand ProConnect ne répond pas.
+    def reauthentication_logout_url
+      Portail::ProConnect::Client.reauthentication_logout_url(id_token: Current.provider_session.provider_id_token)
+    rescue Portail::ProConnect::Client::Unavailable => e
+      Rails.logger.error("ProConnect indisponible", e)
+      nil
+    end
 
     # Un chemin, jamais une URL : sinon redirection arbitraire vers un autre site.
     def local_path(candidate)
