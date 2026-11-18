@@ -10,6 +10,7 @@ class AccessDecision < ApplicationRecord
 
   # === Enums ===
   enum :outcome, {granted: "granted", denied: "denied"}, validate: true
+  enum :kind, {sign_in: "sign_in", reauthentication: "reauthentication"}, validate: true
 
   # === Scopes ===
   scope :expired, -> { where(created_at: ..RETENTION.ago) }

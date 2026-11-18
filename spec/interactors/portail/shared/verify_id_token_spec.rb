@@ -34,6 +34,18 @@ RSpec.describe Portail::Shared::VerifyIdToken do
     end
   end
 
+  # Le refus est tracé par l'étape elle-même : il doit dire de quel parcours il vient.
+  context "when the token is rejected during a reauthentication" do
+    it "tags the invalid-token decision with the kind of the flow" do
+      expect(Portail::ProConnect::TokenVerifier).to receive(:call)
+        .and_raise(Portail::ProConnect::TokenVerifier::InvalidToken)
+
+      described_class.call(id_token: "raw-token", nonce: "nonce-1", kind: :reauthentication)
+
+      expect(AccessDecision.last).to have_attributes(outcome: "denied", reason: "invalid_token", kind: "reauthentication")
+    end
+  end
+
   # Vérifier la signature suppose d'aller chercher les clés publiques : ProConnect muet,
   # on ne peut rien imputer à l'agent — c'est une panne, pas un refus.
   context "when ProConnect cannot be reached" do
