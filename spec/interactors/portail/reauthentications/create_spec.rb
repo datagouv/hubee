@@ -11,7 +11,9 @@ RSpec.describe Portail::Reauthentications::Create do
   let(:agent) { create(:agent, provider_sub: "sub-agent", email: "agent@example.gouv.fr") }
   let(:link) { create(:organization_link, siret: "99999999911111") }
   let(:membership) { create(:membership, agent:, organization_link: link, role: "local_administrator") }
-  let(:provider_session) { create(:provider_session, membership:, provider_id_token: "old-token", acr: "eidas1-mfa") }
+  let(:provider_session) do
+    create(:provider_session, membership:, provider_id_token: "old-token", provider_sid: "sid-sign-in", acr: "eidas1-mfa")
+  end
 
   around do |example|
     original_client_id = ENV["PROCONNECT_CLIENT_ID"]
@@ -22,13 +24,13 @@ RSpec.describe Portail::Reauthentications::Create do
   end
 
   def proconnect_returns(sub: "sub-agent", email: "agent@example.gouv.fr", siret: "99999999911111",
-    acr: "eidas1-mfa", amr: ["mfa"])
+    acr: "eidas1-mfa", amr: ["mfa"], sid: "sid-reauthentication")
     expect(Portail::ProConnect::Client).to receive(:exchange).with(code: "the-code").and_return(
       Portail::ProConnect::Client::Tokens.new(id_token: "new-token",
         info: Portail::ProConnect::Client::Info.new(email:, first_name: "Alex", last_name: "Martin"),
         siret:, idp_id: "idp-1", organization_label: "Mairie de Test")
     )
-    expect(Portail::ProConnect::TokenVerifier).to receive(:call).and_return(sub:, amr:, acr:)
+    expect(Portail::ProConnect::TokenVerifier).to receive(:call).and_return(sub:, amr:, acr:, sid:)
   end
 
   before { freeze_time }
@@ -39,6 +41,14 @@ RSpec.describe Portail::Reauthentications::Create do
     expect(result).to be_success
     expect(provider_session.reload).to have_attributes(reauthenticated_at: Time.current,
       reauthenticated_for: "credentials:42", provider_id_token: "new-token", acr: "eidas1-mfa", amr: ["mfa"])
+  end
+
+  # Le collègue qui empêche la déconnexion revient par la session ProConnect de l'agent, encore ouverte.
+  it "fails without adopting anything when ProConnect reused the session of the sign-in" do
+    proconnect_returns(sid: "sid-sign-in")
+
+    expect(result.error).to eq(:reauthentication_without_logout)
+    expect(provider_session.reload).to have_attributes(provider_id_token: "old-token", reauthenticated_at: nil)
   end
 
   # ProConnect attribue un `sub` par fournisseur d'identité : en changer est légitime.

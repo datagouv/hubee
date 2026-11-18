@@ -25,7 +25,8 @@ RSpec.describe Portail::ProConnect::TokenVerifier do
       nonce: "nonce-123",
       sub: "sub-xyz",
       amr: ["pwd", "mfa"],
-      acr: "eidas1"
+      acr: "eidas1",
+      sid: "sid-abc"
     }.merge(overrides)
 
     jwt = JSON::JWT.new(claims)
@@ -46,8 +47,17 @@ RSpec.describe Portail::ProConnect::TokenVerifier do
     context "with a valid, well-signed token" do
       let(:id_token) { signed_id_token }
 
-      it "returns the sub, the authentication methods and the level from the verified id_token" do
-        expect(result).to eq(sub: "sub-xyz", amr: ["pwd", "mfa"], acr: "eidas1")
+      it "returns the sub, the authentication methods, the level and the ProConnect session from the verified id_token" do
+        expect(result).to eq(sub: "sub-xyz", amr: ["pwd", "mfa"], acr: "eidas1", sid: "sid-abc")
+      end
+    end
+
+    # Le jugement d'un `sid` absent appartient à qui s'en sert : la connexion s'en passe.
+    context "without a ProConnect session identifier" do
+      let(:id_token) { signed_id_token(sid: nil) }
+
+      it "returns a nil sid" do
+        expect(result[:sid]).to be_nil
       end
     end
 

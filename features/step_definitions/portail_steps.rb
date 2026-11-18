@@ -27,8 +27,10 @@ end
       siret: E2E_SIRET, idp_id: nil, organization_label: "Mairie de Test"
     )
   )
-  allow(Portail::ProConnect::TokenVerifier).to receive(:call)
-    .and_return(sub: @agent.provider_sub, amr: ["mfa"], acr: "eidas1")
+  # Un `sid` neuf à chaque connexion : ProConnect en ouvre un après chaque déconnexion.
+  allow(Portail::ProConnect::TokenVerifier).to receive(:call) do
+    {sub: @agent.provider_sub, amr: ["mfa"], acr: "eidas1", sid: "sid-#{SecureRandom.hex(4)}"}
+  end
   # La déconnexion revient chez nous plutôt que de partir vers un ProConnect inexistant.
   allow(Portail::ProConnect::Client).to receive(:logout_url).and_return("/")
 end

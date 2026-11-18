@@ -112,8 +112,8 @@ module Portail
 
     private
 
-    # Conclut une réauthentification. Seul un autre rattachement ferme la session : un abandon, un
-    # refus de ProConnect ou une panne ne disent rien de qui est au poste.
+    # Conclut une réauthentification. Seuls un autre rattachement, ou une déconnexion évitée, ferment
+    # la session : un abandon, un refus de ProConnect ou une panne ne disent rien de qui est au poste.
     def complete_reauthentication(pending)
       session.delete(:reauthentication)
       return_to = pending["return_to"]
@@ -129,14 +129,21 @@ module Portail
       if result.success?
         redirect_to return_to, notice: t("portail.reauthentications.verified")
       elsif REAUTHENTICATION_MISMATCHES.include?(result.error)
-        trace_reauthentication_refusal(:reauthentication_mismatch, result)
-        terminate_session
-        redirect_to root_path, alert: t("portail.reauthentications.mismatch")
+        close_after_reauthentication(:reauthentication_mismatch, result, alert: t("portail.reauthentications.mismatch"))
+      elsif result.error == :reauthentication_without_logout
+        # La déconnexion a été évitée : quelqu'un au poste a pu empêcher la redirection.
+        close_after_reauthentication(result.error, result, alert: t("portail.reauthentications.without_logout"))
       else
         # Un jeton invalide est déjà tracé par sa vérification ; une panne n'est imputable à personne.
         reauthentication_failed(return_to, reason: result.error, result:,
           traced: !%i[invalid_token provider_unavailable].include?(result.error))
       end
+    end
+
+    def close_after_reauthentication(reason, result, alert:)
+      trace_reauthentication_refusal(reason, result)
+      terminate_session
+      redirect_to root_path, alert:
     end
 
     def reauthentication_failed(return_to, reason:, result: nil, traced: true)

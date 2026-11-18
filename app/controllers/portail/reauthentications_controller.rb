@@ -34,14 +34,18 @@ module Portail
       pending = pending_reauthentication
       return redirect_to root_path if pending.nil?
 
+      session.delete(:proconnect_state)
       depart_for_proconnect(
         step_up: Access::SecondFactor.required_for?(current_membership),
         login_hint: current_agent.email,
-        siret_hint: current_membership.organization_link.siret
+        siret_hint: current_membership.organization_link.siret,
+        # ProConnect injoignable : l'agent, toujours connecté, retrouve sa page.
+        unavailable_path: pending["return_to"], unavailable_alert: t("portail.reauthentications.failed")
       )
       # Le `state` de cette connexion, et d'aucune autre : une connexion ordinaire lancée pendant
-      # l'attente ne conclut pas la réauthentification.
-      session[:reauthentication] = pending.merge("state" => session[:proconnect_state])
+      # l'attente ne conclut pas la réauthentification. Sans départ, le parcours est abandonné.
+      state = session[:proconnect_state]
+      state ? session[:reauthentication] = pending.merge("state" => state) : session.delete(:reauthentication)
     end
 
     private
