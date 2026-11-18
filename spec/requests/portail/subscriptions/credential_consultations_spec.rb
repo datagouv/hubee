@@ -316,7 +316,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
       expect(Capybara.string(response.body))
         .to have_css("turbo-stream[action='replace'][target='subscription-credentials']", visible: :all)
       expect(page).to have_css("form[action='/connexion/reauthentification'][data-turbo='false'] button",
-        text: "Vérifier mon identité avec ProConnect")
+        text: "Obtenir les identifiants")
       expect(page).to have_css("input[name='purpose'][value='credentials:#{id}']", visible: :all)
       expect(page).to have_css("input[name='return_to'][value='/abonnements/#{id}']", visible: :all)
     end

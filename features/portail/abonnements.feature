@@ -30,15 +30,14 @@ Fonctionnalité: Les abonnements de la structure
     Alors il obtient une page introuvable
 
   # Les identifiants ne s'affichent jamais en entier : de quoi les reconnaître, et la copie. Leur
-  # consultation est très sensible : l'administrateur vérifie d'abord son identité avec ProConnect.
+  # consultation est très sensible : le clic passe d'abord par une réauthentification ProConnect,
+  # puis la consultation part d'elle-même au retour.
   @javascript
   Scénario: L'administrateur local copie le secret d'un abonnement API sans le voir
     Étant donné il est administrateur local habilité sur le seul flux "CERTDC"
     Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
     Et il s'est connecté
     Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
-    Et il clique sur "Vérifier mon identité avec ProConnect"
-    Et il lit "Identité vérifiée."
     Et il clique sur "Obtenir les identifiants"
     Alors il voit les identifiants masqués, jamais en entier
     Quand il clique sur "Copier le secret client"
@@ -56,9 +55,10 @@ Fonctionnalité: Les abonnements de la structure
     Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
     Et il s'est connecté
     Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
-    Et il clique sur "Vérifier mon identité avec ProConnect"
-    Et il lit "Identité vérifiée."
     Et il clique sur "Obtenir les identifiants"
+    # La réauthentification recharge la page : la copie ne peut être refusée qu'une fois les
+    # identifiants affichés.
+    Et il lit "Pour votre sécurité, seuls les 4 premiers caractères sont affichés."
     Et son navigateur refuse la copie
     Et il clique sur "Copier le secret client"
     Alors il lit "La copie n'a pas fonctionné. Réessayez ; si le problème persiste, écrivez à support@hubee.numerique.gouv.fr."

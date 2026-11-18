@@ -420,18 +420,23 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         get path
       end
 
-      # Très sensible : sans réauthentification récente, la page propose d'abord de la faire.
-      it "offers to verify the agent's identity before revealing credentials" do
+      # Très sensible : sans réauthentification récente, le même bouton part d'abord la faire, hors
+      # Turbo, la réponse quittant le domaine vers ProConnect.
+      it "sends the agent to reauthenticate first when obtaining the credentials, warning of the logout" do
         show_detail(access_mode: "api")
 
         expect(response).to have_http_status(:success)
         expect(section).to have_css("form[method='post'][action='/connexion/reauthentification'][data-turbo='false'] " \
-          "button", text: "Vérifier mon identité avec ProConnect")
+          "button", text: "Obtenir les identifiants")
+        expect(section).to have_css("input[name='purpose'][value='#{credentials_purpose}']",
+          visible: :all)
         expect(section).to have_text("vous serez déconnecté de ProConnect, y compris de vos autres services")
-        expect(section).not_to have_button("Obtenir les identifiants")
+        expect(section).to have_text("Chaque accès est enregistré à votre nom.")
       end
 
-      it "offers to obtain the credentials of an API subscription right after a reauthentication, without reading them" do
+      # Une preuve encore valable, sans le retour de réauthentification : le bouton consulte, sans
+      # partir seul.
+      it "offers to obtain the credentials of an API subscription while a reauthentication holds, without reading them" do
         show_detail(access_mode: "api", reauthenticated: true)
 
         expect(response).to have_http_status(:success)
@@ -439,8 +444,26 @@ RSpec.describe "Portail::Subscriptions", type: :request do
           "form[method='post'][action='/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations'] " \
           "button", text: "Obtenir les identifiants"
         )
-        expect(section).to have_text("Identité vérifiée. Vous pouvez obtenir les identifiants pendant 5 minutes.")
-        expect(section).to have_text("Chaque accès est enregistré à votre nom.")
+        expect(section).not_to have_css("[data-controller~='auto-submit']")
+        expect(section).not_to have_text("vous serez déconnecté de ProConnect")
+      end
+
+      # Au retour de la réauthentification, la consultation part d'elle-même : un seul clic pour
+      # l'agent. Toujours le POST protégé par le jeton CSRF, jamais le secret dans cette page.
+      it "sends the consultation by itself right after the reauthentication" do
+        agent = sign_in_local_administrator
+        mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
+        reauthenticate(purpose: credentials_purpose, return_to: path)
+        expect(Portail::HubAPI::Subscriptions).to receive(:find)
+          .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode: "api")))
+        expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+
+        follow_redirect!
+
+        expect(response).to have_http_status(:success)
+        expect(page).not_to have_text("Identité vérifiée")
+        expect(section).to have_css("form[data-controller~='auto-submit'][method='post']" \
+          "[action='/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations']")
       end
 
       # Le rôle seul ouvre les identifiants : l'habilitation n'y change rien. Un membre n'atteint pas
