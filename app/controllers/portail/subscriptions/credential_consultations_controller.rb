@@ -8,7 +8,6 @@ module Portail
     class CredentialConsultationsController < Portail::BaseController
       # Un membre n'a pas à faire appeler l'amont pour une 404.
       before_action :require_local_administrator
-      # Le bouton passe par Turbo : une autre requête ne crée pas de consultation.
       before_action :require_turbo_stream
 
       FAILURE_STATUSES = {refused: :conflict, unavailable: :service_unavailable}.freeze

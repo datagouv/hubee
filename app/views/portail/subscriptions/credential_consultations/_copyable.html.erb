@@ -1,11 +1,6 @@
 <%# locals: (key:, label:, target:, value:) -%>
-<%# Un identifiant masqué, copié en entier au clic : le motif DSFR « champ + bouton d'action ». Le champ
-    en lecture seule ne montre que le début ; la valeur entière ne vit que dans l'attribut que lit le
-    contrôleur `clipboard`. Les deux issues de la copie sont écrites ici, dans des <template>, et le
-    script insère la bonne dans la zone de messages, vide au départ comme dans l'exemple DSFR : le
-    message affiché y est toujours le premier, celui que le DSFR espace du champ, et une insertion
-    dans une zone `aria-live` est annoncée plus sûrement qu'un contenu qu'on dévoile. Le texte
-    d'échec tient dans un <span>, sans quoi chaque morceau autour du lien serait un élément flex. %>
+<%# La valeur entière ne vit que dans l'attribut lu par le contrôleur `clipboard`. Les messages sont
+    des <template> insérés dans une zone vide : le DSFR n'espace que le premier message d'un champ. %>
 <% id = "subscription-credentials-#{key}" %>
 <div class="fr-input-group" data-controller="clipboard" data-clipboard-text-value="<%= value %>"
      data-clipboard-done-label-value="<%= t("portail.subscriptions.credentials.copy_done") %>"
@@ -27,6 +22,7 @@
   </template>
   <template data-clipboard-target="failed">
     <p class="fr-message fr-message--error">
+      <%# Sans <span>, chaque morceau autour du lien serait un élément flex à part. %>
       <span><%= t("portail.subscriptions.credentials.copy_failed_html", email: mail_to(support_email)) %></span>
     </p>
   </template>
