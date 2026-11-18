@@ -27,6 +27,12 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     Nokogiri::HTML5.fragment(response.body).css("template[data-clipboard-target='#{target}'] #{message}").map { it.text.squish }
   end
 
+  # Dans ce fichier, l'administrateur local vient de vérifier son identité pour cet abonnement : la
+  # consultation est très sensible. Les exemples de « reauthentication » éprouvent le garde lui-même.
+  def sign_in_local_administrator(...)
+    super.tap { grant_reauthentication(purpose: "credentials:#{id}") }
+  end
+
   def serve_detail(access_mode: "api", trait: nil)
     subscription = build(:portail_subscription, *trait, access_mode:)
     allow(Portail::HubAPI::Subscriptions).to receive(:find).and_return(build(:portail_subscription_detail, subscription:))
@@ -290,5 +296,51 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     logged = events.map { |event| [event.message, event.payload, event.exception].inspect }.join
     expect(logged).to include("ActiveRecord::RecordInvalid")
     expect(logged).not_to include(secret_value)
+  end
+
+  describe "reauthentication" do
+    def sign_in_without_proof
+      agent = create(:agent, provider_sub: "sub-admin")
+      sign_in_via_proconnect(agent:)
+      Membership.find_by!(agent:).update!(role: "local_administrator")
+    end
+
+    it "asks for a reauthentication without a proof, before reading anything upstream" do
+      sign_in_without_proof
+      expect(Portail::HubAPI::Subscriptions).not_to receive(:find)
+      expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+
+      expect { reveal }.not_to change(Event, :count)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(Capybara.string(response.body))
+        .to have_css("turbo-stream[action='replace'][target='subscription-credentials']", visible: :all)
+      expect(page).to have_css("form[action='/connexion/reauthentification'][data-turbo='false'] button",
+        text: "Vérifier mon identité avec ProConnect")
+      expect(page).to have_css("input[name='purpose'][value='credentials:#{id}']", visible: :all)
+      expect(page).to have_css("input[name='return_to'][value='/abonnements/#{id}']", visible: :all)
+    end
+
+    it "consumes the proof: a second consultation asks again" do
+      sign_in_local_administrator
+      serve_detail
+      serve_credentials
+
+      reveal
+      expect(response).to have_http_status(:success)
+
+      reveal
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "refuses a proof obtained for another subscription" do
+      sign_in_without_proof
+      grant_reauthentication(purpose: "credentials:another-subscription")
+      expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+
+      reveal
+
+      expect(response).to have_http_status(:forbidden)
+    end
   end
 end

@@ -410,6 +410,9 @@ fr:
         heading: Identifiants de connexion à l'API
         lead: Votre logiciel s'en sert pour se connecter à l'API HubEE au titre de cet abonnement. Ne les communiquez qu'aux personnes chargées de ce logiciel.
         reveal: Obtenir les identifiants
+        verify: Vérifier mon identité avec ProConnect
+        verify_lead: "Pour les obtenir, confirmez votre identité : vous serez déconnecté de ProConnect, y compris de vos autres services, puis invité à vous reconnecter."
+        verified: Identité vérifiée. Vous pouvez obtenir les identifiants pendant 5 minutes.
         audited: Chaque accès est enregistré à votre nom.
         client_id: Identifiant client (client_id)
         client_secret: Secret client (client_secret)

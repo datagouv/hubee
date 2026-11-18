@@ -24,7 +24,7 @@ module Portail
         # Sans effet de bord : pour savoir quoi proposer à l'agent. Le garde d'une action très
         # sensible passe par `consume!`.
         def satisfied?(provider_session, level:, purpose:)
-          reauthenticated_at = provider_session&.reauthenticated_at
+          reauthenticated_at = provider_session.reauthenticated_at
           return false if reauthenticated_at.nil? || reauthenticated_at <= WINDOWS.fetch(level).ago
           return true if level == :sensitive
 

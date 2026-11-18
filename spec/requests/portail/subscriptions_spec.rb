@@ -407,8 +407,12 @@ RSpec.describe "Portail::Subscriptions", type: :request do
 
       def section = page.find(:xpath, %(//section[h2[normalize-space(.)="Identifiants de connexion à l'API"]]))
 
-      def show_detail(access_mode:, data_stream_codes: ["CERTDC"])
+      # Construit, jamais écrit en dur : « credentials:<uuid> » ressemble à un secret (GitGuardian).
+      def credentials_purpose = Portail::Access::Reauthentication.purpose(:credentials, path.split("/").last)
+
+      def show_detail(access_mode:, data_stream_codes: ["CERTDC"], reauthenticated: false)
         sign_in_local_administrator(data_stream_codes:)
+        grant_reauthentication(purpose: credentials_purpose) if reauthenticated
         expect(Portail::HubAPI::Subscriptions).to receive(:find)
           .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode:)))
         expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
@@ -416,21 +420,33 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         get path
       end
 
-      it "offers to obtain the credentials of an API subscription, without reading them" do
+      # Très sensible : sans réauthentification récente, la page propose d'abord de la faire.
+      it "offers to verify the agent's identity before revealing credentials" do
         show_detail(access_mode: "api")
+
+        expect(response).to have_http_status(:success)
+        expect(section).to have_css("form[method='post'][action='/connexion/reauthentification'][data-turbo='false'] " \
+          "button", text: "Vérifier mon identité avec ProConnect")
+        expect(section).to have_text("vous serez déconnecté de ProConnect, y compris de vos autres services")
+        expect(section).not_to have_button("Obtenir les identifiants")
+      end
+
+      it "offers to obtain the credentials of an API subscription right after a reauthentication, without reading them" do
+        show_detail(access_mode: "api", reauthenticated: true)
 
         expect(response).to have_http_status(:success)
         expect(section).to have_css(
           "form[method='post'][action='/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations'] " \
           "button", text: "Obtenir les identifiants"
         )
+        expect(section).to have_text("Identité vérifiée. Vous pouvez obtenir les identifiants pendant 5 minutes.")
         expect(section).to have_text("Chaque accès est enregistré à votre nom.")
       end
 
       # Le rôle seul ouvre les identifiants : l'habilitation n'y change rien. Un membre n'atteint pas
       # le détail (voir « reading perimeter »).
       it "offers the same to a local administrator without habilitation" do
-        show_detail(access_mode: "api", data_stream_codes: [])
+        show_detail(access_mode: "api", data_stream_codes: [], reauthenticated: true)
 
         expect(response).to have_http_status(:success)
         expect(section).to have_button("Obtenir les identifiants")

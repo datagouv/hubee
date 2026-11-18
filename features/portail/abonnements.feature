@@ -29,13 +29,16 @@ Fonctionnalité: Les abonnements de la structure
     Quand il ouvre directement l'adresse des abonnements
     Alors il obtient une page introuvable
 
-  # Les identifiants ne s'affichent jamais en entier : de quoi les reconnaître, et la copie.
+  # Les identifiants ne s'affichent jamais en entier : de quoi les reconnaître, et la copie. Leur
+  # consultation est très sensible : l'administrateur vérifie d'abord son identité avec ProConnect.
   @javascript
   Scénario: L'administrateur local copie le secret d'un abonnement API sans le voir
     Étant donné il est administrateur local habilité sur le seul flux "CERTDC"
     Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
     Et il s'est connecté
     Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
+    Et il clique sur "Vérifier mon identité avec ProConnect"
+    Et il lit "Identité vérifiée."
     Et il clique sur "Obtenir les identifiants"
     Alors il voit les identifiants masqués, jamais en entier
     Quand il clique sur "Copier le secret client"
@@ -53,6 +56,8 @@ Fonctionnalité: Les abonnements de la structure
     Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
     Et il s'est connecté
     Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
+    Et il clique sur "Vérifier mon identité avec ProConnect"
+    Et il lit "Identité vérifiée."
     Et il clique sur "Obtenir les identifiants"
     Et son navigateur refuse la copie
     Et il clique sur "Copier le secret client"

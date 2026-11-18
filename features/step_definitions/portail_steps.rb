@@ -33,6 +33,9 @@ end
   end
   # La déconnexion revient chez nous plutôt que de partir vers un ProConnect inexistant.
   allow(Portail::ProConnect::Client).to receive(:logout_url).and_return("/")
+  # Celle d'une réauthentification revient sur son adresse dédiée, qui relance la connexion simulée.
+  allow(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
+    .and_return("/connexion/proconnect/reauthentification")
 end
 
 Étantdonné("il s'est connecté") do
