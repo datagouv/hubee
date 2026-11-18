@@ -2,7 +2,7 @@
 
 module Portail
   module Reauthentications
-    class Create
+    class Complete
       # Le portail ne voit pas la déconnexion ProConnect : il redirige le navigateur, qui peut ne pas
       # suivre. ProConnect, lui, ouvre une nouvelle session après une déconnexion, avec un nouveau
       # `sid`. Le même `sid` qu'avant prouve que la connexion a réutilisé la session déjà ouverte,

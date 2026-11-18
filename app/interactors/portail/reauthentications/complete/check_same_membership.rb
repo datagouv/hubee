@@ -2,7 +2,7 @@
 
 module Portail
   module Reauthentications
-    class Create
+    class Complete
       # L'agent est résolu comme à la connexion, par `sub` sinon par adresse, et le rattachement par
       # le SIRET : c'est ce rattachement, et aucun autre, qui doit être celui de la session.
       class CheckSameMembership

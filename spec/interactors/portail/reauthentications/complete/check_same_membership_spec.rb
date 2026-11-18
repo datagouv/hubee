@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Reauthentications::Create::CheckSameMembership do
+RSpec.describe Portail::Reauthentications::Complete::CheckSameMembership do
   let(:provider_session) { create(:provider_session) }
 
   it "passes when ProConnect authenticated the session's membership" do

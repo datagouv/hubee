@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Reauthentications::Create::RecordProof do
+RSpec.describe Portail::Reauthentications::Complete::RecordProof do
   it "records the proof for the purpose" do
     freeze_time
     provider_session = create(:provider_session)

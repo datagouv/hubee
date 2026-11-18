@@ -2,7 +2,7 @@
 
 module Portail
   module Reauthentications
-    class Create
+    class Complete
       # L'ancien id_token correspond à la session ProConnect fermée au départ de la réauthentification ;
       # le `sid` suit le jeton, pour que la réauthentification suivante en exige un autre.
       # Les niveaux, eux, restent ceux de la session jusqu'à la preuve (RecordProof) : un retour sans
