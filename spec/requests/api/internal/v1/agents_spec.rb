@@ -18,10 +18,6 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
     }
   end
 
-  def bearer(application)
-    {"Authorization" => "Bearer #{create(:oauth_access_token, application:).plaintext_token}"}
-  end
-
   def register(body, application: internal_client)
     post "/api/internal/v1/agents", params: body, headers: bearer(application), as: :json
   end
@@ -59,13 +55,15 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
           "last_name" => "Martin",
           "civility" => "ms",
           "membership" => {
+            "id" => Membership.sole.id,
             "siret" => "21750056000016",
             "insee_code" => "75056",
             "role" => "member",
             "job_title" => "Officier d'état civil",
             "phone_number" => "+33123456789",
             "mobile_phone_number" => "+33612345678",
-            "data_stream_codes" => ["CERTDC"]
+            "data_stream_codes" => ["CERTDC"],
+            "last_signed_in_at" => nil
           }
         )
         expect(agent.provider_sub).to be_nil
@@ -121,13 +119,15 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
             "last_name" => "Martin",
             "civility" => nil,
             "membership" => {
+              "id" => Membership.sole.id,
               "siret" => "21750056000016",
               "insee_code" => "75056",
               "role" => "member",
               "job_title" => nil,
               "phone_number" => nil,
               "mobile_phone_number" => nil,
-              "data_stream_codes" => ["CERTDC"]
+              "data_stream_codes" => ["CERTDC"],
+              "last_signed_in_at" => nil
             }
           )
         end
