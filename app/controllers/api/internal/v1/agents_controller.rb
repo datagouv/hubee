@@ -14,8 +14,21 @@ module API
         # Sans quoi Rails envelopperait lui-même un payload qui a oublié la clé `agent`.
         wrap_parameters false
 
-        before_action :authorize_registration
+        # L'autorisation passe avant la recherche : un client sans le droit reçoit 403 même sur un agent inconnu.
+        before_action :authorize_agent
+        before_action :set_agent, only: %i[show]
         rescue_from ActionController::ParameterMissing, with: :missing_envelope
+
+        def index
+          form = AgentSearchForm.new(**search_params)
+          return render json: form.error_details, status: :unprocessable_content unless form.valid?
+
+          pagination = form.pagination
+          @pagy, @agents = pagy(AgentsQuery.new.call(**form.criteria), page: pagination[:page], request: pagination_request(form))
+        end
+
+        def show
+        end
 
         def create
           form = AgentForm.new(**agent_params, **source_info_param)
@@ -31,7 +44,26 @@ module API
 
         private
 
-        def authorize_registration = authorize(:agent, :create?, policy_class: AgentPolicy)
+        # Pundit juge la question de l'action : `index?`, `show?` ou `create?`.
+        def authorize_agent = authorize(:agent, policy_class: AgentPolicy)
+
+        # Les rattachements, leur organisation et leurs flux d'un coup : la représentation les parcourt tous.
+        def set_agent
+          @agent = Agent.includes(memberships: %i[organization_link data_stream_accesses]).find(params[:id])
+        end
+
+        # Lus dans la chaîne de requête seule, bruts : un corps de GET n'a pas à compter, et le filtrage de
+        # Rails écarterait en silence un critère non scalaire, que le form refuse. Un paramètre inconnu est ignoré.
+        def search_params
+          request.query_parameters.slice(*AgentSearchForm::CRITERIA.map(&:to_s), "page", "per_page").symbolize_keys
+        end
+
+        # Pagy relit la taille de page dans les paramètres de sa requête, et en compose les liens de l'en-tête
+        # Link : il reçoit ceux que le form a validés, jamais la requête brute.
+        def pagination_request(form)
+          params = form.criteria.compact.merge(per_page: form.pagination[:limit]).transform_keys(&:to_s)
+          {base_url: request.base_url, path: request.path, params:}
+        end
 
         def agent_params
           params.expect(agent: [

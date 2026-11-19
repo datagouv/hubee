@@ -43,6 +43,18 @@ fr:
   activemodel:
     errors:
       models:
+        api/internal/v1/agent_search_form:
+          attributes:
+            siret:
+              invalid: doit comporter 14 chiffres
+              not_a_string: &not_a_string doit être une chaîne, pas une liste ni un objet
+            insee_code:
+              requires_siret: ne s'emploie qu'avec un SIRET
+              not_a_string: *not_a_string
+            role:
+              not_a_string: *not_a_string
+            search:
+              not_a_string: *not_a_string
         api/internal/v1/agent_form:
           attributes:
             email:

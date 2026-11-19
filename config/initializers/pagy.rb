@@ -4,9 +4,9 @@
 # Default items per page
 Pagy::OPTIONS[:limit] = 50
 
-# Limit configuration (replaces limit_extra and max_limit)
+# Limit configuration (replaces limit_extra)
 Pagy::OPTIONS[:limit_key] = "per_page" # Accept per_page parameter (must be string, not symbol)
-Pagy::OPTIONS[:client_max_limit] = 100 # Maximum items per page allowed
+Pagy::OPTIONS[:max_limit] = 100 # Maximum items per page a client may request
 
 # Overflow handling (now integrated by default)
 # Empty pages served automatically, set raise_range_error: true to restore error-raising

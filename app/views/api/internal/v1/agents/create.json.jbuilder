@@ -2,6 +2,5 @@
 agent = @membership.agent
 json.extract! agent, :id, :email, :first_name, :last_name, :civility
 json.membership do
-  json.extract! @membership.organization_link, :siret, :insee_code
-  json.extract! @membership, :role, :job_title, :phone_number, :mobile_phone_number, :data_stream_codes
+  json.partial! "api/internal/v1/agents/membership", membership: @membership
 end
