@@ -9,6 +9,7 @@ module API
             # Un retrait sans sa trace n'a pas lieu : tout se fait dans une seule transaction.
             class Remove
               include Interactor
+              include TraceMetadata
 
               # Les habilitations et les sessions du rattachement partent par la cascade en base.
               #
@@ -30,12 +31,8 @@ module API
               # l'agent, le SIRET et le code INSEE le désignent encore une fois la ligne disparue.
               def metadata
                 {
-                  api_client: context.api_client.name,
-                  api_client_uid: context.api_client.uid,
-                  request_id: context.request_id,
-                  email: membership.agent.email,
-                  siret: membership.organization_link.siret,
-                  insee_code: membership.organization_link.insee_code,
+                  **actor_metadata,
+                  **membership_reference(membership),
                   role: membership.role,
                   data_stream_codes: membership.data_stream_codes.sort
                 }

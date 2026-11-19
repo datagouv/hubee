@@ -8,6 +8,7 @@ module API
           # Une écriture sans sa trace n'a pas lieu : tout se fait dans une seule transaction.
           class Register
             include Interactor
+            include TraceMetadata
 
             # L'agent existait déjà : l'insertion a rencontré le conflit sans rien écrire, puis il a été
             # supprimé, ou son adresse corrigée, avant d'être relu par son adresse. Une 500 rejouable vaut
@@ -82,9 +83,7 @@ module API
             # Ni nom ni téléphone : l'adresse suffit à désigner l'agent, même après sa suppression.
             def metadata
               {
-                api_client: context.api_client.name,
-                api_client_uid: context.api_client.uid,
-                request_id: context.request_id,
+                **actor_metadata,
                 email: form.email,
                 siret: form.siret,
                 insee_code: form.insee_code,
