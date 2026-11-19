@@ -33,4 +33,25 @@ RSpec.describe API::Internal::V1::AgentPolicy do
       expect(create?).to be(false)
     end
   end
+
+  [
+    [:index?, "internal:agents:read"],
+    [:show?, "internal:agents:read"]
+  ].each do |action, right|
+    describe "##{action}" do
+      let(:client) { create(:oauth_application) }
+
+      it "allows #{action} to a client holding #{right}" do
+        create(:oauth_application_right, oauth_application: client, right:)
+
+        expect(described_class.new(client, :agent).public_send(action)).to be(true)
+      end
+
+      it "refuses #{action} to a client holding only internal:agents:create" do
+        create(:oauth_application_right, oauth_application: client, right: "internal:agents:create")
+
+        expect(described_class.new(client, :agent).public_send(action)).to be(false)
+      end
+    end
+  end
 end

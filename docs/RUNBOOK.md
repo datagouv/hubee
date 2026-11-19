@@ -22,17 +22,21 @@ accorder que les droits dont il a besoin.
 
 | Droit | Opération | Destinataires |
 |-------|-----------|---------------|
-| `internal:agents:create` | `POST /api/internal/v1/agents` | systèmes internes, dont hub-api |
+| `internal:agents:create` | `POST /api/internal/v1/agents` | systèmes internes, dont hub-api ; admin-portal |
+| `internal:agents:read` | lister et consulter les agents | admin-portal |
 
 hub-api ne reçoit que `internal:agents:create`, et aucun autre droit.
-L'enregistrement vérifie chaque code de flux auprès de hub-api. Le droit n'est
-délivré aux systèmes internes, en recette comme en production, qu'une fois
+L'enregistrement vérifie chaque code de flux auprès de hub-api. Ces droits ne
+sont délivrés aux systèmes internes, en recette comme en production, qu'une fois
 `/api/internal` réservé à leurs adresses par le reverse proxy, en amont :
 l'application ne filtre pas par adresse.
 
+Un droit par ligne, `<opération>` valant `create` ou `read` ; admin-portal reçoit
+les deux :
+
     app = Doorkeeper::Application.find_by!(name: "nom-du-client")
-    OauthApplicationRight.create!(oauth_application: app, right: "internal:agents:create")  # accorder
-    OauthApplicationRight.find_by!(oauth_application: app, right: "internal:agents:create").destroy!  # retirer
+    OauthApplicationRight.create!(oauth_application: app, right: "internal:agents:<opération>")  # accorder
+    OauthApplicationRight.find_by!(oauth_application: app, right: "internal:agents:<opération>").destroy!  # retirer
 
 Les droits sont lus à chaque appel : le changement vaut immédiatement, y compris
 pour les jetons déjà délivrés. Un droit hors de `OauthApplicationRight::RIGHTS`

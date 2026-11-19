@@ -14,6 +14,12 @@ RSpec.describe OauthApplicationRight, type: :model do
       expect(build(:oauth_application_right, right: "internal:agents:create")).to be_valid
     end
 
+    %w[read].each do |operation|
+      it "accepts the right to #{operation} agents" do
+        expect(build(:oauth_application_right, right: "internal:agents:#{operation}")).to be_valid
+      end
+    end
+
     it "refuses a right the API does not know, such as a misspelt one" do
       right = build(:oauth_application_right, right: "internal:agents:craete")
 
