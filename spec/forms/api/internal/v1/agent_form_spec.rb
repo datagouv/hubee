@@ -35,6 +35,10 @@ RSpec.describe API::Internal::V1::AgentForm do
       expect(complete).to be_valid
     end
 
+    it "reads a blank job title as absent" do
+      expect(form({}, job_title: "").job_title).to be_nil
+    end
+
     it "requires the identity and the attachment of the agent" do
       empty = described_class.new
 

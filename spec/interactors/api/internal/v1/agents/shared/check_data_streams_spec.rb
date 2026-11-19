@@ -37,10 +37,14 @@ RSpec.describe API::Internal::V1::Agents::Shared::CheckDataStreams do
       ])
     end
 
-    # La garde ne connaît pas la forme de la demande : c'est le form qui dit quels codes vérifier.
+    # La garde ne connaît pas la forme de la demande : c'est le form qui dit quels codes vérifier. Pour une
+    # modification de rattachement, CERTDC, déjà accordé, ne l'est pas.
     it "verifies only the codes the form asks to verify" do
-      stub_hub_api_v2_data_stream(code: "NOUVEAU")
-      form = instance_double(API::Internal::V1::AgentForm, valid_on?: true, data_stream_codes_to_verify: ["NOUVEAU"])
+      membership = create(:membership).tap { create(:data_stream_access, membership: it, data_stream_code: "CERTDC") }
+      form = API::Internal::V1::MembershipUpdateForm.new(membership:, data_stream_codes: ["CERTDC", "NOUVEAU"]).tap(&:validate)
+      client = use_hub_api_fake_client
+      expect(HubApiV1::V2::DataStream).to receive(:find).with(code: "NOUVEAU", client:)
+        .and_return(build_v2_data_stream(code: "NOUVEAU"))
 
       result = described_class.call(form:)
 

@@ -104,6 +104,17 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
         end
       end
 
+      it "stores a blank job title as absent" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+
+        register(payload({}, {job_title: ""}))
+
+        expect(response).to have_http_status(:created)
+        expect(json["membership"]).to include("job_title" => nil)
+        expect(Membership.sole.job_title).to be_nil
+      end
+
       [true, false].each do |asked|
         it "answers the usual body when the invitation is #{asked ? "asked for" : "declined"}" do
           stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
