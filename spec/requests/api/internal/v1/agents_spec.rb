@@ -750,7 +750,7 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
     end
 
     it "answers another method with the JSON 404 of an unknown URL" do
-      get "/api/internal/v1/agents", headers: bearer(internal_client)
+      put "/api/internal/v1/agents/#{SecureRandom.uuid}", headers: bearer(internal_client)
 
       expect(response).to have_http_status(:not_found)
       expect(json).to eq("error" => "not_found", "message" => "Ressource introuvable.")

@@ -87,7 +87,7 @@ Rails.application.routes.draw do
     # Filtrage par adresse fait par le reverse proxy, en amont : l'application n'en fait aucun.
     namespace :internal do
       namespace :v1 do
-        resources :agents, only: %i[show create]
+        resources :agents, only: %i[index show create]
       end
     end
 

@@ -23,11 +23,13 @@ Rails.application.config.filter_parameters += [
 #   phone_number  les téléphones d'un agent, fixe et mobile (`mobile_phone_number`).
 #   first_name, last_name, civility, job_title
 #                 l'identité, la civilité et la fonction d'un agent enregistré par l'API interne.
+#   search        le texte cherché dans la liste des agents de l'API interne : une adresse ou
+#                 un nom d'agent, saisi tel quel.
 #
 # La correspondance est partielle, sauf pour `code` : le code guichet (`insee_code`) et les
 # codes de flux restent lisibles. Ces filtres s'appliquent aussi aux paramètres d'une URL de
 # redirection journalisée.
 Rails.application.config.filter_parameters += [
   /\Acode\z/, :provider_sub, :message, :piece, :nonce, :login_hint, :phone_number,
-  :first_name, :last_name, :civility, :job_title
+  :first_name, :last_name, :civility, :job_title, :search
 ]
