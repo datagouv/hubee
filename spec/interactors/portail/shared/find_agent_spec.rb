@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Portail::Sessions::Create::FindAgent do
+RSpec.describe Portail::Shared::FindAgent do
   subject(:result) do
     described_class.call(
       claims: {sub: "sub-xyz", amr: ["pwd", "mfa"]},
