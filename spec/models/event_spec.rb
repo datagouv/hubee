@@ -65,13 +65,39 @@ RSpec.describe Event, type: :model do
     end
   end
 
+  describe "#inspect with a modification trace" do
+    let(:metadata) do
+      {
+        "email" => "alice@ville.fr",
+        "changes" => {
+          "email" => ["a@ville.fr", "b@ville.fr"],
+          "phone_number" => ["+33123456789", nil],
+          "role" => ["member", "local_administrator"]
+        }
+      }
+    end
+
+    it "filters the personal values nested under changes when inspected" do
+      event = create(:event, event_type: "agent.updated", metadata:)
+
+      expect(event.inspect).not_to include("a@ville.fr", "b@ville.fr", "+33123456789")
+      expect(event.inspect).to include("local_administrator")
+    end
+  end
+
   describe "event_type" do
     it "accepts the closed list and nothing else" do
       expect(build(:event, event_type: "agent.created")).to be_valid
       expect(build(:event, event_type: "agent.invited")).to be_valid
       expect(build(:event, event_type: "membership.created")).to be_valid
       expect(build(:event, event_type: "subscription_credentials.consulted")).to be_valid
-      expect(build(:event, event_type: "agent.deleted")).not_to be_valid
+      expect(build(:event, event_type: "agent.removed")).not_to be_valid
+    end
+
+    it "admits the types of an agent's update and deletion" do
+      %w[agent.updated agent.deleted membership.updated membership.deleted].each do |event_type|
+        expect(build(:event, event_type:)).to be_valid
+      end
     end
 
     it "records nothing for a type outside the list" do
