@@ -55,6 +55,10 @@ fr:
               not_a_string: *not_a_string
             search:
               not_a_string: *not_a_string
+        api/internal/v1/agent_update_form:
+          attributes:
+            email:
+              email_taken: désigne déjà un autre agent
         api/internal/v1/agent_form:
           attributes:
             email:

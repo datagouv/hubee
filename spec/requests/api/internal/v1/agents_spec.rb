@@ -374,6 +374,17 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
         expect(json).to eq("membership" => {"data_stream_codes" => ["doit compter au moins un code pour un membre"]})
       end
 
+      it "refuses an email longer than 254 characters, and writes nothing" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+        email = "#{"a" * 65}@#{"b" * 63}.#{"c" * 63}.#{"d" * 58}.fr"
+
+        expect { register(payload(email:)) }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json).to eq("email" => ["est trop long (pas plus de 254 caractères)"])
+      end
+
       it "refuses an incomplete identity and a malformed phone, each on its field" do
         stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
         stub_hub_api_v2_data_stream(code: "CERTDC")

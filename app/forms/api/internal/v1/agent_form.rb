@@ -32,7 +32,8 @@ module API
         normalizes :civility, with: ->(civility) { civility.presence }
         normalizes :phone_number, :mobile_phone_number, with: ->(number) { Membership.normalize_value_for(:phone_number, number) }
 
-        validates :email, presence: true, format: {with: URI::MailTo::EMAIL_REGEXP, allow_blank: true}
+        # 254 : la borne d'une adresse (RFC 5321) ; le format seul n'en pose aucune.
+        validates :email, presence: true, format: {with: URI::MailTo::EMAIL_REGEXP, allow_blank: true}, length: {maximum: 254}
         validates :first_name, :last_name, :siret, :insee_code, presence: true
         validates :civility, inclusion: {in: Agent.civilities.keys}, allow_nil: true
         validates :siret, format: {with: OrganizationLink::SIRET_FORMAT, allow_blank: true}
