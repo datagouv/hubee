@@ -38,6 +38,20 @@ module Portail
       @subscription = result.detail.subscription
       @emails = result.detail.delivery_email_configuration
       @delegation = result.detail.delegation
+      @credentials_access = credentials_access(@subscription)
+    end
+
+    private
+
+    # Ce que propose le bloc des identifiants, d'après la seule preuve. Il n'ouvre rien : la consultation
+    # reste gardée par la preuve, consommée côté serveur.
+    # - :reauthentication_required : le bouton part d'abord vers la réauthentification ;
+    # - :reveal_now : une preuve vaut pour cet abonnement (retour de ProConnect), la consultation part
+    #   d'elle-même. Consommée, elle ne repart pas au rechargement.
+    def credentials_access(subscription)
+      purpose = Access::Reauthentication.purpose(:credentials, subscription.id)
+      reauthenticated = Access::Reauthentication.satisfied?(Current.provider_session, level: :very_sensitive, purpose:)
+      reauthenticated ? :reveal_now : :reauthentication_required
     end
   end
 end

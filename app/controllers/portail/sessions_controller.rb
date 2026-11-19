@@ -120,7 +120,8 @@ module Portail
       result = Portail::Reauthentications::Complete.call(code: params[:code], nonce:,
         provider_session: Current.provider_session, purpose: pending["purpose"], kind: :reauthentication,
         step_up_attempted: true)
-      return redirect_to(return_to, notice: t("portail.reauthentications.verified")) if result.success?
+      # Pas de message : la page d'arrivée reprend d'elle-même l'action demandée, d'après la preuve.
+      return redirect_to(return_to) if result.success?
 
       deny_reauthentication(return_to, error: result.error, claims: result.claims, email: result.info&.email,
         siret: result.siret, idp_id: result.idp_id, organization_label: result.organization_label)

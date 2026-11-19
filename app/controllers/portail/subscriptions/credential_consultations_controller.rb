@@ -9,6 +9,11 @@ module Portail
       # Un membre n'a pas à faire appeler l'amont pour une 404.
       before_action :require_local_administrator
       before_action :require_turbo_stream
+      # Très sensible : une réauthentification faite juste avant, pour cet abonnement, consommée ici,
+      # avant toute lecture amont.
+      requires_reauthentication :very_sensitive, only: :create,
+        purpose: -> { Access::Reauthentication.purpose(:credentials, params[:abonnement_id]) },
+        with: :render_reauthentication_required
 
       FAILURE_STATUSES = {refused: :conflict, unavailable: :service_unavailable}.freeze
 
@@ -29,6 +34,10 @@ module Portail
       end
 
       private
+
+      def render_reauthentication_required
+        render :reauthentication_required, status: :forbidden, locals: {subscription_id: params[:abonnement_id]}
+      end
 
       # Sans JavaScript, le bouton poste un formulaire ordinaire : une page qui dit pourquoi rien ne
       # s'affiche, avant toute lecture et toute trace.

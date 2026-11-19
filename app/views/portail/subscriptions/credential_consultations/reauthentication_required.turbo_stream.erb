@@ -1,0 +1,5 @@
+<%# locals: (subscription_id:) -%>
+<%# La preuve manque au clic (page restée ouverte au-delà de sa validité, ou déjà consommée) : le bloc
+    revient à l'état « vérifier mon identité ». %>
+<%= turbo_stream.replace "subscription-credentials",
+      partial: "portail/subscriptions/credentials_panel", locals: {subscription_id:, access: :reauthentication_required, focus: true} %>

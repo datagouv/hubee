@@ -33,6 +33,9 @@ end
   end
   # La déconnexion revient chez nous plutôt que de partir vers un ProConnect inexistant.
   allow(Portail::ProConnect::Client).to receive(:logout_url).and_return("/")
+  # Celle d'une réauthentification revient sur son adresse dédiée, qui relance la connexion simulée.
+  allow(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
+    .and_return("/connexion/proconnect/reauthentification")
 end
 
 Étantdonné("il s'est connecté") do
@@ -672,8 +675,10 @@ end
 
 Alors("il voit les identifiants masqués, jamais en entier") do
   within("#subscription-credentials") do
-    expect(page).to have_field("Identifiant client (client_id)", with: "#{@client_id.first(4)}••••••••", readonly: true)
-    expect(page).to have_field("Secret client (client_secret)", with: "#{@client_secret.first(4)}••••••••", readonly: true)
+    expect(page).to have_css("dl.credential-list dd code", text: "#{@client_id.first(4)}••••••••")
+    expect(page).to have_css("dl.credential-list dd code", text: "#{@client_secret.first(4)}••••••••")
+    # Des données affichées : aucun champ où le clavier s'arrêterait.
+    expect(page).to have_no_css("input")
     expect(page).to have_no_text(@client_id)
     expect(page).to have_no_text(@client_secret)
     # Aucune issue de copie avant le clic.
@@ -706,9 +711,9 @@ Alors("le bouton {string} confirme la copie, puis revient à son libellé") do |
   expect(page).to have_button(label, class: "fr-icon-clipboard-line", wait: 5)
 end
 
-# Le DSFR espace le premier message d'un champ (1rem) : un message affiché qui ne serait pas le
-# premier de sa zone perdrait cette marge.
-Alors("le message est espacé du champ comme le prévoit le DSFR") do
+# Le DSFR espace le premier message d'un champ (1rem), et la liste des identifiants reprend cet
+# espacement : un message affiché qui ne serait pas le premier de sa zone perdrait cette marge.
+Alors("le message est espacé de l'identifiant comme un message de champ DSFR") do
   message = page.find("#subscription-credentials .fr-messages-group .fr-message")
   expect(page.evaluate_script("getComputedStyle(arguments[0]).marginTop", message)).to eq("16px")
 end

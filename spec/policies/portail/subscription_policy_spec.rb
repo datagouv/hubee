@@ -167,6 +167,10 @@ RSpec.describe Portail::SubscriptionPolicy do
         expect(consult_credentials?(api_subscription(access_mode: nil))).to be(false)
       end
 
+      it "refuses an inactive API subscription" do
+        expect(consult_credentials?(api_subscription(read_package: false))).to be(false)
+      end
+
       it "refuses an API subscription the upstream served for another organisation" do
         subscription = build(:portail_subscription, :of_another_organisation, access_mode: "api")
 
