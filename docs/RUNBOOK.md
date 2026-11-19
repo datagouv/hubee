@@ -48,6 +48,23 @@ Les droits ne sont pas des scopes OAuth : le client demande toujours son jeton
 **sans `scope`**. Un `scope`, même le nom d'un droit, fait refuser le jeton
 (400 `invalid_scope`).
 
+### Imputer une écriture à une personne
+
+Une trace d'écriture de l'espace interne (`Event`) nomme le client (`api_client`,
+`api_client_uid`) et la requête (`request_id`), pas la personne : l'API ne la
+connaît pas. Avant de délivrer `create`, `update` ou `destroy` à admin-portal,
+s'assurer qu'il **envoie `X-Request-Id`** sur chaque appel d'écriture et
+**journalise de son côté l'admin national qui a agi** avec ce même identifiant.
+C'est le seul lien entre une trace et une personne : pour savoir qui a agi, lire
+`request_id` dans la trace, puis le chercher dans le journal d'admin-portal.
+
+L'application garde l'identifiant reçu, réduit aux lettres ASCII sans accent,
+chiffres, `-`, `_` et `@` et tronqué à 255 caractères ; un en-tête que ce nettoyage
+vide entièrement donne un identifiant vide, pas un UUID. Sans en-tête, elle génère
+un UUID. Dans les deux cas, la trace ne se rattache à personne. Vérifier aussi que
+le reverse proxy transmet l'en-tête d'admin-portal **sans le remplacer** : l'application
+garde l'identifiant qui lui arrive, celui du proxy le cas échéant.
+
 ### Révoquer un accès (effet immédiat)
 
     Doorkeeper::Application.find_by!(name: "nom-du-client").destroy!
