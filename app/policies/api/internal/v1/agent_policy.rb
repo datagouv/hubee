@@ -7,13 +7,21 @@ module API
       class AgentPolicy
         attr_reader :api_client
 
-        # L'enregistrement n'a pas d'agent à juger : seul le client compte.
+        # Le droit se juge sur le client seul : l'agent visé n'entre pas dans la décision.
         def initialize(api_client, _agent)
           @api_client = api_client
         end
 
+        def index? = granted?("internal:agents:read")
+
+        def show? = granted?("internal:agents:read")
+
+        def create? = granted?("internal:agents:create")
+
+        private
+
         # Lu à chaque appel : un droit retiré vaut aussitôt, même pour un jeton déjà délivré.
-        def create? = OauthApplicationRight.exists?(oauth_application: api_client, right: "internal:agents:create")
+        def granted?(right) = OauthApplicationRight.exists?(oauth_application: api_client, right:)
       end
     end
   end

@@ -4,7 +4,10 @@
 # scope se voit refuser tout jeton demandé sans lui.
 class OauthApplicationRight < ApplicationRecord
   # === Constants ===
-  RIGHTS = %w[internal:agents:create].freeze
+  RIGHTS = %w[
+    internal:agents:create
+    internal:agents:read
+  ].freeze
 
   # === Associations ===
   belongs_to :oauth_application, class_name: "Doorkeeper::Application"
