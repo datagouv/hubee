@@ -13,7 +13,11 @@ class Event < ApplicationRecord
   # Nommage `<objet>.<action>` (participe passé) ; l'acteur va dans les métadonnées. L'eventable est
   # l'objet ; s'il n'existe pas en base (les identifiants d'un abonnement), c'est le rattachement de
   # l'acteur, et ce qui désigne l'objet va dans les métadonnées.
-  TYPES = %w[agent.created agent.invited membership.created subscription_credentials.consulted].freeze
+  TYPES = %w[
+    agent.created agent.deleted agent.invited agent.updated
+    membership.created membership.deleted membership.updated
+    subscription_credentials.consulted
+  ].freeze
 
   # === Associations ===
   belongs_to :eventable, polymorphic: true

@@ -8,6 +8,12 @@ module API
           # Une écriture sans sa trace n'a pas lieu : tout se fait dans une seule transaction.
           class Register
             include Interactor
+            include TraceMetadata
+
+            # L'agent existait déjà : l'insertion a rencontré le conflit sans rien écrire, puis il a été
+            # supprimé, ou son adresse corrigée, avant d'être relu par son adresse. Une 500 rejouable vaut
+            # mieux que la 404 trompeuse que le `rescue_from RecordNotFound` répondrait à un POST de création.
+            class RecordVanished < StandardError; end
 
             def call
               ActiveRecord::Base.transaction do
@@ -35,7 +41,7 @@ module API
                 {email: form.email, first_name: form.first_name, last_name: form.last_name, civility: form.civility},
                 unique_by: :email
               )
-              [Agent.lock.find_by!(email: form.email), inserted.any?]
+              [Agent.lock.find_by(email: form.email) || raise(RecordVanished), inserted.any?]
             end
 
             def create_membership(agent)
@@ -64,7 +70,9 @@ module API
               context.fail!(refusals: [:already_attached])
             end
 
-            # Deux premiers agents d'une organisation enregistrés en parallèle créent le même lien.
+            # Deux premiers agents d'une organisation enregistrés en parallèle créent le même lien. Aucun code
+            # ne supprime ni ne modifie un lien : contrairement à l'agent, il ne peut pas disparaître avant
+            # d'être relu.
             def find_or_create_organization_link
               OrganizationLink.insert({siret: form.siret, insee_code: form.insee_code}, unique_by: %i[siret insee_code])
               OrganizationLink.find_by!(siret: form.siret, insee_code: form.insee_code)
@@ -75,9 +83,7 @@ module API
             # Ni nom ni téléphone : l'adresse suffit à désigner l'agent, même après sa suppression.
             def metadata
               {
-                api_client: context.api_client.name,
-                api_client_uid: context.api_client.uid,
-                request_id: context.request_id,
+                **actor_metadata,
                 email: form.email,
                 siret: form.siret,
                 insee_code: form.insee_code,

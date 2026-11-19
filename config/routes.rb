@@ -87,7 +87,14 @@ Rails.application.routes.draw do
     # Filtrage par adresse fait par le reverse proxy, en amont : l'application n'en fait aucun.
     namespace :internal do
       namespace :v1 do
-        resources :agents, only: %i[index show create]
+        # PATCH seul : `resources` routerait aussi PUT vers update, que le contrat n'offre pas.
+        resources :agents, only: %i[index show create destroy] do
+          resources :memberships, only: :destroy, module: :agents
+          patch "memberships/:id", to: "agents/memberships#update"
+        end
+        # `as: nil` : hors du bloc `resources`, Rails nommerait cette route `api_internal_v1`, un helper
+        # trompeur. Dans le bloc, la route du rattachement n'en reçoit aucun.
+        patch "agents/:id", to: "agents#update", as: nil
       end
     end
 

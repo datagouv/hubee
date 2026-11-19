@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe API::Internal::V1::Agents::Create::EnsureNoRefusal do
+RSpec.describe API::Internal::V1::Agents::Shared::EnsureNoRefusal do
   describe ".call" do
     it "lets a request without any reason through" do
       form = build(:api_internal_v1_agent_form).tap(&:validate)

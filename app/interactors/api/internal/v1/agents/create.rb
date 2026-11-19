@@ -9,8 +9,8 @@ module API
 
           # Les vérifications accumulent leurs motifs sans s'interrompre. Seule Register
           # écrit, après les appels réseau : la transaction ne reste jamais ouverte pendant l'un d'eux.
-          organize ValidatePayload, CheckMemberships, CheckOrganization, CheckDataStreams, EnsureNoRefusal, Register,
-            EnqueueInvitation
+          organize Shared::ValidatePayload, CheckMemberships, CheckOrganization, Shared::CheckDataStreams,
+            Shared::EnsureNoRefusal, Register, EnqueueInvitation
         end
       end
     end

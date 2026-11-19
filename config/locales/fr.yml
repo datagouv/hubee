@@ -55,6 +55,10 @@ fr:
               not_a_string: *not_a_string
             search:
               not_a_string: *not_a_string
+        api/internal/v1/agent_update_form:
+          attributes:
+            email:
+              email_taken: désigne déjà un autre agent
         api/internal/v1/agent_form:
           attributes:
             email:
@@ -64,7 +68,8 @@ fr:
               unknown_organization: ne désigne, avec ce code INSEE, aucune organisation du référentiel
             insee_code:
               siret_already_attached: diffère de celui sous lequel l'agent est déjà rattaché à ce SIRET
-            data_stream_codes:
+            # Partagés avec la modification d'un rattachement, qui reçoit la même liste.
+            data_stream_codes: &data_stream_codes_errors
               missing: "doit être fournie : une liste de codes, vide pour un administrateur local qui a accès à tous les flux"
               not_a_list: doit être une liste de codes
               required_for_member: doit compter au moins un code pour un membre
@@ -75,6 +80,18 @@ fr:
               inclusion: doit être le booléen JSON true ou false
             source_info:
               invalid: doit être un objet aux seules clés import (booléen JSON), job_id et report_id (entier ou null)
+        api/internal/v1/membership_update_form:
+          attributes:
+            data_stream_codes:
+              <<: *data_stream_codes_errors
+              grants_all_data_streams: "donnerait accès à tous les flux de l'organisation : envoyez all_data_streams à true pour le confirmer"
+            all_data_streams:
+              inclusion: doit être le booléen JSON true ou false
+              requires_empty_list: ne s'emploie qu'avec une liste vide pour un administrateur local
+            siret:
+              immutable: &immutable "ne se modifie pas : retirez le rattachement puis ajoutez-en un par POST /agents"
+            insee_code:
+              immutable: *immutable
 
   api:
     agent_mailer:
@@ -88,9 +105,13 @@ fr:
       not_found: Ressource introuvable.
     internal:
       v1:
+        unavailable: Le référentiel V1 ne répond pas. Réessayez dans quelques instants.
+        invalid_actor: "L'en-tête X-Actor-Id doit compter de 1 à 255 caractères parmi les lettres ASCII sans accent, les chiffres et . _ : @ -."
+        missing_actor: La demande doit désigner dans l'en-tête X-Actor-Id la personne qui agit.
         agents:
           missing_envelope: La demande doit porter l'agent sous la clé « agent ».
-          unavailable: Le référentiel V1 ne répond pas. Réessayez dans quelques instants.
+        memberships:
+          missing_envelope: La demande doit porter le rattachement sous la clé « membership ».
 
   portail:
     shared:
