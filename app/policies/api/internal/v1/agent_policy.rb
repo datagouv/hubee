@@ -18,6 +18,10 @@ module API
 
         def create? = granted?("internal:agents:create")
 
+        def update? = granted?("internal:agents:update")
+
+        def destroy? = granted?("internal:agents:destroy")
+
         private
 
         # Lu à chaque appel : un droit retiré vaut aussitôt, même pour un jeton déjà délivré.
