@@ -9,11 +9,14 @@
     </h2>
     <p class="fr-mb-1w"><%= t("portail.subscriptions.credentials.lead") %></p>
     <p class="fr-text--sm fr-text-mention--grey fr-mb-3w"><%= t("portail.subscriptions.credentials.masked") %></p>
-    <%= render "portail/subscriptions/credential_consultations/copyable", key: "client-id",
-          label: t("portail.subscriptions.credentials.client_id"),
-          target: t("portail.subscriptions.credentials.copy_target_client_id"), value: credentials.client_id %>
-    <%= render "portail/subscriptions/credential_consultations/copyable", key: "client-secret",
-          label: t("portail.subscriptions.credentials.client_secret"),
-          target: t("portail.subscriptions.credentials.copy_target_client_secret"), value: credentials.client_secret.reveal %>
+    <%# Des données affichées, pas un formulaire : seuls les boutons de copie prennent le focus. %>
+    <dl class="credential-list">
+      <%= render "portail/subscriptions/credential_consultations/copyable", key: "client-id",
+            label: t("portail.subscriptions.credentials.client_id"),
+            target: t("portail.subscriptions.credentials.copy_target_client_id"), value: credentials.client_id %>
+      <%= render "portail/subscriptions/credential_consultations/copyable", key: "client-secret",
+            label: t("portail.subscriptions.credentials.client_secret"),
+            target: t("portail.subscriptions.credentials.copy_target_client_secret"), value: credentials.client_secret.reveal %>
+    </dl>
   </section>
 </div>

@@ -74,7 +74,9 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
 
   # De quoi reconnaître les identifiants, pas de quoi les lire par-dessus l'épaule : la valeur
   # entière n'est que dans la cible de la copie.
-  it "masks both credentials in read-only fields and hands their whole value to the copy buttons" do
+  # Des données affichées, pas un formulaire : une liste de définitions, sans champ où le clavier
+  # s'arrêterait. Seuls les boutons de copie prennent le focus.
+  it "lists both credentials masked and hands their whole value to the copy buttons" do
     sign_in_with_proof
     serve_detail
     serve_credentials
@@ -83,19 +85,21 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
 
     block = page.find("#subscription-credentials")
     expect(block).to have_text("Pour votre sécurité, seuls les 4 premiers caractères sont affichés.")
-    expect(block).to have_field("Identifiant client (client_id)", with: "SI-9••••••••", readonly: true)
-    expect(block).to have_field("Secret client (client_secret)", with: "#{secret_value.first(4)}••••••••", readonly: true)
+    expect(block).to have_css("dl.credential-list dt", text: "Identifiant client (client_id)")
+    expect(block).to have_css("dl.credential-list dt", text: "Secret client (client_secret)")
+    expect(block).to have_css("dl.credential-list dd code", text: "SI-9••••••••")
+    expect(block).to have_css("dl.credential-list dd code", text: "#{secret_value.first(4)}••••••••")
+    expect(block).not_to have_css("input")
     expect(block.native.to_html).to include("SI-99999999911111-00001-CERTDC").and include(secret_value)
-    expect(block.all("input").map(&:value).join).not_to include(secret_value)
+    expect(block.text).not_to include(secret_value)
     expect(block).to have_css("[data-controller='clipboard'][data-clipboard-text-value='SI-99999999911111-00001-CERTDC'] " \
-      ".fr-input-wrap--action button[type='button'][data-action='clipboard#copy']", text: "Copier l'identifiant client")
+      "dd button[type='button'][data-action='clipboard#copy']", text: "Copier l'identifiant client")
     expect(block).to have_css("[data-controller='clipboard'][data-clipboard-text-value='#{secret_value}'] " \
-      ".fr-input-wrap--action button[type='button'][data-action='clipboard#copy']", text: "Copier le secret client")
-    # Chaque champ annonce sa zone de messages, vide : le script y insère l'issue de la copie, écrite
+      "dd button[type='button'][data-action='clipboard#copy']", text: "Copier le secret client")
+    # Chaque bouton annonce sa zone de messages, vide : le script y insère l'issue de la copie, écrite
     # d'avance dans un <template>.
     %w[client-id client-secret].each do |key|
-      expect(block).to have_css("input#subscription-credentials-#{key}" \
-        "[aria-describedby='subscription-credentials-#{key}-messages']")
+      expect(block).to have_css("button[aria-describedby='subscription-credentials-#{key}-messages']")
       expect(block).to have_css("#subscription-credentials-#{key}-messages.fr-messages-group[aria-live='polite']:empty",
         visible: :all)
     end

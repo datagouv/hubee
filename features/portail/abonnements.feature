@@ -43,7 +43,7 @@ Fonctionnalité: Les abonnements de la structure
     Quand il clique sur "Copier le secret client"
     Alors le secret entier est dans son presse-papiers
     Et il lit "Copié dans le presse-papiers."
-    Et le message est espacé du champ comme le prévoit le DSFR
+    Et le message est espacé de l'identifiant comme un message de champ DSFR
     Et le bouton "Copier le secret client" confirme la copie, puis revient à son libellé
     Quand il clique sur "Copier l'identifiant client"
     Alors l'identifiant client entier est dans son presse-papiers
@@ -62,5 +62,5 @@ Fonctionnalité: Les abonnements de la structure
     Et son navigateur refuse la copie
     Et il clique sur "Copier le secret client"
     Alors il lit "La copie n'a pas fonctionné. Réessayez ; si le problème persiste, écrivez à support@hubee.numerique.gouv.fr."
-    Et le message est espacé du champ comme le prévoit le DSFR
+    Et le message est espacé de l'identifiant comme un message de champ DSFR
     Et il ne lit pas "Copié dans le presse-papiers."

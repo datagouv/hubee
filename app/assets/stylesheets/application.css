@@ -25,6 +25,46 @@
   height: 100%;
 }
 
+/* credential-list : les identifiants masqués d'un abonnement API, chacun suivi de son bouton
+   « Copier » (portail/subscriptions/credential_consultations). Des données affichées, pas un
+   formulaire : un dl, le libellé en dt, la valeur et le bouton en dd. Le DSFR n'a pas de composant
+   pour ça : mise en page seule, le fond de la valeur est une couleur du DSFR. */
+.credential-list {
+  display: grid;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.credential-list dt {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.credential-list dd {
+  margin: 0;
+  padding-inline-start: 0;
+}
+
+.credential-list__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.credential-list__value code {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  background-color: var(--background-contrast-grey);
+  font-size: 1rem;
+}
+
+/* L'issue de la copie, espacée comme le message d'un champ DSFR (`.fr-input-group .fr-message`). */
+.credential-list .fr-message:first-child {
+  margin-top: 1rem;
+}
+
 /* delivery-timeline : la frise de l'historique d'un télédossier (portail/deliveries/show).
    Le DSFR n'a pas de composant frise ; la mise en page est à nous, aucune couleur ne l'est. */
 .delivery-timeline,
