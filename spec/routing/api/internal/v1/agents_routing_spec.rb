@@ -4,6 +4,7 @@ require "rails_helper"
 
 RSpec.describe "API internal agents routes", type: :routing do
   it "routes the operations on an agent to AgentsController" do
+    expect(get: "/api/internal/v1/agents").to route_to("api/internal/v1/agents#index")
     expect(get: "/api/internal/v1/agents/1").to route_to("api/internal/v1/agents#show", id: "1")
     expect(post: "/api/internal/v1/agents").to route_to("api/internal/v1/agents#create")
   end
