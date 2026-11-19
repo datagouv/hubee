@@ -11,8 +11,8 @@ module API
 
           # L'autorisation passe avant la recherche : un client sans le droit reçoit 403 même sur un
           # rattachement inconnu.
-          before_action :authorize_membership, only: %i[update]
-          before_action :set_membership, only: %i[update]
+          before_action :authorize_membership, only: %i[update destroy]
+          before_action :set_membership, only: %i[update destroy]
           rescue_from ActionController::ParameterMissing, with: :missing_envelope
 
           def update
@@ -28,8 +28,15 @@ module API
             end
           end
 
+          def destroy
+            Memberships::Destroy.call!(membership: @membership, api_client: current_api_client, request_id: request.request_id)
+
+            head :no_content
+          end
+
           private
 
+          # Retirer un rattachement est une modification de l'agent : Pundit juge `update?` ou `destroy?`, au même droit.
           def authorize_membership = authorize(:membership, policy_class: MembershipPolicy)
 
           # Cherché parmi les rattachements de l'agent : celui d'un autre agent est introuvable.

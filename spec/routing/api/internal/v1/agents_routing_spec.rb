@@ -18,6 +18,8 @@ RSpec.describe "API internal agents routes", type: :routing do
   it "routes the operations on a membership to Agents::MembershipsController" do
     expect(patch: "/api/internal/v1/agents/1/memberships/2")
       .to route_to("api/internal/v1/agents/memberships#update", agent_id: "1", id: "2")
+    expect(delete: "/api/internal/v1/agents/1/memberships/2")
+      .to route_to("api/internal/v1/agents/memberships#destroy", agent_id: "1", id: "2")
   end
 
   # Hors du bloc `resources`, la route PATCH d'un agent prendrait sinon le nom du namespace.

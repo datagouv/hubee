@@ -89,6 +89,7 @@ Rails.application.routes.draw do
       namespace :v1 do
         # PATCH seul : `resources` routerait aussi PUT vers update, que le contrat n'offre pas.
         resources :agents, only: %i[index show create] do
+          resources :memberships, only: :destroy, module: :agents
           patch "memberships/:id", to: "agents/memberships#update"
         end
         # `as: nil` : hors du bloc `resources`, Rails nommerait cette route `api_internal_v1`, un helper
