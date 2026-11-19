@@ -4,7 +4,7 @@ module API
   module Internal
     module V1
       module Agents
-        class Create
+        module Shared
           class EnsureNoRefusal
             include Interactor
 

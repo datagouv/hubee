@@ -88,29 +88,6 @@ module API
           agent.is_a?(Hash) ? agent : {}
         end
 
-        def raw_body
-          @raw_body ||= begin
-            body = JSON.parse(request.raw_post) if request.media_type == Mime[:json]
-            body.is_a?(Hash) ? body : {}
-          rescue JSON::ParserError
-            {}
-          end
-        end
-
-        # Un refus est un motif, ou un motif et les paramètres de son message. Un conflit
-        # l'emporte ; l'indisponibilité seule n'est rendue que sans aucun motif.
-        def render_refusal(form, refusals)
-          refusals.each { |reason, options = {}| form.errors.add(REFUSALS.fetch(reason)[:attribute], reason, **options) }
-
-          if form.errors.empty?
-            render json: {error: "service_unavailable", message: I18n.t("api.internal.v1.agents.unavailable")}, status: :service_unavailable
-          elsif refusals.any? { |reason, _| REFUSALS.fetch(reason)[:status] == :conflict }
-            render json: form.error_details, status: :conflict
-          else
-            render json: form.error_details, status: :unprocessable_content
-          end
-        end
-
         def missing_envelope
           render json: {error: "missing_agent", message: I18n.t("api.internal.v1.agents.missing_envelope")}, status: :bad_request
         end
