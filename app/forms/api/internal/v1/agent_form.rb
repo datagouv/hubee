@@ -30,6 +30,8 @@ module API
         normalizes :email, with: ->(email) { Agent.normalize_value_for(:email, email) }
         # Une chaîne vide vaut absence : un appelant peut relayer ainsi un champ non renseigné.
         normalizes :civility, with: ->(civility) { civility.presence }
+        # Idem pour la fonction : sans cela, un champ laissé vide serait écrit comme une fonction vide.
+        normalizes :job_title, with: ->(title) { title.presence }
         normalizes :phone_number, :mobile_phone_number, with: ->(number) { Membership.normalize_value_for(:phone_number, number) }
 
         # 254 : la borne d'une adresse (RFC 5321) ; le format seul n'en pose aucune.
