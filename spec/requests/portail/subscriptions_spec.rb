@@ -410,11 +410,11 @@ RSpec.describe "Portail::Subscriptions", type: :request do
       # Construit, jamais écrit en dur : « credentials:<uuid> » ressemble à un secret (GitGuardian).
       def credentials_purpose = Portail::Access::Reauthentication.purpose(:credentials, path.split("/").last)
 
-      def show_detail(access_mode:, data_stream_codes: ["CERTDC"], reauthenticated: false)
+      def show_detail(access_mode:, data_stream_codes: ["CERTDC"], reauthenticated: false, read_package: true)
         sign_in_local_administrator(data_stream_codes:)
         grant_reauthentication(purpose: credentials_purpose) if reauthenticated
         expect(Portail::HubAPI::Subscriptions).to receive(:find)
-          .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode:)))
+          .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode:, read_package:)))
         expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
 
         get path
@@ -483,6 +483,15 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         show_detail(access_mode: "portal")
 
         expect(response).to have_http_status(:success)
+        expect(page).not_to have_text("Identifiants de connexion à l'API")
+      end
+
+      # Inactif, l'abonnement ne sert à rien à son logiciel : rien à proposer.
+      it "leaves the block out of an inactive API subscription" do
+        show_detail(access_mode: "api", read_package: false)
+
+        expect(response).to have_http_status(:success)
+        expect(page).to have_text("Abonnement inactif")
         expect(page).not_to have_text("Identifiants de connexion à l'API")
       end
 

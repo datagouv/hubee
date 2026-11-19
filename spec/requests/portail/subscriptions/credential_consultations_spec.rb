@@ -33,8 +33,8 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     sign_in_local_administrator(...).tap { grant_reauthentication(purpose: "credentials:#{id}") }
   end
 
-  def serve_detail(access_mode: "api", trait: nil)
-    subscription = build(:portail_subscription, *trait, access_mode:)
+  def serve_detail(access_mode: "api", trait: nil, read_package: true)
+    subscription = build(:portail_subscription, *trait, access_mode:, read_package:)
     allow(Portail::HubAPI::Subscriptions).to receive(:find).and_return(build(:portail_subscription_detail, subscription:))
   end
 
@@ -171,6 +171,16 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
   it "refuses a portal subscription, without asking for a secret" do
     sign_in_with_proof
     serve_detail(access_mode: "portal")
+    expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+
+    reveal
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "refuses an inactive API subscription, without asking for a secret" do
+    sign_in_with_proof
+    serve_detail(read_package: false)
     expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
 
     reveal
