@@ -36,7 +36,7 @@ module API
 
         def create
           form = AgentForm.new(**agent_params, **source_info_param)
-          result = Agents::Create.call(form:, api_client: current_api_client, request_id: request.request_id)
+          result = Agents::Create.call(form:, **trace_context)
 
           if result.success?
             @membership = result.membership
@@ -48,7 +48,7 @@ module API
 
         def update
           form = AgentUpdateForm.new(agent: @agent, **correction_params)
-          result = Agents::Update.call(form:, api_client: current_api_client, request_id: request.request_id)
+          result = Agents::Update.call(form:, **trace_context)
 
           if result.success?
             # L'état enregistré : les rattachements rechargés, aucune valeur de la requête n'est renvoyée telle quelle.
@@ -60,7 +60,7 @@ module API
         end
 
         def destroy
-          Agents::Destroy.call!(agent: @agent, api_client: current_api_client, request_id: request.request_id)
+          Agents::Destroy.call!(agent: @agent, **trace_context)
 
           head :no_content
         end

@@ -17,7 +17,7 @@ module API
 
           def update
             form = MembershipUpdateForm.new(membership: @membership, **update_params)
-            result = Memberships::Update.call(form:, api_client: current_api_client, request_id: request.request_id)
+            result = Memberships::Update.call(form:, **trace_context)
 
             if result.success?
               # L'état enregistré : aucune valeur de la requête n'est renvoyée telle quelle.
@@ -29,7 +29,7 @@ module API
           end
 
           def destroy
-            Memberships::Destroy.call!(membership: @membership, api_client: current_api_client, request_id: request.request_id)
+            Memberships::Destroy.call!(membership: @membership, **trace_context)
 
             head :no_content
           end

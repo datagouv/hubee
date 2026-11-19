@@ -20,6 +20,9 @@ module API
 
         def forbidden = render(json: {error: "forbidden", message: I18n.t("api.errors.forbidden")}, status: :forbidden)
 
+        # Ce qui impute une écriture, à transmettre à son interactor : le client et la requête.
+        def trace_context = {api_client: current_api_client, request_id: request.request_id}
+
         # Le corps JSON brut, quand c'est un objet : les paramètres de Rails en altèrent des valeurs que
         # les forms veulent voir telles quelles. Tout autre corps vaut un corps vide.
         def raw_body

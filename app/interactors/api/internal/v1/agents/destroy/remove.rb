@@ -8,6 +8,7 @@ module API
           # Une suppression sans sa trace n'a pas lieu : tout se fait dans une seule transaction.
           class Remove
             include Interactor
+            include TraceMetadata
 
             # Les rattachements partent par `dependent: :destroy`, leurs habilitations et leurs sessions par la
             # cascade en base. Les liens d'organisation restent : ils servent à d'autres agents. Les traces
@@ -32,9 +33,7 @@ module API
             # rattachement, le SIRET et le code INSEE disent encore à qui l'accès appartenait.
             def metadata
               {
-                api_client: context.api_client.name,
-                api_client_uid: context.api_client.uid,
-                request_id: context.request_id,
+                **actor_metadata,
                 email: agent.email,
                 memberships: memberships_metadata
               }

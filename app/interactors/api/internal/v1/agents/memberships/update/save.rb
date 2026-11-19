@@ -9,6 +9,7 @@ module API
             # Une écriture sans sa trace n'a pas lieu : tout se fait dans une seule transaction.
             class Save
               include Interactor
+              include TraceMetadata
 
               # Le verrou vient en premier, puis les changements se calculent : il recharge le rattachement et ses
               # habilitations, de sorte que l'avant, l'écart écrit et la trace sont ceux de l'état au moment de
@@ -50,12 +51,8 @@ module API
               # suppression. Les valeurs avant et après figurent sous `changes`, données personnelles comprises.
               def metadata(changes)
                 {
-                  api_client: context.api_client.name,
-                  api_client_uid: context.api_client.uid,
-                  request_id: context.request_id,
-                  email: membership.agent.email,
-                  siret: membership.organization_link.siret,
-                  insee_code: membership.organization_link.insee_code,
+                  **actor_metadata,
+                  **membership_reference(membership),
                   changes:
                 }
               end

@@ -8,6 +8,7 @@ module API
           # Une écriture sans sa trace n'a pas lieu : tout se fait dans une seule transaction.
           class Save
             include Interactor
+            include TraceMetadata
 
             # Le verrou vient en premier, puis les changements se calculent : il recharge l'agent, de sorte que
             # l'avant et la trace sont ceux de l'état au moment de l'écriture, non ceux lus au début de la
@@ -43,9 +44,7 @@ module API
             # Les valeurs avant et après figurent sous `changes`, données personnelles comprises.
             def metadata(changes)
               {
-                api_client: context.api_client.name,
-                api_client_uid: context.api_client.uid,
-                request_id: context.request_id,
+                **actor_metadata,
                 email: agent.email,
                 changes:
               }
