@@ -8,16 +8,18 @@ FactoryBot.define do
       after(:create) { create(:oauth_application_right, oauth_application: it) }
     end
 
-    %i[read].each do |operation|
+    %i[read update destroy].each do |operation|
       trait :"with_agent_#{operation}_right" do
         after(:create) { create(:oauth_application_right, oauth_application: it, right: "internal:agents:#{operation}") }
       end
     end
 
-    # Le client du portail d'administration : les deux droits sur les agents.
+    # Le client du portail d'administration : les quatre droits sur les agents.
     trait :admin_portal do
       with_agent_registration_right
       with_agent_read_right
+      with_agent_update_right
+      with_agent_destroy_right
     end
   end
 end

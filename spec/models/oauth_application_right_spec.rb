@@ -14,10 +14,17 @@ RSpec.describe OauthApplicationRight, type: :model do
       expect(build(:oauth_application_right, right: "internal:agents:create")).to be_valid
     end
 
-    %w[read].each do |operation|
+    %w[read update destroy].each do |operation|
       it "accepts the right to #{operation} agents" do
         expect(build(:oauth_application_right, right: "internal:agents:#{operation}")).to be_valid
       end
+    end
+
+    it "refuses a right the API does not know, such as delete instead of destroy" do
+      right = build(:oauth_application_right, right: "internal:agents:delete")
+
+      expect(right).not_to be_valid
+      expect(right.errors.details[:right]).to eq([{error: :inclusion, value: "internal:agents:delete"}])
     end
 
     it "refuses a right the API does not know, such as a misspelt one" do
