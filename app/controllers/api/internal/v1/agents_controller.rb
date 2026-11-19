@@ -16,7 +16,11 @@ module API
         wrap_parameters false
 
         # L'autorisation passe avant la recherche : un client sans le droit reçoit 403 même sur un agent inconnu.
+        # L'en-tête d'acteur passe entre les deux. hub-api enregistre sans personne derrière : l'en-tête est
+        # facultatif à l'enregistrement.
         before_action :authorize_agent
+        before_action :require_declared_actor, only: %i[update destroy]
+        before_action :check_declared_actor, only: :create
         before_action :set_agent, only: %i[show update destroy]
         rescue_from ActionController::ParameterMissing, with: :missing_envelope
 

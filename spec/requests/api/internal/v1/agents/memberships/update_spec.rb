@@ -3,8 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "PATCH /api/internal/v1/agents/:agent_id/memberships/:id", type: :request do
-  def modify(body, agent_id: agent.id, membership_id: membership.id, application: admin_portal)
-    patch "/api/internal/v1/agents/#{agent_id}/memberships/#{membership_id}", params: body, headers: bearer(application), as: :json
+  def modify(body, agent_id: agent.id, membership_id: membership.id, application: admin_portal, actor: declared_actor)
+    patch "/api/internal/v1/agents/#{agent_id}/memberships/#{membership_id}", params: body, headers: {**bearer(application), **actor}, as: :json
   end
 
   # Le cas standard : un membre habilité sur un flux.
@@ -49,6 +49,7 @@ RSpec.describe "PATCH /api/internal/v1/agents/:agent_id/memberships/:id", type: 
         "api_client" => "admin-portal",
         "api_client_uid" => admin_portal.uid,
         "request_id" => response.headers["X-Request-Id"],
+        "declared_actor" => "admin-national-42",
         "email" => "alice.martin@ville.fr",
         "siret" => "21750056000016",
         "insee_code" => "75056",
@@ -401,11 +402,38 @@ RSpec.describe "PATCH /api/internal/v1/agents/:agent_id/memberships/:id", type: 
     expect(response).to have_http_status(:forbidden)
   end
 
-  # L'autorisation passe avant la lecture du corps, qui passe avant la recherche du rattachement.
+  it_behaves_like "a write requiring the declared actor" do
+    def write_as(actor) = modify({membership: {job_title: "Officier d'état civil"}}, actor:)
+  end
+
+  it "answers 403 to a client without the right before asking for the declared actor" do
+    reader = create(:oauth_application, :with_agent_read_right)
+
+    modify({membership: {job_title: "Officier d'état civil"}}, application: reader, actor: {})
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
+  it "asks for the declared actor before looking for the membership" do
+    modify({membership: {job_title: "Officier d'état civil"}}, membership_id: SecureRandom.uuid, actor: {})
+
+    expect(response).to have_http_status(:bad_request)
+    expect(json).to include("error" => "missing_actor")
+  end
+
+  # L'autorisation passe avant l'en-tête d'acteur, qui passe avant la lecture du corps, qui passe avant la
+  # recherche du rattachement.
   context "with an unreadable body", :production_exceptions do
-    def modify_unreadable(application)
+    def modify_unreadable(application, actor: declared_actor)
       patch "/api/internal/v1/agents/#{SecureRandom.uuid}/memberships/#{SecureRandom.uuid}",
-        params: "{pas du json", headers: {"CONTENT_TYPE" => "application/json", **bearer(application)}
+        params: "{pas du json", headers: {"CONTENT_TYPE" => "application/json", **bearer(application), **actor}
+    end
+
+    it "asks for the declared actor before reading the body" do
+      modify_unreadable(admin_portal, actor: {})
+
+      expect(response).to have_http_status(:bad_request)
+      expect(json).to include("error" => "missing_actor")
     end
 
     it "answers 403 to a client without the right, even on an unknown membership" do

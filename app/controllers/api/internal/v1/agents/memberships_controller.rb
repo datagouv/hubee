@@ -12,6 +12,7 @@ module API
           # L'autorisation passe avant la recherche : un client sans le droit reçoit 403 même sur un
           # rattachement inconnu.
           before_action :authorize_membership, only: %i[update destroy]
+          before_action :require_declared_actor, only: %i[update destroy]
           before_action :set_membership, only: %i[update destroy]
           rescue_from ActionController::ParameterMissing, with: :missing_envelope
 

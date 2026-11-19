@@ -32,7 +32,7 @@ RSpec.describe "Agent management through the internal API, seen from the portal"
     get teledossiers_path
     expect(response).to have_http_status(:success)
 
-    patch membership_path_for(agent), params: {membership: {role: "local_administrator"}}, headers: bearer(admin_portal), as: :json
+    patch membership_path_for(agent), params: {membership: {role: "local_administrator"}}, headers: {**bearer(admin_portal), **declared_actor}, as: :json
     expect(response).to have_http_status(:success)
 
     get teledossiers_path
@@ -46,7 +46,7 @@ RSpec.describe "Agent management through the internal API, seen from the portal"
     get teledossiers_path
     expect(response).to have_http_status(:success)
 
-    delete membership_path_for(agent), headers: bearer(admin_portal), as: :json
+    delete membership_path_for(agent), headers: {**bearer(admin_portal), **declared_actor}, as: :json
     expect(response).to have_http_status(:no_content)
 
     get teledossiers_path
@@ -66,7 +66,7 @@ RSpec.describe "Agent management through the internal API, seen from the portal"
     get teledossiers_path
     expect(response).to have_http_status(:success)
 
-    patch membership_path_for(agent), params: {membership: {data_stream_codes: ["DECES"]}}, headers: bearer(admin_portal), as: :json
+    patch membership_path_for(agent), params: {membership: {data_stream_codes: ["DECES"]}}, headers: {**bearer(admin_portal), **declared_actor}, as: :json
     expect(response).to have_http_status(:success)
 
     expect(Portail::HubAPI::Deliveries).to receive(:list)
@@ -84,7 +84,7 @@ RSpec.describe "Agent management through the internal API, seen from the portal"
     get teledossiers_path
     expect(response).to have_http_status(:success)
 
-    delete "/api/internal/v1/agents/#{agent.id}", headers: bearer(admin_portal), as: :json
+    delete "/api/internal/v1/agents/#{agent.id}", headers: {**bearer(admin_portal), **declared_actor}, as: :json
     expect(response).to have_http_status(:no_content)
 
     get teledossiers_path
@@ -105,7 +105,7 @@ RSpec.describe "Agent management through the internal API, seen from the portal"
     get teledossiers_path
     expect(response).to have_http_status(:success)
 
-    patch "/api/internal/v1/agents/#{agent.id}", params: {agent: {email: "nouvelle.adresse@ville.fr"}}, headers: bearer(admin_portal), as: :json
+    patch "/api/internal/v1/agents/#{agent.id}", params: {agent: {email: "nouvelle.adresse@ville.fr"}}, headers: {**bearer(admin_portal), **declared_actor}, as: :json
     expect(response).to have_http_status(:success)
     expect(ProviderSession.granted.sole.email).to eq(old_email)
 

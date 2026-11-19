@@ -106,6 +106,8 @@ fr:
     internal:
       v1:
         unavailable: Le référentiel V1 ne répond pas. Réessayez dans quelques instants.
+        invalid_actor: "L'en-tête X-Actor-Id doit compter de 1 à 255 caractères parmi les lettres ASCII sans accent, les chiffres et . _ : @ -."
+        missing_actor: La demande doit désigner dans l'en-tête X-Actor-Id la personne qui agit.
         agents:
           missing_envelope: La demande doit porter l'agent sous la clé « agent ».
         memberships:
