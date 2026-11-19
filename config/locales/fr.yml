@@ -88,9 +88,9 @@ fr:
       not_found: Ressource introuvable.
     internal:
       v1:
+        unavailable: Le référentiel V1 ne répond pas. Réessayez dans quelques instants.
         agents:
           missing_envelope: La demande doit porter l'agent sous la clé « agent ».
-          unavailable: Le référentiel V1 ne répond pas. Réessayez dans quelques instants.
 
   portail:
     shared:

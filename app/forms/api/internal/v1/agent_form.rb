@@ -8,9 +8,7 @@ module API
         include ActiveModel::Model
         include ActiveModel::Attributes
         include ActiveModel::Attributes::Normalization
-
-        # 51 codes en production au 26/10/2026 : la borne arrête un appel abusif, même interne.
-        MAX_DATA_STREAM_CODES = 100
+        include DataStreamCodesList
 
         MEMBERSHIP_ATTRIBUTES = %i[siret insee_code role job_title phone_number mobile_phone_number data_stream_codes].freeze
 
@@ -24,7 +22,6 @@ module API
         attribute :job_title, :string
         attribute :phone_number, :string
         attribute :mobile_phone_number, :string
-        attribute :data_stream_codes
         # Sans type : toute valeur reçue est gardée telle quelle pour être refusée, jamais convertie.
         attribute :send_invitation, default: false
         attribute :source_info
@@ -34,13 +31,6 @@ module API
         # Une chaîne vide vaut absence : un appelant peut relayer ainsi un champ non renseigné.
         normalizes :civility, with: ->(civility) { civility.presence }
         normalizes :phone_number, :mobile_phone_number, with: ->(number) { Membership.normalize_value_for(:phone_number, number) }
-        # Seul un doublon exact est retiré : un code est opaque, sa casse n'est jamais changée.
-        # Ce qui n'est pas une liste de chaînes est gardé tel quel, pour son motif.
-        normalizes :data_stream_codes, with: ->(codes) {
-          next codes unless codes.is_a?(Array) && codes.all?(String)
-
-          codes.map { DataStreamAccess.normalize_value_for(:data_stream_code, it) }.uniq
-        }
 
         validates :email, presence: true, format: {with: URI::MailTo::EMAIL_REGEXP, allow_blank: true}
         validates :first_name, :last_name, :siret, :insee_code, presence: true
@@ -52,24 +42,16 @@ module API
         validates :phone_number, :mobile_phone_number, format: {with: PhoneNumber::E164_FORMAT}, allow_nil: true
         validate :send_invitation_boolean
         validate :source_info_well_formed
-        validate :data_stream_codes_well_formed
+        validate :data_stream_codes_required
         validate :member_habilitated
 
         def initialize(membership: {}, **identity)
           super(**identity, **membership)
         end
 
-        # Ces deux setters notent que leur clé a été transmise. `new` ne les appelle que pour une clé reçue
-        # (le contrôleur ne la passe que si le JSON la contient), jamais pour la valeur par défaut.
-        # Une clé absente et une clé à `null` valent toutes deux nil : seul ce drapeau les sépare.
-
-        # Absente, la liste est refusée (`missing`) : la croire vide donnerait tous les flux à un
-        # administrateur local. À `null`, ce n'est pas une liste (`not_a_list`).
-        def data_stream_codes=(codes)
-          @data_stream_codes_given = true
-          super
-        end
-
+        # Ce setter note que la clé a été transmise, comme celui des codes de flux. `new` ne l'appelle que
+        # pour une clé reçue (le contrôleur ne la passe que si le JSON la contient), jamais pour la valeur
+        # par défaut. Une clé absente et une clé à `null` valent toutes deux nil : seul ce drapeau les sépare.
         # Absente, la source n'est pas tracée ; à `null`, elle est refusée.
         def source_info=(info)
           @source_info_given = true
@@ -78,6 +60,9 @@ module API
 
         # Une vérification ne porte que sur des champs valides : les autres ont déjà leur motif.
         def valid_on?(*attributes) = attributes.none? { errors.include?(it) }
+
+        # Une demande d'enregistrement vérifie tous les codes reçus auprès du référentiel.
+        def data_stream_codes_to_verify = data_stream_codes
 
         # Les motifs reprennent l'imbrication du payload, enveloppe `agent` en moins.
         def error_details
@@ -109,20 +94,11 @@ module API
           end
         end
 
-        # Au-delà de la borne, les codes ne sont pas examinés un à un : la réponse ne les renvoie pas.
-        def data_stream_codes_well_formed
-          if !@data_stream_codes_given
-            errors.add(:data_stream_codes, :missing)
-          elsif !(data_stream_codes.is_a?(Array) && data_stream_codes.all?(String))
-            errors.add(:data_stream_codes, :not_a_list)
-          elsif data_stream_codes.size > MAX_DATA_STREAM_CODES
-            errors.add(:data_stream_codes, :too_many, count: MAX_DATA_STREAM_CODES)
-          else
-            invalid_data_stream_codes.each { errors.add(:data_stream_codes, :invalid_code, code: it) }
-          end
+        # Absente, la liste est refusée (`missing`) : la croire vide donnerait tous les flux à un
+        # administrateur local. À `null`, ce n'est pas une liste (`not_a_list`).
+        def data_stream_codes_required
+          errors.add(:data_stream_codes, :missing) unless data_stream_codes_given?
         end
-
-        def invalid_data_stream_codes = data_stream_codes.grep_v(DataStreamCode::FORMAT)
 
         # Un administrateur local sans habilitation a accès à tous les flux, un membre à aucun.
         def member_habilitated

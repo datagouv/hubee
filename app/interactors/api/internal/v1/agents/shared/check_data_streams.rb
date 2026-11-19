@@ -4,14 +4,14 @@ module API
   module Internal
     module V1
       module Agents
-        class Create
+        module Shared
           class CheckDataStreams
             include Interactor
 
             def call
               return unless form.valid_on?(:data_stream_codes)
 
-              ask_referential(form.data_stream_codes)
+              ask_referential(form.data_stream_codes_to_verify)
             end
 
             private
