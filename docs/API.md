@@ -11,6 +11,8 @@ voir « Versionnage ». `/api/v1` est l'ébauche gelée décrite plus bas.
   - ❌ **has_many** : jamais nester (évite explosion payload)
   - ✅ **belongs_to** : peut être nesté (1 objet, évite requêtes multiples)
   - Exception historique : `attachments` nested dans `data_packages` (has_many)
+  - Exception de l'espace interne : les `memberships` d'un agent, imbriqués dans sa représentation
+    (voir « Représentation d'un agent »)
 - **Pagination** : Headers HTTP (X-Page, X-Total), body reste array direct
 - **Autorisations** : (r) = read, (w) = write
 - **IDs API** : UUIDs v4 partout (primary keys), SIRET conservé comme attribut métier des Organizations
@@ -73,6 +75,11 @@ Un corps JSON illisible y reçoit le 400 général, `{"error": "bad_request", "m
 **Droits** : accordés au client, opération par opération (voir `docs/RUNBOOK.md`). Ils ne
 passent pas par le jeton : ils sont lus à chaque appel, et un client sans le droit reçoit 403 `forbidden`.
 
+| Droit | Opérations |
+|-------|------------|
+| `internal:agents:create` | enregistrer un agent |
+| `internal:agents:read` | lister et rechercher les agents, consulter un agent |
+
 ### Enregistrer un agent
 
 ```http
@@ -81,8 +88,10 @@ POST /api/internal/v1/agents        # droit internal:agents:create
 
 Crée l'agent s'il est inconnu, le rattache s'il est déjà connu (même adresse) pour une autre
 organisation. Son identité n'est alors pas modifiée : c'est ProConnect qui la rafraîchit à la
-connexion. L'organisation est vérifiée au référentiel V1 (organisation de type SI) à chaque
-appel, même connue de la V2, puis prise en compte si elle est nouvelle. Un seul rattachement par appel : un agent de deux organisations
+connexion. C'est aussi la seule voie pour **ajouter un rattachement** à un agent connu :
+`first_name` et `last_name` restent exigés, puis ignorés (reprendre ceux de l'agent). L'organisation
+est vérifiée au référentiel V1 (organisation de type SI) à chaque appel, même connue de la V2, puis
+prise en compte si elle est nouvelle. Un seul rattachement par appel : un agent de deux organisations
 donne deux appels.
 
 ```json
@@ -110,7 +119,7 @@ donne deux appels.
 | Champ | Obligatoire | Règle |
 |-------|-------------|-------|
 | `email` | oui | adresse de l'agent, sans distinction de casse : c'est elle que la connexion ProConnect retrouve |
-| `first_name`, `last_name` | oui | |
+| `first_name`, `last_name` | oui | fournis à l'enregistrement, puis réécrits par ProConnect à chaque connexion : aucune opération de l'API ne les modifie. Pour un agent déjà connu, exigés mais ignorés |
 | `civility` | non | `mr` ou `ms` |
 | `send_invitation` | non | `true` ou `false` JSON, `false` si absent : demande l'invitation de l'agent. Toute autre valeur (`"true"`, `1`, `null`, `""`, une liste…) est refusée (422). Lu dans le corps JSON seul : passé dans l'URL ou un formulaire, il est ignoré. La réponse ne change pas |
 | `membership.siret` | oui | 14 chiffres |
@@ -126,8 +135,9 @@ l'invitation (`send_invitation: true`). Elle ne part ni sur un rejeu, ni pour un
 une nouvelle organisation, ni sur un refus ; la réponse n'en dépend pas, même si l'envoi échoue ensuite.
 
 **201** : l'état enregistré, pas l'état demandé (pour un agent connu ailleurs, l'identité
-retenue). `id` désigne l'agent dans les opérations suivantes ; l'identifiant ProConnect n'est
-jamais exposé.
+retenue). `id` désigne l'agent dans les opérations suivantes, `membership.id` le rattachement ;
+l'identifiant ProConnect n'est jamais exposé.
+Le rattachement a la même représentation que dans la liste des agents.
 
 ```json
 {
@@ -137,13 +147,15 @@ jamais exposé.
   "last_name": "Martin",
   "civility": "ms",
   "membership": {
+    "id": "0199…",
     "siret": "21750056000016",
     "insee_code": "75056",
     "role": "member",
     "job_title": "Officier d'état civil",
     "phone_number": "+33123456789",
     "mobile_phone_number": "+33612345678",
-    "data_stream_codes": ["CERTDC"]
+    "data_stream_codes": ["CERTDC"],
+    "last_signed_in_at": null
   }
 }
 ```
@@ -166,17 +178,8 @@ celui du motif le plus fort : un conflit (409) l'emporte sur une demande invalid
 référentiel indisponible (503) n'est signalé que s'il n'y a aucun autre motif. Un refus n'écrit
 rien, ni agent, ni organisation, ni rattachement, ni trace.
 
-Les contrôles se suivent dans cet ordre, et le premier qui refuse donne la réponse :
-
-| Ordre | Contrôle | Refus |
-|-------|----------|-------|
-| 1 | jeton | 401 |
-| 2 | droit du client | 403, même si le corps est illisible |
-| 3 | corps lisible, enveloppe `agent` présente | 400 |
-| 4 | motifs de la demande : champs, référentiel, rattachements existants | 409, sinon 422, tous les motifs à la fois |
-| 5 | référentiel joignable | 503, seulement sans aucun motif |
-
-Des paramètres d'URL mal formés sont refusés (400) avant tout contrôle, jeton compris.
+Les contrôles se suivent dans l'ordre commun à toutes les opérations sur les agents (voir « Ordre
+des contrôles »).
 
 | Statut | Quand | Corps |
 |--------|-------|-------|
@@ -184,7 +187,7 @@ Des paramètres d'URL mal formés sont refusés (400) avant tout contrôle, jeto
 | 400 | enveloppe `agent` absente | `{"error": "missing_agent", "message": "…"}` |
 | 401 | jeton absent, inconnu, expiré ou révoqué | `{"error": "invalid_token", "message": "…"}` |
 | 403 | client sans le droit `internal:agents:create` | `{"error": "forbidden", "message": "…"}` |
-| 404 | autre méthode que `POST` | `{"error": "not_found", "message": "…"}` |
+| 404 | autre méthode que `GET` ou `POST` sur `/agents` | `{"error": "not_found", "message": "…"}` |
 | 409 | agent déjà rattaché à cette organisation, pour **tout** rejeu, identique ou non : rien n'est modifié, et l'état enregistré n'est pas renvoyé | motif sur `email` |
 | 409 | agent déjà rattaché à ce SIRET sous un autre code guichet (un seul rattachement par SIRET) | motif sur `membership.insee_code` |
 | 422 | champ manquant ou invalide | motif sur chaque champ concerné |
@@ -203,6 +206,145 @@ de `agent.created` dit la demande, pas l'envoi : une invitation demandée sans `
 L'identifiant de la requête est celui que le client envoie dans `X-Request-Id` (255 caractères au plus,
 lettres, chiffres, `-`, `_` et `@`), à défaut un UUID généré par le serveur : il sert à recouper les
 journaux, pas à prouver l'origine d'un appel.
+
+### Représentation d'un agent
+
+Même corps pour un élément de la liste et la consultation d'un agent.
+
+```json
+{
+  "id": "0199…",
+  "email": "alice.martin@ville.fr",
+  "first_name": "Alice",
+  "last_name": "Martin",
+  "civility": "ms",
+  "has_signed_in": true,
+  "created_at": "2026-11-02T10:12:00.000+01:00",
+  "memberships": [
+    {
+      "id": "0199…",
+      "siret": "21750056000016",
+      "insee_code": "75056",
+      "role": "member",
+      "job_title": "Officier d'état civil",
+      "phone_number": "+33123456789",
+      "mobile_phone_number": "+33612345678",
+      "data_stream_codes": ["CERTDC"],
+      "last_signed_in_at": "2026-11-10T09:00:00.000+01:00"
+    }
+  ]
+}
+```
+
+- `has_signed_in` : l'agent s'est déjà connecté par ProConnect. L'identifiant ProConnect lui-même
+  n'est jamais exposé.
+- Les dates sont en ISO 8601, dans le fuseau de l'application (Paris), avec leur décalage (`+01:00`
+  l'hiver, `+02:00` l'été), jamais en `Z`. `last_signed_in_at` vaut `null` tant que l'agent ne s'est
+  jamais connecté sous ce rattachement.
+- `first_name` et `last_name` sont ceux de ProConnect : l'API ne les modifie pas.
+- `memberships` est **imbriqué**, en écart assumé à la « Nesting Policy » : un agent a peu de
+  rattachements (au plus un par SIRET), et lister les agents avec leurs rattachements et leurs rôles
+  ne doit pas coûter un appel par agent. Ils sont rendus dans l'ordre de leur création ; la liste est
+  vide pour un agent sans rattachement.
+- Un rattachement a la même représentation partout : sous `membership` à l'enregistrement, dans
+  `memberships` ici. `data_stream_codes` est vide pour un administrateur
+  local qui a accès à tous les flux ; il n'est pas ordonné. Le nom de l'organisation n'y figure pas :
+  il vit au référentiel V1.
+
+### Lister et rechercher les agents
+
+```http
+GET /api/internal/v1/agents        # droit internal:agents:read
+GET /api/internal/v1/agents?siret=21750056000016&insee_code=75056&role=member&search=alice%20mar&page=1&per_page=50
+```
+
+Tous les agents, ordonnés par adresse, sans appel au référentiel. Chaque critère présent restreint
+la liste ; sans aucun critère, c'est tout le stock, paginé.
+
+| Paramètre | Règle |
+|-----------|-------|
+| `siret` | 14 chiffres : les agents qui ont un rattachement sur ce SIRET |
+| `insee_code` | le code guichet, **seulement avec `siret`** (422 sinon) : restreint à ce rattachement |
+| `role` | `member` ou `local_administrator` |
+| `search` | recherche texte, 255 caractères au plus, voir ci-dessous |
+| `page` | entier de 1 à 1000, défaut 1 |
+| `per_page` | entier de 1 à 100, défaut 50 |
+
+- Les paramètres se lisent dans la **chaîne de requête** seule : un corps de requête n'est pas lu.
+- Un critère vide, ou réduit à des espaces, vaut un critère absent. Un paramètre inconnu est ignoré.
+  Un critère qui n'est pas une chaîne (`role[]=member`, `siret[a]=…`) est refusé (422) sur son
+  champ : `["doit être une chaîne, pas une liste ni un objet"]` ; l'écarter rendrait tout le stock.
+- `siret`, `insee_code` et `role` désignent le **même** rattachement : un agent membre sur un SIRET
+  et administrateur sur un autre ne répond pas à « administrateur de ce SIRET ».
+- Un critère ne réduit que la liste : chaque agent est rendu avec **tous** ses rattachements.
+- Un paramètre invalide refuse la demande (422), tous les motifs à la fois, à plat par paramètre :
+  `{"siret": ["doit comporter 14 chiffres"]}`, `{"insee_code": ["ne s'emploie qu'avec un SIRET"]}`,
+  `{"role": ["n'est pas inclus(e) dans la liste"]}`, `{"search": ["est trop long (pas plus de 255
+  caractères)"]}`.
+
+**`search`** : la saisie entière, espaces en bord retirés (elle n'est pas découpée en mots), doit
+être le **début** de l'un de ces champs, sans distinction de casse : l'adresse, le prénom, le nom,
+« prénom nom », « nom prénom ». Le tiret et l'espace s'équivalent, des deux côtés. Les accents sont
+distingués. `%`, `_` et `\` s'entendent tels quels, sans valeur de joker.
+
+| Saisie | Trouve | Ne trouve pas |
+|--------|--------|---------------|
+| `alice mar` | Alice Martin (« prénom nom ») | |
+| `martin al` | Alice Martin (« nom prénom ») | |
+| `de la fontaine` | Jean De La Fontaine (le nom) | |
+| `marie claire` | Marie-Claire Durand (tiret et espace équivalents) | |
+| `marie-claire` | Marie-Claire Durand | |
+| `alice.mar` | alice.martin@ville.fr (l'adresse) | |
+| `ALICE` | Alice Martin (sans distinction de casse) | |
+| `claire` | | Marie-Claire Durand : ce n'est le début d'aucun champ |
+| `ville.fr` | | alice.martin@ville.fr : le début seulement, pas le domaine |
+| `alice  mar` (deux espaces) | | Alice Martin : l'espace intérieur compte |
+| `elodie` | | Élodie Roux : les accents sont distingués |
+| `50%` | un agent dont le prénom commence par `50%` | tous les autres : `%` n'est pas un joker |
+
+**Pagination** : `page` (de 1 à 1000, défaut 1) et `per_page` (de 1 à 100, défaut 50), en-têtes
+`X-Page`, `X-Per-Page`, `X-Total` et `X-Total-Pages` ; le corps reste le tableau d'agents. Le total
+compte les agents, pas leurs rattachements. Une valeur hors de ses bornes ou qui n'est pas un entier
+est refusée (422) avec son motif, comme un autre critère : `{"page": ["n'est pas un nombre"]}` (`abc`,
+une liste), `["doit être un nombre entier"]` (`1.5`), `["doit être supérieur ou égal à 1"]` (`0`,
+`-5`), `["doit être inférieur ou égal à 1000"]` ; de même pour `per_page`, borné à 100. Une valeur
+vide vaut absence. Une page dans les bornes mais au-delà de la dernière donne une liste vide (`[]`,
+en-têtes à l'appui). Les liens de l'en-tête `Link` reprennent les critères validés et `per_page`.
+
+**200** : le tableau des agents, `[]` quand aucun ne répond. Erreurs : 401, 403, 422 (paramètre
+invalide), 400 (paramètres d'URL mal formés) ; voir « Ordre des contrôles ».
+
+### Consulter un agent
+
+```http
+GET /api/internal/v1/agents/:id    # droit internal:agents:read
+```
+
+**200** : la représentation de l'agent. **404** `not_found` pour un agent inconnu, comme pour un `id`
+qui n'est pas un identifiant. Rien n'est demandé au référentiel : une lecture n'échoue pas parce que
+hub-api est indisponible.
+
+### Ordre des contrôles
+
+Les trois opérations sur les agents suivent le même ordre, et le premier contrôle qui refuse donne la
+réponse :
+
+| Ordre | Contrôle | Refus |
+|-------|----------|-------|
+| 1 | jeton | 401 |
+| 2 | droit du client | 403, même sur une ressource inconnue, même si le corps est illisible |
+| 3 | corps lisible | 400 `bad_request`, même sur une ressource inconnue |
+| 4 | ressource désignée par l'URL (agent) | 404 |
+| 5 | enveloppe présente (`agent`) | 400 `missing_agent` |
+| 6 | motifs de la demande : champs, paramètres, référentiel, conflits | 409, sinon 422, tous les motifs à la fois |
+| 7 | référentiel joignable | 503, seulement sans aucun motif |
+
+Les étapes 4 et 5 ne concernent que les opérations qui les portent (l'enregistrement n'a pas de
+ressource à retrouver, une lecture n'a pas d'enveloppe). Des paramètres d'URL mal formés sont refusés
+(400) avant tout contrôle, jeton compris. Les erreurs sans champ ont la forme commune à l'API,
+`{"error": "<code>", "message": "…"}` ; celles qui portent sur un champ, `{"<champ>": ["<motif>"]}`.
+L'espace interne est fermé par défaut : une action qui n'aurait pas vérifié le droit du client
+échoue au lieu de répondre.
 
 ## Endpoints (Rails Scaffold Style)
 
