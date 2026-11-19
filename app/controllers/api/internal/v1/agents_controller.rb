@@ -17,7 +17,7 @@ module API
 
         # L'autorisation passe avant la recherche : un client sans le droit reçoit 403 même sur un agent inconnu.
         before_action :authorize_agent
-        before_action :set_agent, only: %i[show update]
+        before_action :set_agent, only: %i[show update destroy]
         rescue_from ActionController::ParameterMissing, with: :missing_envelope
 
         # La chaîne de requête seule : un corps de GET n'a pas à compter. Pagy compose les liens de l'en-tête Link
@@ -59,9 +59,15 @@ module API
           end
         end
 
+        def destroy
+          Agents::Destroy.call!(agent: @agent, api_client: current_api_client, request_id: request.request_id)
+
+          head :no_content
+        end
+
         private
 
-        # Pundit juge la question de l'action : `index?`, `show?`, `create?` ou `update?`.
+        # Pundit juge la question de l'action : `index?`, `show?`, `create?`, `update?` ou `destroy?`.
         def authorize_agent = authorize(:agent, policy_class: AgentPolicy)
 
         # Les rattachements, leur organisation et leurs flux d'un coup : la représentation les parcourt tous.

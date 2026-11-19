@@ -8,6 +8,7 @@ RSpec.describe "API internal agents routes", type: :routing do
     expect(get: "/api/internal/v1/agents/1").to route_to("api/internal/v1/agents#show", id: "1")
     expect(post: "/api/internal/v1/agents").to route_to("api/internal/v1/agents#create")
     expect(patch: "/api/internal/v1/agents/1").to route_to("api/internal/v1/agents#update", id: "1")
+    expect(delete: "/api/internal/v1/agents/1").to route_to("api/internal/v1/agents#destroy", id: "1")
   end
 
   # `resources` routerait aussi PUT vers update : le contrat n'offre que PATCH.
