@@ -85,18 +85,49 @@ passent pas par le jeton : ils sont lus à chaque appel, et un client sans le dr
 Un droit n'en implique aucun autre : supprimer un agent exige `destroy`, même pour un client qui
 détient `update`.
 
-**Imputation des écritures** : une trace nomme le client (`api_client`, `api_client_uid`) et la
-requête (`request_id`), jamais la personne qui a agi : l'API ne la connaît pas. admin-portal **doit**
-donc envoyer un en-tête `X-Request-Id` sur chaque appel d'écriture (enregistrement, correction,
-modification ou retrait d'un rattachement, suppression) et journaliser de son côté l'admin national
-qui a agi avec ce même identifiant : c'est ce qui relie une trace à une personne. L'identifiant
-reçu est conservé tel quel une fois retirés les caractères autres que lettres ASCII sans accent,
-chiffres, `-`, `_` et `@`, et tronqué à 255 caractères ; il est renvoyé dans l'en-tête `X-Request-Id`
-de la réponse. Un en-tête que ce nettoyage vide entièrement (`éà`, par exemple) donne un identifiant
-**vide**, pas un UUID. Sans en-tête, ou avec un en-tête vide ou blanc, le serveur génère un UUID, que
-seule la réponse fait connaître au client. Dans les deux cas, la trace ne se rattache à personne.
-Envoyer un identifiant déjà nettoyé (un UUID, par exemple) garantit que la trace porte exactement la
-valeur journalisée.
+**Imputation des écritures** : une trace nomme le client (`api_client`, `api_client_uid`), la
+requête (`request_id`) et, sous `declared_actor`, la personne qui a agi **telle que le client la
+déclare** dans l'en-tête `X-Actor-Id`. La trace se suffit ainsi : retrouver l'admin national n'exige
+pas les journaux d'admin-portal, dont rien ne garantit qu'ils soient conservés aussi longtemps que les
+traces (un an).
+
+- **Valeur** : l'identifiant **stable** de la personne dans le système appelant, jamais son adresse :
+  c'est une donnée personnelle de moins dans les traces, et un identifiant qui ne change pas avec
+  l'adresse. De 1 à 255 caractères parmi les lettres ASCII sans accent, les chiffres et `.`, `_`, `:`,
+  `@`, `-` (`\A[A-Za-z0-9._:@-]{1,255}\z`). Rien n'est nettoyé ni tronqué : une valeur hors de ce
+  format est refusée, jamais corrigée.
+- **Obligatoire** pour corriger un agent, modifier ou retirer un rattachement et supprimer un agent :
+  absent, vide ou blanc, 400 `missing_actor` ; hors format, 400 `invalid_actor`. Rien n'est écrit, aucune
+  trace.
+- **Facultatif** à l'enregistrement (`POST /agents`), que hub-api appelle sans personne derrière.
+  Absent, la trace n'a pas de clé `declared_actor` (jamais `null`). Présent, il doit être bien formé :
+  un en-tête vide est une valeur envoyée, refusée en 400 `invalid_actor`. admin-portal l'envoie aussi
+  quand il enregistre un agent.
+- **Traitement automatique** : un traitement sans personne derrière (job, reprise, synchronisation
+  côté client) envoie un identifiant explicite du traitement, préfixé, par exemple
+  `job:purge-comptes-inactifs` ; jamais un en-tête vide, ni l'identifiant d'une personne qui n'a pas
+  agi. Un traitement interne à HubEE n'appelle pas l'API et n'est pas concerné.
+- **Déclaré, non vérifié** : l'API ne contrôle pas que la personne existe ni qu'elle a agi. La valeur
+  n'étend pas la confiance accordée au client, qui peut déjà tout modifier avec ses droits, mais elle ne
+  prouve rien : elle dit qui le client affirme avoir agi.
+- L'en-tête est contrôlé après le droit du client et avant la lecture du corps (voir « Ordre des
+  contrôles »).
+
+```json
+{"error": "missing_actor", "message": "La demande doit désigner dans l'en-tête X-Actor-Id la personne qui agit."}
+{"error": "invalid_actor", "message": "L'en-tête X-Actor-Id doit compter de 1 à 255 caractères parmi les lettres ASCII sans accent, les chiffres et . _ : @ -."}
+```
+
+admin-portal **doit** aussi envoyer un en-tête `X-Request-Id` sur chaque appel d'écriture
+(enregistrement, correction, modification ou retrait d'un rattachement, suppression) : il relie la
+trace à la requête précise dans les journaux d'admin-portal. L'identifiant reçu est conservé tel quel
+une fois retirés les caractères autres que lettres ASCII sans accent, chiffres, `-`, `_` et `@`, et
+tronqué à 255 caractères ; il est renvoyé dans l'en-tête `X-Request-Id` de la réponse. Un en-tête que
+ce nettoyage vide entièrement (`éà`, par exemple) donne un identifiant **vide**, pas un UUID. Sans
+en-tête, ou avec un en-tête vide ou blanc, le serveur génère un UUID, que seule la réponse fait
+connaître au client. Dans les deux cas, la trace ne se rattache à aucune requête des journaux
+d'admin-portal. Envoyer un identifiant déjà nettoyé (un UUID, par exemple) garantit que la trace porte
+exactement la valeur journalisée.
 
 ### Enregistrer un agent
 
@@ -203,6 +234,7 @@ des contrôles »).
 |--------|-------|-------|
 | 400 | corps illisible (JSON mal formé) | `{"error": "bad_request", "message": "…"}` |
 | 400 | enveloppe `agent` absente | `{"error": "missing_agent", "message": "…"}` |
+| 400 | en-tête `X-Actor-Id` présent mais hors format, vide compris (facultatif ici, voir « Imputation des écritures ») | `{"error": "invalid_actor", "message": "…"}` |
 | 401 | jeton absent, inconnu, expiré ou révoqué | `{"error": "invalid_token", "message": "…"}` |
 | 403 | client sans le droit `internal:agents:create` | `{"error": "forbidden", "message": "…"}` |
 | 404 | autre méthode que `GET` ou `POST` sur `/agents` | `{"error": "not_found", "message": "…"}` |
@@ -215,12 +247,13 @@ des contrôles »).
 
 Chaque écriture laisse sa trace (`agent.created` si l'agent est créé, `membership.created` ; les
 traces des autres opérations sont décrites plus bas, « Traces des modifications ») : le
-client appelant (nom et uid), la requête, l'adresse, l'organisation, le rôle et les habilitations ;
+client appelant (nom et uid), la requête, l'acteur déclaré (`declared_actor`, seulement si
+`X-Actor-Id` est envoyé), l'adresse, l'organisation, le rôle et les habilitations ;
 `agent.created` porte en plus `send_invitation`, sa valeur effective.
 Un `source_info` fourni est repris tel quel sous cette clé dans `agent.created` et `membership.created` ;
 absent, la clé n'y figure pas.
 Une invitation remise laisse `agent.invited` sur l'agent, écrit par le job après l'envoi : mêmes
-métadonnées que `agent.created`, sans le rôle, les habilitations, `send_invitation` ni `source_info`. Le `send_invitation`
+métadonnées que `agent.created`, `declared_actor` compris, sans le rôle, les habilitations, `send_invitation` ni `source_info`. Le `send_invitation`
 de `agent.created` dit la demande, pas l'envoi : une invitation demandée sans `agent.invited` n'a pas été remise.
 L'identifiant de la requête est celui que le client envoie dans `X-Request-Id` (255 caractères au plus,
 lettres, chiffres, `-`, `_` et `@`), à défaut un UUID généré par le serveur : il sert à recouper les
@@ -347,6 +380,7 @@ hub-api est indisponible.
 
 ```http
 PATCH /api/internal/v1/agents/:id  # droit internal:agents:update
+X-Actor-Id: admin-national-42      # obligatoire
 ```
 
 ```json
@@ -387,6 +421,8 @@ PATCH /api/internal/v1/agents/:id  # droit internal:agents:update
 
 | Statut | Quand | Corps |
 |--------|-------|-------|
+| 400 | en-tête `X-Actor-Id` absent, vide ou blanc | `{"error": "missing_actor", "message": "…"}` |
+| 400 | en-tête `X-Actor-Id` hors format | `{"error": "invalid_actor", "message": "…"}` |
 | 400 | enveloppe `agent` absente ou qui n'est pas un objet | `{"error": "missing_agent", "message": "…"}` |
 | 404 | agent inconnu | `{"error": "not_found", "message": "…"}` |
 | 409 | adresse déjà portée par un autre agent | `{"email": ["désigne déjà un autre agent"]}` |
@@ -399,6 +435,7 @@ ni modification, ni trace.
 
 ```http
 PATCH /api/internal/v1/agents/:agent_id/memberships/:id  # droit internal:agents:update
+X-Actor-Id: admin-national-42                            # obligatoire
 ```
 
 ```json
@@ -453,6 +490,8 @@ Le rattachement est cherché **parmi ceux de l'agent** : celui d'un autre agent 
 
 | Statut | Quand | Corps |
 |--------|-------|-------|
+| 400 | en-tête `X-Actor-Id` absent, vide ou blanc | `{"error": "missing_actor", "message": "…"}` |
+| 400 | en-tête `X-Actor-Id` hors format | `{"error": "invalid_actor", "message": "…"}` |
 | 400 | enveloppe `membership` absente ou qui n'est pas un objet | `{"error": "missing_membership", "message": "…"}` |
 | 404 | agent inconnu, rattachement inconnu ou d'un autre agent | `{"error": "not_found", "message": "…"}` |
 | 422 | champ invalide, `siret` ou `insee_code` présent, code de flux invalide, membre sans code, accès à tous les flux non confirmé, drapeau `all_data_streams` invalide ou hors de son emploi | motif sur chaque champ concerné |
@@ -472,6 +511,7 @@ le 503 n'est signalé que s'il n'y a aucun autre motif. Un refus n'écrit rien, 
 
 ```http
 DELETE /api/internal/v1/agents/:agent_id/memberships/:id  # droit internal:agents:update
+X-Actor-Id: admin-national-42                             # obligatoire
 ```
 
 **204**, sans corps. Le retrait relève du droit `update` : il corrige l'agent. Les habilitations et
@@ -480,13 +520,15 @@ l'agent, sans effet sur ses autres rattachements. Le dernier rattachement peut �
 reste, sans accès ; le supprimer est l'objet de la suppression de l'agent. L'organisation, elle,
 reste.
 
-Erreurs : 404 pour un agent ou un rattachement inconnu, ou un rattachement d'un autre agent ; 401 et
-403 ; voir « Ordre des contrôles ». Un refus n'écrit rien.
+Erreurs : 400 `missing_actor` ou `invalid_actor` pour un en-tête `X-Actor-Id` absent ou hors format
+(voir « Imputation des écritures ») ; 404 pour un agent ou un rattachement inconnu, ou un rattachement
+d'un autre agent ; 401 et 403 ; voir « Ordre des contrôles ». Un refus n'écrit rien.
 
 ### Supprimer un agent
 
 ```http
 DELETE /api/internal/v1/agents/:id  # droit internal:agents:destroy
+X-Actor-Id: admin-national-42       # obligatoire
 ```
 
 **204**, sans corps. L'agent, ses rattachements, leurs habilitations et leurs sessions ouvertes sont
@@ -495,8 +537,9 @@ organisations restent, d'autres agents s'y rattachent. Rien n'est demandé ni ch
 traces antérieures de l'agent sont conservées. Un agent supprimé peut être enregistré de nouveau par
 `POST /agents` : c'est un nouvel agent, avec un nouvel `id`.
 
-Erreurs : 404 pour un agent inconnu, 401, 403 (le droit `update` ne suffit pas) ; voir « Ordre des
-contrôles ». Un refus n'écrit rien.
+Erreurs : 400 `missing_actor` ou `invalid_actor` pour un en-tête `X-Actor-Id` absent ou hors format
+(voir « Imputation des écritures ») ; 404 pour un agent inconnu, 401, 403 (le droit `update` ne suffit
+pas) ; voir « Ordre des contrôles ». Un refus n'écrit rien.
 
 ### Ordre des contrôles
 
@@ -506,15 +549,17 @@ réponse :
 | Ordre | Contrôle | Refus |
 |-------|----------|-------|
 | 1 | jeton | 401 |
-| 2 | droit du client | 403, même sur une ressource inconnue, même si le corps est illisible |
-| 3 | corps lisible | 400 `bad_request`, même sur une ressource inconnue |
-| 4 | ressource désignée par l'URL (agent, rattachement) | 404 |
-| 5 | enveloppe présente (`agent` ou `membership`) | 400 `missing_agent` ou `missing_membership` |
-| 6 | motifs de la demande : champs, paramètres, référentiel, conflits | 409, sinon 422, tous les motifs à la fois |
-| 7 | référentiel joignable | 503, seulement sans aucun motif |
+| 2 | droit du client | 403, même sur une ressource inconnue, même si le corps est illisible ou l'en-tête d'acteur absent |
+| 3 | en-tête `X-Actor-Id` | 400 `missing_actor` ou `invalid_actor`, même sur une ressource inconnue, même si le corps est illisible |
+| 4 | corps lisible | 400 `bad_request`, même sur une ressource inconnue |
+| 5 | ressource désignée par l'URL (agent, rattachement) | 404 |
+| 6 | enveloppe présente (`agent` ou `membership`) | 400 `missing_agent` ou `missing_membership` |
+| 7 | motifs de la demande : champs, paramètres, référentiel, conflits | 409, sinon 422, tous les motifs à la fois |
+| 8 | référentiel joignable | 503, seulement sans aucun motif |
 
-Les étapes 4 et 5 ne concernent que les opérations qui les portent (l'enregistrement n'a pas de
-ressource à retrouver, une lecture n'a pas d'enveloppe). Des paramètres d'URL mal formés sont refusés
+Les étapes 3, 5 et 6 ne concernent que les opérations qui les portent (une lecture n'a pas d'en-tête
+d'acteur, l'enregistrement ne refuse que celui qui est mal formé et n'a pas de ressource à retrouver,
+une lecture n'a pas d'enveloppe). Des paramètres d'URL mal formés sont refusés
 (400) avant tout contrôle, jeton compris. Les erreurs sans champ ont la forme commune à l'API,
 `{"error": "<code>", "message": "…"}` ; celles qui portent sur un champ, `{"<champ>": ["<motif>"]}`.
 L'espace interne est fermé par défaut : une action qui n'aurait pas vérifié le droit du client
@@ -524,9 +569,11 @@ L'espace interne est fermé par défaut : une action qui n'aurait pas vérifié 
 
 Chaque écriture effective laisse sa trace dans la même transaction : sans elle, rien n'est écrit.
 Aucune trace pour un refus ni pour un appel sans effet. Les métadonnées reprennent celles de
-l'enregistrement (`api_client`, `api_client_uid`, `request_id`) et de quoi lire la trace seule, après la
-suppression de l'agent : son adresse, et pour un rattachement `siret` et `insee_code`. La personne qui
-a agi se retrouve dans le journal d'admin-portal par `request_id` (voir « Imputation des écritures »).
+l'enregistrement (`api_client`, `api_client_uid`, `request_id`), l'acteur déclaré (`declared_actor`,
+toujours présent ici puisque l'en-tête est obligatoire) et de quoi lire la trace seule, après la
+suppression de l'agent : son adresse, et pour un rattachement `siret` et `insee_code`. `declared_actor`
+dit qui le client affirme avoir agi ; `request_id` relie la trace à la requête dans les journaux
+d'admin-portal (voir « Imputation des écritures »).
 
 | Type | Sujet | Quand | Métadonnées en plus |
 |------|-------|-------|---------------------|
@@ -544,6 +591,7 @@ personnelles comprises (adresse, civilité, fonction, téléphones). Les habilit
   "api_client": "admin-portal",
   "api_client_uid": "…",
   "request_id": "…",
+  "declared_actor": "admin-national-42",
   "email": "alice.martin@ville.fr",
   "siret": "21750056000016",
   "insee_code": "75056",

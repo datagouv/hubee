@@ -56,6 +56,12 @@ RSpec.describe API::InviteAgentJob do
       )
     end
 
+    it "traces the actor declared by the call that asked for the invitation" do
+      described_class.perform_now(agent, organization_name: nil, **origin, declared_actor: "admin-national-42")
+
+      expect(Event.sole.metadata).to include("declared_actor" => "admin-national-42")
+    end
+
     it "traces nothing and lets the error rise when the delivery fails" do
       delivery = instance_double(ActionMailer::MessageDelivery)
       expect(API::AgentMailer).to receive(:invitation).and_return(delivery)

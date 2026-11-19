@@ -3,8 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "DELETE /api/internal/v1/agents/:agent_id/memberships/:id", type: :request do
-  def remove(agent_id: agent.id, membership_id: membership.id, application: admin_portal)
-    delete "/api/internal/v1/agents/#{agent_id}/memberships/#{membership_id}", headers: bearer(application)
+  def remove(agent_id: agent.id, membership_id: membership.id, application: admin_portal, actor: declared_actor)
+    delete "/api/internal/v1/agents/#{agent_id}/memberships/#{membership_id}", headers: {**bearer(application), **actor}
   end
 
   # Le cas standard : un membre habilité sur un flux.
@@ -38,6 +38,7 @@ RSpec.describe "DELETE /api/internal/v1/agents/:agent_id/memberships/:id", type:
         "api_client" => "admin-portal",
         "api_client_uid" => admin_portal.uid,
         "request_id" => response.headers["X-Request-Id"],
+        "declared_actor" => "admin-national-42",
         "email" => "alice.martin@ville.fr",
         "siret" => "21750056000016",
         "insee_code" => "75056",
@@ -118,6 +119,25 @@ RSpec.describe "DELETE /api/internal/v1/agents/:agent_id/memberships/:id", type:
     expect { remove(application: reader) }.not_to change { written }
 
     expect(response).to have_http_status(:forbidden)
+  end
+
+  it_behaves_like "a write requiring the declared actor" do
+    def write_as(actor) = remove(actor:)
+  end
+
+  it "answers 403 to a client without the right before asking for the declared actor" do
+    reader = create(:oauth_application, :with_agent_read_right)
+
+    remove(application: reader, actor: {})
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
+  it "asks for the declared actor before looking for the membership" do
+    remove(membership_id: SecureRandom.uuid, actor: {})
+
+    expect(response).to have_http_status(:bad_request)
+    expect(json).to include("error" => "missing_actor")
   end
 
   it "answers 401 without a token" do

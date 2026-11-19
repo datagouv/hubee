@@ -3,8 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "DELETE /api/internal/v1/agents/:id", type: :request do
-  def remove(agent_id: agent.id, application: admin_portal)
-    delete "/api/internal/v1/agents/#{agent_id}", headers: bearer(application)
+  def remove(agent_id: agent.id, application: admin_portal, actor: declared_actor)
+    delete "/api/internal/v1/agents/#{agent_id}", headers: {**bearer(application), **actor}
   end
 
   # Le cas standard : un membre habilité sur un flux.
@@ -43,6 +43,7 @@ RSpec.describe "DELETE /api/internal/v1/agents/:id", type: :request do
         "api_client" => "admin-portal",
         "api_client_uid" => admin_portal.uid,
         "request_id" => response.headers["X-Request-Id"],
+        "declared_actor" => "admin-national-42",
         "email" => "alice.martin@ville.fr",
         "memberships" => [
           {"siret" => "21750056000016", "insee_code" => "75056", "role" => "member", "data_stream_codes" => ["CERTDC"]}
@@ -124,6 +125,26 @@ RSpec.describe "DELETE /api/internal/v1/agents/:id", type: :request do
     remove(application: destroyer)
 
     expect(response).to have_http_status(:no_content)
+  end
+
+  it_behaves_like "a write requiring the declared actor" do
+    def write_as(actor) = remove(actor:)
+  end
+
+  # Le droit `update` ne suffit pas : le refus passe avant l'en-tête d'acteur.
+  it "answers 403 to a client without the right before asking for the declared actor" do
+    corrector = create(:oauth_application, :with_agent_update_right)
+
+    remove(application: corrector, actor: {})
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
+  it "asks for the declared actor before looking for the agent" do
+    remove(agent_id: SecureRandom.uuid, actor: {})
+
+    expect(response).to have_http_status(:bad_request)
+    expect(json).to include("error" => "missing_actor")
   end
 
   it "answers 401 without a token" do

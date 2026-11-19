@@ -3,8 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "PATCH /api/internal/v1/agents/:id", type: :request do
-  def correct(agent_id, body, application: admin_portal)
-    patch "/api/internal/v1/agents/#{agent_id}", params: body, headers: bearer(application), as: :json
+  def correct(agent_id, body, application: admin_portal, actor: declared_actor)
+    patch "/api/internal/v1/agents/#{agent_id}", params: body, headers: {**bearer(application), **actor}, as: :json
   end
 
   # Le cas standard : un membre habilité sur un flux.
@@ -59,6 +59,7 @@ RSpec.describe "PATCH /api/internal/v1/agents/:id", type: :request do
         "api_client" => "admin-portal",
         "api_client_uid" => admin_portal.uid,
         "request_id" => response.headers["X-Request-Id"],
+        "declared_actor" => "admin-national-42",
         "email" => "alice.dupont@ville.fr",
         "changes" => {
           "email" => ["alice.martin@ville.fr", "alice.dupont@ville.fr"],
@@ -81,7 +82,7 @@ RSpec.describe "PATCH /api/internal/v1/agents/:id", type: :request do
   # admin-portal journalise qui a agi sous l'identifiant qu'il envoie : la trace doit porter le même.
   it "traces the request id sent by the client, stripped of the characters it may not hold" do
     patch "/api/internal/v1/agents/#{agent.id}", params: {agent: {civility: "ms"}},
-      headers: {"X-Request-Id" => "admin-portal_42@op:é", **bearer(admin_portal)}, as: :json
+      headers: {"X-Request-Id" => "admin-portal_42@op:é", **bearer(admin_portal), **declared_actor}, as: :json
 
     expect(response).to have_http_status(:ok)
     expect(response.headers["X-Request-Id"]).to eq("admin-portal_42@op")
@@ -213,10 +214,38 @@ RSpec.describe "PATCH /api/internal/v1/agents/:id", type: :request do
     expect(response).to have_http_status(:forbidden)
   end
 
-  # L'autorisation passe avant la lecture du corps, qui passe avant la recherche de l'agent.
+  it_behaves_like "a write requiring the declared actor" do
+    def write_as(actor) = correct(agent.id, {agent: {civility: "ms"}}, actor:)
+  end
+
+  it "answers 403 to a client without the right before asking for the declared actor" do
+    reader = create(:oauth_application, :with_agent_read_right)
+
+    correct(agent.id, {agent: {civility: "ms"}}, application: reader, actor: {})
+
+    expect(response).to have_http_status(:forbidden)
+  end
+
+  it "asks for the declared actor before looking for the agent" do
+    correct(SecureRandom.uuid, {agent: {civility: "ms"}}, actor: {})
+
+    expect(response).to have_http_status(:bad_request)
+    expect(json).to include("error" => "missing_actor")
+  end
+
+  # L'autorisation passe avant l'en-tête d'acteur, qui passe avant la lecture du corps, qui passe avant la
+  # recherche de l'agent.
   context "with an unreadable body", :production_exceptions do
-    def correct_unreadable(application)
-      patch "/api/internal/v1/agents/#{SecureRandom.uuid}", params: "{pas du json", headers: {"CONTENT_TYPE" => "application/json", **bearer(application)}
+    def correct_unreadable(application, actor: declared_actor)
+      patch "/api/internal/v1/agents/#{SecureRandom.uuid}", params: "{pas du json",
+        headers: {"CONTENT_TYPE" => "application/json", **bearer(application), **actor}
+    end
+
+    it "asks for the declared actor before reading the body" do
+      correct_unreadable(admin_portal, actor: {})
+
+      expect(response).to have_http_status(:bad_request)
+      expect(json).to include("error" => "missing_actor")
     end
 
     it "answers 403 to a client without the right, even on an unknown agent" do

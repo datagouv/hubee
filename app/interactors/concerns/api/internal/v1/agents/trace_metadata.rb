@@ -12,13 +12,14 @@ module API
 
           private
 
-          # Le client et la requête : la requête relie la trace au journal du client.
+          # Le client, la requête, qui relie la trace au journal du client, et la personne que le client
+          # déclare. Sans déclaration, la clé est absente : une trace ne prétend pas que personne n'a agi.
           def actor_metadata
             {
               api_client: context.api_client.name,
               api_client_uid: context.api_client.uid,
               request_id: context.request_id
-            }
+            }.merge({declared_actor: context.declared_actor}.compact)
           end
 
           def membership_reference(membership)

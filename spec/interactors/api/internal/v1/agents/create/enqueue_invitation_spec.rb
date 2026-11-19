@@ -10,9 +10,9 @@ RSpec.describe API::Internal::V1::Agents::Create::EnqueueInvitation do
     let(:membership) { create(:membership, agent:) }
     let(:api_client) { create(:oauth_application, name: "systeme-interne") }
 
-    def enqueue(send_invitation:, agent_created:, organization_name: "Mairie de Paris")
+    def enqueue(send_invitation:, agent_created:, organization_name: "Mairie de Paris", declared_actor: nil)
       form = build(:api_internal_v1_agent_form, send_invitation:, siret: "21750056000016", insee_code: "75056")
-      described_class.call(form:, membership:, agent_created:, organization_name:, api_client:, request_id: "req-42")
+      described_class.call(form:, membership:, agent_created:, organization_name:, api_client:, request_id: "req-42", declared_actor:)
     end
 
     it "enqueues the invitation of an agent created by a call that asked for it" do
@@ -25,6 +25,16 @@ RSpec.describe API::Internal::V1::Agents::Create::EnqueueInvitation do
           organization_name: "Mairie de Paris", siret: "21750056000016", insee_code: "75056",
           api_client: "systeme-interne", api_client_uid: api_client.uid, request_id: "req-42"
         )
+    end
+
+    it "hands the declared actor to the invitation, which traces it" do
+      enqueue(send_invitation: true, agent_created: true, declared_actor: "admin-national-42")
+
+      expect(API::InviteAgentJob).to have_been_enqueued.with(
+        agent,
+        organization_name: "Mairie de Paris", siret: "21750056000016", insee_code: "75056",
+        api_client: "systeme-interne", api_client_uid: api_client.uid, request_id: "req-42", declared_actor: "admin-national-42"
+      )
     end
 
     it "enqueues the invitation without a name when the referential had none" do

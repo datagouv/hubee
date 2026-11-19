@@ -13,6 +13,9 @@ module API
         # Doorkeeper) ou une exception rattrapée (403, 404, 400) n'atteint pas ce contrôle.
         after_action :verify_authorized
 
+        # \z et non $ : une fin de ligne ne passe pas.
+        DECLARED_ACTOR_FORMAT = /\A[A-Za-z0-9._:@-]{1,255}\z/
+
         private
 
         # Le sujet des policies est le client de l'API, qui porte ses droits.
@@ -20,8 +23,30 @@ module API
 
         def forbidden = render(json: {error: "forbidden", message: I18n.t("api.errors.forbidden")}, status: :forbidden)
 
-        # Ce qui impute une écriture, à transmettre à son interactor : le client et la requête.
-        def trace_context = {api_client: current_api_client, request_id: request.request_id}
+        # Ce qui impute une écriture, à transmettre à son interactor : le client, la requête et la personne
+        # que le client déclare.
+        def trace_context = {api_client: current_api_client, request_id: request.request_id, declared_actor:}
+
+        # L'identifiant stable de la personne dans le système du client, jamais son adresse. Déclaré, non
+        # vérifié : il n'ouvre aucun droit, le client qui écrit peut déjà tout modifier.
+        def declared_actor = request.headers["X-Actor-Id"]
+
+        # Après l'autorisation, avant la lecture du corps et la recherche de la ressource.
+        def require_declared_actor
+          return render_actor_refusal(:missing_actor) if declared_actor.blank?
+
+          check_declared_actor
+        end
+
+        # Rien n'est nettoyé ni tronqué : la trace porte la valeur exacte ou l'écriture n'a pas lieu. Absent,
+        # il est admis là où personne n'est derrière l'appel.
+        def check_declared_actor
+          render_actor_refusal(:invalid_actor) unless declared_actor.nil? || DECLARED_ACTOR_FORMAT.match?(declared_actor)
+        end
+
+        def render_actor_refusal(error)
+          render json: {error:, message: I18n.t("api.internal.v1.#{error}")}, status: :bad_request
+        end
 
         # Le corps JSON brut, quand c'est un objet : les paramètres de Rails en altèrent des valeurs que
         # les forms veulent voir telles quelles. Tout autre corps vaut un corps vide.
