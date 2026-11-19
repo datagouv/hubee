@@ -84,6 +84,16 @@ RSpec.describe API::Internal::V1::AgentForm do
       )
     end
 
+    # La borne d'une adresse électronique (RFC 5321) : au-delà, aucune boîte ne la reçoit.
+    it "accepts an address of 254 characters and refuses a longer one" do
+      domain = "#{"b" * 63}.#{"c" * 63}.#{"d" * 58}.fr"
+      longest = "#{"a" * 64}@#{domain}"
+
+      expect(longest.length).to eq(254)
+      expect(form(email: longest)).to be_valid
+      expect(errors_of(form(email: "a#{longest}"))).to eq(email: [{error: :too_long, count: 254}])
+    end
+
     it "refuses a job title longer than the column" do
       expect(errors_of(form({}, job_title: "a" * 256))).to eq(job_title: [{error: :too_long, count: 255}])
     end
