@@ -16,6 +16,13 @@ module API
         MAX_PER_PAGE = 100
         DEFAULT_PER_PAGE = 50
         CRITERIA = %i[siret insee_code role search].freeze
+        PARAMETERS = [*CRITERIA, :page, :per_page].freeze
+
+        # Les paramètres reçus bruts : le filtrage de Rails écarterait en silence un critère non scalaire,
+        # que le form refuse. Un paramètre inconnu est ignoré.
+        def self.from_query(query_parameters)
+          new(**query_parameters.slice(*PARAMETERS.map(&:to_s)).symbolize_keys)
+        end
 
         # Sans type : la valeur reçue est jugée telle quelle. Une liste deviendrait sinon sa
         # représentation, et un décimal un entier.
@@ -36,10 +43,14 @@ module API
         validates :page, numericality: {only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: MAX_PAGE}, allow_nil: true
         validates :per_page, numericality: {only_integer: true, greater_than_or_equal_to: 1, less_than_or_equal_to: MAX_PER_PAGE}, allow_nil: true
 
-        def criteria = {siret:, insee_code:, role:, search:}
+        def criteria = CRITERIA.index_with { public_send(it) }
 
         # À lire sur un form valide : la page et sa taille, en entiers.
         def pagination = {page: page&.to_s&.to_i || 1, limit: per_page&.to_s&.to_i || DEFAULT_PER_PAGE}
+
+        # À lire sur un form valide : ce que les liens de pagination reprennent, les critères reçus et la taille
+        # de page validée, jamais la requête brute.
+        def pagination_link_params = criteria.compact.merge(per_page: pagination[:limit]).transform_keys(&:to_s)
 
         def error_details = errors.to_hash
 

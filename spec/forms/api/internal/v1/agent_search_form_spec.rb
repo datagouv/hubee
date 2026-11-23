@@ -100,6 +100,35 @@ RSpec.describe API::Internal::V1::AgentSearchForm do
     end
   end
 
+  describe ".from_query" do
+    it "reads the criteria and the pagination, ignoring any other parameter" do
+      form = described_class.from_query(
+        "siret" => "21750056000016", "role" => "member", "page" => "2", "per_page" => "20", "sort" => "email"
+      )
+
+      expect(form).to be_valid
+      expect(form.criteria).to eq(siret: "21750056000016", insee_code: nil, role: "member", search: nil)
+      expect(form.pagination).to eq(page: 2, limit: 20)
+    end
+
+    # Le filtrage de Rails l'écarterait en silence : le form doit le voir pour le refuser.
+    it "keeps a criterion that is not a string, to refuse it" do
+      expect(errors_of(described_class.from_query("search" => ["alice"]))).to eq(search: [{error: :not_a_string}])
+    end
+  end
+
+  describe "#pagination_link_params" do
+    it "gives the criteria received and the validated page size, keyed by string" do
+      form = described_class.new(siret: "21750056000016", search: " alice ", role: "", per_page: "20")
+
+      expect(form.pagination_link_params).to eq("siret" => "21750056000016", "search" => "alice", "per_page" => 20)
+    end
+
+    it "gives only the default page size for an empty search" do
+      expect(described_class.new.pagination_link_params).to eq("per_page" => 50)
+    end
+  end
+
   describe "#pagination" do
     it "defaults to the first page of 50" do
       expect(described_class.new.pagination).to eq(page: 1, limit: 50)
