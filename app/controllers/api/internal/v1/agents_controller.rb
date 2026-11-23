@@ -19,12 +19,14 @@ module API
         before_action :set_agent, only: %i[show]
         rescue_from ActionController::ParameterMissing, with: :missing_envelope
 
+        # La chaîne de requête seule : un corps de GET n'a pas à compter. Pagy compose les liens de l'en-tête Link
+        # avec les paramètres que le form a validés.
         def index
-          form = AgentSearchForm.new(**search_params)
+          form = AgentSearchForm.from_query(request.query_parameters)
           return render json: form.error_details, status: :unprocessable_content unless form.valid?
 
-          pagination = form.pagination
-          @pagy, @agents = pagy(AgentsQuery.new.call(**form.criteria), page: pagination[:page], request: pagination_request(form))
+          link_request = {base_url: request.base_url, path: request.path, params: form.pagination_link_params}
+          @pagy, @agents = pagy(AgentsQuery.new.call(**form.criteria), page: form.pagination[:page], request: link_request)
         end
 
         def show
@@ -50,19 +52,6 @@ module API
         # Les rattachements, leur organisation et leurs flux d'un coup : la représentation les parcourt tous.
         def set_agent
           @agent = Agent.includes(memberships: %i[organization_link data_stream_accesses]).find(params[:id])
-        end
-
-        # Lus dans la chaîne de requête seule, bruts : un corps de GET n'a pas à compter, et le filtrage de
-        # Rails écarterait en silence un critère non scalaire, que le form refuse. Un paramètre inconnu est ignoré.
-        def search_params
-          request.query_parameters.slice(*AgentSearchForm::CRITERIA.map(&:to_s), "page", "per_page").symbolize_keys
-        end
-
-        # Pagy relit la taille de page dans les paramètres de sa requête, et en compose les liens de l'en-tête
-        # Link : il reçoit ceux que le form a validés, jamais la requête brute.
-        def pagination_request(form)
-          params = form.criteria.compact.merge(per_page: form.pagination[:limit]).transform_keys(&:to_s)
-          {base_url: request.base_url, path: request.path, params:}
         end
 
         def agent_params
