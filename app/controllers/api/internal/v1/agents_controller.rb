@@ -23,10 +23,11 @@ module API
         # avec les paramètres que le form a validés.
         def index
           form = AgentSearchForm.from_query(request.query_parameters)
-          return render json: form.error_details, status: :unprocessable_content unless form.valid?
+          result = Agents::Index.call(form:)
+          return render json: form.error_details, status: :unprocessable_content unless result.success?
 
           link_request = {base_url: request.base_url, path: request.path, params: form.pagination_link_params}
-          @pagy, @agents = pagy(AgentsQuery.new.call(**form.criteria), page: form.pagination[:page], request: link_request)
+          @pagy, @agents = pagy(result.agents, page: form.pagination[:page], request: link_request)
         end
 
         def show
