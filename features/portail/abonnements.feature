@@ -30,16 +30,16 @@ Fonctionnalité: Les abonnements de la structure
     Alors il obtient une page introuvable
 
   # Les identifiants ne s'affichent jamais en entier : de quoi les reconnaître, et la copie. Leur
-  # consultation est très sensible : le premier clic passe par une réauthentification ProConnect, qui
-  # ramène sur l'abonnement ; l'agent reclique pour les obtenir.
+  # consultation est très sensible : l'agent confirme d'abord son identité avec ProConnect, qui le
+  # ramène sur le bloc des identifiants, débloqué ; il les obtient alors.
   @javascript
   Scénario: L'administrateur local copie le secret d'un abonnement API sans le voir
     Étant donné il est administrateur local habilité sur le seul flux "CERTDC"
     Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
     Et il s'est connecté
     Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
-    Et il clique sur "Obtenir les identifiants"
-    Alors il lit "Identité vérifiée. Cliquez de nouveau sur « Obtenir les identifiants » dans les 5 minutes."
+    Et il clique sur "S'identifier avec ProConnect"
+    Alors il lit "Vous pouvez obtenir les identifiants jusqu'à"
     Quand il clique sur "Obtenir les identifiants"
     Alors il voit les identifiants masqués, jamais en entier
     Quand il clique sur "Copier le secret client"
@@ -57,9 +57,7 @@ Fonctionnalité: Les abonnements de la structure
     Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
     Et il s'est connecté
     Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
-    Et il clique sur "Obtenir les identifiants"
-    # Attendre le retour sur l'abonnement : le même bouton y figure déjà avant la réauthentification.
-    Et il lit "Identité vérifiée."
+    Et il clique sur "S'identifier avec ProConnect"
     Et il clique sur "Obtenir les identifiants"
     # La copie ne peut être refusée qu'une fois la page des identifiants affichée.
     Et il lit "Pour votre sécurité, seuls les 4 premiers caractères sont affichés."
