@@ -16,6 +16,44 @@ RSpec.describe Portail::Access::Reauthentication do
     expect(purpose).to eq("credentials:subscription-a")
   end
 
+  # Chaque action sensible est classée une seule fois : le garde et l'affichage en tirent le niveau.
+  it "classes the consultation of credentials as very sensitive" do
+    expect(described_class.level(:credentials)).to eq(:very_sensitive)
+  end
+
+  it "rejects an action that is not classed" do
+    expect { described_class.level(:export) }.to raise_error(ArgumentError, /export/)
+  end
+
+  describe ".unlocked_until" do
+    def unlocked_until(subject_id = "subscription-a")
+      described_class.unlocked_until(provider_session, action: :credentials, subject_id:)
+    end
+
+    it "gives the end of the window of a proof for this action on this subject" do
+      prove
+
+      expect(unlocked_until).to eq(5.minutes.from_now)
+    end
+
+    it "gives nothing without a proof, for another subject, or once consumed" do
+      expect(unlocked_until).to be_nil
+
+      prove
+      expect(unlocked_until("subscription-b")).to be_nil
+
+      described_class.consume!(provider_session, purpose:)
+      expect(unlocked_until).to be_nil
+    end
+
+    it "gives nothing once the window has passed" do
+      prove
+      travel 5.minutes + 1.second
+
+      expect(unlocked_until).to be_nil
+    end
+  end
+
   it "is not satisfied without any reauthentication" do
     expect(described_class.satisfied?(provider_session, level: :sensitive, purpose:)).to be(false)
     expect(described_class.satisfied?(provider_session, level: :very_sensitive, purpose:)).to be(false)

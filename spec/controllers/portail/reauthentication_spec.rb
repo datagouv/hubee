@@ -8,20 +8,29 @@ RSpec.describe Portail::BaseController, type: :controller do
   controller do
     skip_after_action :verify_authorized, :verify_policy_scoped
 
-    requires_reauthentication :export, level: :sensitive, only: :index,
+    requires_reauthentication :export, only: :index,
       subject: -> { params[:id] }, return_to: -> { "/exports/#{params[:id]}" }
-    requires_reauthentication :credentials, level: :very_sensitive, only: :create,
+    requires_reauthentication :credentials, only: :create,
       subject: -> { params[:id] }, return_to: -> { "/abonnements/#{params[:id]}" }
+    requires_reauthentication :unclassed, only: :destroy,
+      subject: -> { params[:id] }, return_to: -> { "/" }
 
     def index = head(:ok)
 
     def create = head(:ok)
+
+    def destroy = head(:ok)
+
+    # Ce qu'une page lirait pour proposer l'action.
+    def show = render(plain: reauthentication_unlocked_until(:credentials, params[:id]).to_s)
   end
 
   let(:provider_session) { create(:provider_session) }
   let(:logout_url) { "https://proconnect.test/api/v2/session/end?id_token_hint=x" }
 
+  # Aucune action réelle n'est encore « sensible » : celle-ci n'est classée que le temps des exemples.
   before do
+    stub_const("Portail::Access::Reauthentication::ACTIONS", {export: :sensitive, credentials: :very_sensitive})
     freeze_time
     session[:provider_session_id] = provider_session.id
   end
@@ -84,7 +93,7 @@ RSpec.describe Portail::BaseController, type: :controller do
 
     post :create, params: {id: "42"}
 
-    expect(session[:reauthentication]).to eq("action" => "credentials", "level" => "very_sensitive",
+    expect(session[:reauthentication]).to eq("action" => "credentials",
       "purpose" => "credentials:42", "return_to" => "/abonnements/42",
       "provider_session_id" => provider_session.id, "started_at" => Time.current.to_i)
   end
@@ -101,11 +110,20 @@ RSpec.describe Portail::BaseController, type: :controller do
     expect(session[:reauthentication]).to be_nil
   end
 
-  it "rejects an unknown level at declaration" do
-    expect {
-      Class.new(Portail::BaseController) do
-        requires_reauthentication :export, level: :secret, subject: -> { "x" }, return_to: -> { "/" }
-      end
-    }.to raise_error(ArgumentError, /secret/)
+  # Une action gardée sans être classée n'a pas de niveau : elle échoue plutôt que de passer.
+  it "fails on an action that is not classed" do
+    expect { delete :destroy, params: {id: "42"} }.to raise_error(ArgumentError, /unclassed/)
+  end
+
+  # Sans rien consommer : la page ne fait que dire où en est l'agent.
+  it "tells a page until when an action is unlocked on a subject, without consuming the proof" do
+    prove("credentials:42")
+
+    get :show, params: {id: "42"}
+    expect(response.body).to eq(5.minutes.from_now.to_s)
+
+    get :show, params: {id: "41"}
+    expect(response.body).to eq("")
+    expect(provider_session.reload.reauthentication_consumed_at).to be_nil
   end
 end
