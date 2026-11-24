@@ -333,7 +333,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
 
       expect(response).to redirect_to("https://proconnect.test/api/v2/session/end")
       expect(session[:reauthentication]).to include("action" => "credentials",
-        "purpose" => Portail::Access::Reauthentication.purpose(:credentials, id), "return_to" => "/abonnements/#{id}")
+        "purpose" => Portail::Access::Reauthentication.purpose(:credentials, id), "return_to" => "/abonnements/#{id}#identifiants")
     end
 
     # Un rechargement de la page des identifiants renvoie le POST : la preuve est déjà consommée.
@@ -366,7 +366,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
       agent = sign_in_without_proof
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
       reauthenticate(from: path)
-      expect(response).to redirect_to("/abonnements/#{id}")
+      expect(response).to redirect_to("/abonnements/#{id}#identifiants")
       serve_detail
       serve_credentials
 

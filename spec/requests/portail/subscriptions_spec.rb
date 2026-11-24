@@ -402,14 +402,19 @@ RSpec.describe "Portail::Subscriptions", type: :request do
     end
 
     # Le bloc ne fait que proposer : le secret n'est lu qu'au clic, par un POST qui exige une
-    # réauthentification faite juste avant. Le bloc ne connaît pas la preuve : c'est le POST qui en décide.
+    # réauthentification faite juste avant. Le bloc dit où en est l'agent ; le POST seul décide.
     context "credentials" do
       def page = Capybara.string(response.body)
 
       def section = page.find(:xpath, %(//section[h2[normalize-space(.)="Identifiants de connexion à l'API"]]))
 
-      def show_detail(access_mode:, data_stream_codes: ["CERTDC"], read_package: true)
+      def consultations_path = "/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations"
+
+      def show_detail(access_mode:, data_stream_codes: ["CERTDC"], read_package: true, reauthenticated: false)
         sign_in_local_administrator(data_stream_codes:)
+        if reauthenticated
+          grant_reauthentication(purpose: Portail::Access::Reauthentication.purpose(:credentials, path.split("/").last))
+        end
         expect(Portail::HubAPI::Subscriptions).to receive(:find)
           .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode:, read_package:)))
         expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
@@ -417,19 +422,51 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         get path
       end
 
-      # Hors Turbo : sans preuve, la réponse quitte le domaine vers ProConnect ; avec, c'est une page.
-      it "offers to obtain the credentials of an API subscription, warning of the logout, without reading them" do
+      # Hors Turbo : sans preuve, la réponse quitte le domaine vers ProConnect. Le bouton officiel dit
+      # où part l'agent ; la déconnexion qui l'attend est liée au bouton.
+      it "offers to confirm the identity with ProConnect first, warning of the logout, without reading anything" do
         show_detail(access_mode: "api")
 
         expect(response).to have_http_status(:success)
-        expect(section).to have_css("form[method='post'][data-turbo='false']" \
-          "[action='/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations'] " \
-          "button", text: "Obtenir les identifiants")
-        expect(section).to have_text("vous serez d'abord déconnecté de ProConnect, y compris de vos autres services")
+        expect(section).to have_css("form[method='post'][data-turbo='false'][action='#{consultations_path}'] " \
+          "button.proconnect-button", text: "S'identifier avec ProConnect")
+        expect(section).to have_text("confirmez d'abord votre identité avec ProConnect : vous serez déconnecté " \
+          "de ProConnect, y compris de vos autres services")
         expect(section).to have_text("Chaque accès est enregistré à votre nom.")
-        # Le libellé ne dit pas la déconnexion : l'avertissement est lié au bouton.
-        warning_id = section.find("p", text: "vous serez d'abord déconnecté de ProConnect")[:id]
-        expect(section).to have_css("button[aria-describedby='#{warning_id}']", text: "Obtenir les identifiants")
+        warning_id = section.find("p", text: "confirmez d'abord votre identité")[:id]
+        expect(section).to have_css("button[aria-describedby='#{warning_id}']")
+        expect(section).not_to have_button("Obtenir les identifiants")
+      end
+
+      # Au retour : la preuve vaut pour cet abonnement, le bloc le dit avec son échéance. Il ne lit
+      # rien et ne consomme rien : c'est le POST qui le fera.
+      it "says the identity is verified until when, and offers the credentials, without consuming the proof" do
+        freeze_time Time.zone.local(2026, 11, 24, 14, 27, 30)
+        show_detail(access_mode: "api", reauthenticated: true)
+
+        expect(response).to have_http_status(:success)
+        expect(section).to have_css(".fr-alert--success",
+          text: "Identité vérifiée. Vous pouvez obtenir les identifiants jusqu'à 14 h 32.")
+        expect(section).to have_css("form[method='post'][data-turbo='false'][action='#{consultations_path}'] " \
+          "button.fr-btn", text: "Obtenir les identifiants")
+        expect(section).not_to have_css(".proconnect-button")
+        expect(ProviderSession.granted.sole.reauthentication_consumed_at).to be_nil
+      end
+
+      # Le retour de la réauthentification ramène au bloc, qui dit que l'agent peut continuer.
+      it "brings the agent back to the block once the identity is verified" do
+        agent = sign_in_local_administrator
+        mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
+        reauthenticate(from: consultations_path)
+        expect(response).to redirect_to("#{path}#identifiants")
+        expect(Portail::HubAPI::Subscriptions).to receive(:find)
+          .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode: "api")))
+        expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+
+        follow_redirect!
+
+        expect(page).to have_css(".fr-alert--success[role='status']", text: "Identité vérifiée.")
+        expect(page).to have_css("section#identifiants .fr-alert--success", text: "Vous pouvez obtenir les identifiants")
       end
 
       # Le rôle seul ouvre les identifiants : l'habilitation n'y change rien. Un membre n'atteint pas
@@ -438,7 +475,7 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         show_detail(access_mode: "api", data_stream_codes: [])
 
         expect(response).to have_http_status(:success)
-        expect(section).to have_button("Obtenir les identifiants")
+        expect(section).to have_css("button.proconnect-button", text: "S'identifier avec ProConnect")
       end
 
       # Sans client OAuth propre, rien à proposer : le bloc ne ferait que constater un manque.
@@ -463,22 +500,6 @@ RSpec.describe "Portail::Subscriptions", type: :request do
 
         expect(response).to have_http_status(:success)
         expect(page).not_to have_text("Identifiants de connexion à l'API")
-      end
-
-      # Le retour de la réauthentification : la page dit quoi faire, l'agent refait son geste.
-      it "tells the agent to click again once the identity is verified" do
-        agent = sign_in_local_administrator
-        mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
-        reauthenticate(from: "#{path}/identifiants/consultations")
-        expect(Portail::HubAPI::Subscriptions).to receive(:find)
-          .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode: "api")))
-        expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
-
-        follow_redirect!
-
-        expect(request.path).to eq(path)
-        expect(page).to have_css(".fr-alert--success[role='status']", text: "Identité vérifiée. Cliquez de nouveau " \
-          "sur « Obtenir les identifiants » dans les 5 minutes.")
       end
     end
 
