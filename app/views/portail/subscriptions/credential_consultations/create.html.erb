@@ -1,0 +1,46 @@
+<%# locals: (subscription:, credentials:, failure:) -%>
+<%# La réponse du POST, affichée par le navigateur (le bouton part hors Turbo). Le seul endroit où le
+    secret quitte son enveloppe (`reveal`), pour être confié à la copie. Pas de cache : le portail
+    entier est servi sous `no-store`, la page ne ressort pas au retour arrière. %>
+<% content_for :title, t(".title", data_stream: subscription.data_stream_display_name) %>
+
+<div id="subscription-credentials" class="fr-grid-row">
+  <div class="fr-col-12 fr-col-md-10 fr-col-lg-8">
+    <p class="fr-mb-2w">
+      <%= link_to t(".back"), abonnement_path(subscription.id),
+            class: "fr-link fr-icon-arrow-left-line fr-link--icon-left" %>
+    </p>
+    <h1><%= t("portail.subscriptions.credentials.heading") %></h1>
+    <p class="fr-text--lead"><%= subscription.data_stream_display_name %></p>
+
+    <%# Un refus est durable, un cas pour l'équipe HubEE. Une panne peut durer : réessayer plus tard,
+        puis écrire au support. %>
+    <% if failure == :refused %>
+      <div class="fr-alert fr-alert--warning fr-alert--sm">
+        <p><%= t("portail.subscriptions.credentials.refused_html", email: mail_to(support_email)) %></p>
+      </div>
+    <% elsif failure %>
+      <div class="fr-alert fr-alert--error fr-alert--sm">
+        <p><%= t("portail.subscriptions.credentials.unavailable_html", email: mail_to(support_email)) %></p>
+      </div>
+    <% else %>
+      <p class="fr-mb-1w"><%= t("portail.subscriptions.credentials.lead") %></p>
+      <p class="fr-text--sm fr-text-mention--grey fr-mb-3w"><%= t("portail.subscriptions.credentials.masked") %></p>
+      <%# La copie passe par le script : sans lui, les boutons ne font rien, et la page le dit. %>
+      <noscript>
+        <div class="fr-alert fr-alert--info fr-alert--sm fr-mb-3w">
+          <p><%= t(".javascript_required") %></p>
+        </div>
+      </noscript>
+      <%# Des données affichées, pas un formulaire : seuls les boutons de copie prennent le focus. %>
+      <dl class="fr-m-0 fr-p-0">
+        <%= render "portail/subscriptions/credential_consultations/copyable", key: "client-id",
+              label: t("portail.subscriptions.credentials.client_id"),
+              target: t("portail.subscriptions.credentials.copy_target_client_id"), value: credentials.client_id %>
+        <%= render "portail/subscriptions/credential_consultations/copyable", key: "client-secret",
+              label: t("portail.subscriptions.credentials.client_secret"),
+              target: t("portail.subscriptions.credentials.copy_target_client_secret"), value: credentials.client_secret.reveal %>
+      </dl>
+    <% end %>
+  </div>
+</div>
