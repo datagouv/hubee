@@ -11,8 +11,9 @@ module Portail
       before_action :require_local_administrator
       # Très sensible : une réauthentification faite juste avant, pour cet abonnement, consommée ici,
       # avant toute lecture amont. Sans elle, l'agent part la faire et revient sur l'abonnement.
-      requires_reauthentication :credentials, level: :very_sensitive, only: :create,
-        subject: -> { params[:abonnement_id] }, return_to: -> { abonnement_path(params[:abonnement_id]) }
+      # Le retour ramène au bloc des identifiants, qui dit alors que l'identité est vérifiée.
+      requires_reauthentication :credentials, only: :create, subject: -> { params[:abonnement_id] },
+        return_to: -> { abonnement_path(params[:abonnement_id], anchor: "identifiants") }
 
       FAILURE_STATUSES = {refused: :conflict, unavailable: :service_unavailable}.freeze
 
