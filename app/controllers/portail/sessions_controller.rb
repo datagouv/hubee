@@ -139,7 +139,8 @@ module Portail
     # L'agent refait son geste : le message le lui dit, par action, avec le délai que lui laisse la
     # preuve ; à défaut d'un message propre à l'action, le message commun.
     def verified_notice(pending)
-      minutes = Access::Reauthentication::WINDOWS.fetch(pending["level"].to_sym).in_minutes.to_i
+      level = Access::Reauthentication.level(pending["action"].to_sym)
+      minutes = Access::Reauthentication::WINDOWS.fetch(level).in_minutes.to_i
       t("portail.reauthentications.verified.#{pending["action"]}", minutes:,
         default: :"portail.reauthentications.verified.default")
     end
