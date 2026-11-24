@@ -17,6 +17,10 @@ module Portail
     # Le seul canal où un éditeur peut se connecter à la place de l'organisation.
     def api_access? = access_mode == API_ACCESS
 
+    # Le client OAuth ne sert qu'à un abonnement API actif : inactif, l'abonnement ne fait rien arriver
+    # à son logiciel, ses identifiants non plus.
+    def credentials_available? = api_access? && read_package
+
     # Ce par quoi l'écran désigne le flux, comme data_stream_label : le code quand le nom manque.
     def data_stream_display_name = data_stream_name || data_stream_code
   end

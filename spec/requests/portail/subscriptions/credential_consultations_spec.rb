@@ -2,9 +2,9 @@
 
 require "rails_helper"
 
-# La consultation des identifiants d'un abonnement API, au clic, en Turbo Stream. Ces exemples
-# bouchonnent Portail::HubAPI, sauf un qui traverse la gem : la traduction est éprouvée dans le
-# spec de la frontière.
+# La consultation des identifiants d'un abonnement API, au clic : une page à part, que le POST rend
+# lui-même. Ces exemples bouchonnent Portail::HubAPI, sauf un qui traverse la gem : la traduction est
+# éprouvée dans le spec de la frontière.
 RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request do
   let(:id) { "550e8400-e29b-41d4-a716-446655440000" }
   let(:path) { "/abonnements/#{id}/identifiants/consultations" }
@@ -16,19 +16,26 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
       client_secret: HubApiV1::Secret.new(secret_value))
   end
 
-  # Le bloc envoyé : Capybara ne lit pas le contenu d'un <template>.
-  def page = Capybara.string(Nokogiri::HTML5.fragment(response.body).at_css("template").inner_html)
+  def page = Capybara.string(response.body)
 
-  def reveal = post(path, headers: {"Accept" => "text/vnd.turbo-stream.html"})
+  # Le bouton de l'abonnement part hors Turbo : un formulaire ordinaire, dont le navigateur affiche
+  # la réponse.
+  def reveal = post(path)
 
   # Les issues de la copie, écrites d'avance dans des <template> : le parseur de Capybara (HTML4) en
   # écarte le contenu, Nokogiri en HTML5 le garde.
   def copy_outcomes(target, message)
-    Nokogiri::HTML5.fragment(response.body).css("template[data-clipboard-target='#{target}'] #{message}").map { it.text.squish }
+    Nokogiri::HTML5(response.body).css("template[data-clipboard-target='#{target}'] #{message}").map { it.text.squish }
   end
 
-  def serve_detail(access_mode: "api", trait: nil)
-    subscription = build(:portail_subscription, *trait, access_mode:)
+  # La consultation est très sensible : l'administrateur local qui consulte vient de vérifier son
+  # identité pour cet abonnement. Les exemples de « reauthentication » éprouvent le garde lui-même.
+  def sign_in_with_proof(...)
+    sign_in_local_administrator(...).tap { grant_reauthentication(purpose: "credentials:#{id}") }
+  end
+
+  def serve_detail(access_mode: "api", trait: nil, read_package: true)
+    subscription = build(:portail_subscription, *trait, access_mode:, read_package:)
     allow(Portail::HubAPI::Subscriptions).to receive(:find).and_return(build(:portail_subscription_detail, subscription:))
   end
 
@@ -46,7 +53,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
 
   # Rien n'est bouchonné en deçà de la frontière : les identifiants traversent la gem entière.
   it "reveals the credentials the upstream serves for the organisation" do
-    sign_in_local_administrator
+    sign_in_with_proof
     use_hub_api_fake_client
       .add_subscription(build_v2_subscription_detail(subscription: build_v2_subscription(access_mode: :api,
         organization: build_v2_recipient(siret: ProConnectTestHelper::TEST_SIRET,
@@ -58,18 +65,31 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     reveal
 
     expect(response).to have_http_status(:success)
-    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
-    expect(Capybara.string(response.body))
-      .to have_css("turbo-stream[action='replace'][target='subscription-credentials']", visible: :all)
-    # Le bouton qui avait le focus disparaît : Turbo le porte sur le titre du bloc.
-    expect(page).to have_css("#subscription-credentials h2[tabindex='-1'][autofocus]")
+    expect(response.media_type).to eq("text/html")
+    expect(page).to have_css("h1", text: "Identifiants de connexion à l'API")
+    expect(page).to have_link("Retour à l'abonnement", href: "/abonnements/#{id}")
     expect(response.body).to include("SI-99999999911111-00001-CERTDC").and include(secret_value)
+  end
+
+  # La copie passe par le script : sans lui, l'agent voit les identifiants masqués et sait pourquoi
+  # les boutons ne font rien.
+  it "says the copy needs JavaScript, for a browser without it" do
+    sign_in_with_proof
+    serve_detail
+    serve_credentials
+
+    reveal
+
+    expect(Nokogiri::HTML5(response.body).css("noscript").text.squish)
+      .to include("La copie des identifiants nécessite JavaScript.")
   end
 
   # De quoi reconnaître les identifiants, pas de quoi les lire par-dessus l'épaule : la valeur
   # entière n'est que dans la cible de la copie.
-  it "masks both credentials in read-only fields and hands their whole value to the copy buttons" do
-    sign_in_local_administrator
+  # Des données affichées, pas un formulaire : une liste de définitions, sans champ où le clavier
+  # s'arrêterait. Seuls les boutons de copie prennent le focus.
+  it "lists both credentials masked and hands their whole value to the copy buttons" do
+    sign_in_with_proof
     serve_detail
     serve_credentials
 
@@ -77,19 +97,21 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
 
     block = page.find("#subscription-credentials")
     expect(block).to have_text("Pour votre sécurité, seuls les 4 premiers caractères sont affichés.")
-    expect(block).to have_field("Identifiant client (client_id)", with: "SI-9••••••••", readonly: true)
-    expect(block).to have_field("Secret client (client_secret)", with: "#{secret_value.first(4)}••••••••", readonly: true)
+    expect(block).to have_css("dl dt", text: "Identifiant client (client_id)")
+    expect(block).to have_css("dl dt", text: "Secret client (client_secret)")
+    expect(block).to have_css("dl dd code", text: "SI-9••••••••")
+    expect(block).to have_css("dl dd code", text: "#{secret_value.first(4)}••••••••")
+    expect(block).not_to have_css("input")
     expect(block.native.to_html).to include("SI-99999999911111-00001-CERTDC").and include(secret_value)
-    expect(block.all("input").map(&:value).join).not_to include(secret_value)
+    expect(block.text).not_to include(secret_value)
     expect(block).to have_css("[data-controller='clipboard'][data-clipboard-text-value='SI-99999999911111-00001-CERTDC'] " \
-      ".fr-input-wrap--action button[type='button'][data-action='clipboard#copy']", text: "Copier l'identifiant client")
+      "dd button[type='button'][data-action='clipboard#copy']", text: "Copier l'identifiant client")
     expect(block).to have_css("[data-controller='clipboard'][data-clipboard-text-value='#{secret_value}'] " \
-      ".fr-input-wrap--action button[type='button'][data-action='clipboard#copy']", text: "Copier le secret client")
-    # Chaque champ annonce sa zone de messages, vide : le script y insère l'issue de la copie, écrite
+      "dd button[type='button'][data-action='clipboard#copy']", text: "Copier le secret client")
+    # Chaque bouton annonce sa zone de messages, vide : le script y insère l'issue de la copie, écrite
     # d'avance dans un <template>.
     %w[client-id client-secret].each do |key|
-      expect(block).to have_css("input#subscription-credentials-#{key}" \
-        "[aria-describedby='subscription-credentials-#{key}-messages']")
+      expect(block).to have_css("button[aria-describedby='subscription-credentials-#{key}-messages']")
       expect(block).to have_css("#subscription-credentials-#{key}-messages.fr-messages-group[aria-live='polite']:empty",
         visible: :all)
     end
@@ -101,7 +123,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
   # Le rôle × habilitation entier : seul le rôle ouvre les identifiants.
   context "reading perimeter" do
     it "reveals the credentials to a local administrator habilitated on the data stream" do
-      sign_in_local_administrator(data_stream_codes: ["CERTDC"])
+      sign_in_with_proof(data_stream_codes: ["CERTDC"])
       serve_detail
       serve_credentials
 
@@ -112,7 +134,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     end
 
     it "reveals the credentials to a local administrator without habilitation" do
-      sign_in_local_administrator
+      sign_in_with_proof
       serve_detail
       serve_credentials
 
@@ -149,7 +171,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
 
     # La requête amont porte l'organisation ; l'amont n'est pas cru sur parole.
     it "refuses a subscription the upstream served for another organisation, without asking for its secret" do
-      sign_in_local_administrator
+      sign_in_with_proof
       serve_detail(trait: :of_another_organisation)
       expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
 
@@ -163,7 +185,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
   end
 
   it "refuses a portal subscription, without asking for a secret" do
-    sign_in_local_administrator
+    sign_in_with_proof
     serve_detail(access_mode: "portal")
     expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
 
@@ -172,8 +194,18 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     expect(response).to have_http_status(:not_found)
   end
 
+  it "refuses an inactive API subscription, without asking for a secret" do
+    sign_in_with_proof
+    serve_detail(read_package: false)
+    expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+
+    reveal
+
+    expect(response).to have_http_status(:not_found)
+  end
+
   it "answers not found for a subscription the upstream does not serve" do
-    sign_in_local_administrator
+    sign_in_with_proof
     expect(Portail::HubAPI::Subscriptions).to receive(:find).and_raise(Portail::HubAPI::NotFound)
 
     reveal
@@ -182,7 +214,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
   end
 
   it "says the credentials cannot be provided, pointing to the HubEE team, when the upstream refuses" do
-    sign_in_local_administrator
+    sign_in_with_proof
     serve_detail
     expect(Portail::HubAPI::Subscriptions).to receive(:credentials).and_raise(Portail::HubAPI::CredentialsRefused)
 
@@ -191,12 +223,12 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     expect(response).to have_http_status(:conflict)
     expect(page).to have_text("Les identifiants de cet abonnement ne peuvent pas être fournis automatiquement.")
     expect(page).to have_link("support@hubee.numerique.gouv.fr", href: "mailto:support@hubee.numerique.gouv.fr")
-    expect(page).to have_css("#subscription-credentials h2[tabindex='-1'][autofocus]")
+    expect(page).to have_link("Retour à l'abonnement", href: "/abonnements/#{id}")
   end
 
   # Supprimé entre la lecture du détail et le clic : la 404 du portail, comme sur le détail.
   it "answers not found when the subscription disappears before its credentials are read" do
-    sign_in_local_administrator
+    sign_in_with_proof
     serve_detail
     expect(Portail::HubAPI::Subscriptions).to receive(:credentials).and_raise(Portail::HubAPI::NotFound)
 
@@ -209,7 +241,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
   # Une panne, ou une route que hub-api refuse (403 tant qu'elle n'y est pas déployée) : ni passagère
   # à coup sûr, ni du ressort de l'agent. On ne promet pas un réessai immédiat, on oriente.
   it "says the credentials cannot be read for now, pointing to the support, when the upstream is failing" do
-    sign_in_local_administrator
+    sign_in_with_proof
     serve_detail
     expect(Portail::HubAPI::Subscriptions).to receive(:credentials).and_raise(Portail::HubAPI::Unavailable)
 
@@ -221,25 +253,10 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     expect(page).to have_link("support@hubee.numerique.gouv.fr", href: "mailto:support@hubee.numerique.gouv.fr")
   end
 
-  # Sans JavaScript, le formulaire part sans Turbo : on dit pourquoi, sans rien lire ni tracer.
-  it "asks to turn JavaScript on when the request comes without Turbo, before reading anything" do
-    sign_in_local_administrator
-    expect(Portail::HubAPI::Subscriptions).not_to receive(:find)
-    expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
-
-    expect { post path }.not_to change(Event, :count)
-
-    expect(response).to have_http_status(:not_acceptable)
-    expect(response.media_type).to eq("text/html")
-    page = Capybara.string(response.body)
-    expect(page).to have_css("h1", text: "Activez JavaScript pour afficher les identifiants")
-    expect(page).to have_link("Retour à l'abonnement", href: "/abonnements/#{id}")
-  end
-
   # La raison du POST : sans le jeton de la page, une requête forgée ailleurs au nom de l'agent
   # ne lit rien et ne trace rien.
   it "refuses a request without the page's CSRF token, before reading anything" do
-    sign_in_local_administrator
+    sign_in_with_proof
     expect(Portail::HubAPI::Subscriptions).not_to receive(:find)
     expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
     ActionController::Base.allow_forgery_protection = true
@@ -252,7 +269,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
   end
 
   it "forbids caching the response" do
-    sign_in_local_administrator
+    sign_in_with_proof
     serve_detail
     serve_credentials
 
@@ -263,7 +280,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
 
   # Le secret n'est écrit qu'à un seul endroit : la réponse à l'agent qui l'a demandé.
   it "never writes the secret anywhere but the response" do
-    sign_in_local_administrator
+    sign_in_with_proof
     serve_detail
     serve_credentials
 
@@ -278,7 +295,7 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
   # Pas de trace, pas d'affichage : l'erreur est journalisée sans le secret. 422 : la réponse
   # que Rails associe à un enregistrement invalide.
   it "shows nothing when the consultation cannot be recorded", :production_exceptions do
-    sign_in_local_administrator
+    sign_in_with_proof
     serve_detail
     serve_credentials
     expect(Event).to receive(:create!).and_raise(ActiveRecord::RecordInvalid)
@@ -290,5 +307,73 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     logged = events.map { |event| [event.message, event.payload, event.exception].inspect }.join
     expect(logged).to include("ActiveRecord::RecordInvalid")
     expect(logged).not_to include(secret_value)
+  end
+
+  describe "reauthentication" do
+    def sign_in_without_proof
+      agent = create(:agent, provider_sub: "sub-admin")
+      sign_in_via_proconnect(agent:)
+      Membership.find_by!(agent:).update!(role: "local_administrator")
+      agent
+    end
+
+    def expect_reauthentication_logout
+      expect(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
+        .and_return("https://proconnect.test/api/v2/session/end")
+    end
+
+    # Le garde part de la requête interceptée : l'abonnement et la page de retour en viennent.
+    it "departs for a reauthentication without a proof, before reading anything upstream" do
+      sign_in_without_proof
+      expect(Portail::HubAPI::Subscriptions).not_to receive(:find)
+      expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+      expect_reauthentication_logout
+
+      expect { reveal }.not_to change(Event, :count)
+
+      expect(response).to redirect_to("https://proconnect.test/api/v2/session/end")
+      expect(session[:reauthentication]).to include("action" => "credentials",
+        "purpose" => Portail::Access::Reauthentication.purpose(:credentials, id), "return_to" => "/abonnements/#{id}")
+    end
+
+    # Un rechargement de la page des identifiants renvoie le POST : la preuve est déjà consommée.
+    it "consumes the proof: a second consultation departs for a reauthentication again" do
+      sign_in_with_proof
+      serve_detail
+      serve_credentials
+
+      reveal
+      expect(response).to have_http_status(:success)
+
+      expect_reauthentication_logout
+      reveal
+      expect(response).to redirect_to("https://proconnect.test/api/v2/session/end")
+    end
+
+    it "does not take a proof obtained for another subscription" do
+      sign_in_without_proof
+      grant_reauthentication(purpose: Portail::Access::Reauthentication.purpose(:credentials, "another-subscription"))
+      expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+      expect_reauthentication_logout
+
+      reveal
+
+      expect(response).to redirect_to("https://proconnect.test/api/v2/session/end")
+    end
+
+    # De bout en bout : le clic, la réauthentification, le retour sur l'abonnement, puis le même clic.
+    it "reveals the credentials when the agent clicks again after the reauthentication" do
+      agent = sign_in_without_proof
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
+      reauthenticate(from: path)
+      expect(response).to redirect_to("/abonnements/#{id}")
+      serve_detail
+      serve_credentials
+
+      expect { reveal }.to change(Event, :count).by(1)
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(secret_value)
+    end
   end
 end

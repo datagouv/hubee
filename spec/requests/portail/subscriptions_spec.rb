@@ -401,30 +401,35 @@ RSpec.describe "Portail::Subscriptions", type: :request do
       expect(Capybara.string(response.body)).to have_css("h1", text: "Page introuvable")
     end
 
-    # Le bloc ne fait que proposer : le secret n'est lu qu'au clic, par un POST.
+    # Le bloc ne fait que proposer : le secret n'est lu qu'au clic, par un POST qui exige une
+    # réauthentification faite juste avant. Le bloc ne connaît pas la preuve : c'est le POST qui en décide.
     context "credentials" do
       def page = Capybara.string(response.body)
 
       def section = page.find(:xpath, %(//section[h2[normalize-space(.)="Identifiants de connexion à l'API"]]))
 
-      def show_detail(access_mode:, data_stream_codes: ["CERTDC"])
+      def show_detail(access_mode:, data_stream_codes: ["CERTDC"], read_package: true)
         sign_in_local_administrator(data_stream_codes:)
         expect(Portail::HubAPI::Subscriptions).to receive(:find)
-          .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode:)))
+          .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode:, read_package:)))
         expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
 
         get path
       end
 
-      it "offers to obtain the credentials of an API subscription, without reading them" do
+      # Hors Turbo : sans preuve, la réponse quitte le domaine vers ProConnect ; avec, c'est une page.
+      it "offers to obtain the credentials of an API subscription, warning of the logout, without reading them" do
         show_detail(access_mode: "api")
 
         expect(response).to have_http_status(:success)
-        expect(section).to have_css(
-          "form[method='post'][action='/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations'] " \
-          "button", text: "Obtenir les identifiants"
-        )
+        expect(section).to have_css("form[method='post'][data-turbo='false']" \
+          "[action='/abonnements/550e8400-e29b-41d4-a716-446655440000/identifiants/consultations'] " \
+          "button", text: "Obtenir les identifiants")
+        expect(section).to have_text("vous serez d'abord déconnecté de ProConnect, y compris de vos autres services")
         expect(section).to have_text("Chaque accès est enregistré à votre nom.")
+        # Le libellé ne dit pas la déconnexion : l'avertissement est lié au bouton.
+        warning_id = section.find("p", text: "vous serez d'abord déconnecté de ProConnect")[:id]
+        expect(section).to have_css("button[aria-describedby='#{warning_id}']", text: "Obtenir les identifiants")
       end
 
       # Le rôle seul ouvre les identifiants : l'habilitation n'y change rien. Un membre n'atteint pas
@@ -444,6 +449,15 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         expect(page).not_to have_text("Identifiants de connexion à l'API")
       end
 
+      # Inactif, l'abonnement ne sert à rien à son logiciel : rien à proposer.
+      it "leaves the block out of an inactive API subscription" do
+        show_detail(access_mode: "api", read_package: false)
+
+        expect(response).to have_http_status(:success)
+        expect(page).to have_text("Abonnement inactif")
+        expect(page).not_to have_text("Identifiants de connexion à l'API")
+      end
+
       it "leaves the block out when the access mode is unset" do
         show_detail(access_mode: nil)
 
@@ -451,11 +465,20 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         expect(page).not_to have_text("Identifiants de connexion à l'API")
       end
 
-      # Sinon Turbo garde le secret révélé dans son instantané et le ressort au retour arrière.
-      it "keeps the page out of the Turbo snapshot cache" do
-        show_detail(access_mode: "api")
+      # Le retour de la réauthentification : la page dit quoi faire, l'agent refait son geste.
+      it "tells the agent to click again once the identity is verified" do
+        agent = sign_in_local_administrator
+        mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
+        reauthenticate(from: "#{path}/identifiants/consultations")
+        expect(Portail::HubAPI::Subscriptions).to receive(:find)
+          .and_return(build(:portail_subscription_detail, subscription: build(:portail_subscription, access_mode: "api")))
+        expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
 
-        expect(page).to have_css("meta[name='turbo-cache-control'][content='no-cache']", visible: :all)
+        follow_redirect!
+
+        expect(request.path).to eq(path)
+        expect(page).to have_css(".fr-alert--success[role='status']", text: "Identité vérifiée. Cliquez de nouveau " \
+          "sur « Obtenir les identifiants » dans les 5 minutes.")
       end
     end
 
