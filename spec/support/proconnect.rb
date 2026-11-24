@@ -71,6 +71,13 @@ module ProConnectTestHelper
     get "/connexion/proconnect/retour", params: {code: "test-code", state: STATE}.merge(params)
   end
 
+  # La preuve d'une réauthentification posée directement sur la session ouverte, pour les specs qui
+  # n'éprouvent pas le parcours lui-même.
+  def grant_reauthentication(purpose:)
+    Portail::Access::Reauthentication.record!(ProviderSession.granted.sole, purpose:,
+      id_token: "reauthenticated-id-token", acr: "eidas1-mfa", amr: ["mfa"])
+  end
+
   # Garantit le rattachement correspondant au SIRET simulé : un spec qui veut un refus
   # construit sa situation lui-même.
   def sign_in_via_proconnect(agent:, amr: ["mfa"], acr: "eidas1", siret: TEST_SIRET, idp_id: nil)
