@@ -3,12 +3,12 @@
 require "rails_helper"
 
 module Portail
-  # Une action très sensible propre à ce fichier : le mécanisme s'éprouve de bout en bout sans dépendre
-  # d'une page réelle.
+  # Une action propre à ce fichier, gardée comme la consultation des identifiants : le mécanisme
+  # s'éprouve de bout en bout sans dépendre de sa page.
   class ReauthenticationProbesController < Portail::BaseController
     skip_after_action :verify_authorized
 
-    requires_reauthentication :probe, level: :very_sensitive, only: :create,
+    requires_reauthentication :credentials, only: :create,
       subject: -> { params[:id] }, return_to: -> { "/abonnements/#{params[:id]}" }
 
     def create = head(:ok)
@@ -23,7 +23,7 @@ end
 RSpec.describe "Portail::Reauthentications", type: :request do
   let(:subject_id) { "550e8400-e29b-41d4-a716-446655440000" }
   let(:probe_path) { "/test/sonde/#{subject_id}" }
-  let(:purpose) { Portail::Access::Reauthentication.purpose(:probe, subject_id) }
+  let(:purpose) { Portail::Access::Reauthentication.purpose(:credentials, subject_id) }
   let(:return_to) { "/abonnements/#{subject_id}" }
 
   # Ajoutée aux routes de l'application le temps d'un exemple, puis retirée.

@@ -11,8 +11,23 @@ module Portail
       # Très sensible : faite juste avant, pour cette action sur cet objet, et une seule fois.
       WINDOWS = {sensitive: 30.minutes, very_sensitive: 5.minutes}.freeze
 
+      # Les actions sensibles du portail, chacune classée une seule fois : le garde qui la protège et
+      # la page qui la propose en tirent son niveau, sans le réécrire.
+      ACTIONS = {credentials: :very_sensitive}.freeze
+
       class << self
+        def level(action) = ACTIONS.fetch(action) { raise ArgumentError, "action sensible inconnue : #{action.inspect}" }
+
         def purpose(action, subject_id) = "#{action}:#{subject_id}"
+
+        # Jusqu'à quand une preuve débloque cette action sur cet objet, nil sinon. Pour l'affichage
+        # seulement : il n'ouvre rien, le garde reste seul à décider et à consommer.
+        def unlocked_until(provider_session, action:, subject_id:)
+          level = level(action)
+          return unless satisfied?(provider_session, level:, purpose: purpose(action, subject_id))
+
+          provider_session.reauthenticated_at + WINDOWS.fetch(level)
+        end
 
         # Le nouvel id_token remplace l'ancien : celui-ci correspond à une session ProConnect fermée
         # par la réauthentification, « Se déconnecter » ne doit plus le présenter.
@@ -21,8 +36,8 @@ module Portail
             reauthentication_consumed_at: nil, provider_id_token: id_token, acr:, amr:)
         end
 
-        # Sans effet de bord : le garde d'une action sensible. Celui d'une action très sensible passe
-        # par `consume!`.
+        # Sans effet de bord : le garde d'une action sensible, et l'affichage. Le garde d'une action très
+        # sensible passe par `consume!`.
         def satisfied?(provider_session, level:, purpose:)
           reauthenticated_at = provider_session&.reauthenticated_at
           return false if reauthenticated_at.nil? || reauthenticated_at <= WINDOWS.fetch(level).ago
