@@ -8,6 +8,7 @@ fr:
     formats:
       timeline: "%A %d/%m - %H:%M"
       month: "%B %Y"
+      hour: "%H h %M"
 
   activerecord:
     attributes:
@@ -322,7 +323,6 @@ fr:
       # Par action déclarée (`requires_reauthentication`) ; `default` pour une action sans message propre.
       verified:
         default: Identité vérifiée. Vous pouvez reprendre votre action dans les %{minutes} minutes.
-        credentials: Identité vérifiée. Cliquez de nouveau sur « Obtenir les identifiants » dans les %{minutes} minutes.
       failed: La vérification de votre identité n'a pas abouti. Réessayez.
       # Par motif de Reauthentications::Deny qui ferme la session.
       closed:
@@ -419,12 +419,14 @@ fr:
         create:
           title: "Identifiants de l'abonnement %{data_stream} - HubEE"
           back: Retour à l'abonnement
+          list_heading: Identifiants masqués
           javascript_required: La copie des identifiants nécessite JavaScript. Activez-le dans votre navigateur, puis réessayez depuis l'abonnement.
       credentials:
         heading: Identifiants de connexion à l'API
         lead: Votre logiciel s'en sert pour se connecter à l'API HubEE au titre de cet abonnement. Ne les communiquez qu'aux personnes chargées de ce logiciel.
         reveal: Obtenir les identifiants
-        reauthentication: "Sauf si vous venez de confirmer votre identité, vous serez d'abord déconnecté de ProConnect, y compris de vos autres services, puis invité à vous reconnecter."
+        reauthentication: "Pour les obtenir, confirmez d'abord votre identité avec ProConnect : vous serez déconnecté de ProConnect, y compris de vos autres services, puis invité à vous reconnecter."
+        unlocked: Identité vérifiée. Vous pouvez obtenir les identifiants jusqu'à %{time}.
         audited: Chaque accès est enregistré à votre nom.
         client_id: Identifiant client (client_id)
         client_secret: Secret client (client_secret)
