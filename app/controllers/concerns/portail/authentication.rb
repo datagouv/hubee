@@ -29,6 +29,7 @@ module Portail
 
     # Un seul chemin vers ProConnect, pour la connexion comme pour la réauthentification. `state`
     # et `nonce` sont posés ici et relus au retour : ce sont eux qui lient la réponse à notre demande.
+    # Rend le `state` de la connexion lancée, nil quand ProConnect ne répond pas.
     def depart_for_proconnect(step_up:, login_hint: nil, siret_hint: nil, unavailable_path: auth_failure_path,
       unavailable_alert: nil)
       authorization = Portail::ProConnect::Client.authorization(step_up:, login_hint:, siret_hint:)
@@ -36,9 +37,11 @@ module Portail
       session[:proconnect_nonce] = authorization.nonce
 
       redirect_to authorization.url, allow_other_host: true
+      authorization.state
     rescue Portail::ProConnect::Client::Unavailable => e
       Rails.logger.error("ProConnect indisponible", e)
       redirect_to unavailable_path, alert: unavailable_alert
+      nil
     end
 
     # À lire avant `adopt_session`, dont le reset_session efface la destination.

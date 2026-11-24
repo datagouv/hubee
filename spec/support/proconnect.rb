@@ -54,11 +54,11 @@ module ProConnectTestHelper
     get "/connexion/proconnect/retour", params: {code: "test-code", state: STATE}.merge(params)
   end
 
-  # Le parcours complet d'une réauthentification, agent déjà connecté : départ, retour de
-  # déconnexion, retour de connexion. Ce que ProConnect renvoie au dernier retour se simule avant,
-  # par `mock_proconnect` ; un spec qui veut un retour en erreur passe `params:`. `expect` : le
-  # parcours fait toujours ces deux appels, une fois chacun.
-  def reauthenticate(purpose:, return_to: "/", params: {})
+  # Le parcours complet d'une réauthentification, agent déjà connecté : l'action sensible demandée
+  # sans preuve (`from`, en POST), retour de déconnexion, retour de connexion. Ce que ProConnect
+  # renvoie au dernier retour se simule avant, par `mock_proconnect` ; un spec qui veut un retour en
+  # erreur passe `params:`. `expect` : le parcours fait toujours ces deux appels, une fois chacun.
+  def reauthenticate(from:, params: {})
     expect(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
       .and_return("https://proconnect.test/api/v2/session/end")
     expect(Portail::ProConnect::Client).to receive(:authorization).and_return(
@@ -66,8 +66,8 @@ module ProConnectTestHelper
         url: "https://proconnect.test/api/v2/authorize", state: STATE, nonce: NONCE
       )
     )
-    post reauthentication_path, params: {purpose:, return_to:}
-    get reauthentication_resume_path
+    post from
+    get reauthentication_start_path
     get "/connexion/proconnect/retour", params: {code: "test-code", state: STATE}.merge(params)
   end
 

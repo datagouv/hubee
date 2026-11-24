@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
 module Portail
-  # Le niveau de sensibilité d'une action, déclaré par le contrôleur qui la porte :
+  # Le niveau de sensibilité d'une action, déclaré une seule fois, par le contrôleur qui la porte :
   #
-  #   requires_reauthentication :very_sensitive, only: :create,
-  #     purpose: -> { Access::Reauthentication.purpose(:credentials, params[:abonnement_id]) },
-  #     with: :render_reauthentication_required
+  #   requires_reauthentication :credentials, level: :very_sensitive, only: :create,
+  #     subject: -> { params[:abonnement_id] }, return_to: -> { abonnement_path(params[:abonnement_id]) }
   #
-  # Une action sans déclaration est standard : la session ouverte suffit. Ce que vaut une preuve, et
-  # pendant combien de temps, est décrit par Portail::Access::Reauthentication.
+  # Une action sans déclaration est standard : la session ouverte suffit. Sans preuve valable, l'agent
+  # part se réauthentifier, puis revient sur `return_to` et refait son geste : rien ne se rejoue seul,
+  # et un formulaire se retrouve tel que l'agent l'a laissé. Ce que vaut une preuve, et pendant combien
+  # de temps, est décrit par Portail::Access::Reauthentication.
   module Reauthentication
     extend ActiveSupport::Concern
 
@@ -17,17 +18,17 @@ module Portail
     PENDING_TTL = 10.minutes
 
     class_methods do
-      # `purpose` est évalué dans le contrôleur : l'objet de la preuve dépend de la requête. `with`
-      # nomme la réponse d'un refus, propre à chaque page ; sans elle, un 403 nu.
-      def requires_reauthentication(level, purpose:, with: nil, **)
+      # `subject` et `return_to` sont évalués dans le contrôleur : ils dépendent de la requête.
+      def requires_reauthentication(action, level:, subject:, return_to:, **)
         Access::Reauthentication::WINDOWS.fetch(level) do
           raise ArgumentError, "niveau de sensibilité inconnu : #{level.inspect}"
         end
 
         before_action(**) do
-          next if reauthenticated?(level, instance_exec(&purpose))
+          purpose = Access::Reauthentication.purpose(action, instance_exec(&subject))
+          next if reauthenticated?(level, purpose)
 
-          with ? send(with) : head(:forbidden)
+          start_reauthentication(action:, level:, purpose:, return_to: instance_exec(&return_to))
         end
       end
     end
@@ -56,6 +57,30 @@ module Portail
       else
         Access::Reauthentication.satisfied?(Current.provider_session, level:, purpose:)
       end
+    end
+
+    # Déconnecte l'agent de ProConnect, y compris de ses autres services : sa session ProConnect, ou
+    # celle de son fournisseur d'identité, ne doit pas suffire à la reconnexion qui suit. Ce que la
+    # suite relit vient de la requête interceptée, jamais d'un paramètre du navigateur. Une seule
+    # demande à la fois : une autre action interceptée entre-temps la remplace.
+    def start_reauthentication(action:, level:, purpose:, return_to:)
+      logout_url = reauthentication_logout_url
+      # ProConnect injoignable : rien n'a été fermé, l'agent retrouve sa page.
+      return redirect_to(return_to, alert: t("portail.reauthentications.failed")) if logout_url.nil?
+
+      session[:reauthentication] = {
+        "action" => action.to_s, "level" => level.to_s, "purpose" => purpose, "return_to" => return_to,
+        "provider_session_id" => Current.provider_session.id, "started_at" => Time.current.to_i
+      }
+      redirect_to logout_url, allow_other_host: true, status: :see_other
+    end
+
+    # Le seul appel qui peut échouer, isolé : nil quand ProConnect ne répond pas.
+    def reauthentication_logout_url
+      Portail::ProConnect::Client.reauthentication_logout_url(id_token: Current.provider_session.provider_id_token)
+    rescue Portail::ProConnect::Client::Unavailable => e
+      Rails.logger.error("ProConnect indisponible", e)
+      nil
     end
   end
 end

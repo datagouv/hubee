@@ -106,12 +106,12 @@ Rails.application.routes.draw do
   # irrechargeables — ProConnect répond 400 sur un code rejoué.
   get "connexion/refusee", to: "portail/sessions#denied", as: :denied
   get "connexion/second-facteur", to: "portail/sessions#step_up", as: :step_up
-  # Réauthentification d'un agent déjà connecté, avant une action sensible : une déconnexion
-  # ProConnect, puis une connexion qui revient sur `connexion/proconnect/retour`. Le départ en POST,
-  # couvert par le jeton CSRF : un site tiers ne déconnecte pas l'agent de ProConnect.
-  post "connexion/reauthentification", to: "portail/reauthentications#create", as: :reauthentication
-  # Retour de la déconnexion. Déclaré tel quel chez ProConnect (post_logout_redirect_uri), sur chaque
-  # environnement : les deux se changent ensemble (cf. Client::REAUTHENTICATION_LOGOUT_PATH).
-  get "connexion/proconnect/reauthentification", to: "portail/reauthentications#resume", as: :reauthentication_resume
+  # Réauthentification d'un agent déjà connecté, avant une action sensible : son départ est le garde de
+  # l'action, en POST et couvert par le jeton CSRF (un site tiers ne déconnecte pas l'agent de
+  # ProConnect). Une déconnexion ProConnect, puis une connexion qui revient sur
+  # `connexion/proconnect/retour`. Ici, le retour de la déconnexion : l'adresse déclarée chez ProConnect
+  # (post_logout_redirect_uri) sur chaque environnement, lue à sa seule source.
+  get Portail::ProConnect::Client::REAUTHENTICATION_LOGOUT_PATH, to: "portail/reauthentications#start",
+    as: :reauthentication_start
   delete "logout", to: "portail/sessions#destroy", as: :logout
 end

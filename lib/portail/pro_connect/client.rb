@@ -23,7 +23,9 @@ module Portail
       SIGNING_ALGORITHM = :RS256
 
       # Retour d'une déconnexion demandée par une réauthentification, déclaré tel quel chez ProConnect
-      # à côté de la racine : le changer exige de le redéclarer sur chaque environnement.
+      # à côté de la racine : le changer exige de le redéclarer sur chaque environnement. La route en
+      # est tirée (config/routes.rb), l'URL n'est jamais construite par un helper de route : l'hôte
+      # viendrait de la requête, et doit être celui déclaré.
       REAUTHENTICATION_LOGOUT_PATH = "connexion/proconnect/reauthentification"
 
       TRANSPORT_ERRORS = [
