@@ -319,7 +319,9 @@ fr:
         si_comment: Commentaire à destination des SI
         event_attachments: Pièces apportées
     reauthentications:
-      verified: Identité vérifiée.
+      # Par action déclarée (`requires_reauthentication`) ; `default` pour une action sans message propre.
+      verified:
+        default: Identité vérifiée. Vous pouvez reprendre votre action dans les %{minutes} minutes.
       failed: La vérification de votre identité n'a pas abouti. Réessayez.
       # Par motif de Reauthentications::Deny qui ferme la session.
       closed:
