@@ -24,9 +24,10 @@ module Portail
     # Le détail servi : le rôle, et l'organisation que l'amont a rendue.
     def show? = SubscriptionPolicy.readable?(membership, subscription)
 
-    # Le secret du client OAuth : le détail, et le mode API, seul à avoir un client. L'amont refuse
-    # aussi un abonnement portail ; le refuser ici évite de lui demander un secret sans objet.
-    def consult_credentials? = show? && subscription.api_access?
+    # Le secret du client OAuth : le détail, et un abonnement API actif, seul à avoir un client qui serve.
+    # L'amont refuse aussi un abonnement portail ou inactif ; le refuser ici évite de lui demander un
+    # secret sans objet.
+    def consult_credentials? = show? && subscription.credentials_available?
 
     class Scope
       attr_reader :membership, :scope

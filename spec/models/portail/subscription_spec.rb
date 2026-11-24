@@ -28,4 +28,14 @@ RSpec.describe Portail::Subscription do
       expect(build(:portail_subscription, access_mode: nil)).not_to be_api_access
     end
   end
+
+  describe "#credentials_available?" do
+    # Inactif, l'abonnement ne sert à rien à son logiciel : ses identifiants non plus.
+    it "is true for an active API subscription only" do
+      expect(build(:portail_subscription, access_mode: "api", read_package: true)).to be_credentials_available
+      expect(build(:portail_subscription, access_mode: "api", read_package: false)).not_to be_credentials_available
+      expect(build(:portail_subscription, access_mode: "portal", read_package: true)).not_to be_credentials_available
+      expect(build(:portail_subscription, access_mode: nil, read_package: true)).not_to be_credentials_available
+    end
+  end
 end
