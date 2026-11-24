@@ -2,20 +2,44 @@
 
 require "rails_helper"
 
+module Portail
+  # Une action très sensible propre à ce fichier : le mécanisme s'éprouve de bout en bout sans dépendre
+  # d'une page réelle.
+  class ReauthenticationProbesController < Portail::BaseController
+    skip_after_action :verify_authorized
+
+    requires_reauthentication :probe, level: :very_sensitive, only: :create,
+      subject: -> { params[:id] }, return_to: -> { "/abonnements/#{params[:id]}" }
+
+    def create = head(:ok)
+  end
+end
+
 # La réauthentification d'un agent déjà connecté : une déconnexion ProConnect, puis une connexion
 # relancée par le portail. ProConnect est simulé à sa frontière, Portail::ProConnect::Client.
 #
 # Toutes les réponses de ce parcours sont des redirections : `redirect_to` vérifie déjà le statut 3xx,
 # `have_http_status` n'y ajouterait rien.
 RSpec.describe "Portail::Reauthentications", type: :request do
-  let(:subscription_id) { "550e8400-e29b-41d4-a716-446655440000" }
-  let(:purpose) { Portail::Access::Reauthentication.purpose(:credentials, subscription_id) }
-  let(:return_to) { "/abonnements/#{subscription_id}" }
+  let(:subject_id) { "550e8400-e29b-41d4-a716-446655440000" }
+  let(:probe_path) { "/test/sonde/#{subject_id}" }
+  let(:purpose) { Portail::Access::Reauthentication.purpose(:probe, subject_id) }
+  let(:return_to) { "/abonnements/#{subject_id}" }
 
-  def start_reauthentication(return_to: self.return_to)
+  # Ajoutée aux routes de l'application le temps d'un exemple, puis retirée.
+  around do |example|
+    Rails.application.routes.disable_clear_and_finalize = true
+    Rails.application.routes.draw { post "test/sonde/:id", to: "portail/reauthentication_probes#create" }
+    example.run
+  ensure
+    Rails.application.routes.disable_clear_and_finalize = false
+    Rails.application.reload_routes!
+  end
+
+  def start_reauthentication
     expect(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
       .and_return("https://proconnect.test/api/v2/session/end?id_token_hint=x")
-    post reauthentication_path, params: {purpose:, return_to:}
+    post probe_path
   end
 
   def proconnect_authorization
@@ -23,55 +47,25 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       state: ProConnectTestHelper::STATE, nonce: ProConnectTestHelper::NONCE)
   end
 
-  describe "POST /connexion/reauthentification" do
+  describe "a very sensitive action without proof" do
     it "logs the agent out of ProConnect, towards the reauthentication address" do
       sign_in_local_administrator
       id_token = ProviderSession.granted.sole.provider_id_token
 
       expect(Portail::ProConnect::Client).to receive(:reauthentication_logout_url).with(id_token:)
         .and_return("https://proconnect.test/api/v2/session/end?id_token_hint=x")
-      post reauthentication_path, params: {purpose:, return_to:}
+      post probe_path
 
       expect(response).to redirect_to("https://proconnect.test/api/v2/session/end?id_token_hint=x")
-    end
-
-    it "remembers the purpose and the way back" do
-      freeze_time
-      sign_in_local_administrator
-
-      start_reauthentication
-
-      expect(session[:reauthentication]).to eq("purpose" => purpose, "return_to" => return_to,
-        "provider_session_id" => ProviderSession.granted.sole.id, "started_at" => Time.current.to_i)
-    end
-
-    it "ignores a way back to another host" do
-      sign_in_local_administrator
-
-      %w[//evil.example https://evil.example evil.example].each do |forged|
-        start_reauthentication(return_to: forged)
-
-        expect(session[:reauthentication]["return_to"]).to eq("/")
-      end
+      expect(session[:reauthentication]).to include("purpose" => purpose, "return_to" => return_to)
     end
 
     it "turns a signed-out visitor away" do
-      post reauthentication_path, params: {purpose:, return_to:}
+      expect(Portail::ProConnect::Client).not_to receive(:reauthentication_logout_url)
+
+      post probe_path
 
       expect(response).to redirect_to(root_path)
-      expect(session[:reauthentication]).to be_nil
-    end
-
-    # Rien n'a été fermé : l'agent reste connecté et retrouve sa page.
-    it "brings the agent back when ProConnect cannot be reached" do
-      sign_in_local_administrator
-      expect(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
-        .and_raise(Portail::ProConnect::Client::Unavailable)
-
-      post reauthentication_path, params: {purpose:, return_to:}
-
-      expect(response).to redirect_to(return_to)
-      expect(flash[:alert]).to eq("La vérification de votre identité n'a pas abouti. Réessayez.")
       expect(session[:reauthentication]).to be_nil
     end
   end
@@ -84,7 +78,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       expect(Portail::ProConnect::Client).to receive(:authorization)
         .with(step_up: true, login_hint: agent.email, siret_hint: ProConnectTestHelper::TEST_SIRET)
         .and_return(proconnect_authorization)
-      get reauthentication_resume_path
+      get reauthentication_start_path
 
       expect(response).to redirect_to("https://proconnect.test/api/v2/authorize")
       expect(session[:proconnect_state]).to eq(ProConnectTestHelper::STATE)
@@ -100,7 +94,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       expect(Portail::ProConnect::Client).to receive(:authorization)
         .with(step_up: false, login_hint: agent.email, siret_hint: ProConnectTestHelper::TEST_SIRET)
         .and_return(proconnect_authorization)
-      get reauthentication_resume_path
+      get reauthentication_start_path
 
       expect(response).to redirect_to("https://proconnect.test/api/v2/authorize")
     end
@@ -109,7 +103,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       sign_in_local_administrator
 
       expect(Portail::ProConnect::Client).not_to receive(:authorization)
-      get reauthentication_resume_path
+      get reauthentication_start_path
 
       expect(response).to redirect_to(root_path)
     end
@@ -120,7 +114,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       start_reauthentication
       expect(Portail::ProConnect::Client).to receive(:authorization).and_raise(Portail::ProConnect::Client::Unavailable)
 
-      get reauthentication_resume_path
+      get reauthentication_start_path
 
       expect(response).to redirect_to(return_to)
       expect(flash[:alert]).to eq("La vérification de votre identité n'a pas abouti. Réessayez.")
@@ -136,7 +130,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       ProviderSession.granted.sole.touch
 
       expect(Portail::ProConnect::Client).not_to receive(:authorization)
-      get reauthentication_resume_path
+      get reauthentication_start_path
 
       expect(response).to redirect_to(root_path)
       expect(session[:reauthentication]).to be_nil
@@ -158,14 +152,24 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       freeze_time
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
 
-      reauthenticate(purpose:, return_to:)
+      reauthenticate(from: probe_path)
 
       expect(response).to redirect_to(return_to)
-      expect(flash[:notice]).to eq("Identité vérifiée.")
+      expect(flash[:notice]).to eq("Identité vérifiée. Vous pouvez reprendre votre action dans les 5 minutes.")
       expect(granted_session).to have_attributes(id: session[:provider_session_id], reauthenticated_for: purpose,
         reauthenticated_at: Time.current, provider_id_token: "test-id-token")
       expect(AccessDecision.last).to have_attributes(outcome: "granted", kind: "reauthentication")
       expect(session[:reauthentication]).to be_nil
+    end
+
+    # L'agent reprend l'action d'où il était parti : la preuve la laisse passer, une fois.
+    it "lets the intercepted action through once the identity is verified" do
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
+      reauthenticate(from: probe_path)
+
+      post probe_path
+
+      expect(response).to have_http_status(:ok)
     end
 
     # Le scénario du collègue sur le poste : il ne peut entrer qu'avec son propre compte.
@@ -174,7 +178,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       create(:membership, agent: colleague, organization_link: OrganizationLink.sole)
       mock_proconnect(sub: colleague.provider_sub, email: colleague.email, acr: "eidas1-mfa")
 
-      reauthenticate(purpose:, return_to:)
+      reauthenticate(from: probe_path)
 
       expect(response).to redirect_to(root_path)
       expect(flash[:alert]).to eq("Le compte utilisé pour vérifier votre identité n'est pas celui de votre " \
@@ -193,7 +197,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
     it "closes the session when ProConnect reused the session of the sign-in" do
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa", sid: granted_session.provider_sid)
 
-      reauthenticate(purpose:, return_to:)
+      reauthenticate(from: probe_path)
 
       expect(response).to redirect_to(root_path)
       expect(flash[:alert]).to eq("Votre identité n'a pas pu être vérifiée : la déconnexion de ProConnect " \
@@ -206,7 +210,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
     it "closes the session when someone unknown to the portal comes back" do
       mock_proconnect(sub: "sub-inconnu", email: "inconnu@example.gouv.fr", acr: "eidas1-mfa")
 
-      reauthenticate(purpose:, return_to:)
+      reauthenticate(from: probe_path)
 
       expect(response).to redirect_to(root_path)
       expect(ProviderSession.granted).to be_empty
@@ -216,7 +220,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
     it "closes the session when the agent comes back under another organisation" do
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa", siret: "11111111100000")
 
-      reauthenticate(purpose:, return_to:)
+      reauthenticate(from: probe_path)
 
       expect(response).to redirect_to(root_path)
       expect(ProviderSession.granted).to be_empty
@@ -224,7 +228,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
     end
 
     it "keeps the session when ProConnect returns an error" do
-      reauthenticate(purpose:, return_to:, params: {error: "access_denied"})
+      reauthenticate(from: probe_path, params: {error: "access_denied"})
 
       expect(response).to redirect_to(return_to)
       expect(flash[:alert]).to eq("La vérification de votre identité n'a pas abouti. Réessayez.")
@@ -236,7 +240,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
     # Un retour qui ne porte pas le `state` de la connexion lancée au retour de déconnexion n'est
     # pas celui de la réauthentification : il suit le parcours ordinaire, qui le refuse.
     it "keeps the session and grants nothing on an invalid state" do
-      reauthenticate(purpose:, return_to:, params: {state: "forged-state"})
+      reauthenticate(from: probe_path, params: {state: "forged-state"})
 
       expect(response).to redirect_to(auth_failure_path)
       expect(granted_session).to have_attributes(id: session[:provider_session_id], reauthenticated_at: nil)
@@ -245,9 +249,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
     # Le chemin le plus court pour qui voudrait éviter la déconnexion : lancer une connexion
     # ordinaire pendant qu'une réauthentification attend. Elle ne prouve rien.
     it "does not take an authorization it did not launch as a reauthentication" do
-      expect(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
-        .and_return("https://proconnect.test/api/v2/session/end")
-      post reauthentication_path, params: {purpose:, return_to:}
+      start_reauthentication
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
 
       proconnect_callback
@@ -262,7 +264,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
       promote_to_local_administrator
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1", amr: ["pwd"])
 
-      reauthenticate(purpose:, return_to:)
+      reauthenticate(from: probe_path)
 
       expect(response).to redirect_to(return_to)
       expect(flash[:alert]).to eq("La vérification de votre identité n'a pas abouti. Réessayez.")
@@ -276,7 +278,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
     it "keeps the session when ProConnect cannot be reached on the way back" do
       expect(Portail::ProConnect::Client).to receive(:exchange).and_raise(Portail::ProConnect::Client::Unavailable)
 
-      expect { reauthenticate(purpose:, return_to:) }.not_to change(AccessDecision, :count)
+      expect { reauthenticate(from: probe_path) }.not_to change(AccessDecision, :count)
 
       expect(response).to redirect_to(return_to)
       expect(granted_session.reauthenticated_at).to be_nil
@@ -284,9 +286,7 @@ RSpec.describe "Portail::Reauthentications", type: :request do
 
     # Un parcours oublié ne doit pas capter une connexion ordinaire faite plus tard.
     it "signs in as usual when an abandoned reauthentication has expired" do
-      expect(Portail::ProConnect::Client).to receive(:reauthentication_logout_url)
-        .and_return("https://proconnect.test/api/v2/session/end")
-      post reauthentication_path, params: {purpose:, return_to:}
+      start_reauthentication
       travel 11.minutes
       granted_session.touch
       mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")

@@ -26,9 +26,11 @@ module Portail
     end
 
     def create
-      # Même adresse de retour pour la réauthentification d'un agent déjà connecté : ProConnect n'en
-      # connaît qu'une. Seul le retour de la connexion lancée par la réauthentification la conclut ;
-      # tout autre suit le parcours ordinaire.
+      # Même adresse de retour pour la réauthentification d'un agent déjà connecté : une adresse dédiée
+      # serait de plus à déclarer chez ProConnect, sur chaque environnement, sans rien rendre plus sûr.
+      # Seul le retour de la connexion lancée par la réauthentification la conclut, d'après son `state` ;
+      # tout autre suit le parcours ordinaire. Pour passer à une adresse dédiée : la déclarer en plus de
+      # celle-ci, rendre `redirect_uri` paramétrable dans le client, puis basculer.
       pending = pending_reauthentication
       return complete_reauthentication(pending) if reauthentication_callback?(pending)
 
@@ -120,7 +122,7 @@ module Portail
       result = Portail::Reauthentications::Complete.call(code: params[:code], nonce:,
         provider_session: Current.provider_session, purpose: pending["purpose"], kind: :reauthentication,
         step_up_attempted: true)
-      return redirect_to(return_to, notice: t("portail.reauthentications.verified")) if result.success?
+      return redirect_to(return_to, notice: verified_notice(pending)) if result.success?
 
       deny_reauthentication(return_to, error: result.error, claims: result.claims, email: result.info&.email,
         siret: result.siret, idp_id: result.idp_id, organization_label: result.organization_label)
@@ -132,6 +134,14 @@ module Portail
 
       terminate_session
       redirect_to root_path, alert: t("portail.reauthentications.closed.#{denial.reason}")
+    end
+
+    # L'agent refait son geste : le message le lui dit, par action, avec le délai que lui laisse la
+    # preuve ; à défaut d'un message propre à l'action, le message commun.
+    def verified_notice(pending)
+      minutes = Access::Reauthentication::WINDOWS.fetch(pending["level"].to_sym).in_minutes.to_i
+      t("portail.reauthentications.verified.#{pending["action"]}", minutes:,
+        default: :"portail.reauthentications.verified.default")
     end
 
     def reauthentication_callback?(pending)
