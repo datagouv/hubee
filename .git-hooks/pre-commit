@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-unset GIT_INDEX_FILE
+# Dans un worktree, git exporte GIT_DIR en absolu : le git pull de
+# bundler-audit le recevrait et comparerait sa base d'avis à hubee.
+unset $(git rev-parse --local-env-vars)
 
 export DB_HOST="${DB_HOST:-localhost}"
 
