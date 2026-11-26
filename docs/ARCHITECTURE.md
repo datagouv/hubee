@@ -225,6 +225,20 @@ Le portail (`::Portail`) ne lit pas les modèles ci-dessus : les démarches vive
 - **Autorisation** (`Portail::DeliveryPolicy`, `Portail::Access::DataStreamPerimeter`) : Pundit avec le **rattachement** pour sujet, pas l'agent. Le périmètre de lecture est rôle × habilitation : des habilitations renseignées bornent tout le monde, administrateur local compris ; sans habilitation, l'administrateur local lit tout et le membre rien. Un périmètre vide ne part jamais vers l'amont (un filtre vide y vaudrait toute l'organisation). La policy s'applique **après** l'appel, à ce que l'amont a réellement servi : le scope retire d'une page ce qui sort du périmètre ou de l'organisation, et le contrôleur signale ce retrait (Sentry, canal CSIRT) sans priver l'agent de sa page ; le détail vérifie flux et organisation. L'amont est un tiers, son filtre n'est pas tenu pour acquis. Les contrôleurs sont fermés par défaut (`verify_authorized` / `verify_policy_scoped`) et un refus rend la même 404 qu'une inexistence, journalisée sur le canal CSIRT.
 - **Filtre et tri** (`Portail::Delivery::Criteria`) : l'état de navigation de la liste (état, flux, période de transmission, tri) est porté par l'URL et réécrit dans chaque lien, sans validation locale — l'amont refuse, et le refus est affiché plutôt que corrigé en douce. Les flux proposés au filtre sont ceux du périmètre : les habilitations du rattachement, ou, pour l'administrateur local sans habilitation, les flux des abonnements de l'organisation en lecture et en accès portail (`Portail::Subscription`), lus via la gem et gardés en cache dix minutes (disposition transitoire, jusqu'aux habilitations des administrateurs locaux). Un flux choisi remplace le périmètre envoyé à l'amont, jamais ne l'élargit : hors des flux sélectionnables, la requête est refusée avant tout appel.
 
+### Portail V2 — pièces en clair dans les fichiers temporaires
+
+Contrairement à la chaîne de l'API décrite plus haut, le portail écrit des pièces en clair dans le répertoire temporaire du conteneur (`/tmp`) :
+
+- **Archive des pièces** (`Portail::HubAPI::Attachments#download_all`) : le zip est construit dans un fichier temporaire, supprimé par `Rack::TempfileReaper` à la fin de la réponse ou sur erreur.
+- **Pièce jointe à une réponse** (`Portail::Delivery::Reply`) : Rack copie le corps multipart dans un fichier temporaire, supprimé en fin de requête.
+- Une pièce téléchargée seule passe en mémoire, sans fichier.
+
+**Risque résiduel** : un processus tué en cours de requête laisse le fichier en place, en clair, sur un disque chiffré par l'hébergeur.
+
+**Ce qui le borne**, côté hébergement : `/tmp` est un volume dédié, distinct du disque système, pour qu'un remplissage ne dégrade pas l'hôte. Les fichiers de plus de quelques heures y sont supprimés régulièrement, et l'occupation du volume déclenche une alerte avant saturation.
+
+**Point d'attention** : Ruby n'utilise `/tmp` que s'il est accessible en écriture et, s'il est ouvert à tous, protégé par le sticky bit. Sinon il se rabat sans erreur sur le dossier de l'application, sur le disque système. Après un changement du volume, `Dir.tmpdir` doit toujours valoir `/tmp`.
+
 ## Scalabilité et Performance
 
 ### Gestion Mémoire
