@@ -3,7 +3,34 @@
 # Chrome signale un nœud d'un document déjà remplacé, en pleine redirection, par une erreur
 # générique que Capybara ne rejoue pas : rejouée ici comme un élément périmé, elle attend la page.
 class PortailSeleniumDriver < Capybara::Selenium::Driver
+  # Chrome 158 refuse l'origine « * » du dernier appel de ChromeDriver#reset! (teamcapybara/capybara#2865) :
+  # cookies vidés pour tout le navigateur, stockage pour chaque origine visitée. Étendu après la
+  # spécialisation Chrome, elle-même étendue sur l'instance, pour la surcharger.
+  module ResetWithoutWildcardOrigin
+    private
+
+    def execute_cdp(cmd, params = {})
+      return super unless cmd == "Storage.clearDataForOrigin" && params[:origin] == "*"
+
+      super("Network.clearBrowserCookies")
+      return unless params[:storageTypes].include?("local_storage")
+
+      visited_origins.each { |origin| super(cmd, origin:, storageTypes: "local_storage") }
+    end
+
+    def visited_origins
+      execute_cdp("Page.getNavigationHistory")["entries"].map { URI(it["url"]) }.grep(URI::HTTP).map(&:origin).uniq
+    end
+  end
+
   def invalid_element_errors = super + [Selenium::WebDriver::Error::UnknownError]
+
+  private
+
+  def specialize_driver
+    super
+    extend ResetWithoutWildcardOrigin
+  end
 end
 
 # rack_test par défaut (rapide, sans navigateur) ; Selenium ne sert qu'aux scénarios
