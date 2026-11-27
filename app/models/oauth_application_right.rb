@@ -7,6 +7,8 @@ class OauthApplicationRight < ApplicationRecord
   RIGHTS = %w[
     internal:agents:create
     internal:agents:read
+    internal:agents:update
+    internal:agents:destroy
   ].freeze
 
   # === Associations ===

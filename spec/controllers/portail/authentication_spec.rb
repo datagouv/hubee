@@ -125,6 +125,59 @@ RSpec.describe Portail::BaseController, type: :controller do
     end
   end
 
+  # L'adresse se corrige par l'API interne pendant qu'une session est ouverte, ou pendant qu'une
+  # connexion est en cours : la session tombe à la requête suivante, comme une session expirée.
+  describe "a session opened with another email" do
+    it "closes the session of an agent whose email changed since" do
+      provider_session = create(:provider_session, membership: create(:membership))
+      session[:provider_session_id] = provider_session.id
+      provider_session.membership.agent.update!(email: "nouvelle.adresse@ville.fr")
+
+      get :index
+
+      expect(response).to redirect_to(root_path)
+      expect(session[:provider_session_id]).to be_nil
+      expect(ProviderSession.exists?(provider_session.id)).to be(false)
+    end
+
+    # Une connexion qui a résolu l'agent avant le changement d'adresse ouvre sa session avec l'ancienne.
+    it "closes a session recorded with an email that is not the agent's" do
+      membership = create(:membership, agent: create(:agent, email: "nouvelle.adresse@ville.fr"))
+      provider_session = create(:provider_session, membership:, email: "ancienne.adresse@ville.fr")
+      session[:provider_session_id] = provider_session.id
+
+      get :index
+
+      expect(response).to redirect_to(root_path)
+      expect(session[:provider_session_id]).to be_nil
+      expect(ProviderSession.exists?(provider_session.id)).to be(false)
+    end
+
+    # Les deux adresses sont écrites normalisées (Agent#email) : une différence de casse est un écart.
+    it "compares the emails exactly" do
+      membership = create(:membership, agent: create(:agent, email: "alice.martin@ville.fr"))
+      provider_session = create(:provider_session, membership:, email: "Alice.Martin@ville.fr")
+      session[:provider_session_id] = provider_session.id
+
+      get :index
+
+      expect(response).to redirect_to(root_path)
+      expect(ProviderSession.exists?(provider_session.id)).to be(false)
+    end
+
+    it "leaves a session whose email is the agent's" do
+      membership = create(:membership, agent: create(:agent, email: "alice.martin@ville.fr"))
+      provider_session = create(:provider_session, membership:, email: "alice.martin@ville.fr")
+      session[:provider_session_id] = provider_session.id
+
+      get :index
+
+      expect(response).to have_http_status(:ok)
+      expect(session[:provider_session_id]).to eq(provider_session.id)
+      expect(ProviderSession.exists?(provider_session.id)).to be(true)
+    end
+  end
+
   # Le contexte évite d'élargir la signature de toute la chaîne : aucun interactor ne reçoit
   # l'IP, et elle arrive quand même dans la trace.
   describe "the event context" do

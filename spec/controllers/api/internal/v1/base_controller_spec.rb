@@ -80,4 +80,89 @@ RSpec.describe API::Internal::V1::BaseController, type: :controller do
     expect(response).to have_http_status(:forbidden)
     expect(JSON.parse(response.body)).to eq("error" => "forbidden", "message" => "Ce client n'a pas le droit d'effectuer cette opération.")
   end
+
+  # Les deux gardes de l'en-tête d'acteur, sur un autre contrôleur anonyme : `update` l'exige, `create`
+  # l'accepte sans l'exiger, comme les écritures réelles.
+  describe "the declared actor" do
+    controller(described_class) do
+      before_action :require_declared_actor, only: :update
+      before_action :check_declared_actor, only: :create
+
+      def update = render_declared_actor
+
+      def create = render_declared_actor
+
+      private
+
+      def render_declared_actor
+        authorize(:agent, :index?, policy_class: API::Internal::V1::AgentPolicy)
+        render json: {declared_actor: trace_context.fetch(:declared_actor)}
+      end
+    end
+
+    let(:json) { JSON.parse(response.body) }
+
+    before { authenticate(create(:oauth_application, :admin_portal)) }
+
+    def declare(id) = request.headers["X-Actor-Id"] = id
+
+    ["a", "a" * 255, "ABC-xyz_09", "agent.42", "portail:admin", "admin@ville.fr"].each do |id|
+      it "accepts #{id.truncate(20).inspect} and hands it over as sent" do
+        declare(id)
+
+        patch :update, params: {id: "1"}
+
+        expect(response).to have_http_status(:ok)
+        expect(json).to eq("declared_actor" => id)
+      end
+    end
+
+    # Rien n'est nettoyé : une fin de ligne, que `$` accepterait, est refusée comme le reste.
+    ["a" * 256, "admin 42", "admin\n", "\tadmin", "admin/42", "admin+42", "élodie", "admin\u00A042"].each do |id|
+      it "refuses #{id.truncate(20).inspect} as invalid" do
+        declare(id)
+
+        patch :update, params: {id: "1"}
+
+        expect(response).to have_http_status(:bad_request)
+        expect(json).to include("error" => "invalid_actor")
+      end
+    end
+
+    [nil, "", "  "].each do |id|
+      it "refuses #{id.inspect} as missing where the actor is required" do
+        declare(id)
+
+        patch :update, params: {id: "1"}
+
+        expect(response).to have_http_status(:bad_request)
+        expect(json).to include("error" => "missing_actor")
+      end
+    end
+
+    it "lets an absent actor through where it is optional" do
+      post :create
+
+      expect(response).to have_http_status(:ok)
+      expect(json).to eq("declared_actor" => nil)
+    end
+
+    it "refuses an empty actor where it is optional" do
+      declare("")
+
+      post :create
+
+      expect(response).to have_http_status(:bad_request)
+      expect(json).to include("error" => "invalid_actor")
+    end
+
+    it "accepts a well-formed actor where it is optional" do
+      declare("admin-national-42")
+
+      post :create
+
+      expect(response).to have_http_status(:ok)
+      expect(json).to eq("declared_actor" => "admin-national-42")
+    end
+  end
 end

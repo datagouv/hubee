@@ -95,7 +95,8 @@ module Portail
     end
 
     # Ce que ce navigateur détient devient la session de la requête, si elle tient encore :
-    # expirée, elle est fermée ; valide, sa fenêtre d'inactivité glisse.
+    # expirée, ou ouverte avec une adresse qui n'est plus celle de l'agent, elle est fermée ;
+    # valide, sa fenêtre d'inactivité glisse.
     def resume_session
       record = find_session_by_cookie
       # Un refus n'est pas une session ouverte : ni la borne d'inactivité ni le message
@@ -103,14 +104,20 @@ module Portail
       return unless record&.granted?
 
       Current.provider_session = record
-      return close_expired_session! if record.expired?
+      return close_stale_session! if record.expired? || email_superseded?(record)
 
       record.touch if record.updated_at < TOUCH_THROTTLE.ago
     end
 
-    # Détruire plutôt qu'oublier le cookie : une session expirée ne doit pas figurer dans
-    # un inventaire des sessions ouvertes.
-    def close_expired_session!
+    # L'adresse de l'agent se corrige par l'API interne, session ouverte ou connexion en cours :
+    # une connexion qui a résolu l'agent avant le changement ouvre sa session avec l'ancienne.
+    # Comparaison exacte : les deux sont écrites depuis Agent#email, déjà normalisée.
+    def email_superseded?(record) = record.email != record.membership.agent.email
+
+    # Détruire plutôt qu'oublier le cookie : une session périmée (expirée, ou dont l'adresse
+    # n'est plus celle de l'agent) ne doit pas figurer dans un inventaire des sessions
+    # ouvertes. L'agent se reconnecte, avec sa nouvelle adresse le cas échéant.
+    def close_stale_session!
       terminate_session
       redirect_to root_path, alert: t("portail.sessions.expired")
     end

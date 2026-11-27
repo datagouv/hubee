@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe API::Internal::V1::Agents::Create::ValidatePayload do
+RSpec.describe API::Internal::V1::Agents::Shared::ValidatePayload do
   describe ".call" do
     # Les motifs du payload s'accumulent avec ceux des vérifications suivantes : rien ne s'arrête ici.
     it "lays the reasons on the form without failing" do

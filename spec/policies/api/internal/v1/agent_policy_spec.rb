@@ -36,7 +36,9 @@ RSpec.describe API::Internal::V1::AgentPolicy do
 
   [
     [:index?, "internal:agents:read"],
-    [:show?, "internal:agents:read"]
+    [:show?, "internal:agents:read"],
+    [:update?, "internal:agents:update"],
+    [:destroy?, "internal:agents:destroy"]
   ].each do |action, right|
     describe "##{action}" do
       let(:client) { create(:oauth_application) }

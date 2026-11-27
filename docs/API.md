@@ -79,6 +79,55 @@ passent pas par le jeton : ils sont lus à chaque appel, et un client sans le dr
 |-------|------------|
 | `internal:agents:create` | enregistrer un agent |
 | `internal:agents:read` | lister et rechercher les agents, consulter un agent |
+| `internal:agents:update` | corriger l'adresse et la civilité, modifier ou retirer un rattachement |
+| `internal:agents:destroy` | supprimer un agent |
+
+Un droit n'en implique aucun autre : supprimer un agent exige `destroy`, même pour un client qui
+détient `update`.
+
+**Imputation des écritures** : une trace nomme le client (`api_client`, `api_client_uid`), la
+requête (`request_id`) et, sous `declared_actor`, la personne qui a agi **telle que le client la
+déclare** dans l'en-tête `X-Actor-Id`. La trace se suffit ainsi : retrouver l'admin national n'exige
+pas les journaux d'admin-portal, dont rien ne garantit qu'ils soient conservés aussi longtemps que les
+traces (un an).
+
+- **Valeur** : l'identifiant **stable** de la personne dans le système appelant, jamais son adresse :
+  c'est une donnée personnelle de moins dans les traces, et un identifiant qui ne change pas avec
+  l'adresse. De 1 à 255 caractères parmi les lettres ASCII sans accent, les chiffres et `.`, `_`, `:`,
+  `@`, `-` (`\A[A-Za-z0-9._:@-]{1,255}\z`). Rien n'est nettoyé ni tronqué : une valeur hors de ce
+  format est refusée, jamais corrigée.
+- **Obligatoire** pour corriger un agent, modifier ou retirer un rattachement et supprimer un agent :
+  absent, vide ou blanc, 400 `missing_actor` ; hors format, 400 `invalid_actor`. Rien n'est écrit, aucune
+  trace.
+- **Facultatif** à l'enregistrement (`POST /agents`), que hub-api appelle sans personne derrière.
+  Absent, la trace n'a pas de clé `declared_actor` (jamais `null`). Présent, il doit être bien formé :
+  un en-tête vide est une valeur envoyée, refusée en 400 `invalid_actor`. admin-portal l'envoie aussi
+  quand il enregistre un agent.
+- **Traitement automatique** : un traitement sans personne derrière (job, reprise, synchronisation
+  côté client) envoie un identifiant explicite du traitement, préfixé, par exemple
+  `job:purge-comptes-inactifs` ; jamais un en-tête vide, ni l'identifiant d'une personne qui n'a pas
+  agi. Un traitement interne à HubEE n'appelle pas l'API et n'est pas concerné.
+- **Déclaré, non vérifié** : l'API ne contrôle pas que la personne existe ni qu'elle a agi. La valeur
+  n'étend pas la confiance accordée au client, qui peut déjà tout modifier avec ses droits, mais elle ne
+  prouve rien : elle dit qui le client affirme avoir agi.
+- L'en-tête est contrôlé après le droit du client et avant la lecture du corps (voir « Ordre des
+  contrôles »).
+
+```json
+{"error": "missing_actor", "message": "La demande doit désigner dans l'en-tête X-Actor-Id la personne qui agit."}
+{"error": "invalid_actor", "message": "L'en-tête X-Actor-Id doit compter de 1 à 255 caractères parmi les lettres ASCII sans accent, les chiffres et . _ : @ -."}
+```
+
+admin-portal **doit** aussi envoyer un en-tête `X-Request-Id` sur chaque appel d'écriture
+(enregistrement, correction, modification ou retrait d'un rattachement, suppression) : il relie la
+trace à la requête précise dans les journaux d'admin-portal. L'identifiant reçu est conservé tel quel
+une fois retirés les caractères autres que lettres ASCII sans accent, chiffres, `-`, `_` et `@`, et
+tronqué à 255 caractères ; il est renvoyé dans l'en-tête `X-Request-Id` de la réponse. Un en-tête que
+ce nettoyage vide entièrement (`éà`, par exemple) donne un identifiant **vide**, pas un UUID. Sans
+en-tête, ou avec un en-tête vide ou blanc, le serveur génère un UUID, que seule la réponse fait
+connaître au client. Dans les deux cas, la trace ne se rattache à aucune requête des journaux
+d'admin-portal. Envoyer un identifiant déjà nettoyé (un UUID, par exemple) garantit que la trace porte
+exactement la valeur journalisée.
 
 ### Enregistrer un agent
 
@@ -118,14 +167,14 @@ donne deux appels.
 
 | Champ | Obligatoire | Règle |
 |-------|-------------|-------|
-| `email` | oui | adresse de l'agent, sans distinction de casse : c'est elle que la connexion ProConnect retrouve |
+| `email` | oui | adresse de l'agent, sans distinction de casse : c'est elle que la connexion ProConnect retrouve. 254 caractères au plus |
 | `first_name`, `last_name` | oui | fournis à l'enregistrement, puis réécrits par ProConnect à chaque connexion : aucune opération de l'API ne les modifie. Pour un agent déjà connu, exigés mais ignorés |
 | `civility` | non | `mr` ou `ms` |
 | `send_invitation` | non | `true` ou `false` JSON, `false` si absent : demande l'invitation de l'agent. Toute autre valeur (`"true"`, `1`, `null`, `""`, une liste…) est refusée (422). Lu dans le corps JSON seul : passé dans l'URL ou un formulaire, il est ignoré. La réponse ne change pas |
 | `membership.siret` | oui | 14 chiffres |
 | `membership.insee_code` | oui | le **code guichet** de l'organisation. Avec le SIRET, il la désigne sans ambiguïté, même quand plusieurs organisations partagent un SIRET. C'est son code INSEE, que le référentiel V1 appelle code de branche |
 | `membership.role` | oui | `member` ou `local_administrator`, jamais déduit d'une valeur par défaut |
-| `membership.job_title` | non | 255 caractères au plus |
+| `membership.job_title` | non | 255 caractères au plus ; une chaîne vide ou blanche vaut absence (la fonction n'est pas renseignée) |
 | `membership.phone_number`, `membership.mobile_phone_number` | non | format E.164 (`+33123456789`) ; un numéro national français est mis en forme, tout autre numéro mal formé est refusé |
 | `membership.data_stream_codes` | oui | une liste de chaînes, toujours fournie : une liste absente, `null`, un élément `null` ou toute autre forme sont refusés. Au moins un code pour un `member` ; une liste vide (`[]`) donne à un `local_administrator` l'accès à tous les flux de son organisation (hub-api l'envoie ainsi pour l'administrateur local déclaré à l'abonnement). Un code compte de 1 à 100 caractères, accents compris, sans aucun espacement (espace insécable comprise), une fois retirés les espaces en bord (`" CERTDC"` vaut `CERTDC`) ; il est un identifiant opaque : les doublons exacts sont retirés, la casse n'est jamais changée (`CERTDC` et `certdc` sont deux codes). 100 codes distincts au plus (51 codes en production au 26/10/2026). Chaque code doit être connu de hub-api sous ce code exact (une reconnaissance vaut une heure) : un seul code inconnu refuse tout l'appel, et chaque code inconnu est cité dans son motif. Un code mal formé est refusé avant toute vérification : tant qu'il en reste un, hub-api n'est interrogé sur aucun code, et les codes inconnus ne sont cités qu'une fois les codes mal formés corrigés. Les codes sont vérifiés même quand le référentiel des organisations ne répond pas, dans l'ordre transmis, jusqu'à la première panne de hub-api : les suivants ne sont examinés qu'au prochain appel |
 | `source_info` | non | au premier niveau, à côté de l'enveloppe `agent` (il décrit l'appel, pas l'agent) ; placé dans `agent`, il est ignoré. Un objet aux seules clés facultatives `import` (`true` ou `false` JSON), `job_id` et `report_id` (entier JSON, sans borne, ou `null`) ; `{}` est admis. Toute autre forme (`null`, une chaîne, une clé inconnue, un `import` qui n'est pas un booléen, un id qui n'est pas un entier, même `3.0`…) est refusée (422). Lu dans le corps JSON seul, comme `send_invitation`. Seulement tracé : la réponse ne change pas |
@@ -135,8 +184,8 @@ l'invitation (`send_invitation: true`). Elle ne part ni sur un rejeu, ni pour un
 une nouvelle organisation, ni sur un refus ; la réponse n'en dépend pas, même si l'envoi échoue ensuite.
 
 **201** : l'état enregistré, pas l'état demandé (pour un agent connu ailleurs, l'identité
-retenue). `id` désigne l'agent dans les opérations suivantes, `membership.id` le rattachement ;
-l'identifiant ProConnect n'est jamais exposé.
+retenue). `id` désigne l'agent dans les opérations suivantes, `membership.id` le rattachement
+dans les routes `/agents/:agent_id/memberships/:id` ; l'identifiant ProConnect n'est jamais exposé.
 Le rattachement a la même représentation que dans la liste des agents.
 
 ```json
@@ -185,6 +234,7 @@ des contrôles »).
 |--------|-------|-------|
 | 400 | corps illisible (JSON mal formé) | `{"error": "bad_request", "message": "…"}` |
 | 400 | enveloppe `agent` absente | `{"error": "missing_agent", "message": "…"}` |
+| 400 | en-tête `X-Actor-Id` présent mais hors format, vide compris (facultatif ici, voir « Imputation des écritures ») | `{"error": "invalid_actor", "message": "…"}` |
 | 401 | jeton absent, inconnu, expiré ou révoqué | `{"error": "invalid_token", "message": "…"}` |
 | 403 | client sans le droit `internal:agents:create` | `{"error": "forbidden", "message": "…"}` |
 | 404 | autre méthode que `GET` ou `POST` sur `/agents` | `{"error": "not_found", "message": "…"}` |
@@ -195,13 +245,15 @@ des contrôles »).
 | 422 | code de flux inconnu de hub-api | un motif par code inconnu sur `membership.data_stream_codes`, qui le cite |
 | 503 | référentiel V1 (hub-api) injoignable ou incohérent, pour l'organisation comme pour un code de flux : réessayable, sans en-tête `Retry-After` | `{"error": "service_unavailable", "message": "…"}` |
 
-Chaque écriture laisse sa trace (`agent.created` si l'agent est créé, `membership.created`) : le
-client appelant (nom et uid), la requête, l'adresse, l'organisation, le rôle et les habilitations ;
+Chaque écriture laisse sa trace (`agent.created` si l'agent est créé, `membership.created` ; les
+traces des autres opérations sont décrites plus bas, « Traces des modifications ») : le
+client appelant (nom et uid), la requête, l'acteur déclaré (`declared_actor`, seulement si
+`X-Actor-Id` est envoyé), l'adresse, l'organisation, le rôle et les habilitations ;
 `agent.created` porte en plus `send_invitation`, sa valeur effective.
 Un `source_info` fourni est repris tel quel sous cette clé dans `agent.created` et `membership.created` ;
 absent, la clé n'y figure pas.
 Une invitation remise laisse `agent.invited` sur l'agent, écrit par le job après l'envoi : mêmes
-métadonnées que `agent.created`, sans le rôle, les habilitations, `send_invitation` ni `source_info`. Le `send_invitation`
+métadonnées que `agent.created`, `declared_actor` compris, sans le rôle, les habilitations, `send_invitation` ni `source_info`. Le `send_invitation`
 de `agent.created` dit la demande, pas l'envoi : une invitation demandée sans `agent.invited` n'a pas été remise.
 L'identifiant de la requête est celui que le client envoie dans `X-Request-Id` (255 caractères au plus,
 lettres, chiffres, `-`, `_` et `@`), à défaut un UUID généré par le serveur : il sert à recouper les
@@ -209,7 +261,7 @@ journaux, pas à prouver l'origine d'un appel.
 
 ### Représentation d'un agent
 
-Même corps pour un élément de la liste et la consultation d'un agent.
+Même corps pour un élément de la liste, la consultation et la réponse à la correction d'un agent.
 
 ```json
 {
@@ -247,7 +299,7 @@ Même corps pour un élément de la liste et la consultation d'un agent.
   ne doit pas coûter un appel par agent. Ils sont rendus dans l'ordre de leur création ; la liste est
   vide pour un agent sans rattachement.
 - Un rattachement a la même représentation partout : sous `membership` à l'enregistrement, dans
-  `memberships` ici. `data_stream_codes` est vide pour un administrateur
+  `memberships` ici, et seul à sa modification. `data_stream_codes` est vide pour un administrateur
   local qui a accès à tous les flux ; il n'est pas ordonné. Le nom de l'organisation n'y figure pas :
   il vit au référentiel V1.
 
@@ -324,27 +376,235 @@ GET /api/internal/v1/agents/:id    # droit internal:agents:read
 qui n'est pas un identifiant. Rien n'est demandé au référentiel : une lecture n'échoue pas parce que
 hub-api est indisponible.
 
+### Corriger l'adresse et la civilité
+
+```http
+PATCH /api/internal/v1/agents/:id  # droit internal:agents:update
+X-Actor-Id: admin-national-42      # obligatoire
+```
+
+```json
+{"agent": {"email": "alice.dupont@ville.fr", "civility": "ms"}}
+```
+
+| Champ | Règle |
+|-------|-------|
+| `email` | comme à l'enregistrement : espaces en bord retirés, mis en minuscules, au format d'une adresse, 254 caractères au plus ; ne peut pas être vidé ni valoir `null`. Une adresse déjà portée par un autre agent est refusée (409) |
+| `civility` | `mr` ou `ms` ; `null` ou `""` l'efface |
+
+- **Mise à jour partielle** : une clé absente ne change rien. Seuls `email` et `civility` se
+  corrigent. `first_name`, `last_name` et toute autre clé sont ignorés, sans erreur : ProConnect
+  réécrit le prénom et le nom à chaque connexion, et avant la première une faute se corrige d'elle-même.
+- Une valeur qui n'est pas une chaîne (liste, objet, nombre, booléen) est refusée (422) sur son
+  champ, jamais écartée en silence.
+- **Enveloppe** : 400 `missing_agent` seulement quand `agent` est absent ou n'est pas un objet JSON
+  (`null`, une chaîne, une liste). Un objet vide, ou qui ne porte que des clés ignorées, est une demande
+  valable : 200, l'état enregistré, rien n'est écrit. L'enveloppe est lue dans le corps JSON seul :
+  passée dans l'URL ou un formulaire, elle est absente.
+- **Aucun changement effectif** (mêmes valeurs après normalisation, par exemple la même adresse
+  dans une autre casse) : 200, rien n'est écrit, aucune trace.
+- **Changement d'adresse** : l'adresse est ce que la connexion ProConnect retrouve, donc l'agent
+  devra se connecter avec la nouvelle (la connexion avec l'ancienne est refusée) ; `has_signed_in`
+  reste vrai. L'API ne touche pas aux sessions : dès la requête suivante de l'agent, le portail
+  ferme toute session dont l'adresse n'est plus la sienne, y compris une session ouverte avec
+  l'ancienne adresse par une connexion en cours au moment du changement. Aucune invitation n'est
+  envoyée.
+- **Piège de support** : une adresse changée par erreur se corrige sur **cette** fiche, par un nouvel
+  appel de correction : c'est elle qui porte les rattachements. Si la personne s'est déjà connectée
+  (`has_signed_in` vrai), enregistrer une nouvelle fiche pour l'ancienne adresse ne lui rend pas
+  l'accès : la fiche corrigée par erreur garde son identifiant ProConnect, que la connexion cherche en
+  premier, et l'adresse de cette fiche ne correspond plus ; la personne est refusée à la connexion tant
+  que cette fiche existe.
+- Le 409 vaut aussi quand un appel simultané prend l'adresse entre le contrôle et l'écriture.
+
+**200** : la représentation de l'agent, l'état enregistré.
+
+| Statut | Quand | Corps |
+|--------|-------|-------|
+| 400 | en-tête `X-Actor-Id` absent, vide ou blanc | `{"error": "missing_actor", "message": "…"}` |
+| 400 | en-tête `X-Actor-Id` hors format | `{"error": "invalid_actor", "message": "…"}` |
+| 400 | enveloppe `agent` absente ou qui n'est pas un objet | `{"error": "missing_agent", "message": "…"}` |
+| 404 | agent inconnu | `{"error": "not_found", "message": "…"}` |
+| 409 | adresse déjà portée par un autre agent | `{"email": ["désigne déjà un autre agent"]}` |
+| 422 | adresse vide (`{"email": ["doit être rempli(e)"]}`) ou mal formée (`["n'est pas valide"]`), civilité hors liste (`{"civility": ["n'est pas inclus(e) dans la liste"]}`), valeur qui n'est pas une chaîne | motif sur chaque champ concerné, tous à la fois |
+
+Le statut est celui du motif le plus fort : le 409 l'emporte sur le 422. Un refus n'écrit rien,
+ni modification, ni trace.
+
+### Modifier un rattachement
+
+```http
+PATCH /api/internal/v1/agents/:agent_id/memberships/:id  # droit internal:agents:update
+X-Actor-Id: admin-national-42                            # obligatoire
+```
+
+```json
+{"membership": {"role": "local_administrator", "data_stream_codes": [], "all_data_streams": true}}
+```
+
+Le rattachement est cherché **parmi ceux de l'agent** : celui d'un autre agent est introuvable (404).
+
+| Champ | Règle |
+|-------|-------|
+| `role` | `member` ou `local_administrator` ; ne peut pas être vidé |
+| `job_title` | 255 caractères au plus ; `null` ou une chaîne vide ou blanche l'efface ; une valeur qui n'est pas une chaîne est refusée |
+| `phone_number`, `mobile_phone_number` | mêmes règles qu'à l'enregistrement (E.164, un numéro national français est mis en forme) ; `null` ou `""` l'efface |
+| `data_stream_codes` | **remplace** la liste. Mêmes règles qu'à l'enregistrement (liste de chaînes, 100 codes distincts au plus, format d'un code, doublons exacts retirés, `null` et toute autre forme refusés). Absent, il garde la liste actuelle |
+| `all_data_streams` | pas un champ du rattachement : confirme qu'un administrateur local aura accès à **tous** les flux (voir ci-dessous). Seul le booléen JSON `true` confirme ; `false` vaut absence ; toute autre valeur (`"true"`, `1`, `null`, une liste…) est refusée. N'apparaît ni dans la réponse ni dans la trace |
+
+- **Mise à jour partielle** : une clé absente ne change rien. L'organisation (`siret`, `insee_code`)
+  ne se modifie pas : présente dans l'enveloppe, quelle que soit sa valeur, elle est refusée (422) sur
+  son champ, `["ne se modifie pas : retirez le rattachement puis ajoutez-en un par POST /agents"]`.
+  Pour en changer, on retire le rattachement puis on en ajoute un par `POST /agents`. Toute autre clé
+  est ignorée, sans erreur.
+- **Habilitations** : seuls les codes **ajoutés** sont vérifiés auprès de hub-api (un motif par code
+  inconnu, 503 si hub-api est injoignable) ; ceux déjà accordés ne sont pas revérifiés, pour qu'un
+  code disparu du référentiel ne bloque pas la correction d'un autre champ. Seul l'écart s'écrit : une
+  habilitation conservée garde sa ligne.
+- **« Au moins un code pour un membre »** se juge sur l'**état résultant** : passer un
+  administrateur local sans code à `member` sans fournir de code est refusé, comme vider la liste d'un
+  membre. Un membre promu administrateur local sans `data_stream_codes` garde ses codes : ils bornent
+  son accès tant qu'il en a ; `[]` **avec** `"all_data_streams": true` lui donne l'accès à tous les
+  flux de son organisation (voir ci-dessous). La règle est jugée à nouveau au moment de l'écriture :
+  si une modification simultanée du même rattachement la rend fausse, la demande est refusée (422,
+  même motif) sans rien écrire.
+- **Accès à tous les flux, confirmé** : décocher le dernier flux d'un administrateur local lui
+  donnerait accès à **tous** les flux, soit plus qu'avant. Quand l'**état résultant** est
+  « administrateur local avec une liste vide » et que l'état actuel ne l'est pas déjà (administrateur
+  local restreint vidé, membre promu avec `[]`, membre sans code promu sans `data_stream_codes`), la
+  demande doit porter `"all_data_streams": true` ; sinon 422 sur `data_stream_codes`. Un rattachement
+  déjà dans cet état n'a rien à confirmer, et `true` y est accepté (un rejeu répond 200 sans rien
+  écrire). `true` est refusé (422 sur `all_data_streams`) quand l'état résultant n'est pas celui-là
+  (membre, ou liste non vide). Comme « au moins un code pour un membre », la règle est jugée à nouveau
+  au moment de l'écriture : un code accordé entre-temps à un administrateur local qui n'en avait pas
+  fait refuser une liste vide envoyée sans le drapeau. L'enregistrement (`POST /agents`) n'est pas
+  concerné : `[]` y reste l'expression explicite de « tous les flux ».
+- Un administrateur local est soumis au second facteur dès sa requête suivante sur le portail.
+- **Enveloppe** : 400 `missing_membership` seulement quand `membership` est absent ou n'est pas un
+  objet JSON ; un objet vide ou sans clé reconnue est valable, 200 sans rien écrire. Lue dans le
+  corps JSON seul, comme `agent`. Une valeur qui n'est pas une chaîne pour `role`, `job_title` ou un
+  numéro est refusée (422) sur son champ.
+- **Aucun changement effectif** : 200, rien n'est écrit, aucune trace.
+
+**200** : le rattachement seul, sous sa représentation (pas l'agent).
+
+| Statut | Quand | Corps |
+|--------|-------|-------|
+| 400 | en-tête `X-Actor-Id` absent, vide ou blanc | `{"error": "missing_actor", "message": "…"}` |
+| 400 | en-tête `X-Actor-Id` hors format | `{"error": "invalid_actor", "message": "…"}` |
+| 400 | enveloppe `membership` absente ou qui n'est pas un objet | `{"error": "missing_membership", "message": "…"}` |
+| 404 | agent inconnu, rattachement inconnu ou d'un autre agent | `{"error": "not_found", "message": "…"}` |
+| 422 | champ invalide, `siret` ou `insee_code` présent, code de flux invalide, membre sans code, accès à tous les flux non confirmé, drapeau `all_data_streams` invalide ou hors de son emploi | motif sur chaque champ concerné |
+| 422 | code de flux ajouté inconnu de hub-api | un motif par code inconnu sur `data_stream_codes`, qui le cite |
+| 503 | hub-api injoignable pendant la vérification des codes ajoutés : réessayable | `{"error": "service_unavailable", "message": "…"}` |
+
+Motifs sur `data_stream_codes` : `["doit être une liste de codes"]`, `["ne peut pas compter plus de
+100 codes distincts"]`, `["doit compter au moins un
+code pour un membre"]`, `["contient un code invalide : « CERT DC »"]`, `["contient un code de flux
+inconnu du référentiel : « INCONNU »"]`, `["donnerait accès à tous les flux de l'organisation :
+envoyez all_data_streams à true pour le confirmer"]`. Motifs sur `all_data_streams` : `["doit être le
+booléen JSON true ou false"]`, `["ne s'emploie qu'avec une liste vide pour un administrateur
+local"]`. Une demande refusée reçoit **tous** ses motifs à la fois ;
+le 503 n'est signalé que s'il n'y a aucun autre motif. Un refus n'écrit rien, trace comprise.
+
+### Retirer un rattachement
+
+```http
+DELETE /api/internal/v1/agents/:agent_id/memberships/:id  # droit internal:agents:update
+X-Actor-Id: admin-national-42                             # obligatoire
+```
+
+**204**, sans corps. Le retrait relève du droit `update` : il corrige l'agent. Les habilitations et
+les sessions ouvertes du rattachement disparaissent avec lui : l'accès tombe à la requête suivante de
+l'agent, sans effet sur ses autres rattachements. Le dernier rattachement peut être retiré : l'agent
+reste, sans accès ; le supprimer est l'objet de la suppression de l'agent. L'organisation, elle,
+reste.
+
+Erreurs : 400 `missing_actor` ou `invalid_actor` pour un en-tête `X-Actor-Id` absent ou hors format
+(voir « Imputation des écritures ») ; 404 pour un agent ou un rattachement inconnu, ou un rattachement
+d'un autre agent ; 401 et 403 ; voir « Ordre des contrôles ». Un refus n'écrit rien.
+
+### Supprimer un agent
+
+```http
+DELETE /api/internal/v1/agents/:id  # droit internal:agents:destroy
+X-Actor-Id: admin-national-42       # obligatoire
+```
+
+**204**, sans corps. L'agent, ses rattachements, leurs habilitations et leurs sessions ouvertes sont
+supprimés : l'accès tombe à la requête suivante, et plus aucune connexion n'est possible. Les
+organisations restent, d'autres agents s'y rattachent. Rien n'est demandé ni changé chez hub-api. Les
+traces antérieures de l'agent sont conservées. Un agent supprimé peut être enregistré de nouveau par
+`POST /agents` : c'est un nouvel agent, avec un nouvel `id`.
+
+Erreurs : 400 `missing_actor` ou `invalid_actor` pour un en-tête `X-Actor-Id` absent ou hors format
+(voir « Imputation des écritures ») ; 404 pour un agent inconnu, 401, 403 (le droit `update` ne suffit
+pas) ; voir « Ordre des contrôles ». Un refus n'écrit rien.
+
 ### Ordre des contrôles
 
-Les trois opérations sur les agents suivent le même ordre, et le premier contrôle qui refuse donne la
+Les sept opérations sur les agents suivent le même ordre, et le premier contrôle qui refuse donne la
 réponse :
 
 | Ordre | Contrôle | Refus |
 |-------|----------|-------|
 | 1 | jeton | 401 |
-| 2 | droit du client | 403, même sur une ressource inconnue, même si le corps est illisible |
-| 3 | corps lisible | 400 `bad_request`, même sur une ressource inconnue |
-| 4 | ressource désignée par l'URL (agent) | 404 |
-| 5 | enveloppe présente (`agent`) | 400 `missing_agent` |
-| 6 | motifs de la demande : champs, paramètres, référentiel, conflits | 409, sinon 422, tous les motifs à la fois |
-| 7 | référentiel joignable | 503, seulement sans aucun motif |
+| 2 | droit du client | 403, même sur une ressource inconnue, même si le corps est illisible ou l'en-tête d'acteur absent |
+| 3 | en-tête `X-Actor-Id` | 400 `missing_actor` ou `invalid_actor`, même sur une ressource inconnue, même si le corps est illisible |
+| 4 | corps lisible | 400 `bad_request`, même sur une ressource inconnue |
+| 5 | ressource désignée par l'URL (agent, rattachement) | 404 |
+| 6 | enveloppe présente (`agent` ou `membership`) | 400 `missing_agent` ou `missing_membership` |
+| 7 | motifs de la demande : champs, paramètres, référentiel, conflits | 409, sinon 422, tous les motifs à la fois |
+| 8 | référentiel joignable | 503, seulement sans aucun motif |
 
-Les étapes 4 et 5 ne concernent que les opérations qui les portent (l'enregistrement n'a pas de
-ressource à retrouver, une lecture n'a pas d'enveloppe). Des paramètres d'URL mal formés sont refusés
+Les étapes 3, 5 et 6 ne concernent que les opérations qui les portent (une lecture n'a pas d'en-tête
+d'acteur, l'enregistrement ne refuse que celui qui est mal formé et n'a pas de ressource à retrouver,
+une lecture n'a pas d'enveloppe). Des paramètres d'URL mal formés sont refusés
 (400) avant tout contrôle, jeton compris. Les erreurs sans champ ont la forme commune à l'API,
 `{"error": "<code>", "message": "…"}` ; celles qui portent sur un champ, `{"<champ>": ["<motif>"]}`.
 L'espace interne est fermé par défaut : une action qui n'aurait pas vérifié le droit du client
 échoue au lieu de répondre.
+
+### Traces des modifications
+
+Chaque écriture effective laisse sa trace dans la même transaction : sans elle, rien n'est écrit.
+Aucune trace pour un refus ni pour un appel sans effet. Les métadonnées reprennent celles de
+l'enregistrement (`api_client`, `api_client_uid`, `request_id`), l'acteur déclaré (`declared_actor`,
+toujours présent ici puisque l'en-tête est obligatoire) et de quoi lire la trace seule, après la
+suppression de l'agent : son adresse, et pour un rattachement `siret` et `insee_code`. `declared_actor`
+dit qui le client affirme avoir agi ; `request_id` relie la trace à la requête dans les journaux
+d'admin-portal (voir « Imputation des écritures »).
+
+| Type | Sujet | Quand | Métadonnées en plus |
+|------|-------|-------|---------------------|
+| `agent.updated` | l'agent | adresse ou civilité effectivement modifiée | `changes` ; `email` est la nouvelle adresse |
+| `membership.updated` | le rattachement | rattachement effectivement modifié | `changes`, `siret`, `insee_code` |
+| `membership.deleted` | le rattachement | retrait | `siret`, `insee_code`, `role`, `data_stream_codes` (triés) au moment du retrait |
+| `agent.deleted` | l'agent | suppression | `memberships` : un élément par rattachement supprimé (`siret`, `insee_code`, `role`, `data_stream_codes` triés), classés par SIRET puis code guichet |
+
+`changes` donne, pour chaque champ **effectivement modifié**, `{"champ": [avant, après]}`, données
+personnelles comprises (adresse, civilité, fonction, téléphones). Les habilitations y figurent sous
+`data_stream_codes`, en deux listes triées. Les champs reçus sans changement n'y sont pas.
+
+```json
+{
+  "api_client": "admin-portal",
+  "api_client_uid": "…",
+  "request_id": "…",
+  "declared_actor": "admin-national-42",
+  "email": "alice.martin@ville.fr",
+  "siret": "21750056000016",
+  "insee_code": "75056",
+  "changes": {
+    "role": ["member", "local_administrator"],
+    "data_stream_codes": [["CERTDC"], []]
+  }
+}
+```
+
+Les traces de création restent telles quelles, sans nom ni téléphone : une valeur qu'aucune trace de
+modification ne mentionne vient de la création. Le prénom et le nom, que ProConnect réécrit à chaque
+connexion sans laisser de trace, ne permettent pas de reconstituer l'historique du nom.
 
 ## Endpoints (Rails Scaffold Style)
 

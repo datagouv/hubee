@@ -128,6 +128,17 @@ RSpec.describe API::Internal::V1::Agents::Create::Register do
         .to raise_error(ActiveRecord::RecordInvalid)
     end
 
+    # La suppression d'un agent, ou la correction de son adresse, rend la course possible : une 404 serait
+    # trompeuse, le rescue_from de RecordNotFound répondrait « introuvable » à un POST qui a écrit.
+    it "raises RecordVanished, not RecordNotFound, when the agent disappears before being read back" do
+      expect(Agent).to receive(:lock).and_return(Agent.none)
+
+      expect { register(build(:api_internal_v1_agent_form)) }
+        .to raise_error(described_class::RecordVanished)
+
+      expect([Agent.count, OrganizationLink.count, Membership.count, Event.count]).to eq([0, 0, 0, 0])
+    end
+
     it "writes nothing when a trace cannot be written" do
       form = build(:api_internal_v1_agent_form)
       expect(Event).to receive(:create!).and_raise(ActiveRecord::RecordInvalid)

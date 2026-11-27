@@ -18,8 +18,9 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
     }
   end
 
-  def register(body, application: internal_client)
-    post "/api/internal/v1/agents", params: body, headers: bearer(application), as: :json
+  # hub-api enregistre sans personne derrière : l'en-tête d'acteur est facultatif.
+  def register(body, application: internal_client, actor: {})
+    post "/api/internal/v1/agents", params: body, headers: {**bearer(application), **actor}, as: :json
   end
 
   # Tout ce qu'un refus ne doit pas écrire.
@@ -102,6 +103,17 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
           expect(Event.order(:created_at).map { [it.event_type, it.metadata["send_invitation"]] })
             .to eq([["agent.created", asked], ["membership.created", nil]])
         end
+      end
+
+      it "stores a blank job title as absent" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+
+        register(payload({}, {job_title: ""}))
+
+        expect(response).to have_http_status(:created)
+        expect(json["membership"]).to include("job_title" => nil)
+        expect(Membership.sole.job_title).to be_nil
       end
 
       [true, false].each do |asked|
@@ -372,6 +384,17 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
 
         expect(response).to have_http_status(:unprocessable_content)
         expect(json).to eq("membership" => {"data_stream_codes" => ["doit compter au moins un code pour un membre"]})
+      end
+
+      it "refuses an email longer than 254 characters, and writes nothing" do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+        email = "#{"a" * 65}@#{"b" * 63}.#{"c" * 63}.#{"d" * 58}.fr"
+
+        expect { register(payload(email:)) }.not_to change { written }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json).to eq("email" => ["est trop long (pas plus de 254 caractères)"])
       end
 
       it "refuses an incomplete identity and a malformed phone, each on its field" do
@@ -775,6 +798,61 @@ RSpec.describe "API::Internal::V1::Agents", type: :request do
 
         expect(response).to have_http_status(:forbidden)
         expect(json).to eq("error" => "forbidden", "message" => "Ce client n'a pas le droit d'effectuer cette opération.")
+      end
+    end
+
+    context "with the declared actor" do
+      before do
+        stub_hub_api_organization_found(siret: "21750056000016", type: "SI", branch_code: "75056")
+        stub_hub_api_v2_data_stream(code: "CERTDC")
+      end
+
+      it "traces no declared actor without X-Actor-Id" do
+        register(payload({send_invitation: true}))
+        perform_enqueued_jobs
+
+        expect(response).to have_http_status(:created)
+        expect(Event.order(:id).map { [it.event_type, it.metadata.key?("declared_actor")] })
+          .to eq([["agent.created", false], ["membership.created", false], ["agent.invited", false]])
+      end
+
+      it "traces the declared actor on the creation, the membership and the invitation" do
+        register(payload({send_invitation: true}), actor: declared_actor)
+        perform_enqueued_jobs
+
+        expect(response).to have_http_status(:created)
+        expect(Event.order(:id).map { [it.event_type, it.metadata["declared_actor"]] }).to eq([
+          ["agent.created", "admin-national-42"],
+          ["membership.created", "admin-national-42"],
+          ["agent.invited", "admin-national-42"]
+        ])
+      end
+
+      # Facultatif ne veut pas dire nettoyé : une valeur envoyée, même vide, doit être un identifiant.
+      {"an empty value" => "", "a space" => "admin national", "256 characters" => "a" * 256}.each do |case_name, id|
+        it "refuses an X-Actor-Id with #{case_name} with a 400 invalid_actor, and writes nothing" do
+          expect { register(payload, actor: declared_actor(id)) }.not_to change { written }
+
+          expect(response).to have_http_status(:bad_request)
+          expect(json).to eq(
+            "error" => "invalid_actor",
+            "message" => "L'en-tête X-Actor-Id doit compter de 1 à 255 caractères parmi les lettres ASCII sans accent, les chiffres et . _ : @ -."
+          )
+        end
+      end
+
+      it "answers 403 to a client without the right before judging the declared actor" do
+        register(payload, application: create(:oauth_application), actor: declared_actor("admin national"))
+
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it "judges the declared actor before reading the body", :production_exceptions do
+        post "/api/internal/v1/agents", params: "{pas du json",
+          headers: {"CONTENT_TYPE" => "application/json", **bearer(internal_client), **declared_actor("admin national")}
+
+        expect(response).to have_http_status(:bad_request)
+        expect(json).to include("error" => "invalid_actor")
       end
     end
 

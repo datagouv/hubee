@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe API::Internal::V1::Agents::Create::CheckDataStreams do
+RSpec.describe API::Internal::V1::Agents::Shared::CheckDataStreams do
   describe ".call" do
     def validated_form(**attributes)
       build(:api_internal_v1_agent_form, **attributes).tap(&:validate)
@@ -35,6 +35,21 @@ RSpec.describe API::Internal::V1::Agents::Create::CheckDataStreams do
       expect(result.refusals).to eq([
         :already_attached, [:unknown_data_stream, {code: "INCONNU"}], [:unknown_data_stream, {code: "AUTRE"}]
       ])
+    end
+
+    # La garde ne connaît pas la forme de la demande : c'est le form qui dit quels codes vérifier. Pour une
+    # modification de rattachement, CERTDC, déjà accordé, ne l'est pas.
+    it "verifies only the codes the form asks to verify" do
+      membership = create(:membership).tap { create(:data_stream_access, membership: it, data_stream_code: "CERTDC") }
+      form = API::Internal::V1::MembershipUpdateForm.new(membership:, data_stream_codes: ["CERTDC", "NOUVEAU"]).tap(&:validate)
+      client = use_hub_api_fake_client
+      expect(HubApiV1::V2::DataStream).to receive(:find).with(code: "NOUVEAU", client:)
+        .and_return(build_v2_data_stream(code: "NOUVEAU"))
+
+      result = described_class.call(form:)
+
+      expect(result.refusals).to be_nil
+      expect(result.unavailable).to be_nil
     end
 
     it "asks hub-api once about a code sent twice" do

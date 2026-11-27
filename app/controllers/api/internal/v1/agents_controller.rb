@@ -6,6 +6,7 @@ module API
       class AgentsController < API::Internal::V1::BaseController
         REFUSALS = {
           already_attached: {attribute: :email, status: :conflict},
+          email_taken: {attribute: :email, status: :conflict},
           siret_already_attached: {attribute: :insee_code, status: :conflict},
           unknown_organization: {attribute: :siret, status: :unprocessable_content},
           unknown_data_stream: {attribute: :data_stream_codes, status: :unprocessable_content}
@@ -15,8 +16,12 @@ module API
         wrap_parameters false
 
         # L'autorisation passe avant la recherche : un client sans le droit reçoit 403 même sur un agent inconnu.
+        # L'en-tête d'acteur passe entre les deux. hub-api enregistre sans personne derrière : l'en-tête est
+        # facultatif à l'enregistrement.
         before_action :authorize_agent
-        before_action :set_agent, only: %i[show]
+        before_action :require_declared_actor, only: %i[update destroy]
+        before_action :check_declared_actor, only: :create
+        before_action :set_agent, only: %i[show update destroy]
         rescue_from ActionController::ParameterMissing, with: :missing_envelope
 
         # La chaîne de requête seule : un corps de GET n'a pas à compter. Pagy compose les liens de l'en-tête Link
@@ -35,7 +40,7 @@ module API
 
         def create
           form = AgentForm.new(**agent_params, **source_info_param)
-          result = Agents::Create.call(form:, api_client: current_api_client, request_id: request.request_id)
+          result = Agents::Create.call(form:, **trace_context)
 
           if result.success?
             @membership = result.membership
@@ -45,14 +50,43 @@ module API
           end
         end
 
+        def update
+          form = AgentUpdateForm.new(agent: @agent, **correction_params)
+          result = Agents::Update.call(form:, **trace_context)
+
+          if result.success?
+            # L'état enregistré : les rattachements rechargés, aucune valeur de la requête n'est renvoyée telle quelle.
+            @agent = Agent.includes(memberships: %i[organization_link data_stream_accesses]).find(@agent.id)
+            render :update
+          else
+            render_refusal(form, Array(result.refusals))
+          end
+        end
+
+        def destroy
+          Agents::Destroy.call!(agent: @agent, **trace_context)
+
+          head :no_content
+        end
+
         private
 
-        # Pundit juge la question de l'action : `index?`, `show?` ou `create?`.
+        # Pundit juge la question de l'action : `index?`, `show?`, `create?`, `update?` ou `destroy?`.
         def authorize_agent = authorize(:agent, policy_class: AgentPolicy)
 
         # Les rattachements, leur organisation et leurs flux d'un coup : la représentation les parcourt tous.
         def set_agent
           @agent = Agent.includes(memberships: %i[organization_link data_stream_accesses]).find(params[:id])
+        end
+
+        # Lus dans le JSON brut : le filtrage de Rails écarterait en silence une valeur non scalaire, que le
+        # form doit refuser. Prénom et nom, comme toute clé inconnue, sont écartés ; une enveloppe qui n'en
+        # porte aucune autre ne change rien. Seule l'absence de l'objet `agent` est une demande mal formée.
+        def correction_params
+          agent = raw_body["agent"]
+          raise ActionController::ParameterMissing, :agent unless agent.is_a?(Hash)
+
+          agent.slice(*AgentUpdateForm::CORRECTABLE_ATTRIBUTES.map(&:to_s)).symbolize_keys
         end
 
         def agent_params
@@ -86,29 +120,6 @@ module API
         def raw_agent
           agent = raw_body["agent"]
           agent.is_a?(Hash) ? agent : {}
-        end
-
-        def raw_body
-          @raw_body ||= begin
-            body = JSON.parse(request.raw_post) if request.media_type == Mime[:json]
-            body.is_a?(Hash) ? body : {}
-          rescue JSON::ParserError
-            {}
-          end
-        end
-
-        # Un refus est un motif, ou un motif et les paramètres de son message. Un conflit
-        # l'emporte ; l'indisponibilité seule n'est rendue que sans aucun motif.
-        def render_refusal(form, refusals)
-          refusals.each { |reason, options = {}| form.errors.add(REFUSALS.fetch(reason)[:attribute], reason, **options) }
-
-          if form.errors.empty?
-            render json: {error: "service_unavailable", message: I18n.t("api.internal.v1.agents.unavailable")}, status: :service_unavailable
-          elsif refusals.any? { |reason, _| REFUSALS.fetch(reason)[:status] == :conflict }
-            render json: form.error_details, status: :conflict
-          else
-            render json: form.error_details, status: :unprocessable_content
-          end
         end
 
         def missing_envelope
