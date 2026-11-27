@@ -445,8 +445,11 @@ RSpec.describe "Portail::Subscriptions", type: :request do
         show_detail(access_mode: "api", reauthenticated: true)
 
         expect(response).to have_http_status(:success)
-        expect(section).to have_css(".fr-alert--success",
-          text: "Identité vérifiée. Vous pouvez obtenir les identifiants jusqu'à 14 h 32.")
+        # La page ne change pas d'elle-même : passé cette heure, ou une fois la preuve utilisée (dans un
+        # autre onglet par exemple), le clic repartira vers ProConnect. Le texte le dit, déconnexion comprise.
+        expect(section).to have_css(".fr-alert--success", text: "Identité vérifiée. Vous pouvez obtenir les " \
+          "identifiants une fois, jusqu'à 14 h 32. Ensuite, il faudra de nouveau confirmer votre identité avec " \
+          "ProConnect, ce qui vous déconnectera de vos autres services.")
         expect(section).to have_css("form[method='post'][data-turbo='false'][action='#{consultations_path}'] " \
           "button.fr-btn", text: "Obtenir les identifiants")
         expect(section).not_to have_css(".proconnect-button")

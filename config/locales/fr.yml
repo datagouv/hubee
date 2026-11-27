@@ -431,7 +431,7 @@ fr:
         lead: Votre logiciel s'en sert pour se connecter à l'API HubEE au titre de cet abonnement. Ne les communiquez qu'aux personnes chargées de ce logiciel.
         reveal: Obtenir les identifiants
         reauthentication: "Pour les obtenir, confirmez d'abord votre identité avec ProConnect : vous serez déconnecté de ProConnect, y compris de vos autres services, puis invité à vous reconnecter."
-        unlocked: Identité vérifiée. Vous pouvez obtenir les identifiants jusqu'à %{time}.
+        unlocked: Identité vérifiée. Vous pouvez obtenir les identifiants une fois, jusqu'à %{time}. Ensuite, il faudra de nouveau confirmer votre identité avec ProConnect, ce qui vous déconnectera de vos autres services.
         audited: Chaque accès est enregistré à votre nom.
         client_id: Identifiant client (client_id)
         client_secret: Secret client (client_secret)

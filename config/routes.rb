@@ -40,6 +40,14 @@ Rails.application.routes.draw do
   # Turbo au survol, ni mis en cache, ni rejoué depuis l'historique.
   post "abonnements/:abonnement_id/identifiants/consultations",
     to: "portail/subscriptions/credential_consultations#create", as: :abonnement_identifiants_consultations, format: false, constraints: {abonnement_id: %r{[^/]+}}
+  # Le retour arrière depuis la page des identifiants redemande cette adresse en GET (Turbo n'en garde
+  # pas de copie) : il ramène au bloc des identifiants, qui dit où en est l'agent. Redirection
+  # temporaire : un navigateur ne la retient pas. L'identifiant est réencodé : interpolé tel quel, un
+  # « ..%2F » décodé en « ../ » mènerait ailleurs sur le site. Pas le helper de route, qui lèverait sur
+  # un identifiant contenant « / » : celui-ci mène à un abonnement introuvable, donc à une 404.
+  get "abonnements/:abonnement_id/identifiants/consultations",
+    to: redirect(status: 302) { |params, _request| "/abonnements/#{ERB::Util.url_encode(params[:abonnement_id])}#identifiants" },
+    format: false, constraints: {abonnement_id: %r{[^/]+}}
   # Les agents de l'organisation, un par rattachement, réservés à l'administrateur local.
   get "agents", to: "portail/memberships#index", as: :agents
 
