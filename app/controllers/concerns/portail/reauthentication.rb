@@ -9,19 +9,16 @@ module Portail
   #
   # Une action sans déclaration est standard : la session ouverte suffit. Sans preuve valable, l'agent
   # part se réauthentifier, puis revient sur `return_to` et refait son geste : rien ne se rejoue seul,
-  # et un formulaire se retrouve tel que l'agent l'a laissé. La page qui propose l'action peut dire si
-  # elle est débloquée (`reauthentication_unlocked_until`), sans rien ouvrir : seul le garde décide. Ce
-  # que vaut une preuve, et pendant combien de temps, est décrit par Portail::Access::Reauthentication.
+  # et un formulaire se retrouve tel que l'agent l'a laissé. Le contrôleur d'une page qui propose
+  # l'action peut, s'il le veut, dire si elle est débloquée (`reauthentication_status`), sans
+  # rien ouvrir : seul le garde décide. Ce que vaut une preuve, et pendant combien de temps, est décrit
+  # par Portail::Access::Reauthentication.
   module Reauthentication
     extend ActiveSupport::Concern
 
     # Le temps d'un aller-retour chez ProConnect. Au-delà, le parcours est abandonné : un retour
     # tardif ne réveille pas une réauthentification oubliée.
     PENDING_TTL = 10.minutes
-
-    included do
-      helper_method :reauthentication_unlocked_until
-    end
 
     class_methods do
       # `subject` et `return_to` sont évalués dans le contrôleur : ils dépendent de la requête. Le
@@ -39,10 +36,11 @@ module Portail
 
     private
 
-    # Pour la page qui propose une action sensible : jusqu'à quand elle est débloquée sur cet objet,
-    # nil sinon. N'ouvre rien.
-    def reauthentication_unlocked_until(action, subject_id)
-      Access::Reauthentication.unlocked_until(Current.provider_session, action:, subject_id:)
+    # Pour le contrôleur d'une page qui propose une action sensible, à passer à sa vue : si l'action est
+    # débloquée sur cet objet, et jusqu'à quand (Access::Reauthentication::Status). N'ouvre rien et ne
+    # consomme rien.
+    def reauthentication_status(action, subject_id)
+      Access::Reauthentication.status(Current.provider_session, action:, subject_id:)
     end
 
     # Le parcours en cours dans ce navigateur, s'il est récent et appartient à la session ouverte.

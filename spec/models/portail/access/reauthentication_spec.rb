@@ -25,32 +25,34 @@ RSpec.describe Portail::Access::Reauthentication do
     expect { described_class.level(:export) }.to raise_error(ArgumentError, /export/)
   end
 
-  describe ".unlocked_until" do
-    def unlocked_until(subject_id = "subscription-a")
-      described_class.unlocked_until(provider_session, action: :credentials, subject_id:)
+  # Ce qu'une page peut dire d'une action sensible, sans rien ouvrir : un état nommé, jamais un nil
+  # à interpréter.
+  describe ".status" do
+    def status(subject_id = "subscription-a")
+      described_class.status(provider_session, action: :credentials, subject_id:)
     end
 
-    it "gives the end of the window of a proof for this action on this subject" do
+    it "is unlocked until the end of the window of a proof for this action on this subject" do
       prove
 
-      expect(unlocked_until).to eq(5.minutes.from_now)
+      expect(status).to have_attributes(unlocked?: true, unlocked_until: 5.minutes.from_now)
     end
 
-    it "gives nothing without a proof, for another subject, or once consumed" do
-      expect(unlocked_until).to be_nil
+    it "is locked without a proof, for another subject, or once consumed" do
+      expect(status).to have_attributes(unlocked?: false, unlocked_until: nil)
 
       prove
-      expect(unlocked_until("subscription-b")).to be_nil
+      expect(status("subscription-b").unlocked?).to be(false)
 
       described_class.consume!(provider_session, purpose:)
-      expect(unlocked_until).to be_nil
+      expect(status.unlocked?).to be(false)
     end
 
-    it "gives nothing once the window has passed" do
+    it "is locked once the window has passed" do
       prove
       travel 5.minutes + 1.second
 
-      expect(unlocked_until).to be_nil
+      expect(status.unlocked?).to be(false)
     end
   end
 
