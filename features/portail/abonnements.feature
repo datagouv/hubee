@@ -39,7 +39,7 @@ Fonctionnalité: Les abonnements de la structure
     Et il s'est connecté
     Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
     Et il clique sur "S'identifier avec ProConnect"
-    Alors il lit "Vous pouvez obtenir les identifiants jusqu'à"
+    Alors il lit "Vous pouvez obtenir les identifiants une fois, jusqu'à"
     Quand il clique sur "Obtenir les identifiants"
     Alors il voit les identifiants masqués, jamais en entier
     Quand il clique sur "Copier le secret client"
@@ -66,3 +66,21 @@ Fonctionnalité: Les abonnements de la structure
     Alors il lit "La copie n'a pas fonctionné. Réessayez ; si le problème persiste, écrivez à support@hubee.numerique.gouv.fr."
     Et le message est espacé de l'identifiant comme un message de champ DSFR
     Et il ne lit pas "Copié dans le presse-papiers."
+
+  # Le secret ne vit que dans la réponse du POST : en quittant la page, rien ne doit le garder. Turbo
+  # conserve une copie des pages qu'il quitte et la réaffiche au retour arrière, sans requête : celle-ci
+  # en est exclue, le retour arrière ramène au bloc de l'abonnement.
+  @javascript
+  Scénario: Le retour arrière ne réaffiche pas le secret
+    Étant donné il est administrateur local habilité sur le seul flux "CERTDC"
+    Et l'API amont sert les identifiants de l'abonnement "DEMO_API"
+    Et il s'est connecté
+    Quand il ouvre l'abonnement "Démonstration par l'API – DEMO_API" depuis la liste
+    Et il clique sur "S'identifier avec ProConnect"
+    Et il clique sur "Obtenir les identifiants"
+    Et il lit "Pour votre sécurité, seuls les 4 premiers caractères sont affichés."
+    Et il clique sur le lien "Retour à l'abonnement"
+    Et il lit "Courriels de télédossiers"
+    Et il revient en arrière dans son navigateur
+    Alors il est sur l'abonnement, au bloc des identifiants
+    Et le secret n'est nulle part dans la page

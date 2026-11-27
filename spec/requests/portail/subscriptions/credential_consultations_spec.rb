@@ -268,7 +268,10 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     ActionController::Base.allow_forgery_protection = false
   end
 
-  it "forbids caching the response" do
+  # Deux caches : celui du navigateur (en-tête) et celui de Turbo, qui garde une copie des pages qu'il
+  # quitte et la réaffiche au retour arrière sans requête (balise). Le retour arrière est éprouvé de
+  # bout en bout dans features/portail/abonnements.feature.
+  it "keeps the response out of the browser's cache and out of Turbo's" do
     sign_in_with_proof
     serve_detail
     serve_credentials
@@ -276,6 +279,27 @@ RSpec.describe "Portail::Subscriptions::CredentialConsultations", type: :request
     reveal
 
     expect(response.headers["Cache-Control"]).to include("no-store")
+    expect(page).to have_css("meta[name='turbo-cache-control'][content='no-cache']", visible: :all)
+  end
+
+  # Ce que redemande un retour arrière sur la page des identifiants : le bloc, jamais le secret. La
+  # redirection ne passe par aucun garde : elle ne lit rien et ne consomme pas la preuve.
+  it "brings a GET on the consultation address back to the credentials block, without reading or consuming" do
+    sign_in_with_proof
+    expect(Portail::HubAPI::Subscriptions).not_to receive(:credentials)
+
+    expect { get path }.not_to change(Event, :count)
+
+    expect(response).to have_http_status(:found)
+    expect(response).to redirect_to("/abonnements/#{id}#identifiants")
+    expect(ProviderSession.granted.sole.reauthentication_consumed_at).to be_nil
+  end
+
+  # L'identifiant est réencodé : des « .. » ou des « / » encodés ne mènent pas ailleurs sur le site.
+  it "keeps the redirection on the subscription whatever the identifier carries" do
+    get "/abonnements/..%2F..%2Fx/identifiants/consultations"
+
+    expect(response).to redirect_to("/abonnements/..%2F..%2Fx#identifiants")
   end
 
   # Le secret n'est écrit qu'à un seul endroit : la réponse à l'agent qui l'a demandé.
