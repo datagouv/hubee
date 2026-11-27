@@ -88,6 +88,7 @@ jobs:
             SMTP_USER_NAME="${{ secrets.DOKKU_SMTP_USER_NAME }}" \
             SMTP_PASSWORD="${{ secrets.DOKKU_SMTP_PASSWORD }}" \
             REVIEW_APP="true" \
+            SESSION_DENIED_BEFORE_V2_OPENING="true" \
             SENTRY_DSN="${{ secrets.DOKKU_SENTRY_DSN }}" \
             SENTRY_ENVIRONMENT="review-app-$REVIEW_PREFIX" \
             SEED_TEST_ACCOUNTS="true" \
