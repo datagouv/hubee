@@ -760,3 +760,25 @@ Alors("les agents listés sont :") do |table|
   rows = page.all("table tbody tr").map { |row| row.all("td").map { |cell| cell.text.squish }.values_at(0, 4, 5, 6) }
   expect(rows).to eq(expected)
 end
+
+Quand("il clique sur le lien {string}") do |label|
+  click_link label
+end
+
+Quand("il revient en arrière dans son navigateur") do
+  page.go_back
+end
+
+# Le retour arrière vise l'adresse du POST : sans copie gardée par Turbo, la page est redemandée, et
+# cette adresse ramène au bloc des identifiants.
+Alors("il est sur l'abonnement, au bloc des identifiants") do
+  expect(page).to have_css("section#identifiants")
+  expect(page).to have_current_path(%r{\A/abonnements/[^/]+\z})
+end
+
+# Le secret entier ne s'affiche jamais : on le cherche aussi dans le code de la page, où le bouton de
+# copie le porte.
+Alors("le secret n'est nulle part dans la page") do
+  expect(page).to have_no_css("[data-clipboard-text-value='#{@client_secret}']", visible: :all)
+  expect(page.html).not_to include(@client_secret)
+end

@@ -1,7 +1,9 @@
 <%# locals: (subscription:, credentials:, failure:) -%>
 <%# La réponse du POST, affichée par le navigateur (le bouton part hors Turbo). Le seul endroit où le
-    secret quitte son enveloppe (`reveal`), pour être confié à la copie. Pas de cache : le portail
-    entier est servi sous `no-store`, la page ne ressort pas au retour arrière. %>
+    secret quitte son enveloppe (`reveal`), pour être confié à la copie. Le portail entier est servi
+    sous `no-store`, mais Turbo garde aussi, dans la page, une copie de chaque page qu'il quitte, et la
+    réaffiche au retour arrière sans rien demander : celle-ci en est exclue. %>
+<% content_for :head, tag.meta(name: "turbo-cache-control", content: "no-cache") %>
 <% content_for :title, t(".title", data_stream: subscription.data_stream_display_name) %>
 
 <%# Le fil d'Ariane de l'abonnement, prolongé : la page en est une suite, et le lien de retour en vient. %>
