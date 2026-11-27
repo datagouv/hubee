@@ -207,6 +207,22 @@ RSpec.describe "Portail::Reauthentications", type: :request do
         reason: "reauthentication_without_logout", agent_id: agent.id)
     end
 
+    # Une session sans `sid` rangé ne peut pas prouver la déconnexion. L'agent se reconnecte, sans que
+    # rien ne le désigne comme suspect.
+    it "closes the session, asking to sign in again, when it is too old to prove the logout" do
+      granted_session.update_column(:provider_sid, nil)
+      mock_proconnect(sub: agent.provider_sub, email: agent.email, acr: "eidas1-mfa")
+
+      reauthenticate(from: probe_path)
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq("Votre session ne permet pas de vérifier votre identité. Reconnectez-vous, " \
+        "puis réessayez.")
+      expect(ProviderSession.granted).to be_empty
+      expect(AccessDecision.last).to have_attributes(outcome: "denied", kind: "reauthentication",
+        reason: "reauthentication_unprovable", agent_id: agent.id)
+    end
+
     it "closes the session when someone unknown to the portal comes back" do
       mock_proconnect(sub: "sub-inconnu", email: "inconnu@example.gouv.fr", acr: "eidas1-mfa")
 

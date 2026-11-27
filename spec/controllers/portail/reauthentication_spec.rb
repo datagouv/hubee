@@ -22,7 +22,10 @@ RSpec.describe Portail::BaseController, type: :controller do
     def destroy = head(:ok)
 
     # Ce qu'une page lirait pour proposer l'action.
-    def show = render(plain: reauthentication_unlocked_until(:credentials, params[:id]).to_s)
+    def show
+      status = reauthentication_status(:credentials, params[:id])
+      render(plain: "#{status.unlocked?} #{status.unlocked_until}")
+    end
   end
 
   let(:provider_session) { create(:provider_session) }
@@ -120,10 +123,10 @@ RSpec.describe Portail::BaseController, type: :controller do
     prove("credentials:42")
 
     get :show, params: {id: "42"}
-    expect(response.body).to eq(5.minutes.from_now.to_s)
+    expect(response.body).to eq("true #{5.minutes.from_now}")
 
     get :show, params: {id: "41"}
-    expect(response.body).to eq("")
+    expect(response.body).to eq("false ")
     expect(provider_session.reload.reauthentication_consumed_at).to be_nil
   end
 end
