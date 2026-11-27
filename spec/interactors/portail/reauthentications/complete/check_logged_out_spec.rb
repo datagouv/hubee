@@ -23,4 +23,14 @@ RSpec.describe Portail::Reauthentications::Complete::CheckLoggedOut do
 
     expect(result.error).to eq(:reauthentication_without_logout)
   end
+
+  # Une session sans `sid` rangé n'a rien à comparer : n'importe quel `sid` au retour passerait pour
+  # une déconnexion. Refusé, sous son propre motif : rien n'y dit que la déconnexion a été évitée.
+  it "fails when the session has no sid to compare with, whatever ProConnect returns" do
+    legacy_session = create(:provider_session, provider_sid: nil)
+
+    result = described_class.call(provider_session: legacy_session, claims: {sid: "sid-after"})
+
+    expect(result.error).to eq(:reauthentication_unprovable)
+  end
 end

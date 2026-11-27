@@ -15,18 +15,22 @@ module Portail
       # la page qui la propose en tirent son niveau, sans le réécrire.
       ACTIONS = {credentials: :very_sensitive}.freeze
 
+      # Ce qu'une page peut dire d'une action sensible sur un objet : débloquée ou non, et jusqu'à
+      # quand. Un état nommé, pour que la vue n'ait pas à lire un nil comme un signal.
+      Status = Data.define(:unlocked_until) do
+        def unlocked? = !unlocked_until.nil?
+      end
+
       class << self
         def level(action) = ACTIONS.fetch(action) { raise ArgumentError, "action sensible inconnue : #{action.inspect}" }
 
         def purpose(action, subject_id) = "#{action}:#{subject_id}"
 
-        # Jusqu'à quand une preuve débloque cette action sur cet objet, nil sinon. Pour l'affichage
-        # seulement : il n'ouvre rien, le garde reste seul à décider et à consommer.
-        def unlocked_until(provider_session, action:, subject_id:)
+        # Pour l'affichage seulement : il n'ouvre rien, le garde reste seul à décider et à consommer.
+        def status(provider_session, action:, subject_id:)
           level = level(action)
-          return unless satisfied?(provider_session, level:, purpose: purpose(action, subject_id))
-
-          provider_session.reauthenticated_at + WINDOWS.fetch(level)
+          unlocked = satisfied?(provider_session, level:, purpose: purpose(action, subject_id))
+          Status.new(unlocked_until: (provider_session.reauthenticated_at + WINDOWS.fetch(level) if unlocked))
         end
 
         # Le nouvel id_token remplace l'ancien : celui-ci correspond à une session ProConnect fermée

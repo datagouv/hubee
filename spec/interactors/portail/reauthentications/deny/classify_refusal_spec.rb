@@ -18,6 +18,13 @@ RSpec.describe Portail::Reauthentications::Deny::ClassifyRefusal do
       .to have_attributes(reason: :reauthentication_without_logout, close_session: true, traced: true)
   end
 
+  # Une session trop ancienne pour prouver la déconnexion : l'agent se reconnecte pour en ouvrir une
+  # qui le peut. Rien de suspect : son propre motif, hors de ceux qui signalent quelqu'un au poste.
+  it "closes the session when the logout cannot be proved, under its own reason" do
+    expect(classify(:reauthentication_unprovable))
+      .to have_attributes(reason: :reauthentication_unprovable, close_session: true, traced: true)
+  end
+
   # Un abandon, un refus de ProConnect ou une panne ne disent rien de qui est au poste.
   it "keeps the session on any other refusal, traced under its own reason" do
     %i[reauthentication_aborted second_factor_required insufficient_authentication_level].each do |error|

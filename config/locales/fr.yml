@@ -327,6 +327,7 @@ fr:
       closed:
         reauthentication_mismatch: "Le compte utilisé pour vérifier votre identité n'est pas celui de votre session : par sécurité, votre session a été fermée."
         reauthentication_without_logout: "Votre identité n'a pas pu être vérifiée : la déconnexion de ProConnect n'a pas eu lieu. Par sécurité, votre session a été fermée."
+        reauthentication_unprovable: Votre session ne permet pas de vérifier votre identité. Reconnectez-vous, puis réessayez.
     sessions:
       proconnect_button:
         label: S'identifier avec ProConnect
