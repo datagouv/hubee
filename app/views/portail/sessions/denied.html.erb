@@ -8,9 +8,14 @@
     <%# L'interpolation ne sert qu'au refus de rattachement ; les autres messages
         l'ignorent, ce qui garde une seule vue pour tous les motifs. %>
     <p class="fr-text--lead">
-      <%= t("portail.sessions.denied.#{message}.body",
-            organization: @denial.organization_label.presence ||
-                          t("portail.sessions.denied.unnamed_organization")) %>
+      <% if before_v2_opening %>
+        <%= t("portail.sessions.denied.#{message}.body_html",
+              link: link_to(t("portail.sessions.denied.current_portal_link"), Portail::V2OpeningHelper::CURRENT_PORTAL_URL)) %>
+      <% else %>
+        <%= t("portail.sessions.denied.#{message}.body",
+              organization: @denial.organization_label.presence ||
+                            t("portail.sessions.denied.unnamed_organization")) %>
+      <% end %>
     </p>
 
     <% unless before_v2_opening %>

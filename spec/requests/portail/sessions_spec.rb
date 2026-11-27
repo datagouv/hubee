@@ -307,9 +307,10 @@ RSpec.describe "Portail::Sessions", type: :request do
 
         expect(response).to have_http_status(:forbidden)
         page = Capybara.string(response.body)
-        expect(page).to have_css("h1", text: "Le nouveau portail HubEE ouvre prochainement")
-        expect(page).to have_text("Si vous utilisez déjà HubEE, vous retrouverez votre compte ici dès son " \
-          "ouverture, sans aucune démarche de votre part. D'ici là, continuez à utiliser le portail actuel.")
+        expect(page).to have_css("h1", text: "Le nouveau portail HubEE ouvre le 7 décembre")
+        expect(page).to have_text("Si vous utilisez déjà HubEE, vous retrouverez votre compte ici à partir du " \
+          "7 décembre, sans aucune démarche de votre part. D'ici là, continuez à utiliser le portail actuel.")
+        expect(page).to have_css("p.fr-text--lead a[href='https://portail.hubee.numerique.gouv.fr/']", text: "le portail actuel")
         expect(page).to have_css("a.fr-btn:not(.fr-btn--secondary)[href='https://portail.hubee.numerique.gouv.fr/']",
           text: "Accéder au portail actuel")
         expect(page).to have_css("form[action='/logout'] button.fr-btn.fr-btn--secondary", text: "Essayer avec un autre compte")
