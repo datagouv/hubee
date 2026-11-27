@@ -38,6 +38,8 @@ module Portail
       @subscription = result.detail.subscription
       @emails = result.detail.delivery_email_configuration
       @delegation = result.detail.delegation
+      # Pour l'affichage du bloc des identifiants seulement : la consultation reste gardée par la preuve.
+      @credentials_reauthentication = reauthentication_status(:credentials, @subscription.id)
     end
   end
 end

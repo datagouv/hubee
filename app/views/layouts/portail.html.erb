@@ -6,7 +6,7 @@
     <title><%= content_for(:title) || t("app_name") %></title>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-    <%# Les balises propres à une page, comme le cache Turbo désactivé du détail d'un abonnement. %>
+    <%# Les balises propres à une page, comme le cache Turbo désactivé de la page des identifiants. %>
     <%= yield :head %>
 
     <%# La favicon HubEE (reprise du portail V1). Servie depuis /favicon.ico, l'adresse

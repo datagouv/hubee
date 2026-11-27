@@ -105,6 +105,6 @@
   </div>
 </div>
 
-<%= render "portail/subscriptions/credentials", subscription: @subscription %>
+<%= render "portail/subscriptions/credentials", subscription: @subscription, reauthentication: @credentials_reauthentication %>
 
 <%= link_to t(".back"), abonnements_path, class: "fr-link fr-icon-arrow-left-line fr-link--icon-left" %>
