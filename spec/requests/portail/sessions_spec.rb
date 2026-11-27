@@ -287,6 +287,51 @@ RSpec.describe "Portail::Sessions", type: :request do
 
       expect(response).to redirect_to("https://proconnect.test/session/end?id_token_hint=test-id-token")
     end
+
+    # Les agents de la V1 ne sont pas encore importés : leur demander de se faire déclarer
+    # enverrait des demandes inutiles aux administrations et au support.
+    context "when SESSION_DENIED_BEFORE_V2_OPENING is true" do
+      around do |example|
+        original = ENV["SESSION_DENIED_BEFORE_V2_OPENING"]
+        ENV["SESSION_DENIED_BEFORE_V2_OPENING"] = "true"
+        example.run
+      ensure
+        ENV["SESSION_DENIED_BEFORE_V2_OPENING"] = original
+      end
+
+      it "sends an unknown agent back to the current portal, without involving the support" do
+        mock_proconnect(sub: "sub-unknown", email: "alex@example.gouv.fr")
+        proconnect_callback
+
+        get denied_path
+
+        expect(response).to have_http_status(:forbidden)
+        page = Capybara.string(response.body)
+        expect(page).to have_css("h1", text: "Le nouveau portail HubEE ouvre prochainement")
+        expect(page).to have_text("Si vous utilisez déjà HubEE, vous retrouverez votre compte ici dès son " \
+          "ouverture, sans aucune démarche de votre part. D'ici là, continuez à utiliser le portail actuel.")
+        expect(page).to have_css("a.fr-btn:not(.fr-btn--secondary)[href='https://portail.hubee.numerique.gouv.fr/']",
+          text: "Accéder au portail actuel")
+        expect(page).to have_css("form[action='/logout'] button.fr-btn.fr-btn--secondary", text: "Essayer avec un autre compte")
+        expect(page).to have_text("alex@example.gouv.fr")
+        expect(page).not_to have_text("Votre compte n'est pas reconnu")
+        expect(page).not_to have_text("support@hubee.numerique.gouv.fr")
+      end
+
+      it "leaves the other refusals as they are" do
+        mock_proconnect(sub: "sub-unknown", acr: "eidas0")
+        proconnect_callback
+
+        get denied_path
+
+        expect(response).to have_http_status(:forbidden)
+        page = Capybara.string(response.body)
+        expect(page).to have_css("h1", text: "Votre rattachement n'a pas été vérifié")
+        expect(page).to have_text("support@hubee.numerique.gouv.fr")
+        expect(page).to have_css("form[action='/logout'] button.fr-btn:not(.fr-btn--secondary)")
+        expect(page).not_to have_link("Accéder au portail actuel")
+      end
+    end
   end
 
   # Deux onglets, une seule session : celui qui agit en second présente le jeton d'avant

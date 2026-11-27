@@ -1,21 +1,25 @@
 <% content_for :title, t("portail.sessions.denied.title") %>
+<% before_v2_opening = before_v2_opening?(@denial) %>
+<% message = before_v2_opening ? "unknown_agent_before_v2_opening" : @denial.denial_reason %>
 
 <div class="fr-grid-row fr-grid-row--center">
   <div class="fr-col-12 fr-col-md-8">
-    <h1><%= t("portail.sessions.denied.#{@denial.denial_reason}.heading") %></h1>
+    <h1><%= t("portail.sessions.denied.#{message}.heading") %></h1>
     <%# L'interpolation ne sert qu'au refus de rattachement ; les autres messages
         l'ignorent, ce qui garde une seule vue pour tous les motifs. %>
     <p class="fr-text--lead">
-      <%= t("portail.sessions.denied.#{@denial.denial_reason}.body",
+      <%= t("portail.sessions.denied.#{message}.body",
             organization: @denial.organization_label.presence ||
                           t("portail.sessions.denied.unnamed_organization")) %>
     </p>
 
-    <p>
-      <%# Clé _html : Rails échappe l'interpolation sauf si elle est déjà sûre, ce que
-          mail_to garantit. %>
-      <%= t("portail.sessions.denied.support_html", email: mail_to(support_email)) %>
-    </p>
+    <% unless before_v2_opening %>
+      <p>
+        <%# Clé _html : Rails échappe l'interpolation sauf si elle est déjà sûre, ce que
+            mail_to garantit. %>
+        <%= t("portail.sessions.denied.support_html", email: mail_to(support_email)) %>
+      </p>
+    <% end %>
 
     <%# L'adresse qualifie le refus, et reste juste au-dessus de l'action. %>
     <p class="fr-text--sm fr-mb-1w">
@@ -26,11 +30,18 @@
     <p class="fr-hint-text fr-mb-2w"><%= t("portail.sessions.denied.switch_account_hint") %></p>
 
     <ul class="fr-btns-group fr-btns-group--inline-md">
+      <% if before_v2_opening %>
+        <li>
+          <%= link_to t("portail.sessions.denied.current_portal"), Portail::V2OpeningHelper::CURRENT_PORTAL_URL,
+                class: "fr-btn" %>
+        </li>
+      <% end %>
       <li>
         <%# Passe par nous pour que la tentative abandonnée soit effacée avant la
             redirection. Hors Turbo : la redirection finale est cross-origin. %>
         <%= button_to t("portail.sessions.denied.switch_account"), logout_path,
-              method: :delete, class: "fr-btn", form: {data: {turbo: false}} %>
+              method: :delete, class: class_names("fr-btn", "fr-btn--secondary": before_v2_opening),
+              form: {data: {turbo: false}} %>
       </li>
       <li>
         <%= link_to t("portail.errors.back_home"), root_path, class: "fr-btn fr-btn--secondary" %>
