@@ -342,12 +342,13 @@ fr:
         switch_account_hint: Réessayer avec un autre compte vous déconnectera d'abord de ProConnect.
         switch_account: Essayer avec un autre compte
         current_portal: Accéder au portail actuel
+        current_portal_link: le portail actuel
         unknown_agent:
           heading: Votre compte n'est pas reconnu
           body: Votre identité est vérifiée, mais aucun compte HubEE ne lui correspond. Demandez à votre administration de vous déclarer, puis reconnectez-vous.
         unknown_agent_before_v2_opening:
-          heading: Le nouveau portail HubEE ouvre prochainement
-          body: Votre identité est bien vérifiée. Si vous utilisez déjà HubEE, vous retrouverez votre compte ici dès son ouverture, sans aucune démarche de votre part. D'ici là, continuez à utiliser le portail actuel.
+          heading: Le nouveau portail HubEE ouvre le 7 décembre
+          body_html: Votre identité est bien vérifiée. Si vous utilisez déjà HubEE, vous retrouverez votre compte ici à partir du 7 décembre, sans aucune démarche de votre part. D'ici là, continuez à utiliser %{link}.
         insufficient_authentication_level:
           heading: Votre rattachement n'a pas été vérifié
           body: "L'organisation de votre compte est déclarative : HubEE exige qu'elle soit vérifiée. Reconnectez-vous avec le compte fourni par votre administration."
